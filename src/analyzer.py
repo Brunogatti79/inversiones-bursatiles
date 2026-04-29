@@ -309,9 +309,11 @@ def get_index_stats(df: pd.DataFrame, index_col: str) -> dict:
     serie = df[df.index >= start][index_col].dropna()
 
     if len(serie) < 2:
-        return {}
+    continue
 
-    ret = (serie.iloc[-1] / serie.iloc[0] - 1) * 100
+if len(serie) < 2:
+    return {}
+ret = (serie.iloc[-1] / serie.iloc[0] - 1) * 100
     vol = serie.pct_change().dropna().std() * np.sqrt(252) * 100
     max_val = serie.max()
     min_val = serie.min()

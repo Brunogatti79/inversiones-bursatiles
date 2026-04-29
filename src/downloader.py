@@ -143,11 +143,16 @@ def _index_display_name(market: str) -> str:
 
 
 def download_all() -> dict:
-    return {
-        "merval":  _download_batch(MERVAL_TICKERS,  MERVAL_INDEX,  "MERVAL"),
-        "bovespa": _download_batch(BOVESPA_TICKERS, BOVESPA_INDEX, "BOVESPA"),
-        "sp500":   _download_batch(SP500_TICKERS,   SP500_INDEX,   "SP500"),
-    }
+    import time
+    results = {}
+    for key, tickers, index in [
+        ("merval",  MERVAL_TICKERS,  MERVAL_INDEX),
+        ("bovespa", BOVESPA_TICKERS, BOVESPA_INDEX),
+        ("sp500",   SP500_TICKERS,   SP500_INDEX),
+    ]:
+        results[key] = _download_batch(tickers, index, key.upper())
+        time.sleep(5)
+    return results
 
 
 def save_csvs(data: dict, output_dir: str = "data") -> dict:
