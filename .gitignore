@@ -1,6 +1,32 @@
-App/.env 
-App/.env 
-__pycache__/ 
-App/data/chroma/ 
-App/data/metadata.db 
-*.zip 
+# Entorno
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Datos y outputs (no versionar archivos grandes)
+data/*.csv
+data/*.json
+data/*.xlsx
+outputs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
