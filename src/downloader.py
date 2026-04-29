@@ -113,7 +113,7 @@ def _download_batch(tickers: dict, index_ticker: str, market_name: str) -> pd.Da
 
     logger.info(f"[{market_name}] Descargando {len(all_tickers)} tickers desde {start}...")
 
-    try:
+ try:
         raw = yf.download(
             tickers=all_tickers,
             start=start,
@@ -126,7 +126,12 @@ def _download_batch(tickers: dict, index_ticker: str, market_name: str) -> pd.Da
         logger.error(f"[{market_name}] Error en descarga: {e}")
         raise
 
-    # yfinance devuelve MultiIndex (Price, Ticker) cuando son múltiples tickers
+    if raw.empty:
+        logger.warning(f"[{market_name}] DataFrame vacío — mercado cerrado o sin datos")
+        import pandas as pd
+        return pd.DataFrame()
+
+    # yfinance devuelve MultiIndex cuando son múltiples tickers
     if isinstance(raw.columns, pd.MultiIndex):
         closes = raw["Close"]
     else:
