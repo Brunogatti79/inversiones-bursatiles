@@ -1,7 +1,6 @@
 """
 src/downloader.py
 Descarga automática de precios desde Yahoo Finance.
-Cubre MERVAL (Argentina), BOVESPA (Brasil) y S&P 500 (EE.UU.).
 """
 
 import yfinance as yf
@@ -12,10 +11,6 @@ import logging
 import pytz
 
 logger = logging.getLogger(__name__)
-
-# ─────────────────────────────────────────────
-# Tickers por mercado
-# ─────────────────────────────────────────────
 
 MERVAL_TICKERS = {
     "GGAL.BA":  "Grupo Financiero Galicia",
@@ -92,28 +87,18 @@ SP500_TICKERS = {
 SP500_INDEX = "^GSPC"
 
 
-# ─────────────────────────────────────────────
-# Funciones de descarga
-# ─────────────────────────────────────────────
-
 def _get_period():
-    """Retorna start/end para los últimos 13 meses (buffer de 1 mes)."""
     end = datetime.now(pytz.UTC)
     start = end - timedelta(days=400)
     return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
 
 
 def _download_batch(tickers: dict, index_ticker: str, market_name: str) -> pd.DataFrame:
-    """
-    Descarga precios de cierre ajustados para un conjunto de tickers + índice.
-    Retorna DataFrame con columna 'Fecha' + columna por cada empresa + columna índice.
-    """
     start, end = _get_period()
     all_tickers = list(tickers.keys()) + [index_ticker]
-
     logger.info(f"[{market_name}] Descargando {len(all_tickers)} tickers desde {start}...")
 
- try:
+    try:
         raw = yf.download(
             tickers=all_tickers,
             start=start,
@@ -124,22 +109,18 @@ def _download_batch(tickers: dict, index_ticker: str, market_name: str) -> pd.Da
         )
     except Exception as e:
         logger.error(f"[{market_name}] Error en descarga: {e}")
-        raise
-
-    if raw.empty:
-        logger.warning(f"[{market_name}] DataFrame vacío — mercado cerrado o sin datos")
-        import pandas as pd
         return pd.DataFrame()
 
-    # yfinance devuelve MultiIndex cuando son múltiples tickers
-    if isinstance(raw.columns, pd.MultiIndex):
-        closes = raw["Close"]
-    else:
-        closes = raw[["Close"]].rename(columns={"Close": all_tickers[0]})
+    if raw is None or raw.empty:
+        logger.warning(f"[{market_name}] DataFrame vacío — sin datos disponibles")
+        return pd.DataFrame()
 
-    # Renombrar columnas: ticker → nombre empresa (índice se deja aparte)
+    if isinstance(raw.columns, pd.MultiIndex):
+        closes = raw["Close"].copy()
+    else:
+        closes = raw[["Close"]].copy().rename(columns={"Close": all_tickers[0]})
+
     rename_map = {t: n for t, n in tickers.items() if t in closes.columns}
-    # Renombrar índice a nombre legible
     index_col_name = _index_display_name(market_name)
     if index_ticker in closes.columns:
         rename_map[index_ticker] = index_col_name
@@ -147,48 +128,37 @@ def _download_batch(tickers: dict, index_ticker: str, market_name: str) -> pd.Da
     closes = closes.rename(columns=rename_map)
     closes.index = pd.to_datetime(closes.index)
     closes.index.name = "Fecha"
-    closes = closes.sort_index()
-
-    # Eliminar filas completamente vacías
-    closes = closes.dropna(how="all")
+    closes = closes.sort_index().dropna(how="all")
 
     logger.info(f"[{market_name}] OK — {len(closes)} días, {len(closes.columns)} columnas")
     return closes
 
 
 def _index_display_name(market: str) -> str:
-    mapping = {
+    return {
         "MERVAL":  "ÍNDICE MERVAL",
         "BOVESPA": "ÍNDICE BOVESPA",
         "SP500":   "ÍNDICE S&P 500",
-    }
-    return mapping.get(market, market)
+    }.get(market, market)
 
 
 def download_all() -> dict:
-    """
-    Punto de entrada principal.
-    Retorna dict con keys 'merval', 'bovespa', 'sp500' → DataFrames de cierres.
-    """
-    results = {}
-
-    results["merval"]  = _download_batch(MERVAL_TICKERS,  MERVAL_INDEX,  "MERVAL")
-    results["bovespa"] = _download_batch(BOVESPA_TICKERS, BOVESPA_INDEX, "BOVESPA")
-    results["sp500"]   = _download_batch(SP500_TICKERS,   SP500_INDEX,   "SP500")
-
-    return results
+    return {
+        "merval":  _download_batch(MERVAL_TICKERS,  MERVAL_INDEX,  "MERVAL"),
+        "bovespa": _download_batch(BOVESPA_TICKERS, BOVESPA_INDEX, "BOVESPA"),
+        "sp500":   _download_batch(SP500_TICKERS,   SP500_INDEX,   "SP500"),
+    }
 
 
 def save_csvs(data: dict, output_dir: str = "data") -> dict:
-    """Guarda los DataFrames como CSV compatibles con el formato del proyecto."""
     import os
     os.makedirs(output_dir, exist_ok=True)
-
     paths = {}
     for market, df in data.items():
+        if df.empty:
+            continue
         path = f"{output_dir}/{market}_cierres.csv"
         df.to_csv(path, sep=";", decimal=",", encoding="utf-8-sig")
         paths[market] = path
         logger.info(f"Guardado: {path} ({len(df)} filas)")
-
     return paths
