@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Síntesis Inversor | Informe Bursátil 20-Abr-2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0a0d14;
+    --bg2: #0e1219;
+    --bg3: #131820;
+    --card: #141b26;
+    --card2: #1a2235;
+    --border: #1e2d45;
+    --gold: #c9a227;
+    --gold2: #e8c456;
+    --teal: #00b4a6;
+    --red: #e8445a;
+    --green: #27c97a;
+    --orange: #f59e0b;
+    --yellow: #fbbf24;
+    --blue: #4d9cff;
+    --muted: #4a5568;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --merval: #f59e0b;
+    --bovespa: #27c97a;
+    --sp500: #4d9cff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #070a10 0%, #0e1a2e 50%, #0a1520 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 20% 50%, rgba(201,162,39,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(77,156,255,0.04) 0%, transparent 60%);
+  }
+  .header-inner {
+    position: relative;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 40px 28px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .brand { display: flex; flex-direction: column; gap: 4px; }
+  .brand-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+  .brand-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+  .brand-title span { color: var(--gold); }
+  .brand-sub {
+    font-size: 12px;
+    color: var(--text3);
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+  .header-meta {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .date-badge {
+    background: var(--gold);
+    color: #000;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    align-self: flex-end;
+  }
+  .header-stats {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .hstat {
+    text-align: center;
+  }
+  .hstat-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .hstat-val.pos { color: var(--green); }
+  .hstat-val.neg { color: var(--red); }
+  .hstat-lbl {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.5px;
+  }
+  .hstat-sep { color: var(--border); font-size: 20px; }
+
+  /* TICKER TAPE */
+  .ticker-wrap {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    padding: 8px 0;
+  }
+  .ticker-inner {
+    display: flex;
+    gap: 40px;
+    animation: scroll 40s linear infinite;
+    white-space: nowrap;
+    width: max-content;
+  }
+  .ticker-item {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+  .ticker-name { color: var(--text2); }
+  .ticker-price { color: var(--text); }
+  .ticker-chg.pos { color: var(--green); }
+  .ticker-chg.neg { color: var(--red); }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* NAV TABS */
+  .nav-tabs {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    overflow-x: auto;
+    padding: 0 40px;
+    gap: 0;
+    max-width: 100%;
+  }
+  .nav-tab {
+    padding: 14px 24px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+  }
+  .nav-tab:hover { color: var(--text2); }
+  .nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .nav-tab.merval.active { color: var(--merval); border-bottom-color: var(--merval); }
+  .nav-tab.bovespa.active { color: var(--bovespa); border-bottom-color: var(--bovespa); }
+  .nav-tab.sp500.active { color: var(--sp500); border-bottom-color: var(--sp500); }
+
+  /* CONTENT */
+  .content { max-width: 1400px; margin: 0 auto; padding: 32px 40px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* SECTION TITLE */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .section-icon {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .section-sub {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  .accent-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border) 0%, transparent 100%);
+  }
+
+  /* GRID */
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 24px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .col-span-2 { grid-column: span 2; }
+  .col-span-3 { grid-column: span 3; }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card-lg { padding: 24px; }
+  .card-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 12px;
+  }
+
+  /* KPI CARDS */
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi.gold::after { background: var(--gold); }
+  .kpi.green::after { background: var(--green); }
+  .kpi.blue::after { background: var(--blue); }
+  .kpi.red::after { background: var(--red); }
+  .kpi.orange::after { background: var(--orange); }
+  .kpi-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .kpi-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    margin-top: 6px;
+  }
+  .kpi-badge.pos { background: rgba(39,201,122,0.15); color: var(--green); }
+  .kpi-badge.neg { background: rgba(232,68,90,0.15); color: var(--red); }
+
+  /* CHART */
+  .chart-wrap { position: relative; padding: 8px 0; }
+  .sparkline { display: flex; align-items: flex-end; gap: 3px; height: 60px; }
+  .spark-bar {
+    flex: 1;
+    border-radius: 2px 2px 0 0;
+    min-width: 4px;
+    transition: opacity 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+  .spark-bar:hover { opacity: 0.8; }
+
+  /* LINE CHART */
+  .line-chart-wrap { width: 100%; overflow: hidden; }
+  .line-chart-svg { width: 100%; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+    font-size: 13px;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table td.mono { font-family: 'DM Mono', monospace; }
+  .data-table td.pos { color: var(--green); font-family: 'DM Mono', monospace; }
+  .data-table td.neg { color: var(--red); font-family: 'DM Mono', monospace; }
+  .data-table td.neu { color: var(--orange); font-family: 'DM Mono', monospace; }
+
+  /* SEÑAL BADGES */
+  .signal { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .signal-neutral { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .signal-sell { background: rgba(245,158,11,0.15); color: var(--orange); }
+  .signal-strong-buy { background: rgba(39,201,122,0.2); color: var(--green); }
+  .signal-buy { background: rgba(39,201,122,0.1); color: #5ee8a0; }
+  .signal-sell-strong { background: rgba(232,68,90,0.15); color: var(--red); }
+
+  /* SCORE BAR */
+  .score-bar { display: flex; gap: 4px; align-items: center; }
+  .score-track {
+    flex: 1;
+    height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .score-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+  .score-val { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text2); min-width: 32px; text-align: right; }
+
+  /* INDEX OVERVIEW ROW */
+  .index-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+  .index-flag { font-size: 28px; }
+  .index-info { flex: 1; }
+  .index-name { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; }
+  .index-price { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; color: #fff; }
+  .index-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .index-stats { display: flex; gap: 24px; }
+  .istat { text-align: center; }
+  .istat-val { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; }
+  .istat-lbl { font-size: 10px; color: var(--text3); letter-spacing: 0.5px; margin-top: 2px; }
+  .istat-sep { color: var(--border); }
+
+  /* ANALYSIS BLOCKS */
+  .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .analysis-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .a-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 14px;
+    font-family: 'DM Mono', monospace;
+  }
+  .fact-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(30,45,69,0.6); }
+  .fact-row:last-child { border-bottom: none; }
+  .fact-key { font-size: 12px; color: var(--text2); }
+  .fact-val { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); }
+
+  /* MACRO TABLE */
+  .macro-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+  .macro-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .macro-country {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 12px;
+  }
+  .macro-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(30,45,69,0.5); }
+  .macro-row:last-child { border-bottom: none; }
+  .macro-key { font-size: 11px; color: var(--text2); }
+  .macro-val { font-family: 'DM Mono', monospace; font-size: 11px; }
+  .semaforo { font-size: 13px; }
+
+  /* FICHA INDIVIDUAL */
+  .ficha {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .ficha-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg3);
+  }
+  .ficha-ticker {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--gold);
+  }
+  .ficha-nombre { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  .ficha-body { padding: 20px; }
+  .ficha-bullets { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .ficha-bullets li { display: flex; gap: 10px; font-size: 13px; line-height: 1.5; }
+  .bullet-num {
+    background: var(--bg3);
+    color: var(--gold);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    border: 1px solid var(--border);
+  }
+  .bullet-text { color: var(--text2); }
+  .bullet-text b { color: var(--text); font-weight: 600; }
+
+  /* CONCLUSIONS */
+  .conclusion-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .concl-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .concl-titulo { font-weight: 600; font-size: 15px; color: #fff; }
+  .concl-ticker { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .bullet-list { display: flex; flex-direction: column; gap: 8px; }
+  .bullet-item { display: flex; gap: 10px; font-size: 13px; line-height: 1.5; }
+  .bullet-dot { color: var(--gold); flex-shrink: 0; margin-top: 1px; }
+  .bullet-txt { color: var(--text2); }
+  .bullet-txt b { color: var(--text); }
+
+  /* RISK CARDS */
+  .risk-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    margin-right: 6px;
+  }
+  .risk-high { background: rgba(232,68,90,0.15); color: var(--red); }
+  .risk-med { background: rgba(245,158,11,0.15); color: var(--orange); }
+  .risk-low { background: rgba(39,201,122,0.15); color: var(--green); }
+
+  /* MINI CHART SVG-BASED */
+  .mini-trend {
+    width: 80px;
+    height: 32px;
+    vertical-align: middle;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .grid-3, .grid-4, .macro-grid { grid-template-columns: 1fr 1fr; }
+    .header-inner { flex-direction: column; align-items: flex-start; }
+    .content { padding: 20px 16px; }
+    .nav-tabs { padding: 0 16px; }
+  }
+  @media (max-width: 600px) {
+    .grid-3, .grid-4, .macro-grid, .grid-2, .analysis-grid { grid-template-columns: 1fr; }
+  }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+  /* PANORAMA */
+  .pano-lead {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--text2);
+    margin-bottom: 24px;
+    padding: 20px 24px;
+    border-left: 3px solid var(--gold);
+    background: var(--card);
+    border-radius: 0 8px 8px 0;
+  }
+  .pano-lead em { color: var(--gold); font-style: normal; }
+
+  .badge-market {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    margin-right: 6px;
+  }
+  .bm-merval { background: rgba(245,158,11,0.2); color: var(--merval); }
+  .bm-bovespa { background: rgba(39,201,122,0.2); color: var(--bovespa); }
+  .bm-sp500 { background: rgba(77,156,255,0.2); color: var(--sp500); }
+
+  .trend-icon { font-size: 18px; vertical-align: middle; }
+
+  /* NEWS ITEM */
+  .news-item {
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+  }
+  .news-item:last-child { border-bottom: none; }
+  .news-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); min-width: 70px; padding-top: 2px; }
+  .news-content { flex: 1; }
+  .news-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .news-desc { font-size: 12px; color: var(--text3); line-height: 1.4; }
+  .news-source { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--teal); margin-top: 4px; }
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-tag">▸ Informe de Mercados</div>
+      <div class="brand-title">Síntesis <span>Inversor</span></div>
+      <div class="brand-sub">MERVAL · BOVESPA · S&amp;P 500 &nbsp;|&nbsp; Análisis Macro–Micro–Técnico</div>
+    </div>
+    <div class="header-meta">
+      <div class="date-badge">20 ABR 2026</div>
+      <div class="header-stats">
+        <div class="hstat">
+          <div class="hstat-val pos">+41.2%</div>
+          <div class="hstat-lbl">MERVAL 12M</div>
+        </div>
+        <div class="hstat-sep">|</div>
+        <div class="hstat">
+          <div class="hstat-val pos">+50.0%</div>
+          <div class="hstat-lbl">BOVESPA 12M</div>
+        </div>
+        <div class="hstat-sep">|</div>
+        <div class="hstat">
+          <div class="hstat-val pos">+38.2%</div>
+          <div class="hstat-lbl">S&amp;P 500 12M</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TICKER TAPE -->
+<div class="ticker-wrap">
+  <div class="ticker-inner" id="ticker">
+    <div class="ticker-item"><span class="ticker-name">MERVAL</span><span class="ticker-price">2.889.185</span><span class="ticker-chg pos">+41.2% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">BOVESPA</span><span class="ticker-price">195.734</span><span class="ticker-chg pos">+50.0% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">S&amp;P 500</span><span class="ticker-price">7.126</span><span class="ticker-chg pos">+38.2% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">VALO.BA</span><span class="ticker-price">733</span><span class="ticker-chg pos">+179.0% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">TRAN.BA</span><span class="ticker-price">3.927</span><span class="ticker-chg pos">+130.8% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">BTG Pactual</span><span class="ticker-price">R$63.60</span><span class="ticker-chg pos">+87.0% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">BRADESCO</span><span class="ticker-price">R$21.26</span><span class="ticker-chg pos">+81.7% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">VALE</span><span class="ticker-price">R$89.75</span><span class="ticker-chg pos">+81.6% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">CATERPILLAR</span><span class="ticker-price">USD794.65</span><span class="ticker-chg pos">+181.6% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">GOOGLE</span><span class="ticker-price">USD341.68</span><span class="ticker-chg pos">+132.2% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">MOLI.BA</span><span class="ticker-price">2.490</span><span class="ticker-chg neg">-12.7% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">RAIZ4</span><span class="ticker-price">R$0.52</span><span class="ticker-chg neg">-69.9% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">MERVAL</span><span class="ticker-price">2.889.185</span><span class="ticker-chg pos">+41.2% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">BOVESPA</span><span class="ticker-price">195.734</span><span class="ticker-chg pos">+50.0% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">S&amp;P 500</span><span class="ticker-price">7.126</span><span class="ticker-chg pos">+38.2% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">VALO.BA</span><span class="ticker-price">733</span><span class="ticker-chg pos">+179.0% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">TRAN.BA</span><span class="ticker-price">3.927</span><span class="ticker-chg pos">+130.8% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">BTG Pactual</span><span class="ticker-price">R$63.60</span><span class="ticker-chg pos">+87.0% 12M</span></div>
+    <div class="ticker-item"><span class="ticker-name">CATERPILLAR</span><span class="ticker-price">USD794.65</span><span class="ticker-chg pos">+181.6% 12M</span></div>
+  </div>
+</div>
+
+<!-- NAV TABS -->
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="showPage('panorama', this)">🌐 Panorama</div>
+  <div class="nav-tab merval" onclick="showPage('merval', this)">🇦🇷 MERVAL</div>
+  <div class="nav-tab bovespa" onclick="showPage('bovespa', this)">🇧🇷 BOVESPA</div>
+  <div class="nav-tab sp500" onclick="showPage('sp500', this)">🇺🇸 S&amp;P 500</div>
+  <div class="nav-tab" onclick="showPage('modelo', this)">⚙️ Modelo &amp; Señales</div>
+  <div class="nav-tab" onclick="showPage('fichas', this)">📋 Fichas de Inversión</div>
+  <div class="nav-tab" onclick="showPage('conclusiones', this)">🎯 Conclusiones</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- ======== PANORAMA ======== -->
+<div class="page active" id="page-panorama">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(201,162,39,0.1)">🌐</div>
+    <div>
+      <div class="section-title">Panorama General de Mercados</div>
+      <div class="section-sub">Período: Abr-2025 → Abr-2026 | Ventana 12 meses</div>
+    </div>
+    <div class="accent-line"></div>
+  </div>
+
+  <div class="pano-lead">
+    Los tres grandes mercados de referencia acumulan <em>rendimientos positivos de dos dígitos</em> en los últimos doce meses, con el BOVESPA liderando con un impresionante <em>+50%</em>, seguido por el MERVAL con <em>+41.2%</em> y el S&amp;P 500 con <em>+38.2%</em>. El período estuvo marcado por la distensión macro en Argentina post-estabilización cambiaria, el rally de commodities y bancos brasileños, y el fuerte desempeño del sector industrial y tecnológico en EE.UU.
+  </div>
+
+  <!-- 3 Index KPIs -->
+  <div class="grid-3" style="margin-bottom:28px">
+    <div class="index-row" style="flex-direction:column;align-items:flex-start;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px;width:100%">
+        <div class="index-flag">🇦🇷</div>
+        <div class="index-info">
+          <div class="index-name" style="color:var(--merval)">MERVAL</div>
+          <div class="index-price">2.889.185</div>
+          <div class="index-meta">Buenos Aires | ARS</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--green)">+41.2%</div>
+          <div style="font-size:11px;color:var(--text3)">12 meses</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;width:100%">
+        <div class="istat"><div class="istat-val" style="color:var(--green)">3.244.320</div><div class="istat-lbl">Máx 27-Ene-26</div></div>
+        <div class="istat"><div class="istat-val" style="color:var(--red)">1.683.960</div><div class="istat-lbl">Mín 19-Sep-25</div></div>
+        <div class="istat"><div class="istat-val" style="color:var(--orange)">44.9%</div><div class="istat-lbl">Volatil. Anual</div></div>
+      </div>
+      <div>
+        <div class="kpi-badge" style="background:rgba(245,158,11,0.15);color:var(--merval)">ALCISTA con corrección</div>
+      </div>
+    </div>
+
+    <div class="index-row" style="flex-direction:column;align-items:flex-start;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px;width:100%">
+        <div class="index-flag">🇧🇷</div>
+        <div class="index-info">
+          <div class="index-name" style="color:var(--bovespa)">BOVESPA</div>
+          <div class="index-price">195.734</div>
+          <div class="index-meta">São Paulo | BRL</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--green)">+50.0%</div>
+          <div style="font-size:11px;color:var(--text3)">12 meses</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;width:100%">
+        <div class="istat"><div class="istat-val" style="color:var(--green)">198.657</div><div class="istat-lbl">Máx 14-Abr-26</div></div>
+        <div class="istat"><div class="istat-val" style="color:var(--red)">130.464</div><div class="istat-lbl">Mín 22-Abr-25</div></div>
+        <div class="istat"><div class="istat-val" style="color:var(--green)">16.1%</div><div class="istat-lbl">Volatil. Anual</div></div>
+      </div>
+      <div>
+        <div class="kpi-badge pos">ALCISTA tendencia sólida</div>
+      </div>
+    </div>
+
+    <div class="index-row" style="flex-direction:column;align-items:flex-start;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px;width:100%">
+        <div class="index-flag">🇺🇸</div>
+        <div class="index-info">
+          <div class="index-name" style="color:var(--sp500)">S&amp;P 500</div>
+          <div class="index-price">7.126</div>
+          <div class="index-meta">New York | USD</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--green)">+38.2%</div>
+          <div style="font-size:11px;color:var(--text3)">12 meses</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;width:100%">
+        <div class="istat"><div class="istat-val" style="color:var(--green)">7.126</div><div class="istat-lbl">Máx 17-Abr-26</div></div>
+        <div class="istat"><div class="istat-val" style="color:var(--red)">5.158</div><div class="istat-lbl">Mín 21-Abr-25</div></div>
+        <div class="istat"><div class="istat-val" style="color:var(--green)">12.9%</div><div class="istat-lbl">Volatil. Anual</div></div>
+      </div>
+      <div>
+        <div class="kpi-badge pos">ALCISTA en máximos históricos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evolución mensual comparativa -->
+  <div class="card card-lg" style="margin-bottom:24px">
+    <div class="card-title">Evolución Mensual Comparativa (Base 100 = Abr-2025)</div>
+    <canvas id="compChart" style="width:100%;height:220px;display:block"></canvas>
+  </div>
+
+  <!-- Macro Variables -->
+  <div class="card-title" style="margin-bottom:16px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3)">Variables Macroeconómicas Clave</div>
+  <div class="macro-grid">
+    <div class="macro-card">
+      <div class="macro-country">🇦🇷 Argentina</div>
+      <div class="macro-row"><span class="macro-key">Tasa TAMAR</span><span class="macro-val">31.3% <span class="semaforo">🟡</span></span></div>
+      <div class="macro-row"><span class="macro-key">Riesgo País</span><span class="macro-val">573 pb <span class="semaforo">🔴</span></span></div>
+      <div class="macro-row"><span class="macro-key">Inflación mensual</span><span class="macro-val">2.7% <span class="semaforo">🔴</span></span></div>
+      <div class="macro-row"><span class="macro-key">Desempleo</span><span class="macro-val">6.7% <span class="semaforo">🔴</span></span></div>
+      <div class="macro-row"><span class="macro-key">Reservas BCRA</span><span class="macro-val">USD 28 bn <span class="semaforo">🟡</span></span></div>
+      <div style="margin-top:10px"><span class="score-bar"><span class="score-track"><span class="score-fill" style="width:34%;background:var(--orange)"></span></span><span class="score-val">33.5/100</span></span></div>
+    </div>
+    <div class="macro-card">
+      <div class="macro-country">🇧🇷 Brasil</div>
+      <div class="macro-row"><span class="macro-key">Tasa SELIC</span><span class="macro-val">15.0% <span class="semaforo">🟢</span></span></div>
+      <div class="macro-row"><span class="macro-key">Riesgo País</span><span class="macro-val">220 pb <span class="semaforo">🔴</span></span></div>
+      <div class="macro-row"><span class="macro-key">Inflación IPCA</span><span class="macro-val">4.16% <span class="semaforo">🟡</span></span></div>
+      <div class="macro-row"><span class="macro-key">Desempleo</span><span class="macro-val">6.4% <span class="semaforo">🔴</span></span></div>
+      <div class="macro-row"><span class="macro-key">Reservas BCB</span><span class="macro-val">USD 350 bn <span class="semaforo">🟢</span></span></div>
+      <div style="margin-top:10px"><span class="score-bar"><span class="score-track"><span class="score-fill" style="width:43.7%;background:var(--yellow)"></span></span><span class="score-val">43.7/100</span></span></div>
+    </div>
+    <div class="macro-card">
+      <div class="macro-country">🇺🇸 EE.UU.</div>
+      <div class="macro-row"><span class="macro-key">Fed Funds Rate</span><span class="macro-val">4.375% <span class="semaforo">🟡</span></span></div>
+      <div class="macro-row"><span class="macro-key">Inflación CPI</span><span class="macro-val">2.8% <span class="semaforo">🔴</span></span></div>
+      <div class="macro-row"><span class="macro-key">Desempleo</span><span class="macro-val">4.1% <span class="semaforo">🔴</span></span></div>
+      <div class="macro-row"><span class="macro-key">PIB YoY</span><span class="macro-val">+2.3% <span class="semaforo">🟢</span></span></div>
+      <div class="macro-row"><span class="macro-key">Conf. Consumidor</span><span class="macro-val">98.3 <span class="semaforo">🟡</span></span></div>
+      <div style="margin-top:10px"><span class="score-bar"><span class="score-track"><span class="score-fill" style="width:46.7%;background:var(--yellow)"></span></span><span class="score-val">46.7/100</span></span></div>
+    </div>
+  </div>
+
+  <!-- Events timeline -->
+  <div class="card card-lg">
+    <div class="card-title">Eventos Macro Clave del Período (Abr-2025 → Abr-2026)</div>
+    <div class="news-item">
+      <div class="news-date">Abr-May 25</div>
+      <div class="news-content">
+        <div class="news-title"><span class="badge-market bm-merval">MERVAL</span> Inicio del programa de estabilización cambiaria en Argentina</div>
+        <div class="news-desc">El BCRA avanzó en la normalización del tipo de cambio con bandas de flotación. El MERVAL reaccionó positivamente acelerando hasta 2.3M puntos en mayo.</div>
+        <div class="news-source">BCRA / Ámbito Financiero</div>
+      </div>
+    </div>
+    <div class="news-item">
+      <div class="news-date">Sep-Oct 25</div>
+      <div class="news-content">
+        <div class="news-title"><span class="badge-market bm-merval">MERVAL</span> Mínimo del año: 1.683.960 (19-Sep) y rally del 79%</div>
+        <div class="news-desc">Corrección pronunciada por toma de ganancias y dudas sobre reservas. El rebote fue explosivo, impulsado por el acuerdo con el FMI y la mejora de reservas.</div>
+        <div class="news-source">Cronista / Bloomberg</div>
+      </div>
+    </div>
+    <div class="news-item">
+      <div class="news-date">Oct-Ene 26</div>
+      <div class="news-content">
+        <div class="news-title"><span class="badge-market bm-merval">MERVAL</span> Rally hasta máximos históricos: 3.244.320 (27-Ene-26)</div>
+        <div class="news-desc">El acuerdo Extended Fund Facility con el FMI y el desempeño del sector financiero llevaron al índice a nuevos máximos absolutos.</div>
+        <div class="news-source">Reuters / Ambito</div>
+      </div>
+    </div>
+    <div class="news-item">
+      <div class="news-date">Abr-Dic 25</div>
+      <div class="news-content">
+        <div class="news-title"><span class="badge-market bm-bovespa">BOVESPA</span> Rally sostenido con récords en commodities y bancos</div>
+        <div class="news-desc">Vale, Petrobras y BTG Pactual lideraron la suba. El BOVESPA pasó de 130K a casi 200K puntos sin correcciones pronunciadas, con volatilidad de solo 16%.</div>
+        <div class="news-source">Reuters Brasil / Valor Econômico</div>
+      </div>
+    </div>
+    <div class="news-item">
+      <div class="news-date">Abr-Abr 26</div>
+      <div class="news-content">
+        <div class="news-title"><span class="badge-market bm-sp500">S&P 500</span> Ciclo alcista con industriales y tecnología liderando</div>
+        <div class="news-desc">Caterpillar (+181%), Alphabet (+132%) y NVIDIA (+108%) encabezaron la suba anual. El S&amp;P 500 alcanzó nuevos máximos históricos en abril 2026.</div>
+        <div class="news-source">Bloomberg / WSJ</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== MERVAL ======== -->
+<div class="page" id="page-merval">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(245,158,11,0.1);font-size:22px">🇦🇷</div>
+    <div>
+      <div class="section-title" style="color:var(--merval)">Índice MERVAL</div>
+      <div class="section-sub">Abr-2025 → Abr-2026 | 20 acciones | Buenos Aires</div>
+    </div>
+    <div class="accent-line"></div>
+  </div>
+
+  <!-- BLOQUE 1 -->
+  <div class="card-title" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--merval);margin-bottom:16px">▸ Bloque 1 — Datos del Índice</div>
+  <div class="grid-4" style="margin-bottom:24px">
+    <div class="kpi gold"><div class="kpi-label">Cierre Actual</div><div class="kpi-value">2.889.185</div><div class="kpi-sub">ARS · 17-Abr-26</div></div>
+    <div class="kpi green"><div class="kpi-label">Variación 12M</div><div class="kpi-value">+41.2%</div><div class="kpi-sub">2.045.707 → 2.889.185</div></div>
+    <div class="kpi orange"><div class="kpi-label">Máximo Anual</div><div class="kpi-value">3.244.320</div><div class="kpi-sub">27-Ene-2026</div></div>
+    <div class="kpi red"><div class="kpi-label">Mínimo Anual</div><div class="kpi-value">1.683.960</div><div class="kpi-sub">19-Sep-2025</div></div>
+  </div>
+  <div class="grid-3" style="margin-bottom:24px">
+    <div class="kpi orange"><div class="kpi-label">Volatilidad Anualizada</div><div class="kpi-value">44.9%</div><div class="kpi-sub">Alta — mercado emergente</div></div>
+    <div class="kpi gold"><div class="kpi-label">Score Macro ARG</div><div class="kpi-value">33.5/100</div><div class="kpi-sub">Riesgo país + inflación</div></div>
+    <div class="kpi gold"><div class="kpi-label">Tendencia</div><div class="kpi-value" style="font-size:18px">ALCISTA</div><div class="kpi-sub">+79% desde mínimos Sep-25</div></div>
+  </div>
+
+  <!-- BLOQUE 2 -->
+  <div class="card-title" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--merval);margin:24px 0 16px">▸ Bloque 2 — Ranking de Acciones (12 Meses)</div>
+  <div class="grid-2" style="margin-bottom:24px">
+    <div class="card">
+      <div class="card-title">🏆 Top 5 Subas Anuales</div>
+      <table class="data-table">
+        <thead><tr><th>Empresa</th><th>Retorno 12M</th><th>1M</th></tr></thead>
+        <tbody>
+          <tr><td>Gr. Supervielle VALO</td><td class="pos">+179.0%</td><td class="pos">+21.5%</td></tr>
+          <tr><td>Transener</td><td class="pos">+130.8%</td><td class="neg">-6.6%</td></tr>
+          <tr><td>Central Puerto</td><td class="pos">+80.4%</td><td class="pos">+1.9%</td></tr>
+          <tr><td>BYMA</td><td class="pos">+69.2%</td><td class="pos">+4.3%</td></tr>
+          <tr><td>IRSA</td><td class="pos">+65.0%</td><td class="pos">+8.4%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">📉 Top 5 Bajas Anuales</div>
+      <table class="data-table">
+        <thead><tr><th>Empresa</th><th>Retorno 12M</th><th>1M</th></tr></thead>
+        <tbody>
+          <tr><td>Soc. Comercial del Plata</td><td class="neg">-17.2%</td><td class="pos">+22.1%</td></tr>
+          <tr><td>Mirgor</td><td class="neg">-15.7%</td><td class="neg">-1.8%</td></tr>
+          <tr><td>Supervielle</td><td class="neg">-14.8%</td><td class="pos">+20.6%</td></tr>
+          <tr><td>Molinos Río de la Plata</td><td class="neg">-12.7%</td><td class="neg">-8.5%</td></tr>
+          <tr><td>Banco Macro</td><td class="pos">+26.0%</td><td class="pos">+24.8%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title">Ranking Completo MERVAL — Retornos y Señales del Modelo</div>
+    <table class="data-table">
+      <thead><tr><th>#</th><th>Ticker</th><th>Empresa</th><th>Sector</th><th>Precio</th><th>Var 12M</th><th>Var 1M</th><th>Var 1S</th><th>RSI(14)</th><th>Score</th><th>Señal</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">1</td><td class="mono" style="color:var(--gold)">VALO.BA</td><td>Gr. Supervielle VALO</td><td>Financiero</td><td class="mono">733</td><td class="pos">+179.0%</td><td class="pos">+21.5%</td><td class="pos">+3.6%</td><td class="mono">89.3</td><td class="neu">41.7</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">2</td><td class="mono" style="color:var(--gold)">TRAN.BA</td><td>Transener</td><td>Utilities</td><td class="mono">3.927</td><td class="pos">+130.8%</td><td class="neg">-6.6%</td><td class="neg">-3.6%</td><td class="mono">54.1</td><td class="neu">36.8</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">3</td><td class="mono" style="color:var(--gold)">CEPU.BA</td><td>Central Puerto</td><td>Energía</td><td class="mono">2.237</td><td class="pos">+80.4%</td><td class="pos">+1.9%</td><td class="neg">-5.9%</td><td class="mono">54.6</td><td class="neu">42.8</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">4</td><td class="mono" style="color:var(--gold)">BYMA.BA</td><td>BYMA</td><td>Financiero</td><td class="mono">317.5</td><td class="pos">+69.2%</td><td class="pos">+4.3%</td><td class="neg">-6.1%</td><td class="mono">53.7</td><td class="neu">42.9</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">5</td><td class="mono" style="color:var(--gold)">IRSA.BA</td><td>IRSA</td><td>Inmobiliario</td><td class="mono">2.330</td><td class="pos">+65.0%</td><td class="pos">+8.4%</td><td class="pos">+0.4%</td><td class="mono">57.7</td><td class="neu">42.2</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">6</td><td class="mono" style="color:var(--gold)">TGSU2.BA</td><td>Transp. Gas del Sur</td><td>Energía</td><td class="mono">8.885</td><td class="pos">+57.8%</td><td class="neg">-1.0%</td><td class="neg">-8.5%</td><td class="mono">33.8</td><td class="mono" style="color:var(--yellow)">45.3</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">7</td><td class="mono" style="color:var(--gold)">TECO2.BA</td><td>Telecom Argentina</td><td>Telecom</td><td class="mono">3.487</td><td class="pos">+50.2%</td><td class="pos">+5.4%</td><td class="pos">+3.1%</td><td class="mono">59.3</td><td class="mono" style="color:var(--orange)">38.1</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">8</td><td class="mono" style="color:var(--gold)">LOMA.BA</td><td>Loma Negra</td><td>Materiales</td><td class="mono">3.395</td><td class="pos">+45.7%</td><td class="pos">+16.8%</td><td class="neg">-2.2%</td><td class="mono">70.0</td><td class="mono" style="color:var(--yellow)">45.4</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">9</td><td class="mono" style="color:var(--gold)">ALUA.BA</td><td>Aluar</td><td>Materiales</td><td class="mono">948.5</td><td class="pos">+43.9%</td><td class="pos">+18.8%</td><td class="neg">-6.1%</td><td class="mono">67.0</td><td class="mono" style="color:var(--yellow)">46.1</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">10</td><td class="mono" style="color:var(--gold)">PAMP.BA</td><td>Pampa Energía</td><td>Energía</td><td class="mono">4.697</td><td class="pos">+39.8%</td><td class="neg">-0.4%</td><td class="neg">-7.7%</td><td class="mono">39.7</td><td class="mono" style="color:var(--yellow)">45.1</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">11</td><td class="mono" style="color:var(--gold)">CRES.BA</td><td>Cresud</td><td>Inmobiliario</td><td class="mono">1.694</td><td class="pos">+37.0%</td><td class="pos">+1.4%</td><td class="neg">-4.5%</td><td class="mono">41.1</td><td class="mono" style="color:var(--orange)">43.0</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">12</td><td class="mono" style="color:var(--gold)">BMA.BA</td><td>Banco Macro</td><td>Financiero</td><td class="mono">11.970</td><td class="pos">+26.0%</td><td class="pos">+24.8%</td><td class="pos">+1.9%</td><td class="mono">73.8</td><td class="mono" style="color:var(--orange)">37.0</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">13</td><td class="mono" style="color:var(--gold)">TXAR.BA</td><td>Ternium Argentina</td><td>Materiales</td><td class="mono">717</td><td class="pos">+25.5%</td><td class="pos">+22.1%</td><td class="neg">-2.1%</td><td class="mono">78.2</td><td class="mono" style="color:var(--orange)">43.0</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">14</td><td class="mono" style="color:var(--gold)">HARG.BA</td><td>Holcim Argentina</td><td>Materiales</td><td class="mono">1.745</td><td class="pos">+11.1%</td><td class="pos">+19.1%</td><td class="neg">-5.2%</td><td class="mono">65.0</td><td class="mono" style="color:var(--yellow)">46.2</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">15</td><td class="mono" style="color:var(--gold)">GGAL.BA</td><td>Gr. Financiero Galicia</td><td>Financiero</td><td class="mono">7.005</td><td class="pos">+6.9%</td><td class="pos">+16.6%</td><td class="neg">-1.8%</td><td class="mono">68.4</td><td class="mono" style="color:var(--orange)">39.0</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">16</td><td class="mono" style="color:var(--gold)">EDN.BA</td><td>Edenor</td><td>Utilities</td><td class="mono">1.978</td><td class="pos">+6.6%</td><td class="pos">+4.9%</td><td class="neg">-4.4%</td><td class="mono">46.0</td><td class="mono" style="color:var(--orange)">44.8</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">17</td><td class="mono" style="color:var(--gold)">MOLI.BA</td><td>Molinos Río de la Plata</td><td>Consumo</td><td class="mono">2.490</td><td class="neg">-12.7%</td><td class="neg">-8.5%</td><td class="neg">-11.1%</td><td class="mono">42.2</td><td class="mono" style="color:var(--orange)">36.1</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">18</td><td class="mono" style="color:var(--gold)">SUPV.BA</td><td>Supervielle</td><td>Financiero</td><td class="mono">2.860</td><td class="neg">-14.8%</td><td class="pos">+20.6%</td><td class="pos">+3.2%</td><td class="mono">64.5</td><td class="mono" style="color:var(--orange)">40.2</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">19</td><td class="mono" style="color:var(--gold)">MIRG.BA</td><td>Mirgor</td><td>Consumo</td><td class="mono">18.125</td><td class="neg">-15.7%</td><td class="neg">-1.8%</td><td class="neg">-1.0%</td><td class="mono">45.7</td><td class="mono" style="color:var(--orange)">37.2</td><td><span class="signal signal-sell">🟠 Venta Parcial</span></td></tr>
+        <tr><td class="mono">20</td><td class="mono" style="color:var(--gold)">COME.BA</td><td>Soc. Comercial del Plata</td><td>Consumo</td><td class="mono">48.62</td><td class="neg">-17.2%</td><td class="pos">+22.1%</td><td class="neg">-1.2%</td><td class="mono">59.7</td><td class="mono" style="color:var(--yellow)">46.2</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- BLOQUE 3 & 4 -->
+  <div class="card-title" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--merval);margin:24px 0 16px">▸ Bloque 3 & 4 — Noticias y Resumen por Especie</div>
+
+  <div class="ficha">
+    <div class="ficha-header">
+      <div><div class="ficha-ticker">VALO.BA — Grupo Supervielle VALO</div><div class="ficha-nombre">Financiero | ARS 733 | +179% 12M | 🔴 Riesgo Alto</div></div>
+      <span class="signal signal-sell">🟠 Venta Parcial — Score 41.7</span>
+    </div>
+    <div class="ficha-body">
+      <ul class="ficha-bullets">
+        <li><div class="bullet-num">1</div><div class="bullet-text"><b>Sube +179% en Abr-2025 → Abr-2026</b>, siendo la mejor performance del MERVAL, muy por encima del índice (+41.2%).</div></li>
+        <li><div class="bullet-num">2</div><div class="bullet-text"><b>Máximo no disponible por separado</b>; el rally fue sostenido por la reestructuración del grupo financiero, capitalización y mejora de márgenes en contexto de tasas altas.</div></li>
+        <li><div class="bullet-num">3</div><div class="bullet-text"><b>Mínimo relativo en Sep-2025</b> durante la corrección generalizada del MERVAL; fue de los primeros en recuperar gracias a la expectativa de baja de riesgo país.</div></li>
+        <li><div class="bullet-num">4</div><div class="bullet-text"><b>Factores globales:</b> normalización de tasas en EEUU impacta positivamente la curva de crédito argentina. Menor riesgo emergente a nivel global beneficia acciones financieras en mercados de frontera.</div></li>
+        <li><div class="bullet-num">5</div><div class="bullet-text"><b>Señal del modelo: 🟠 Venta Parcial</b> — RSI sobrecomprado (89.3), Score Técnico elevado (56.5) pero Score Macro ARG débil (33.5). Toma de ganancias parcial recomendada en 30% de posición.</div></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="ficha">
+    <div class="ficha-header">
+      <div><div class="ficha-ticker">TGSU2.BA — Transportadora Gas del Sur</div><div class="ficha-nombre">Energía | ARS 8.885 | +57.8% 12M</div></div>
+      <span class="signal signal-neutral">🟡 Neutral/Esperar — Score 45.3</span>
+    </div>
+    <div class="ficha-body">
+      <ul class="ficha-bullets">
+        <li><div class="bullet-num">1</div><div class="bullet-text"><b>Sube +57.8% en 12M</b>, superando al índice. Rendimiento semanal negativo (-8.5%) indica presión vendedora reciente.</div></li>
+        <li><div class="bullet-num">2</div><div class="bullet-text"><b>Máximo vinculado</b> a revisiones de tarifas del sector gas natural y expectativas de normalización regulatoria post-acuerdo FMI.</div></li>
+        <li><div class="bullet-num">3</div><div class="bullet-text"><b>Baja semanal del -8.5%</b> tras señales de que los aumentos tarifarios del gas para 2026 podrían moderarse.</div></li>
+        <li><div class="bullet-num">4</div><div class="bullet-text"><b>Factores globales:</b> precios del gas natural y LNG a nivel internacional. Demanda energética latinoamericana estable.</div></li>
+        <li><div class="bullet-num">5</div><div class="bullet-text"><b>Señal: 🟡 Neutral</b> — RSI en 33.8 (zona de sobreventa técnica), lo que puede ofrecer punto de entrada si mejora el contexto tarifario. Esperar catalizador.</div></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="ficha">
+    <div class="ficha-header">
+      <div><div class="ficha-ticker">MOLI.BA — Molinos Río de la Plata</div><div class="ficha-nombre">Consumo | ARS 2.490 | -12.7% 12M</div></div>
+      <span class="signal signal-sell">🟠 Venta Parcial — Score 36.1</span>
+    </div>
+    <div class="ficha-body">
+      <ul class="ficha-bullets">
+        <li><div class="bullet-num">1</div><div class="bullet-text"><b>Baja -12.7% en 12M</b>, el peor rendimiento anual del MERVAL, y -11.1% en la última semana. Peor que el índice en 54 pp.</div></li>
+        <li><div class="bullet-num">2</div><div class="bullet-text"><b>No logró recuperar máximos</b> previos. El consumo masivo en Argentina fue presionado por la caída del salario real y la contracción del consumo interno en 2025.</div></li>
+        <li><div class="bullet-num">3</div><div class="bullet-text"><b>Mínimo reciente</b> en contexto de resultados trimestrales por debajo de expectativas y márgenes comprimidos por inflación de insumos alimenticios.</div></li>
+        <li><div class="bullet-num">4</div><div class="bullet-text"><b>Factores globales:</b> precios de soja y aceites presionados. Competencia importada post-apertura parcial. Tipo de cambio impacta costos de envases.</div></li>
+        <li><div class="bullet-num">5</div><div class="bullet-text"><b>Señal: 🟠 Venta Parcial</b> — Score 36.1, menor del MERVAL. Momentum negativo (-8.46% en 21 días), sin cruces alcistas de medias. Sin MA20 sobre MA50.</div></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ======== BOVESPA ======== -->
+<div class="page" id="page-bovespa">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(39,201,122,0.1);font-size:22px">🇧🇷</div>
+    <div>
+      <div class="section-title" style="color:var(--bovespa)">Índice BOVESPA</div>
+      <div class="section-sub">Abr-2025 → Abr-2026 | 19 acciones | São Paulo</div>
+    </div>
+    <div class="accent-line"></div>
+  </div>
+
+  <div class="card-title" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--bovespa);margin-bottom:16px">▸ Bloque 1 — Datos del Índice</div>
+  <div class="grid-4" style="margin-bottom:24px">
+    <div class="kpi green"><div class="kpi-label">Cierre Actual</div><div class="kpi-value">195.734</div><div class="kpi-sub">BRL · 17-Abr-26</div></div>
+    <div class="kpi green"><div class="kpi-label">Variación 12M</div><div class="kpi-value">+50.0%</div><div class="kpi-sub">130.464 → 195.734</div></div>
+    <div class="kpi green"><div class="kpi-label">Máximo Anual</div><div class="kpi-value">198.657</div><div class="kpi-sub">14-Abr-2026</div></div>
+    <div class="kpi orange"><div class="kpi-label">Mínimo Anual</div><div class="kpi-value">130.464</div><div class="kpi-sub">22-Abr-2025</div></div>
+  </div>
+  <div class="grid-3" style="margin-bottom:24px">
+    <div class="kpi green"><div class="kpi-label">Volatilidad Anualizada</div><div class="kpi-value">16.1%</div><div class="kpi-sub">Baja — mercado maduro</div></div>
+    <div class="kpi green"><div class="kpi-label">Score Macro BRA</div><div class="kpi-value">43.7/100</div><div class="kpi-sub">SELIC alta pero reservas sólidas</div></div>
+    <div class="kpi green"><div class="kpi-label">Tendencia</div><div class="kpi-value" style="font-size:18px">ALCISTA</div><div class="kpi-sub">Máximos históricos recientes</div></div>
+  </div>
+
+  <div class="card-title" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--bovespa);margin:24px 0 16px">▸ Bloque 2 — Ranking de Acciones</div>
+  <div class="grid-2" style="margin-bottom:24px">
+    <div class="card">
+      <div class="card-title">🏆 Top 5 Subas Anuales</div>
+      <table class="data-table">
+        <thead><tr><th>Empresa</th><th>Retorno 12M</th><th>Señal</th></tr></thead>
+        <tbody>
+          <tr><td>BTG Pactual</td><td class="pos">+87.0%</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+          <tr><td>Bradesco</td><td class="pos">+81.7%</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+          <tr><td>Vale</td><td class="pos">+81.6%</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+          <tr><td>Petrobras PN</td><td class="pos">+62.5%</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+          <tr><td>Itaú Unibanco</td><td class="pos">+57.7%</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">📉 Top 5 Bajas Anuales</div>
+      <table class="data-table">
+        <thead><tr><th>Empresa</th><th>Retorno 12M</th><th>Señal</th></tr></thead>
+        <tbody>
+          <tr><td>Raízen</td><td class="neg">-69.9%</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+          <tr><td>Hapvida</td><td class="neg">-63.1%</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+          <tr><td>CSN</td><td class="neg">-23.3%</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+          <tr><td>Banco do Brasil</td><td class="neg">-9.1%</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+          <tr><td>Suzano</td><td class="neg">-5.5%</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title">Ranking Completo BOVESPA — Retornos y Señales del Modelo</div>
+    <table class="data-table">
+      <thead><tr><th>#</th><th>Ticker</th><th>Empresa</th><th>Sector</th><th>Precio</th><th>Var 12M</th><th>Var 1M</th><th>RSI(14)</th><th>Score</th><th>Señal</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td class="mono" style="color:var(--bovespa)">BPAC11</td><td>BTG Pactual</td><td>Financiero</td><td class="mono">R$63.60</td><td class="pos">+87.0%</td><td class="pos">+14.8%</td><td class="mono">85.7</td><td class="mono" style="color:var(--yellow)">46.5</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>2</td><td class="mono" style="color:var(--bovespa)">BBDC4</td><td>Bradesco</td><td>Financiero</td><td class="mono">R$21.26</td><td class="pos">+81.7%</td><td class="pos">+16.0%</td><td class="mono">91.0</td><td class="mono" style="color:var(--orange)">42.8</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>3</td><td class="mono" style="color:var(--bovespa)">VALE3</td><td>Vale</td><td>Materiales</td><td class="mono">R$89.75</td><td class="pos">+81.6%</td><td class="pos">+16.4%</td><td class="mono">84.7</td><td class="mono" style="color:var(--orange)">43.5</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>4</td><td class="mono" style="color:var(--bovespa)">PETR4</td><td>Petrobras PN</td><td>Energía</td><td class="mono">R$46.22</td><td class="pos">+62.5%</td><td class="neg">-1.7%</td><td class="mono">40.4</td><td class="mono" style="color:var(--yellow)">47.5</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>5</td><td class="mono" style="color:var(--bovespa)">ITUB4</td><td>Itaú Unibanco</td><td>Financiero</td><td class="mono">R$46.80</td><td class="pos">+57.7%</td><td class="pos">+11.7%</td><td class="mono">86.0</td><td class="mono" style="color:var(--orange)">41.3</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>6</td><td class="mono" style="color:var(--bovespa)">RDOR3</td><td>Rede D'Or</td><td>Salud</td><td class="mono">R$40.03</td><td class="pos">+49.0%</td><td class="pos">+8.6%</td><td class="mono">63.3</td><td class="mono" style="color:var(--orange)">44.5</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>7</td><td class="mono" style="color:var(--bovespa)">EQTL3</td><td>Equatorial</td><td>Utilities</td><td class="mono">R$45.19</td><td class="pos">+41.2%</td><td class="pos">+12.6%</td><td class="mono">91.9</td><td class="mono" style="color:var(--yellow)">46.6</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>8</td><td class="mono" style="color:var(--bovespa)">EGIE3</td><td>Engie Brasil</td><td>Utilities</td><td class="mono">R$37.51</td><td class="pos">+39.7%</td><td class="pos">+18.7%</td><td class="mono">86.9</td><td class="mono" style="color:var(--yellow)">48.8</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>9</td><td class="mono" style="color:var(--bovespa)">RENT3</td><td>Localiza</td><td>Industrial</td><td class="mono">R$51.14</td><td class="pos">+37.2%</td><td class="pos">+17.3%</td><td class="mono">76.0</td><td class="mono" style="color:var(--orange)">43.7</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>10</td><td class="mono" style="color:var(--bovespa)">LREN3</td><td>Lojas Renner</td><td>Consumo</td><td class="mono">R$15.43</td><td class="pos">+27.3%</td><td class="pos">+3.7%</td><td class="mono">56.1</td><td class="mono" style="color:var(--yellow)">46.1</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>11</td><td class="mono" style="color:var(--bovespa)">ABEV3</td><td>Ambev</td><td>Consumo</td><td class="mono">R$15.33</td><td class="pos">+23.2%</td><td class="pos">+4.0%</td><td class="mono">62.3</td><td class="mono" style="color:var(--orange)">42.7</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>12</td><td class="mono" style="color:var(--bovespa)">CYRE3</td><td>Cyrela</td><td>Inmobiliario</td><td class="mono">R$27.72</td><td class="pos">+19.9%</td><td class="pos">+1.5%</td><td class="mono">59.5</td><td class="mono" style="color:var(--orange)">41.3</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>13</td><td class="mono" style="color:var(--bovespa)">WEGE3</td><td>WEG</td><td>Industrial</td><td class="mono">R$48.65</td><td class="pos">+10.3%</td><td class="pos">+5.6%</td><td class="mono">55.1</td><td class="mono" style="color:var(--yellow)">46.9</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>14</td><td class="mono" style="color:var(--bovespa)">MGLU3</td><td>Magazine Luiza</td><td>Consumo</td><td class="mono">R$9.29</td><td class="neg">-0.9%</td><td class="pos">+5.0%</td><td class="mono">78.8</td><td class="mono" style="color:var(--orange)">39.2</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>15</td><td class="mono" style="color:var(--bovespa)">SUZB3</td><td>Suzano</td><td>Materiales</td><td class="mono">R$47.93</td><td class="neg">-5.5%</td><td class="neg">-8.8%</td><td class="mono">39.2</td><td class="mono" style="color:var(--orange)">44.5</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>16</td><td class="mono" style="color:var(--bovespa)">BBAS3</td><td>Banco do Brasil</td><td>Financiero</td><td class="mono">R$24.40</td><td class="neg">-9.1%</td><td class="pos">+4.2%</td><td class="mono">67.6</td><td class="mono" style="color:var(--orange)">42.1</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>17</td><td class="mono" style="color:var(--bovespa)">CSNA3</td><td>CSN</td><td>Materiales</td><td class="mono">R$6.79</td><td class="neg">-23.3%</td><td class="pos">+12.0%</td><td class="mono">67.0</td><td class="mono" style="color:var(--yellow)">45.3</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>18</td><td class="mono" style="color:var(--bovespa)">HAPV3</td><td>Hapvida</td><td>Salud</td><td class="mono">R$12.23</td><td class="neg">-63.1%</td><td class="pos">+49.0%</td><td class="mono">73.4</td><td class="mono" style="color:var(--yellow)">49.3</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>19</td><td class="mono" style="color:var(--bovespa)">RAIZ4</td><td>Raízen</td><td>Energía</td><td class="mono">R$0.52</td><td class="neg">-69.9%</td><td class="neg">-5.5%</td><td class="mono">52.4</td><td class="mono" style="color:var(--orange)">42.3</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Fichas BOVESPA -->
+  <div class="card-title" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--bovespa);margin:24px 0 16px">▸ Bloque 4 — Análisis Clave por Especie</div>
+
+  <div class="ficha">
+    <div class="ficha-header">
+      <div><div class="ficha-ticker" style="color:var(--bovespa)">HAPV3.SA — Hapvida</div><div class="ficha-nombre">Salud | R$12.23 | -63.1% 12M | +49% mensual ← recuperación</div></div>
+      <span class="signal signal-neutral">🟡 Neutral/Esperar — Score 49.3 (Mejor BOVESPA)</span>
+    </div>
+    <div class="ficha-body">
+      <ul class="ficha-bullets">
+        <li><div class="bullet-num">1</div><div class="bullet-text"><b>Baja -63.1% en 12M</b>, pero registró un rebote explosivo de +49% en el último mes. Movimiento de alta volatilidad en acción deprimida.</div></li>
+        <li><div class="bullet-num">2</div><div class="bullet-text"><b>Máximo histórico muy distante</b>; la compañía atravesó una severa crisis de rentabilidad por siniestralidad de su cartera de salud post-pandemia y altas tasas SELIC.</div></li>
+        <li><div class="bullet-num">3</div><div class="bullet-text"><b>Mínimo cercano al actual</b>, con la acción habiendo perdido más del 60% en el año. El rebote mensual podría ser un "dead cat bounce" o inicio de recuperación real.</div></li>
+        <li><div class="bullet-num">4</div><div class="bullet-text"><b>Factores globales:</b> sector salud privado en Brasil bajo presión regulatoria (ANS). Tasas SELIC elevadas encarecen el costo del capital para expansión.</div></li>
+        <li><div class="bullet-num">5</div><div class="bullet-text"><b>Señal: 🟡 Neutral</b> — Score más alto del BOVESPA (49.3). MA20 sobre MA50 (señal técnica positiva). Posición especulativa muy pequeña con stop-loss ajustado.</div></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="ficha">
+    <div class="ficha-header">
+      <div><div class="ficha-ticker" style="color:var(--bovespa)">PETR4.SA — Petrobras PN</div><div class="ficha-nombre">Energía | R$46.22 | +62.5% 12M | P/E 6.2x</div></div>
+      <span class="signal signal-neutral">🟡 Neutral/Esperar — Score 47.5</span>
+    </div>
+    <div class="ficha-body">
+      <ul class="ficha-bullets">
+        <li><div class="bullet-num">1</div><div class="bullet-text"><b>Sube +62.5% en 12M</b>, mejor que el índice. Baja -7.2% semanal y -1.7% mensual indica corrección reciente.</div></li>
+        <li><div class="bullet-num">2</div><div class="bullet-text"><b>Máximo anual</b> impulsado por precio del petróleo Brent sostenido, dividendos extraordinarios y mejoras operativas bajo nueva gestión.</div></li>
+        <li><div class="bullet-num">3</div><div class="bullet-text"><b>Corrección semanal</b> vinculada a caída del precio del crudo por preocupaciones OPEP+ y demanda china más débil.</div></li>
+        <li><div class="bullet-num">4</div><div class="bullet-text"><b>Factores globales:</b> precio WTI/Brent, transición energética, tensiones geopolíticas Medio Oriente. Riesgo político brasileño (intervención gubernamental histórica).</div></li>
+        <li><div class="bullet-num">5</div><div class="bullet-text"><b>Señal: 🟡 Neutral</b> — P/E de 6.2x y Upside vs Graham +57.8% (subvaluada fundamentalmente). RSI en 40.4 no sobrecomprado. Atractiva a largo plazo pero con riesgo político.</div></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="ficha">
+    <div class="ficha-header">
+      <div><div class="ficha-ticker" style="color:var(--bovespa)">RAIZ4.SA — Raízen</div><div class="ficha-nombre">Energía/Azúcar-Etanol | R$0.52 | -69.9% 12M</div></div>
+      <span class="signal signal-sell">🟠 Venta Parcial — Score 42.3</span>
+    </div>
+    <div class="ficha-body">
+      <ul class="ficha-bullets">
+        <li><div class="bullet-num">1</div><div class="bullet-text"><b>Baja -69.9% en 12M</b>, la peor performance del BOVESPA. Acción en zona de precio ultra-bajo (R$0.52), riesgo de descontinuación del cotizante.</div></li>
+        <li><div class="bullet-num">2</div><div class="bullet-text"><b>Destrucción de valor sostenida</b> por problemas en el negocio de biocombustibles de segunda generación, CAPEX elevado y resultados negativos consecutivos.</div></li>
+        <li><div class="bullet-num">3</div><div class="bullet-text"><b>Mínimo reciente</b> agravado por revisión a la baja de estimaciones y posible reestructuración de deuda. Baja adicional -10.3% en la semana.</div></li>
+        <li><div class="bullet-num">4</div><div class="bullet-text"><b>Factores globales:</b> precios del azúcar y etanol globalmente. Competencia del etanol de maíz en EEUU. Política energética brasileña.</div></li>
+        <li><div class="bullet-num">5</div><div class="bullet-text"><b>Señal: 🟠 Venta Parcial</b> — Evitar o salir. Tendencia bajista estructural. Sin catalizadores identificados. Alto riesgo de pérdida adicional.</div></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ======== S&P 500 ======== -->
+<div class="page" id="page-sp500">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(77,156,255,0.1);font-size:22px">🇺🇸</div>
+    <div>
+      <div class="section-title" style="color:var(--sp500)">Índice S&amp;P 500</div>
+      <div class="section-sub">Abr-2025 → Abr-2026 | 23 acciones monitoreadas | Nueva York</div>
+    </div>
+    <div class="accent-line"></div>
+  </div>
+
+  <div class="card-title" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--sp500);margin-bottom:16px">▸ Bloque 1 — Datos del Índice</div>
+  <div class="grid-4" style="margin-bottom:24px">
+    <div class="kpi blue"><div class="kpi-label">Cierre Actual</div><div class="kpi-value">7.126</div><div class="kpi-sub">USD · 17-Abr-26</div></div>
+    <div class="kpi green"><div class="kpi-label">Variación 12M</div><div class="kpi-value">+38.2%</div><div class="kpi-sub">5.158 → 7.126</div></div>
+    <div class="kpi green"><div class="kpi-label">Máximo Anual</div><div class="kpi-value">7.126</div><div class="kpi-sub">17-Abr-2026 (máximo histórico)</div></div>
+    <div class="kpi blue"><div class="kpi-label">Mínimo Anual</div><div class="kpi-value">5.158</div><div class="kpi-sub">21-Abr-2025</div></div>
+  </div>
+  <div class="grid-3" style="margin-bottom:24px">
+    <div class="kpi green"><div class="kpi-label">Volatilidad Anualizada</div><div class="kpi-value">12.9%</div><div class="kpi-sub">Baja — mercado desarrollado</div></div>
+    <div class="kpi blue"><div class="kpi-label">Score Macro EEUU</div><div class="kpi-value">46.7/100</div><div class="kpi-sub">PIB sólido; inflación persistente</div></div>
+    <div class="kpi green"><div class="kpi-label">Tendencia</div><div class="kpi-value" style="font-size:18px">ALCISTA</div><div class="kpi-sub">Máximo histórico recién marcado</div></div>
+  </div>
+
+  <div class="card-title" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--sp500);margin:24px 0 16px">▸ Bloque 2 — Ranking de Acciones</div>
+  <div class="grid-2" style="margin-bottom:24px">
+    <div class="card">
+      <div class="card-title">🏆 Top 5 Subas Anuales</div>
+      <table class="data-table">
+        <thead><tr><th>Empresa</th><th>Retorno 12M</th><th>Score</th></tr></thead>
+        <tbody>
+          <tr><td>Caterpillar</td><td class="pos">+181.6%</td><td class="mono" style="color:var(--yellow)">48.6</td></tr>
+          <tr><td>Alphabet (Google)</td><td class="pos">+132.2%</td><td class="mono" style="color:var(--orange)">43.4</td></tr>
+          <tr><td>NVIDIA</td><td class="pos">+108.2%</td><td class="mono" style="color:var(--orange)">43.4</td></tr>
+          <tr><td>Goldman Sachs</td><td class="pos">+88.5%</td><td class="mono" style="color:var(--orange)">44.7</td></tr>
+          <tr><td>Tesla</td><td class="pos">+76.1%</td><td class="mono" style="color:var(--orange)">43.1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">📉 Top 5 Bajas Anuales</div>
+      <table class="data-table">
+        <thead><tr><th>Empresa</th><th>Retorno 12M</th><th>Score</th></tr></thead>
+        <tbody>
+          <tr><td>UnitedHealth</td><td class="neg">-21.5%</td><td class="mono" style="color:var(--yellow)">48.8</td></tr>
+          <tr><td>Procter & Gamble</td><td class="neg">-9.5%</td><td class="mono" style="color:var(--orange)">43.2</td></tr>
+          <tr><td>Visa</td><td class="neg">-0.2%</td><td class="mono" style="color:var(--orange)">41.7</td></tr>
+          <tr><td>McDonald's</td><td class="pos">+3.2%</td><td class="mono" style="color:var(--orange)">42.6</td></tr>
+          <tr><td>Eli Lilly</td><td class="pos">+14.2%</td><td class="mono" style="color:var(--orange)">43.4</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title">Ranking Completo S&amp;P 500 — Retornos y Señales del Modelo</div>
+    <table class="data-table">
+      <thead><tr><th>#</th><th>Ticker</th><th>Empresa</th><th>Sector</th><th>Precio</th><th>Var 12M</th><th>Var 1M</th><th>RSI(14)</th><th>Score</th><th>Señal</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td class="mono" style="color:var(--sp500)">CAT</td><td>Caterpillar</td><td>Industrial</td><td class="mono">$794.65</td><td class="pos">+181.6%</td><td class="pos">+14.6%</td><td class="mono">71.6</td><td class="mono" style="color:var(--yellow)">48.6</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>2</td><td class="mono" style="color:var(--sp500)">GOOGL</td><td>Alphabet (Google)</td><td>Tecnología</td><td class="mono">$341.68</td><td class="pos">+132.2%</td><td class="pos">+11.0%</td><td class="mono">93.7</td><td class="mono" style="color:var(--orange)">43.4</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>3</td><td class="mono" style="color:var(--sp500)">NVDA</td><td>NVIDIA</td><td>Tecnología</td><td class="mono">$201.68</td><td class="pos">+108.2%</td><td class="pos">+11.8%</td><td class="mono">92.8</td><td class="mono" style="color:var(--orange)">43.4</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>4</td><td class="mono" style="color:var(--sp500)">GS</td><td>Goldman Sachs</td><td>Financiero</td><td class="mono">$925.95</td><td class="pos">+88.5%</td><td class="pos">+15.0%</td><td class="mono">83.2</td><td class="mono" style="color:var(--orange)">44.7</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>5</td><td class="mono" style="color:var(--sp500)">TSLA</td><td>Tesla</td><td>Tecnología</td><td class="mono">$400.62</td><td class="pos">+76.1%</td><td class="pos">+2.0%</td><td class="mono">64.5</td><td class="mono" style="color:var(--orange)">43.1</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>6</td><td class="mono" style="color:var(--sp500)">GE</td><td>GE Aerospace</td><td>Industrial</td><td class="mono">$304.13</td><td class="pos">+71.4%</td><td class="pos">+1.1%</td><td class="mono">59.5</td><td class="mono" style="color:var(--orange)">43.1</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>7</td><td class="mono" style="color:var(--sp500)">JNJ</td><td>Johnson & Johnson</td><td>Salud</td><td class="mono">$234.18</td><td class="pos">+53.4%</td><td class="neg">-1.3%</td><td class="mono">37.1</td><td class="mono" style="color:var(--yellow)">49.0</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>8</td><td class="mono" style="color:var(--sp500)">AMZN</td><td>Amazon</td><td>Consumo</td><td class="mono">$250.56</td><td class="pos">+49.7%</td><td class="pos">+19.4%</td><td class="mono">97.5</td><td class="mono" style="color:var(--yellow)">50.2</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>9</td><td class="mono" style="color:var(--sp500)">BAC</td><td>Bank of America</td><td>Financiero</td><td class="mono">$53.91</td><td class="pos">+49.3%</td><td class="pos">+15.1%</td><td class="mono">89.0</td><td class="mono" style="color:var(--orange)">44.6</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>10</td><td class="mono" style="color:var(--sp500)">XOM</td><td>ExxonMobil</td><td>Energía</td><td class="mono">$146.44</td><td class="pos">+43.8%</td><td class="neg">-7.1%</td><td class="mono">17.8</td><td class="mono" style="color:var(--yellow)">53.9</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>11</td><td class="mono" style="color:var(--sp500)">CVX</td><td>Chevron</td><td>Energía</td><td class="mono">$183.99</td><td class="pos">+43.8%</td><td class="neg">-7.4%</td><td class="mono">22.0</td><td class="mono" style="color:var(--yellow)">53.9</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>12</td><td class="mono" style="color:var(--sp500)">META</td><td>Meta Platforms</td><td>Tecnología</td><td class="mono">$688.55</td><td class="pos">+42.5%</td><td class="pos">+11.8%</td><td class="mono">96.5</td><td class="mono" style="color:var(--orange)">43.6</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>13</td><td class="mono" style="color:var(--sp500)">AAPL</td><td>Apple</td><td>Tecnología</td><td class="mono">$270.23</td><td class="pos">+40.5%</td><td class="pos">+8.1%</td><td class="mono">73.4</td><td class="mono" style="color:var(--orange)">42.3</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>14</td><td class="mono" style="color:var(--sp500)">JPM</td><td>JPMorgan Chase</td><td>Financiero</td><td class="mono">$310.29</td><td class="pos">+38.1%</td><td class="pos">+8.4%</td><td class="mono">80.8</td><td class="mono" style="color:var(--yellow)">46.3</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>15</td><td class="mono" style="color:var(--sp500)">WMT</td><td>Walmart</td><td>Consumo</td><td class="mono">$127.50</td><td class="pos">+39.2%</td><td class="pos">+4.7%</td><td class="mono">60.1</td><td class="mono" style="color:var(--orange)">44.7</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>16</td><td class="mono" style="color:var(--sp500)">MSFT</td><td>Microsoft</td><td>Tecnología</td><td class="mono">$422.79</td><td class="pos">+18.6%</td><td class="pos">+7.9%</td><td class="mono">92.9</td><td class="mono" style="color:var(--orange)">42.2</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>17</td><td class="mono" style="color:var(--sp500)">LLY</td><td>Eli Lilly</td><td>Salud</td><td class="mono">$927.03</td><td class="pos">+14.2%</td><td class="pos">+1.0%</td><td class="mono">61.8</td><td class="mono" style="color:var(--orange)">43.4</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>18</td><td class="mono" style="color:var(--sp500)">KO</td><td>Coca-Cola</td><td>Consumo</td><td class="mono">$75.74</td><td class="pos">+7.1%</td><td class="neg">-0.3%</td><td class="mono">50.2</td><td class="mono" style="color:var(--yellow)">46.2</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td>19</td><td class="mono" style="color:var(--sp500)">MCD</td><td>McDonald's</td><td>Consumo</td><td class="mono">$311.36</td><td class="pos">+3.2%</td><td class="neg">-1.4%</td><td class="mono">57.7</td><td class="mono" style="color:var(--orange)">42.6</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>20</td><td class="mono" style="color:var(--sp500)">V</td><td>Visa</td><td>Financiero</td><td class="mono">$317.02</td><td class="neg">-0.2%</td><td class="pos">+6.0%</td><td class="mono">76.0</td><td class="mono" style="color:var(--orange)">41.7</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>21</td><td class="mono" style="color:var(--sp500)">PG</td><td>Procter & Gamble</td><td>Consumo</td><td class="mono">$146.93</td><td class="neg">-9.5%</td><td class="pos">+0.1%</td><td class="mono">60.7</td><td class="mono" style="color:var(--orange)">43.2</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>22</td><td class="mono" style="color:var(--sp500)">BA</td><td>Boeing</td><td>Industrial</td><td class="mono">$223.38</td><td class="pos">+40.2%</td><td class="pos">+8.4%</td><td class="mono">79.9</td><td class="mono" style="color:var(--orange)">42.5</td><td><span class="signal signal-sell">🟠 Venta Parc.</span></td></tr>
+        <tr><td>23</td><td class="mono" style="color:var(--sp500)">UNH</td><td>UnitedHealth</td><td>Salud</td><td class="mono">$324.63</td><td class="neg">-21.5%</td><td class="pos">+14.2%</td><td class="mono">94.0</td><td class="mono" style="color:var(--yellow)">48.8</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Fichas S&P 500 -->
+  <div class="card-title" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--sp500);margin:24px 0 16px">▸ Bloque 4 — Análisis Clave</div>
+
+  <div class="ficha">
+    <div class="ficha-header">
+      <div><div class="ficha-ticker" style="color:var(--sp500)">CAT — Caterpillar</div><div class="ficha-nombre">Industrial | USD 794.65 | +181.6% 12M | Score 48.6</div></div>
+      <span class="signal signal-neutral">🟡 Neutral/Esperar — Mejor Score S&P 500</span>
+    </div>
+    <div class="ficha-body">
+      <ul class="ficha-bullets">
+        <li><div class="bullet-num">1</div><div class="bullet-text"><b>Sube +181.6% en 12M</b>, mejor rendimiento del S&P 500 en el panel. Supera al índice en 143 puntos porcentuales.</div></li>
+        <li><div class="bullet-num">2</div><div class="bullet-text"><b>Máximo reciente</b> impulsado por el ciclo de inversión en infraestructura global, boom de construcción en mercados emergentes y contratos de defensa y minería.</div></li>
+        <li><div class="bullet-num">3</div><div class="bullet-text"><b>Mínimo en Abr-2025</b> (inicio del período), cuando las dudas sobre el ciclo manufacturero global deprimían el sector.</div></li>
+        <li><div class="bullet-num">4</div><div class="bullet-text"><b>Factores globales:</b> superciclo de infraestructura en EEUU (IRA, Ley de Infraestructura), minería para transición energética (cobre, litio) y demanda Asia.</div></li>
+        <li><div class="bullet-num">5</div><div class="bullet-text"><b>Señal: 🟡 Neutral</b> — Mejor score del S&P 500 (48.6). MA20 sobre MA50. RSI 71.6 (zona alta pero no extrema). Con +181% acumulado, se recomienda esperar corrección para reingresar.</div></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="ficha">
+    <div class="ficha-header">
+      <div><div class="ficha-ticker" style="color:var(--sp500)">XOM / CVX — ExxonMobil / Chevron</div><div class="ficha-nombre">Energía | $146 / $184 | +43.8% 12M | RSI ~20 ← sobreventa técnica</div></div>
+      <span class="signal signal-neutral">🟡 Neutral/Esperar — Scores 53.9 (más altos del S&P)</span>
+    </div>
+    <div class="ficha-body">
+      <ul class="ficha-bullets">
+        <li><div class="bullet-num">1</div><div class="bullet-text"><b>Suben +43.8% en 12M</b>, en línea con el índice. Corrección mensual de -7% y semanal de -4% crean divergencia técnica.</div></li>
+        <li><div class="bullet-num">2</div><div class="bullet-text"><b>Máximos anuales</b> vinculados al precio sostenido del petróleo Brent y a resultados sólidos en upstream. Dividendos crecientes apoyaron la valorización.</div></li>
+        <li><div class="bullet-num">3</div><div class="bullet-text"><b>Caída reciente</b> por temores a recesión global y reducción de demanda China. OPEP+ ajuste de producción no logró sostener precios.</div></li>
+        <li><div class="bullet-num">4</div><div class="bullet-text"><b>Factores globales:</b> precio WTI, tensiones geopolíticas, transición energética gradual. Refinería capacity y downstream diversificado.</div></li>
+        <li><div class="bullet-num">5</div><div class="bullet-text"><b>Señal: 🟡 Neutral</b> — <b>Scores más altos del panel S&P 500 (53.9)</b>. RSI en zona de sobreventa extrema (17.8 XOM, 22 CVX). MA20 aún sobre MA50. Potencial punto de entrada con horizonte 3-6 meses.</div></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="ficha">
+    <div class="ficha-header">
+      <div><div class="ficha-ticker" style="color:var(--sp500)">UNH — UnitedHealth Group</div><div class="ficha-nombre">Salud | USD 324.63 | -21.5% 12M | +14.2% mensual</div></div>
+      <span class="signal signal-neutral">🟡 Neutral/Esperar — Score 48.8</span>
+    </div>
+    <div class="ficha-body">
+      <ul class="ficha-bullets">
+        <li><div class="bullet-num">1</div><div class="bullet-text"><b>Baja -21.5% en 12M</b>, peor del panel S&P. Pero registra +14.2% mensual, sugiriendo posible piso de largo plazo.</div></li>
+        <li><div class="bullet-num">2</div><div class="bullet-text"><b>Máximo en 2025</b>, luego castigada por investigación DOJ sobre prácticas de facturación Medicare, fraude en subsidiarias y presión política sobre seguros de salud.</div></li>
+        <li><div class="bullet-num">3</div><div class="bullet-text"><b>Mínimo reciente antes del rebote</b>; investigación federal y cambios regulatorios en Medicare Advantage pesaron fuerte en el precio.</div></li>
+        <li><div class="bullet-num">4</div><div class="bullet-text"><b>Factores globales:</b> reforma del sistema de salud EEUU, envejecimiento poblacional (tailwind secular), costos médicos inflacionarios.</div></li>
+        <li><div class="bullet-num">5</div><div class="bullet-text"><b>Señal: 🟡 Neutral</b> — Score alto (48.8). MA20 sobre MA50. RSI en 94 (muy sobrecomprado a corto plazo). El rebote mensual puede ser técnico. Evaluar entrada gradual si consolida arriba de $310.</div></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ======== MODELO & SEÑALES ======== -->
+<div class="page" id="page-modelo">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(77,156,255,0.1)">⚙️</div>
+    <div>
+      <div class="section-title">Modelo Macro–Micro–Técnico</div>
+      <div class="section-sub">Ranking Combinado 62 acciones | 3 mercados</div>
+    </div>
+    <div class="accent-line"></div>
+  </div>
+
+  <div class="grid-3" style="margin-bottom:28px">
+    <div class="card">
+      <div class="card-title">Metodología del Score Final</div>
+      <div class="fact-row"><span class="fact-key">Score Macro (40%)</span><span class="fact-val">Tasa + Riesgo País + Inflación + Empleo + Reservas</span></div>
+      <div class="fact-row"><span class="fact-key">Score Técnico (40%)</span><span class="fact-val">RSI14 + Mom21d + MA20/50 + Tendencia + Breakouts</span></div>
+      <div class="fact-row"><span class="fact-key">Score Sectorial (20%)</span><span class="fact-val">Tasas + Regulación + Cadenas + Ciclo</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Semáforo de Señales</div>
+      <div class="fact-row"><span class="fact-key">⭐ Compra Fuerte</span><span class="fact-val">Score > 65</span></div>
+      <div class="fact-row"><span class="fact-key">🟢 Compra</span><span class="fact-val">Score 55–65</span></div>
+      <div class="fact-row"><span class="fact-key">🟡 Neutral</span><span class="fact-val">Score 45–55</span></div>
+      <div class="fact-row"><span class="fact-key">🟠 Venta Parcial</span><span class="fact-val">Score 35–45</span></div>
+      <div class="fact-row"><span class="fact-key">🔴 Venta</span><span class="fact-val">Score &lt; 35</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Scores Macro por País</div>
+      <div class="fact-row"><span class="fact-key">🇺🇸 EE.UU.</span><span class="fact-val" style="color:var(--sp500)">46.7 / 100</span></div>
+      <div class="fact-row"><span class="fact-key">🇧🇷 Brasil</span><span class="fact-val" style="color:var(--bovespa)">43.7 / 100</span></div>
+      <div class="fact-row"><span class="fact-key">🇦🇷 Argentina</span><span class="fact-val" style="color:var(--merval)">33.5 / 100</span></div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text3)">Ningún mercado supera el umbral de compra macro. El score técnico individual puede elevar señales en casos específicos.</div>
+    </div>
+  </div>
+
+  <!-- TOP 15 Ranking Combinado -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title">Top 15 — Ranking Combinado (3 Mercados)</div>
+    <table class="data-table">
+      <thead><tr><th>Rank</th><th>Mercado</th><th>Ticker</th><th>Empresa</th><th>Sector</th><th>Precio</th><th>Score Macro</th><th>Score Técnico</th><th>Score Sect.</th><th>SCORE FINAL</th><th>Señal</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">1</td><td><span class="badge-market bm-sp500">S&P500</span></td><td class="mono">XOM</td><td>ExxonMobil</td><td>Energía</td><td class="mono">$146.44</td><td class="mono">46.7</td><td class="mono" style="color:var(--green)">64.8</td><td class="mono">46.7</td><td class="mono" style="color:var(--yellow)">53.9</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">2</td><td><span class="badge-market bm-sp500">S&P500</span></td><td class="mono">CVX</td><td>Chevron</td><td>Energía</td><td class="mono">$183.99</td><td class="mono">46.7</td><td class="mono" style="color:var(--green)">64.6</td><td class="mono">46.7</td><td class="mono" style="color:var(--yellow)">53.9</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">3</td><td><span class="badge-market bm-sp500">S&P500</span></td><td class="mono">AMZN</td><td>Amazon</td><td>Consumo</td><td class="mono">$250.56</td><td class="mono">46.7</td><td class="mono">56.0</td><td class="mono">45.7</td><td class="mono" style="color:var(--yellow)">50.2</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">4</td><td><span class="badge-market bm-bovespa">BOVA</span></td><td class="mono">HAPV3</td><td>Hapvida</td><td>Salud</td><td class="mono">R$12.23</td><td class="mono">43.7</td><td class="mono">56.5</td><td class="mono">46.2</td><td class="mono" style="color:var(--yellow)">49.3</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">5</td><td><span class="badge-market bm-sp500">S&P500</span></td><td class="mono">JNJ</td><td>J&amp;J</td><td>Salud</td><td class="mono">$234.18</td><td class="mono">46.7</td><td class="mono">51.9</td><td class="mono">48.0</td><td class="mono" style="color:var(--yellow)">49.0</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">6</td><td><span class="badge-market bm-bovespa">BOVA</span></td><td class="mono">EGIE3</td><td>Engie Brasil</td><td>Utilities</td><td class="mono">R$37.51</td><td class="mono">43.7</td><td class="mono">55.4</td><td class="mono">45.6</td><td class="mono" style="color:var(--yellow)">48.8</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">7</td><td><span class="badge-market bm-sp500">S&P500</span></td><td class="mono">UNH</td><td>UnitedHealth</td><td>Salud</td><td class="mono">$324.63</td><td class="mono">46.7</td><td class="mono">51.4</td><td class="mono">48.0</td><td class="mono" style="color:var(--yellow)">48.8</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">8</td><td><span class="badge-market bm-sp500">S&P500</span></td><td class="mono">CAT</td><td>Caterpillar</td><td>Industrial</td><td class="mono">$794.65</td><td class="mono">46.7</td><td class="mono">51.7</td><td class="mono">46.0</td><td class="mono" style="color:var(--yellow)">48.6</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">9</td><td><span class="badge-market bm-bovespa">BOVA</span></td><td class="mono">PETR4</td><td>Petrobras</td><td>Energía</td><td class="mono">R$46.22</td><td class="mono">43.7</td><td class="mono">53.5</td><td class="mono">43.1</td><td class="mono" style="color:var(--yellow)">47.5</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">10</td><td><span class="badge-market bm-bovespa">BOVA</span></td><td class="mono">WEGE3</td><td>WEG</td><td>Industrial</td><td class="mono">R$48.65</td><td class="mono">43.7</td><td class="mono">51.9</td><td class="mono">43.1</td><td class="mono" style="color:var(--yellow)">46.9</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">11</td><td><span class="badge-market bm-bovespa">BOVA</span></td><td class="mono">EQTL3</td><td>Equatorial</td><td>Utilities</td><td class="mono">R$45.19</td><td class="mono">43.7</td><td class="mono">50.0</td><td class="mono">45.6</td><td class="mono" style="color:var(--yellow)">46.6</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">12</td><td><span class="badge-market bm-bovespa">BOVA</span></td><td class="mono">BPAC11</td><td>BTG Pactual</td><td>Financiero</td><td class="mono">R$63.60</td><td class="mono">43.7</td><td class="mono">51.9</td><td class="mono">41.2</td><td class="mono" style="color:var(--yellow)">46.5</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">13</td><td><span class="badge-market bm-sp500">S&P500</span></td><td class="mono">JPM</td><td>JPMorgan Chase</td><td>Financiero</td><td class="mono">$310.29</td><td class="mono">46.7</td><td class="mono">46.3</td><td class="mono">45.4</td><td class="mono" style="color:var(--yellow)">46.3</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">14</td><td><span class="badge-market bm-merval">MERVAL</span></td><td class="mono">HARG</td><td>Holcim Argentina</td><td>Materiales</td><td class="mono">ARS 1.745</td><td class="mono">33.5</td><td class="mono">63.7</td><td class="mono">36.8</td><td class="mono" style="color:var(--yellow)">46.2</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+        <tr><td class="mono">15</td><td><span class="badge-market bm-sp500">S&P500</span></td><td class="mono">KO</td><td>Coca-Cola</td><td>Consumo</td><td class="mono">$75.74</td><td class="mono">46.7</td><td class="mono">44.7</td><td class="mono">48.4</td><td class="mono" style="color:var(--yellow)">46.2</td><td><span class="signal signal-neutral">🟡 Neutral</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Ratios Fundamentales Top 10 (Fuente: ratios_consolidado_quant.csv)</div>
+    <table class="data-table">
+      <thead><tr><th>Ticker</th><th>Empresa</th><th>P/E</th><th>P/B</th><th>EV/EBITDA</th><th>ROE (%)</th><th>Mg. Neto (%)</th><th>Upside Graham (%)</th><th>Score Quant</th></tr></thead>
+      <tbody>
+        <tr><td class="mono" style="color:var(--bovespa)">CYRE3</td><td>Cyrela</td><td class="mono">6.0x</td><td class="mono">0.99x</td><td class="mono">10.1x</td><td class="pos">22.4%</td><td class="pos">21.3%</td><td class="pos">+94.5%</td><td class="mono" style="color:var(--green)">75.0</td></tr>
+        <tr><td class="mono" style="color:var(--sp500)">NVDA</td><td>NVIDIA</td><td class="mono">40.6x</td><td class="mono">30.7x</td><td class="mono">36.4x</td><td class="pos">101.5%</td><td class="pos">55.6%</td><td class="neg">-86.6%</td><td class="mono" style="color:var(--green)">74.1</td></tr>
+        <tr><td class="mono" style="color:var(--sp500)">META</td><td>Meta Platforms</td><td class="mono">28.6x</td><td class="mono">7.8x</td><td class="mono">17.1x</td><td class="pos">30.2%</td><td class="pos">30.1%</td><td class="neg">-68.3%</td><td class="mono" style="color:var(--yellow)">66.1</td></tr>
+        <tr><td class="mono" style="color:var(--merval)">IRSA.BA</td><td>IRSA</td><td class="mono">3.9x</td><td class="mono">0.96x</td><td class="mono">12.1x</td><td class="pos">31.2%</td><td class="pos">98.9%</td><td class="pos">+145.2%</td><td class="mono" style="color:var(--yellow)">65.4</td></tr>
+        <tr><td class="mono" style="color:var(--sp500)">MSFT</td><td>Microsoft</td><td class="mono">26.1x</td><td class="mono">7.9x</td><td class="mono">18.1x</td><td class="pos">34.4%</td><td class="pos">39.0%</td><td class="neg">-67.1%</td><td class="mono" style="color:var(--yellow)">63.2</td></tr>
+        <tr><td class="mono" style="color:var(--sp500)">GOOGL</td><td>Alphabet</td><td class="mono">31.3x</td><td class="mono">9.9x</td><td class="mono">27.1x</td><td class="pos">35.7%</td><td class="pos">32.8%</td><td class="neg">-73.0%</td><td class="mono" style="color:var(--yellow)">63.0</td></tr>
+        <tr><td class="mono" style="color:var(--merval)">BYMA.BA</td><td>BYMA</td><td class="mono">11.1x</td><td class="mono">3.7x</td><td class="mono">5.6x</td><td class="pos">25.2%</td><td class="pos">67.2%</td><td class="neg">-25.5%</td><td class="mono" style="color:var(--yellow)">61.8</td></tr>
+        <tr><td class="mono" style="color:var(--bovespa)">PETR4</td><td>Petrobras</td><td class="mono">6.2x</td><td class="mono">1.5x</td><td class="mono">4.5x</td><td class="pos">28.2%</td><td class="pos">22.1%</td><td class="pos">+57.8%</td><td class="mono" style="color:var(--yellow)">61.0</td></tr>
+        <tr><td class="mono" style="color:var(--sp500)">V</td><td>Visa</td><td class="mono">29.5x</td><td class="mono">15.7x</td><td class="mono">21.0x</td><td class="pos">54.0%</td><td class="pos">50.2%</td><td class="neg">-77.9%</td><td class="mono">55.8</td></tr>
+        <tr><td class="mono" style="color:var(--merval)">PAMP.BA</td><td>Pampa Energía</td><td class="mono">12.5x</td><td class="mono">1.3x</td><td class="mono">—</td><td class="pos">11.0%</td><td class="pos">18.9%</td><td class="pos">+16.8%</td><td class="mono">55.8</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ======== FICHAS ======== -->
+<div class="page" id="page-fichas">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(201,162,39,0.1)">📋</div>
+    <div>
+      <div class="section-title">Fichas de Inversión Destacadas</div>
+      <div class="section-sub">Acciones con mayor potencial o riesgo | Análisis profundo</div>
+    </div>
+    <div class="accent-line"></div>
+  </div>
+
+  <!-- IRSA.BA -->
+  <div class="card card-lg" style="margin-bottom:24px;border-left:3px solid var(--merval)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--merval)">IRSA.BA — IRSA Inversiones y Representaciones</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">🇦🇷 Inmobiliario · ARS 2.330 · P/B 0.96x · Upside Graham +145% · Score Cuant. 65.4</div>
+      </div>
+      <span class="signal signal-sell">🟠 Venta Parcial</span>
+    </div>
+    <div class="analysis-grid">
+      <div class="analysis-card">
+        <div class="a-title">Análisis del Negocio</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6">IRSA es el mayor holding inmobiliario de Argentina, con portafolio de shoppings (Alto Palermo, Dot, Alcorta), oficinas premium, hoteles e inversiones en Israel (IDB Holdings). También controla CRESUD (agro). Su modelo de ingresos combina alquileres en dólares con activos valorados en USD, lo que la hace naturalmente dolarizada y protegida de la inflación local.</p>
+      </div>
+      <div class="analysis-card">
+        <div class="a-title">Valuación y Ratios</div>
+        <div class="fact-row"><span class="fact-key">P/E trailing</span><span class="fact-val">3.9x (muy bajo)</span></div>
+        <div class="fact-row"><span class="fact-key">P/B</span><span class="fact-val">0.96x (bajo valor contable)</span></div>
+        <div class="fact-row"><span class="fact-key">ROE</span><span class="fact-val">31.2%</span></div>
+        <div class="fact-row"><span class="fact-key">Margen Neto</span><span class="fact-val">98.9%</span></div>
+        <div class="fact-row"><span class="fact-key">Upside vs Graham</span><span class="fact-val" style="color:var(--green)">+145.2% subvaluada</span></div>
+      </div>
+      <div class="analysis-card">
+        <div class="a-title">Tesis de Inversión</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6">IRSA cotiza con descuento sustancial frente a su valor de activos netos. Los ingresos en USD de shoppings y oficinas la protegen de la devaluación. El riesgo país (573 pb) es el principal obstáculo para la revaluación. Si Argentina normaliza su macro, IRSA tiene el mayor potencial de apreciación relativa del panel.</p>
+      </div>
+      <div class="analysis-card">
+        <div class="a-title">Riesgos</div>
+        <div class="fact-row"><span class="fact-key">Riesgo país ARG</span><span class="fact-val"><span class="risk-tag risk-high">ALTO</span></span></div>
+        <div class="fact-row"><span class="fact-key">Regulación arrendamientos</span><span class="fact-val"><span class="risk-tag risk-med">MEDIO</span></span></div>
+        <div class="fact-row"><span class="fact-key">Illiquidez relativa</span><span class="fact-val"><span class="risk-tag risk-med">MEDIO</span></span></div>
+        <div class="fact-row"><span class="fact-key">Exposición IDB Israel</span><span class="fact-val"><span class="risk-tag risk-med">MEDIO</span></span></div>
+      </div>
+    </div>
+    <div style="padding:14px;background:var(--bg3);border-radius:8px;margin-top:8px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-family:'DM Mono',monospace">CONCLUSIÓN</div>
+      <p style="font-size:13px;color:var(--text2)">Acción estructuralmente subvaluada (+145% upside Graham), pero el contexto macro limita la señal a <b>🟠 Venta Parcial</b> con Score 42.2. Ideal para inversores con horizonte >18 meses y tolerancia al riesgo país. Catalizador: reducción riesgo país por debajo de 400 pb.</p>
+    </div>
+  </div>
+
+  <!-- NVIDIA -->
+  <div class="card card-lg" style="margin-bottom:24px;border-left:3px solid var(--sp500)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--sp500)">NVDA — NVIDIA Corporation</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">🇺🇸 Tecnología · USD 201.68 · P/E 40.6x · ROE 101.5% · Score Cuant. 74.1</div>
+      </div>
+      <span class="signal signal-sell">🟠 Venta Parcial</span>
+    </div>
+    <div class="analysis-grid">
+      <div class="analysis-card">
+        <div class="a-title">Análisis del Negocio</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6">NVIDIA domina el mercado de GPUs para IA con una participación estimada del 70-80% en chips de centros de datos. Su ecosistema CUDA constituye un moat tecnológico difícil de replicar. Los ingresos de Data Center crecen a tasas de más del 120% YoY, con clientes como Microsoft, Google, Amazon y Meta.</p>
+      </div>
+      <div class="analysis-card">
+        <div class="a-title">Valuación y Ratios</div>
+        <div class="fact-row"><span class="fact-key">P/E trailing</span><span class="fact-val">40.6x (premium justificado)</span></div>
+        <div class="fact-row"><span class="fact-key">ROE</span><span class="fact-val" style="color:var(--green)">101.5% (excepcional)</span></div>
+        <div class="fact-row"><span class="fact-key">Margen Neto</span><span class="fact-val" style="color:var(--green)">55.6%</span></div>
+        <div class="fact-row"><span class="fact-key">EV/EBITDA</span><span class="fact-val">36.4x (caro)</span></div>
+        <div class="fact-row"><span class="fact-key">Upside vs Graham</span><span class="fact-val" style="color:var(--red)">-86.6% (sobrevaluada)</span></div>
+      </div>
+      <div class="analysis-card">
+        <div class="a-title">Tesis</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6">NVIDIA es un monopolio de facto en infraestructura de IA. El superciclo de inversión en data centers (Stargate, Azure, AWS, Google Cloud) impulsará demanda de Blackwell/Rubin. El riesgo es la valoración premium y posibles restricciones de exportación a China.</p>
+      </div>
+      <div class="analysis-card">
+        <div class="a-title">Riesgos</div>
+        <div class="fact-row"><span class="fact-key">Valuación elevada</span><span class="fact-val"><span class="risk-tag risk-high">ALTO</span></span></div>
+        <div class="fact-row"><span class="fact-key">Export restrictions China</span><span class="fact-val"><span class="risk-tag risk-high">ALTO</span></span></div>
+        <div class="fact-row"><span class="fact-key">Competencia AMD/Intel/custom</span><span class="fact-val"><span class="risk-tag risk-med">MEDIO</span></span></div>
+        <div class="fact-row"><span class="fact-key">Concentración clientes</span><span class="fact-val"><span class="risk-tag risk-med">MEDIO</span></span></div>
+      </div>
+    </div>
+    <div style="padding:14px;background:var(--bg3);border-radius:8px;margin-top:8px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-family:'DM Mono',monospace">CONCLUSIÓN</div>
+      <p style="font-size:13px;color:var(--text2)">Score Cuantitativo 74.1 (2° global), RSI 92.8 (sobrecomprado). La calidad del negocio es excepcional pero el precio descuenta crecimiento perfecto. <b>Venta Parcial recomendada</b> (reducir 25-30% posición). Reingresar si corrige a zona $170-180.</p>
+    </div>
+  </div>
+
+  <!-- PETROBRAS -->
+  <div class="card card-lg" style="border-left:3px solid var(--bovespa)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--bovespa)">PETR4.SA — Petrobras PN</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">🇧🇷 Energía · R$46.22 · P/E 6.2x · Upside Graham +57.8% · Score Cuant. 61.0</div>
+      </div>
+      <span class="signal signal-neutral">🟡 Neutral/Esperar</span>
+    </div>
+    <div class="analysis-grid">
+      <div class="analysis-card">
+        <div class="a-title">Análisis del Negocio</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6">Petrobras es una de las mayores productoras de petróleo de América Latina, con reservas offshore profundas (pre-sal) de clase mundial. Opera en upstream, downstream y gas natural. Bajo gestión actual, recuperó disciplina financiera y paga dividendos extraordinarios con una yield superior al 10%.</p>
+      </div>
+      <div class="analysis-card">
+        <div class="a-title">Valuación</div>
+        <div class="fact-row"><span class="fact-key">P/E trailing</span><span class="fact-val" style="color:var(--green)">6.2x (muy barato)</span></div>
+        <div class="fact-row"><span class="fact-key">P/B</span><span class="fact-val">1.5x</span></div>
+        <div class="fact-row"><span class="fact-key">EV/EBITDA</span><span class="fact-val" style="color:var(--green)">4.5x (barato)</span></div>
+        <div class="fact-row"><span class="fact-key">ROE</span><span class="fact-val">28.2%</span></div>
+        <div class="fact-row"><span class="fact-key">Upside Graham</span><span class="fact-val" style="color:var(--green)">+57.8%</span></div>
+      </div>
+      <div class="analysis-card">
+        <div class="a-title">Tesis</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6">A P/E de 6.2x y EV/EBITDA de 4.5x, Petrobras es fundamentalmente barata para el perfil de negocio que tiene. Los dividendos y la gestión conservadora de deuda son pilares sólidos. El riesgo político y de precio del crudo son los principales overhang para la valorización.</p>
+      </div>
+      <div class="analysis-card">
+        <div class="a-title">Riesgos</div>
+        <div class="fact-row"><span class="fact-key">Riesgo político BRA</span><span class="fact-val"><span class="risk-tag risk-high">ALTO</span></span></div>
+        <div class="fact-row"><span class="fact-key">Precio petróleo</span><span class="fact-val"><span class="risk-tag risk-high">ALTO</span></span></div>
+        <div class="fact-row"><span class="fact-key">Transición energética</span><span class="fact-val"><span class="risk-tag risk-med">MEDIO</span></span></div>
+        <div class="fact-row"><span class="fact-key">CAPEX presupuestario</span><span class="fact-val"><span class="risk-tag risk-low">BAJO</span></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== CONCLUSIONES ======== -->
+<div class="page" id="page-conclusiones">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(39,201,122,0.1)">🎯</div>
+    <div>
+      <div class="section-title">Conclusiones y Oportunidades de Inversión</div>
+      <div class="section-sub">Resumen ejecutivo | Acciones de compra | Riesgos a monitorear</div>
+    </div>
+    <div class="accent-line"></div>
+  </div>
+
+  <div class="pano-lead">
+    El ciclo de 12 meses mostró rendimientos excepcionales en los tres mercados, con BOVESPA (+50%) como líder indiscutido. El modelo macro-técnico, sin embargo, no genera señales de compra en ninguno de los tres mercados dado el contexto de <em>tasas altas globales, inflación persistente y riesgo país elevado en LatAm</em>. La señal prevalente es <em>🟡 Neutral / 🟠 Venta Parcial</em>, aconsejando cautela y toma de ganancias en posiciones con altos rendimientos acumulados.
+  </div>
+
+  <!-- COMPRAS -->
+  <div style="margin-bottom:8px">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:16px">▸ Acciones de Compra / Posicionamiento Gradual (Señal 🟡 Neutral — ventana de entrada)</div>
+  </div>
+
+  <div class="conclusion-card" style="border-left:3px solid var(--sp500)">
+    <div class="concl-header">
+      <div>
+        <div class="concl-titulo">XOM / CVX — ExxonMobil & Chevron (S&P 500)</div>
+        <div class="concl-ticker">ENERGÍA | Scores 53.9 | RSI 17-22 (sobreventa extrema) | Score Cuant alto</div>
+      </div>
+      <span class="signal signal-neutral">🟡 Neutral → Compra Gradual</span>
+    </div>
+    <div class="bullet-list">
+      <div class="bullet-item"><div class="bullet-dot">▸</div><div class="bullet-txt">Los <b>scores más altos del panel S&P 500 (53.9)</b>, con RSI en zona de sobreventa extrema (17.8 y 22.0 respectivamente). Históricamente, RSI bajo 25 en acciones de esta calidad precede rebounds del 15-25%.</div></div>
+      <div class="bullet-item"><div class="bullet-dot">▸</div><div class="bullet-txt">Fundamentos sólidos: dividendos crecientes (>3% yield), balance con deuda baja, generación de caja récord. MA20 aún sobre MA50 confirma tendencia de largo plazo intacta.</div></div>
+      <div class="bullet-item"><div class="bullet-dot">▸</div><div class="bullet-txt"><b>Estrategia:</b> compra gradual en 3 tramos (actual / -5% / -10%), horizonte 6-12 meses. Stop-loss dinámico en -15% desde entrada. Catalizador: estabilización precio crudo por encima de $75.</div></div>
+    </div>
+  </div>
+
+  <div class="conclusion-card" style="border-left:3px solid var(--bovespa)">
+    <div class="concl-header">
+      <div>
+        <div class="concl-titulo">PETR4.SA — Petrobras PN (BOVESPA)</div>
+        <div class="concl-ticker">ENERGÍA | Score 47.5 | P/E 6.2x | EV/EBITDA 4.5x | Upside Graham +57.8%</div>
+      </div>
+      <span class="signal signal-neutral">🟡 Neutral → Valor con catalizador</span>
+    </div>
+    <div class="bullet-list">
+      <div class="bullet-item"><div class="bullet-dot">▸</div><div class="bullet-txt">Fundamentalmente subvaluada con P/E de 6.2x y upside del 57.8% frente al valor Graham. Los <b>dividendos extraordinarios (yield >10%)</b> actúan como soporte natural del precio.</div></div>
+      <div class="bullet-item"><div class="bullet-dot">▸</div><div class="bullet-txt">RSI en 40.4 (no sobrecomprado), corrección semanal de -7.2% sobre factores externos (petróleo), no fundamentales. MA20 aún sobre MA50 = tendencia alcista de largo plazo vigente.</div></div>
+      <div class="bullet-item"><div class="bullet-dot">▸</div><div class="bullet-txt"><b>Riesgo clave:</b> intervención política del gobierno Lula en política de precios o dividendos. Posición con horizonte 12+ meses, exposición moderada (<8% de portafolio), stop-loss en R$38.</div></div>
+    </div>
+  </div>
+
+  <div class="conclusion-card" style="border-left:3px solid var(--merval)">
+    <div class="concl-header">
+      <div>
+        <div class="concl-titulo">IRSA.BA — IRSA Inversiones (MERVAL)</div>
+        <div class="concl-ticker">INMOBILIARIO | Score Cuant 65.4 | P/B 0.96x | Upside Graham +145%</div>
+      </div>
+      <span class="signal signal-sell">🟠 Venta Parcial → Posición táctica mínima</span>
+    </div>
+    <div class="bullet-list">
+      <div class="bullet-item"><div class="bullet-dot">▸</div><div class="bullet-txt"><b>Mejor upside Graham del panel global (+145%)</b>. Cotiza por debajo de valor de libros (P/B 0.96x). Ingresos en USD de shoppings y oficinas = cobertura natural frente a devaluación.</div></div>
+      <div class="bullet-item"><div class="bullet-dot">▸</div><div class="bullet-txt">Posición táctica muy pequeña (2-3% portafolio) con catalizador claro: reducción del riesgo país por debajo de 400 pb, que históricamente desencadena rerating múltiple agresivo en activos ARG.</div></div>
+      <div class="bullet-item"><div class="bullet-dot">▸</div><div class="bullet-txt"><b>Horizonte largo:</b> 18-24 meses. El score del modelo (42.2) refleja riesgo macro ARG, no la calidad del activo subyacente. Ideal para portafolios con tolerancia alta al riesgo emergente.</div></div>
+    </div>
+  </div>
+
+  <!-- VENTAS -->
+  <div style="margin-top:28px;margin-bottom:8px">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:16px">▸ Acciones de Venta / Reducción de Posición (Señal 🟠)</div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <table class="data-table">
+      <thead><tr><th>Ticker</th><th>Empresa</th><th>Mercado</th><th>Retorno 12M</th><th>RSI</th><th>Razón para vender</th></tr></thead>
+      <tbody>
+        <tr><td class="mono" style="color:var(--merval)">VALO.BA</td><td>Gr. Supervielle VALO</td><td><span class="badge-market bm-merval">MERVAL</span></td><td class="pos">+179%</td><td class="neu">89.3</td><td style="font-size:12px;color:var(--text2)">RSI extremo sobrecomprado. Toma ganancias 30% de posición.</td></tr>
+        <tr><td class="mono" style="color:var(--merval)">TRAN.BA</td><td>Transener</td><td><span class="badge-market bm-merval">MERVAL</span></td><td class="pos">+131%</td><td class="mono">54.1</td><td style="font-size:12px;color:var(--text2)">Score 36.8, sin cruces MA. Presión semanal -3.6%.</td></tr>
+        <tr><td class="mono" style="color:var(--merval)">MOLI.BA</td><td>Molinos Río de la Plata</td><td><span class="badge-market bm-merval">MERVAL</span></td><td class="neg">-12.7%</td><td class="mono">42.2</td><td style="font-size:12px;color:var(--text2)">Peor score MERVAL. Tendencia bajista sin catalizador visible.</td></tr>
+        <tr><td class="mono" style="color:var(--sp500)">NVDA</td><td>NVIDIA</td><td><span class="badge-market bm-sp500">S&P500</span></td><td class="pos">+108%</td><td class="mono">92.8</td><td style="font-size:12px;color:var(--text2)">Excelente negocio pero valuación extrema. Reducir 25% para capturar ganancias.</td></tr>
+        <tr><td class="mono" style="color:var(--sp500)">GOOGL</td><td>Alphabet</td><td><span class="badge-market bm-sp500">S&P500</span></td><td class="pos">+132%</td><td class="mono">93.7</td><td style="font-size:12px;color:var(--text2)">RSI 93.7 sobrecomprado. Score final solo 43.4. Toma parcial de ganancias.</td></tr>
+        <tr><td class="mono" style="color:var(--bovespa)">RAIZ4</td><td>Raízen</td><td><span class="badge-market bm-bovespa">BOVA</span></td><td class="neg">-69.9%</td><td class="mono">52.4</td><td style="font-size:12px;color:var(--text2)">Peor performance BOVESPA. Destrucción de valor estructural. Salida total.</td></tr>
+        <tr><td class="mono" style="color:var(--bovespa)">SUZB3</td><td>Suzano</td><td><span class="badge-market bm-bovespa">BOVA</span></td><td class="neg">-5.5%</td><td class="mono">39.2</td><td style="font-size:12px;color:var(--text2)">Momentum negativo -8.8% mensual. Sin cruces alcistas MA.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- RIESGOS -->
+  <div style="margin-top:28px;margin-bottom:16px">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:16px">▸ Riesgos Principales a Monitorear</div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title" style="color:var(--merval)">🇦🇷 Argentina</div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-high">ALTO</span><span class="fact-val" style="font-size:12px">Riesgo país (573 pb). Freno a rerating</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-high">ALTO</span><span class="fact-val" style="font-size:12px">Reservas BCRA insuficientes (USD 28 bn)</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-med">MEDIO</span><span class="fact-val" style="font-size:12px">Inflación mensual 2.7% aún elevada</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-med">MEDIO</span><span class="fact-val" style="font-size:12px">Calendario electoral 2027 en el radar</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-low">BAJO</span><span class="fact-val" style="font-size:12px">Acuerdo FMI activo; ancla de credibilidad</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--bovespa)">🇧🇷 Brasil</div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-high">ALTO</span><span class="fact-val" style="font-size:12px">SELIC 15% encarece costo de capital</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-high">ALTO</span><span class="fact-val" style="font-size:12px">Déficit fiscal estructural bajo Lula</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-med">MEDIO</span><span class="fact-val" style="font-size:12px">Riesgo político: intervención en Petrobras</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-med">MEDIO</span><span class="fact-val" style="font-size:12px">Inflación IPCA 4.16%, por encima del target</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-low">BAJO</span><span class="fact-val" style="font-size:12px">Reservas USD 350 bn. Sólido colchón</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--sp500)">🇺🇸 EE.UU. / Global</div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-high">ALTO</span><span class="fact-val" style="font-size:12px">Fed Funds 4.375% — "Higher for longer"</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-high">ALTO</span><span class="fact-val" style="font-size:12px">S&P en máximos históricos → valuaciones</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-med">MEDIO</span><span class="fact-val" style="font-size:12px">Inflación CPI 2.8% — meta 2% lejana</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-med">MEDIO</span><span class="fact-val" style="font-size:12px">Geopolítica: Medio Oriente / China-Taiwan</span></div>
+      <div class="fact-row"><span class="fact-key risk-tag risk-med">MEDIO</span><span class="fact-val" style="font-size:12px">Desaceleración China impacta commodities</span></div>
+    </div>
+  </div>
+
+  <!-- FOOTER NOTA -->
+  <div style="margin-top:32px;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.7">
+    <b style="color:var(--text2)">⚠️ Nota Legal:</b> Este informe ha sido generado con datos de los archivos fuente internos del proyecto "Inversiones Bursátiles" (merval_cierres.csv, bovespa_cierres.csv, sp500_cierres.csv, modelo_macro_micro_señales.xlsx, ratios_consolidado_quant.csv, estados contables). El análisis es de carácter informativo y no constituye asesoría financiera personalizada. Toda decisión de inversión debe ser evaluada en función del perfil de riesgo individual y consultada con un asesor financiero habilitado. Fecha de corte: 17/04/2026. Emitido: 20/04/2026.
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+// TAB SWITCHING
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+// COMPARATIVE CHART
+const mervalData = [100, 111.4, 97.5, 113.4, 97.0, 86.7, 146.8, 148.0, 149.2, 156.4, 129.1, 146.5, 141.2];
+const bovespaData = [100, 105.0, 106.4, 102.0, 108.4, 112.1, 114.6, 121.9, 123.4, 138.9, 144.6, 143.6, 150.0];
+const sp500Data = [100, 114.6, 120.3, 122.9, 125.2, 129.7, 132.6, 132.7, 132.7, 134.6, 133.4, 126.6, 138.2];
+const months = ['Abr-25','May-25','Jun-25','Jul-25','Ago-25','Sep-25','Oct-25','Nov-25','Dic-25','Ene-26','Feb-26','Mar-26','Abr-26'];
+
+window.addEventListener('load', () => {
+  const canvas = document.getElementById('compChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height = 220 * window.devicePixelRatio;
+  canvas.style.width = canvas.offsetWidth + 'px';
+  canvas.style.height = '220px';
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const W = canvas.offsetWidth;
+  const H = 220;
+  const padL = 45, padR = 20, padT = 15, padB = 40;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  const allVals = [...mervalData, ...bovespaData, ...sp500Data];
+  const minV = Math.min(...allVals) - 5;
+  const maxV = Math.max(...allVals) + 5;
+  const rangeV = maxV - minV;
+
+  const xPos = i => padL + (i / (months.length - 1)) * chartW;
+  const yPos = v => padT + chartH - ((v - minV) / rangeV) * chartH;
+
+  // Background
+  ctx.fillStyle = '#141b26';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = '#1e2d45';
+  ctx.lineWidth = 1;
+  for (let g = 0; g <= 4; g++) {
+    const y = padT + (g / 4) * chartH;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(W - padR, y);
+    ctx.stroke();
+    const val = Math.round(maxV - (g / 4) * rangeV);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px DM Mono, monospace';
+    ctx.fillText(val, 5, y + 4);
+  }
+
+  // Draw line function
+  function drawLine(data, color, label) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    data.forEach((v, i) => {
+      const x = xPos(i), y = yPos(v);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    // Last point dot
+    const lastX = xPos(data.length - 1);
+    const lastY = yPos(data[data.length - 1]);
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  drawLine(mervalData, '#f59e0b', 'MERVAL');
+  drawLine(bovespaData, '#27c97a', 'BOVESPA');
+  drawLine(sp500Data, '#4d9cff', 'S&P 500');
+
+  // X-axis labels
+  ctx.fillStyle = '#64748b';
+  ctx.font = '9px DM Mono, monospace';
+  months.forEach((m, i) => {
+    if (i % 2 === 0 || i === months.length - 1) {
+      ctx.fillText(m, xPos(i) - 14, H - 8);
+    }
+  });
+
+  // Legend
+  const legends = [['MERVAL', '#f59e0b', mervalData[mervalData.length-1]],
+                   ['BOVESPA', '#27c97a', bovespaData[bovespaData.length-1]],
+                   ['S&P 500', '#4d9cff', sp500Data[sp500Data.length-1]]];
+  legends.forEach(([name, color, val], i) => {
+    const lx = padL + 10 + i * 130;
+    ctx.fillStyle = color;
+    ctx.fillRect(lx, padT + 4, 12, 3);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px DM Mono, monospace';
+    ctx.fillText(`${name} ${val.toFixed(1)}`, lx + 16, padT + 10);
+  });
+});
+</script>
+</body>
+</html>

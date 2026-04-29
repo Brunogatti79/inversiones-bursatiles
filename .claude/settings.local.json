@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(venv/Scripts/pip install:*)",
+      "Bash(taskkill //F //PID 25288)",
+      "Bash(venv/Scripts/python main.py)",
+      "Bash(curl -s http://127.0.0.1:8000/health)",
+      "Bash(venv/Scripts/python -c \"import uvicorn; print\\(''uvicorn ok''\\)\")",
+      "Bash(curl.exe -s http://127.0.0.1:8000/api/documents/status)",
+      "Bash(curl.exe -s -X POST http://127.0.0.1:8000/api/agent/query -H \"Content-Type: application/json\" -d \"{\"\"query\"\": \"\"Cual es la situacion actual del mercado argentino? Dame un resumen ejecutivo\"\", \"\"output_type\"\": \"\"resumen\"\"}\")",
+      "Bash(curl.exe -s -X POST http://127.0.0.1:8000/api/agent/query -H \"Content-Type: application/json\" -d \"{\"\"query\"\": \"\"situacion mercado argentino\"\", \"\"output_type\"\": \"\"resumen\"\"}\" -v)",
+      "Bash(taskkill /F /IM python.exe /T)",
+      "Bash(taskkill /F /IM python.exe)",
+      "Bash(cmd /c \"taskkill /F /IM python.exe\")",
+      "Bash(cmd /c \"taskkill /F /IM python.exe 2>&1\")",
+      "Bash(cmd /c \"netstat -ano | findstr :8000\")",
+      "Bash(cmd /c \"netstat -ano | findstr :8000 > C:\\\\Users\\\\n32967\\\\AppData\\\\Local\\\\Temp\\\\port8000.txt 2>&1\")",
+      "Bash(netstat -ano)",
+      "Bash(kill -9 5176)",
+      "Bash(cmd /c \"taskkill /PID 5176 /F\")",
+      "Bash(powershell -Command \"Stop-Process -Id 5176 -Force; Write-Output ''OK''\")",
+      "Bash(venv/Scripts/python -c \"from config import settings; print\\(''API KEY:'', repr\\(settings.anthropic_api_key[:10]\\)\\)\")",
+      "Bash(venv/Scripts/python -c \":*)",
+      "Bash(venv/Scripts/python -c \"from config import settings; print\\(''API KEY OK:'', bool\\(settings.anthropic_api_key\\)\\); print\\(''Model:'', settings.claude_model\\); print\\(''Docs:'', settings.docs_folder\\)\")"
+    ]
+  }
+}

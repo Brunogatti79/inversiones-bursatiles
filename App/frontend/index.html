@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Síntesis Inversor</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Syne:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">📊 S.Inversor</div>
+  <nav class="sidebar-nav">
+    <a class="nav-item active" data-view="dashboard"><span class="nav-icon">⬛</span> Dashboard</a>
+    <a class="nav-item" data-view="documents"><span class="nav-icon">📁</span> Documentos</a>
+    <a class="nav-item" data-view="search"><span class="nav-icon">🔍</span> Búsqueda</a>
+    <a class="nav-item" data-view="agent"><span class="nav-icon">📡</span> Agente</a>
+  </nav>
+  <div class="sidebar-status">
+    <span class="dot"></span> <span id="statusLabel">Conectando...</span>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <section class="view active" id="view-dashboard">
+    <div class="view-header">
+      <h1>Dashboard</h1>
+      <button class="btn-secondary" id="btnReindex">↺ Reindexar</button>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="kpi-label">Documentos</div><div class="kpi-val" id="kpiDocs">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Chunks indexados</div><div class="kpi-val" id="kpiChunks">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Modelo LLM</div><div class="kpi-val" id="kpiLLM">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Embeddings</div><div class="kpi-val" id="kpiEmbed">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Carpeta monitoreada</div>
+      <div class="mono" id="kpiFolder">—</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Actividad reciente</div>
+      <div id="reindexLog" class="log-area"></div>
+    </div>
+  </section>
+
+  <!-- DOCUMENTOS -->
+  <section class="view" id="view-documents">
+    <div class="view-header">
+      <h1>Documentos indexados</h1>
+      <div class="header-controls">
+        <select class="select-sm" id="marketFilter">
+          <option value="">Todos los mercados</option>
+          <option value="merval">MERVAL 🇦🇷</option>
+          <option value="bovespa">BOVESPA 🇧🇷</option>
+          <option value="sp500">S&P 500 🇺🇸</option>
+          <option value="general">General</option>
+        </select>
+        <input class="input-sm" type="text" id="docsSearch" placeholder="Filtrar por nombre...">
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Archivo</th><th>Tipo</th><th>Mercado</th>
+            <th>Chunks</th><th>Tamaño</th><th>Indexado</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="docsBody"></tbody>
+      </table>
+    </div>
+    <div class="table-footer" id="docsFooter"></div>
+  </section>
+
+  <!-- BÚSQUEDA -->
+  <section class="view" id="view-search">
+    <div class="view-header"><h1>Búsqueda semántica</h1></div>
+    <div class="card">
+      <textarea id="searchQuery" class="query-input" placeholder="Ej: ¿Cuáles son los riesgos del sector bancario argentino?" rows="3"></textarea>
+      <div class="search-controls">
+        <select class="select-sm" id="searchMarket">
+          <option value="">Todos los mercados</option>
+          <option value="merval">MERVAL</option>
+          <option value="bovespa">BOVESPA</option>
+          <option value="sp500">S&P 500</option>
+        </select>
+        <select class="select-sm" id="searchN">
+          <option value="5">5 resultados</option>
+          <option value="8" selected>8 resultados</option>
+          <option value="12">12 resultados</option>
+        </select>
+        <button class="btn-primary" id="btnSearch">Buscar</button>
+      </div>
+    </div>
+    <div id="searchResults"></div>
+  </section>
+
+  <!-- AGENTE -->
+  <section class="view" id="view-agent">
+    <div class="view-header"><h1>Agente de síntesis</h1></div>
+    <div class="card">
+      <textarea id="agentQuery" class="query-input" placeholder="Ej: Resumí la situación macro de Brasil y sus principales señales de inversión" rows="3"></textarea>
+      <div class="agent-controls">
+        <select class="select-sm" id="agentOutputType">
+          <option value="resumen">Resumen ejecutivo</option>
+          <option value="señales">Señales de inversión</option>
+          <option value="riesgos">Análisis de riesgos</option>
+          <option value="kpis">KPIs y métricas</option>
+          <option value="narrativa">Narrativa de mercado</option>
+        </select>
+        <select class="select-sm" id="agentMarket">
+          <option value="">Todos los mercados</option>
+          <option value="merval">MERVAL</option>
+          <option value="bovespa">BOVESPA</option>
+          <option value="sp500">S&P 500</option>
+        </select>
+        <label class="toggle-label">
+          <input type="checkbox" id="agentStream" checked> Streaming
+        </label>
+        <button class="btn-primary" id="btnAgent">Consultar agente</button>
+      </div>
+    </div>
+    <div id="agentResponse" class="agent-response-wrap" style="display:none">
+      <div class="response-header">
+        <span id="responseType" class="output-badge"></span>
+        <span id="responseChunks" class="muted-sm"></span>
+      </div>
+      <div id="responseText" class="response-body"></div>
+      <div id="responseSources" class="sources-list"></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
