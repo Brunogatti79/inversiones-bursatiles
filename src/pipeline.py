@@ -55,9 +55,9 @@ def run_pipeline():
 
         # ── 2. ANÁLISIS ──────────────────────────────────────────────
         logger.info("2/7 Calculando señales del modelo...")
-        signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS)
-        signals_bovespa = analyze_market(bovespa_df, "BOVESPA", BOVESPA_TICKERS)
-        signals_sp500   = analyze_market(sp500_df,   "SP500",   SP500_TICKERS)
+        signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS)  if merval_df is not None and not merval_df.empty else []
+        signals_bovespa = analyze_market(bovespa_df, "BOVESPA", BOVESPA_TICKERS) if bovespa_df is not None and not bovespa_df.empty else []
+        signals_sp500   = analyze_market(sp500_df,   "SP500",   SP500_TICKERS)   if sp500_df is not None and not sp500_df.empty else []
         all_signals     = signals_merval + signals_bovespa + signals_sp500
         all_signals.sort(key=lambda x: x["score_final"], reverse=True)
 
@@ -68,10 +68,22 @@ def run_pipeline():
             cols = [c for c in df.columns if keyword in c]
             return cols[0] if cols else None
 
+        def _safe_stats(df, keyword):
+            if df is None or df.empty:
+                return {}
+            col = _idx_col(df, keyword)
+            if not col:
+                return {}
+            try:
+                return get_index_stats(df, col)
+            except Exception as e:
+                logger.warning(f"Error en stats {keyword}: {e}")
+                return {}
+
         index_stats = {
-            "merval":  get_index_stats(merval_df,  _idx_col(merval_df,  "MERVAL")  or ""),
-            "bovespa": get_index_stats(bovespa_df, _idx_col(bovespa_df, "BOVESPA") or ""),
-            "sp500":   get_index_stats(sp500_df,   _idx_col(sp500_df,   "S&P")     or ""),
+            "merval":  _safe_stats(merval_df,  "MERVAL"),
+            "bovespa": _safe_stats(bovespa_df, "BOVESPA"),
+            "sp500":   _safe_stats(sp500_df,   "S&P"),
         }
 
         # ── 4. DETECCIÓN DE CAMBIOS ──────────────────────────────────
