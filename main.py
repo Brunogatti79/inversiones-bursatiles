@@ -71,24 +71,6 @@ def run_bot_in_thread():
         loop.close()
 
 
-def run_http_server():
-    """Servidor HTTP en hilo principal."""
-    from http.server import HTTPServer, SimpleHTTPRequestHandler
-    OUTPUT_DIR = "outputs"
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    PORT = int(os.getenv("PORT", 8080))
-
-    class Handler(SimpleHTTPRequestHandler):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, directory=OUTPUT_DIR, **kwargs)
-        def log_message(self, format, *args):
-            pass
-
-    httpd = HTTPServer(("0.0.0.0", PORT), Handler)
-    logger.info(f"Servidor HTTP activo en puerto {PORT}")
-    httpd.serve_forever()
-
-
 def main():
     logger.info("=== Inversiones Bursatiles - Iniciando ===")
     logger.info(f"RUN_TIME_UTC: {os.getenv('RUN_TIME_UTC','15:00')}")
@@ -117,7 +99,7 @@ def main():
 
     # HTTP server en hilo principal (bloquea aqui)
     try:
-        run_http_server()
+        run_bot()
     except KeyboardInterrupt:
         logger.info("Deteniendo...")
     finally:
