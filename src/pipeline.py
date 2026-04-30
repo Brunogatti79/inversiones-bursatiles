@@ -1,12 +1,11 @@
 """
-src/pipeline.py - Con push a GitHub Pages
+src/pipeline.py - Usa GitHub API para subir el dashboard
 """
 
 import logging
 import os
 import time
 import json
-import subprocess
 from datetime import datetime
 import pytz
 
@@ -15,6 +14,7 @@ from src.analyzer   import (analyze_market, detect_signal_changes, save_signals,
 from src.notifier   import (send_daily_report, send_signal_change_alerts,
                              send_excel, send_error_notification)
 from src.generator  import generate_dashboard, generate_excel
+from src.github_uploader import upload_dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -23,52 +23,16 @@ SEND_EXCEL   = os.getenv("SEND_EXCEL", "false").lower() == "true"
 ALERT_CHANGE = os.getenv("SEND_ALERT_ON_CHANGE", "true").lower() == "true"
 OUTPUT_DIR   = "outputs"
 DATA_DIR     = "data"
-GH_TOKEN     = os.getenv("GH_TOKEN", "")
-GH_USER      = os.getenv("GH_USER", "Brunogatti79")
-GH_REPO      = os.getenv("GH_REPO", "inversiones-bursatiles")
-
-
-def push_dashboard_to_github(dashboard_path: str, run_date: str):
-    """Pushea el dashboard HTML a GitHub para que GitHub Pages lo sirva."""
-    if not GH_TOKEN:
-        logger.warning("GH_TOKEN no configurado - no se puede pushear a GitHub Pages")
-        return False
-    try:
-        repo_url = f"https://{GH_USER}:{GH_TOKEN}@github.com/{GH_USER}/{GH_REPO}.git"
-        cwd = "/app"
-
-        # Configurar git
-        subprocess.run(["git", "config", "user.email", "bot@inversiones.com"], cwd=cwd)
-        subprocess.run(["git", "config", "user.name", "InversionesBot"], cwd=cwd)
-
-        # Agregar y commitear el dashboard
-        subprocess.run(["git", "add", dashboard_path], cwd=cwd)
-        result = subprocess.run(
-            ["git", "commit", "-m", f"dashboard {run_date}"],
-            cwd=cwd, capture_output=True, text=True
-        )
-
-        if "nothing to commit" in result.stdout:
-            logger.info("Dashboard sin cambios, no hay nada que pushear")
-            return True
-
-        # Push
-        subprocess.run(["git", "push", repo_url, "main"], cwd=cwd)
-        logger.info(f"Dashboard pusheado a GitHub Pages: {dashboard_path}")
-        return True
-    except Exception as e:
-        logger.error(f"Error pusheando a GitHub: {e}")
-        return False
 
 
 def run_pipeline():
     tz       = pytz.timezone(TIMEZONE)
     start_ts = time.time()
     run_date = datetime.now(tz).strftime("%d/%m/%Y %H:%M")
-    logger.info(f"═══ Pipeline iniciado: {run_date} ═══")
+    logger.info(f"Pipeline iniciado: {run_date}")
 
     try:
-        logger.info("1/7 Descargando datos de Yahoo Finance...")
+        logger.info("1/7 Descargando datos...")
         data = download_all()
         save_csvs(data, DATA_DIR)
 
@@ -76,14 +40,14 @@ def run_pipeline():
         bovespa_df = data["bovespa"]
         sp500_df   = data["sp500"]
 
-        logger.info("2/7 Calculando señales del modelo...")
+        logger.info("2/7 Calculando señales...")
         signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS)  if merval_df is not None and not merval_df.empty else []
         signals_bovespa = analyze_market(bovespa_df, "BOVESPA", BOVESPA_TICKERS) if bovespa_df is not None and not bovespa_df.empty else []
         signals_sp500   = analyze_market(sp500_df,   "SP500",   SP500_TICKERS)   if sp500_df is not None and not sp500_df.empty else []
         all_signals     = signals_merval + signals_bovespa + signals_sp500
         all_signals.sort(key=lambda x: x["score_final"], reverse=True)
 
-        logger.info("3/7 Calculando estadísticas de índices...")
+        logger.info("3/7 Estadísticas de índices...")
 
         def _idx_col(df, keyword):
             if df is None or df.empty:
@@ -100,7 +64,7 @@ def run_pipeline():
             try:
                 return get_index_stats(df, col)
             except Exception as e:
-                logger.warning(f"Error en stats {keyword}: {e}")
+                logger.warning(f"Error stats {keyword}: {e}")
                 return {}
 
         index_stats = {
@@ -109,7 +73,7 @@ def run_pipeline():
             "sp500":   _safe_stats(sp500_df,   "S&P"),
         }
 
-        logger.info("4/7 Detectando cambios de señal...")
+        logger.info("4/7 Detectando cambios...")
         changes = detect_signal_changes(all_signals, f"{DATA_DIR}/signals_prev.json")
         save_signals(all_signals, f"{DATA_DIR}/signals_prev.json")
 
@@ -123,19 +87,19 @@ def run_pipeline():
             output_path=dashboard_path,
             run_date=run_date,
         )
-        logger.info(f"Dashboard generado: {dashboard_path}")
 
-        # Push a GitHub Pages
-        push_dashboard_to_github(dashboard_path, run_date)
+        # Subir a GitHub Pages via API
+        pages_url = upload_dashboard(dashboard_path)
+        if pages_url:
+            logger.info(f"Dashboard disponible en: {pages_url}")
 
         excel_path = None
         if SEND_EXCEL:
-            logger.info("6/7 Generando fichas Excel...")
             excel_name = datetime.now(tz).strftime("fichas_inversion_%m%Y.xlsx")
             excel_path = f"{OUTPUT_DIR}/{excel_name}"
             generate_excel(all_signals, index_stats, excel_path)
 
-        logger.info("7/7 Enviando notificaciones a Telegram...")
+        logger.info("7/7 Enviando notificaciones...")
         if ALERT_CHANGE and changes:
             send_signal_change_alerts(changes)
 
@@ -151,7 +115,7 @@ def run_pipeline():
 
         duration = time.time() - start_ts
         _save_status(run_date=run_date, success=True, duration=duration, tz=tz)
-        logger.info(f"═══ Pipeline completado en {duration:.1f}s ═══")
+        logger.info(f"Pipeline completado en {duration:.1f}s")
 
     except Exception as e:
         duration = time.time() - start_ts
