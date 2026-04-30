@@ -1,7 +1,7 @@
 """
-main.py - Entry point
-El servidor HTTP corre en hilo principal.
-El bot de Telegram corre con su propio event loop en hilo separado.
+main.py
+Bot de Telegram + Scheduler.
+El servidor HTTP lo maneja start_server.py (Railway entry point).
 """
 
 import logging
@@ -48,23 +48,22 @@ def start_scheduler():
     return scheduler
 
 
-def run_bot_in_thread():
-    """Corre el bot con su propio event loop en hilo separado."""
-    async def _start():
-        from src.bot import build_application
-        app = build_application()
-        await app.initialize()
-        await app.start()
-        logger.info("Bot de Telegram activo")
-        await app.updater.start_polling(allowed_updates=["message"])
-        # Mantener el bot corriendo
-        while True:
-            await asyncio.sleep(3600)
+async def run_bot_async():
+    from src.bot import build_application
+    app = build_application()
+    await app.initialize()
+    await app.start()
+    logger.info("Bot de Telegram activo")
+    await app.updater.start_polling(allowed_updates=["message"])
+    while True:
+        await asyncio.sleep(3600)
 
+
+def run_bot_thread():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        loop.run_until_complete(_start())
+        loop.run_until_complete(run_bot_async())
     except Exception as e:
         logger.error(f"Error en bot: {e}")
     finally:
@@ -81,15 +80,15 @@ def main():
             logger.error(f"Variable faltante: {var}")
             sys.exit(1)
 
-    # Scheduler en hilo daemon
+    # Scheduler en background
     scheduler = start_scheduler()
 
-    # Bot en hilo daemon con su propio event loop
-    bot_thread = threading.Thread(target=run_bot_in_thread, daemon=True)
+    # Bot en hilo daemon
+    bot_thread = threading.Thread(target=run_bot_thread, daemon=True)
     bot_thread.start()
 
-    # Esperar que el bot arranque
-    time.sleep(4)
+    # Notificar inicio
+    time.sleep(3)
     send_startup_message()
 
     # Pipeline inmediato si se pide
@@ -97,13 +96,15 @@ def main():
         t = threading.Thread(target=run_pipeline, daemon=True)
         t.start()
 
-    # HTTP server en hilo principal (bloquea aqui)
+    # Mantener el proceso vivo
     try:
-        run_bot()
+        while True:
+            time.sleep(60)
     except KeyboardInterrupt:
         logger.info("Deteniendo...")
     finally:
         scheduler.shutdown()
+        logger.info("Adios.")
 
 
 if __name__ == "__main__":
