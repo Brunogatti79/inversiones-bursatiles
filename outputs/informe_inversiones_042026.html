@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inversiones Bursátiles — 30/04/2026 20:10</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d0d0f;color:#e8e8ea;font-size:14px}
+  .header{background:#111115;border-bottom:1px solid #222230;padding:20px 32px;display:flex;justify-content:space-between;align-items:center}
+  .header h1{font-size:20px;font-weight:600;color:#fff}
+  .badge{display:inline-block;background:#1e3a5f;color:#5ba3ff;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;margin-bottom:4px}
+  .tabs{display:flex;background:#111115;border-bottom:1px solid #222230;padding:0 32px;gap:4px;position:sticky;top:0;z-index:100;overflow-x:auto}
+  .tab{padding:12px 18px;cursor:pointer;font-size:13px;color:#888;border-bottom:2px solid transparent;white-space:nowrap}
+  .tab.on{color:#5ba3ff;border-bottom-color:#5ba3ff;font-weight:500}
+  .page{display:none;padding:28px 32px;max-width:1200px}
+  .page.on{display:block}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+  .card{background:#16161e;border:1px solid #222230;border-radius:10px;padding:16px}
+  .card-title{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+  .card-value{font-size:24px;font-weight:700;color:#fff;line-height:1}
+  .card-sub{font-size:11px;color:#666;margin-top:5px}
+  .pos{color:#4ade80}.neg{color:#f87171}
+  .section-title{font-size:16px;font-weight:600;color:#fff;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #222230}
+  .tbl{width:100%;border-collapse:collapse;margin-bottom:24px}
+  .tbl th{text-align:left;padding:9px 12px;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #222230}
+  .tbl td{padding:10px 12px;border-bottom:1px solid #1a1a22;font-size:13px}
+  .tbl tr:hover td{background:#1a1a24}
+  .ticker{font-weight:700;color:#5ba3ff;font-family:monospace;font-size:12px}
+  .chart-wrap{position:relative;width:100%;height:260px;margin-bottom:24px}
+  .sig-buy{color:#4ade80}.sig-neu{color:#fbbf24}.sig-sell{color:#fb923c}
+  .pano-card{flex:1;background:#16161e;border:1px solid #222230;border-radius:10px;padding:16px}
+  .pano-header{display:flex;gap:14px;margin-bottom:24px}
+  @media(max-width:768px){.grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}.pano-header{flex-direction:column}.page{padding:16px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="badge">INVERSIONES BURSÁTILES</div>
+    <h1>Informe de Inversiones</h1>
+    <div style="font-size:12px;color:#666;margin-top:3px">MERVAL · BOVESPA · S&P 500 · Generado 30/04/2026 20:10</div>
+  </div>
+  <div style="text-align:right;font-size:12px;color:#666">
+    Pipeline automático<br>yfinance + modelo macro-micro
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab on"    onclick="sw('panorama',this)">Panorama</div>
+  <div class="tab"       onclick="sw('merval',this)">MERVAL</div>
+  <div class="tab"       onclick="sw('bovespa',this)">BOVESPA</div>
+  <div class="tab"       onclick="sw('sp500',this)">S&P 500</div>
+  <div class="tab"       onclick="sw('conclusiones',this)">Conclusiones</div>
+</div>
+
+<!-- PANORAMA -->
+<div id="panorama" class="page on">
+  <div class="pano-header">
+    <div class="pano-card">
+      <div style="font-size:22px;margin-bottom:6px">🇦🇷</div>
+      <div style="font-size:11px;color:#666;text-transform:uppercase">MERVAL</div>
+      <div style="font-size:18px;font-weight:700;color:#fff;margin:3px 0">0</div>
+      <div style="font-size:20px;font-weight:800;color:#4ade80">+0.00%</div>
+      <div style="font-size:11px;color:#666;margin-top:5px">Vol 0.0%</div>
+    </div>
+    <div class="pano-card">
+      <div style="font-size:22px;margin-bottom:6px">🇧🇷</div>
+      <div style="font-size:11px;color:#666;text-transform:uppercase">BOVESPA</div>
+      <div style="font-size:18px;font-weight:700;color:#fff;margin:3px 0">0</div>
+      <div style="font-size:20px;font-weight:800;color:#4ade80">+0.00%</div>
+      <div style="font-size:11px;color:#666;margin-top:5px">Vol 0.0%</div>
+    </div>
+    <div class="pano-card">
+      <div style="font-size:22px;margin-bottom:6px">🇺🇸</div>
+      <div style="font-size:11px;color:#666;text-transform:uppercase">S&P 500</div>
+      <div style="font-size:18px;font-weight:700;color:#fff;margin:3px 0">0</div>
+      <div style="font-size:20px;font-weight:800;color:#4ade80">+0.00%</div>
+      <div style="font-size:11px;color:#666;margin-top:5px">Vol 0.0%</div>
+    </div>
+  </div>
+
+  <div class="section-title">Evolución comparativa — base 100</div>
+  <div class="chart-wrap"><canvas id="chartPano" role="img" aria-label="Evolución comparativa 3 índices">Comparativa MERVAL BOVESPA SP500</canvas></div>
+
+  <div class="section-title">Ranking global de oportunidades</div>
+  <table class="tbl" id="tbl-global"></table>
+</div>
+
+<!-- MERVAL -->
+<div id="merval" class="page">
+  <div class="section-title">MERVAL — Estadísticas 12 meses</div>
+  <div class="grid-4" id="merval-stats"></div>
+  <div class="chart-wrap"><canvas id="chartMerval" role="img" aria-label="Evolución MERVAL">MERVAL</canvas></div>
+  <div class="section-title">Señales del modelo</div>
+  <table class="tbl" id="tbl-merval"></table>
+</div>
+
+<!-- BOVESPA -->
+<div id="bovespa" class="page">
+  <div class="section-title">BOVESPA — Estadísticas 12 meses</div>
+  <div class="grid-4" id="bovespa-stats"></div>
+  <div class="chart-wrap"><canvas id="chartBovespa" role="img" aria-label="Evolución BOVESPA">BOVESPA</canvas></div>
+  <div class="section-title">Señales del modelo</div>
+  <table class="tbl" id="tbl-bovespa"></table>
+</div>
+
+<!-- SP500 -->
+<div id="sp500" class="page">
+  <div class="section-title">S&P 500 — Estadísticas 12 meses</div>
+  <div class="grid-4" id="sp500-stats"></div>
+  <div class="chart-wrap"><canvas id="chartSP500" role="img" aria-label="Evolución SP500">S&P 500</canvas></div>
+  <div class="section-title">Señales del modelo</div>
+  <table class="tbl" id="tbl-sp500"></table>
+</div>
+
+<!-- CONCLUSIONES -->
+<div id="conclusiones" class="page">
+  <div class="section-title">Oportunidades de compra</div>
+  <div id="compras-block"></div>
+  <div class="section-title" style="margin-top:20px">Señales de reducción</div>
+  <div id="ventas-block"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const SIGNALS = [];
+const IDX = {"merval": {}, "bovespa": {}, "sp500": {}};
+
+function sw(id,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById(id).classList.add('on');
+}
+
+function sigColor(s){
+  if(s.includes('COMPRA FUERTE')) return '#ffd700';
+  if(s.includes('COMPRA'))  return '#4ade80';
+  if(s.includes('NEUTRAL')) return '#fbbf24';
+  if(s.includes('VENTA P')) return '#fb923c';
+  return '#f87171';
+}
+
+function retColor(v){ return v>=0?'#4ade80':'#f87171'; }
+
+function buildTable(tbId, market){
+  const rows = market ? SIGNALS.filter(s=>s.mercado===market) : SIGNALS.slice(0,20);
+  const tb = document.getElementById(tbId);
+  tb.innerHTML = '<tr><th>Ticker</th><th>Empresa</th><th>Sector</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>Anual%</th><th>RSI</th><th>Score</th><th>Señal</th></tr>'
+    + rows.map(s=>`<tr>
+      <td class="ticker">${s.ticker}</td>
+      <td style="color:#ccc">${s.empresa.substring(0,22)}</td>
+      <td style="color:#888;font-size:11px">${s.sector}</td>
+      <td>${s.precio_actual.toLocaleString('es-AR')}</td>
+      <td style="color:${retColor(s.ret_sem)};font-weight:600">${s.ret_sem>=0?'+':''}${s.ret_sem.toFixed(1)}%</td>
+      <td style="color:${retColor(s.ret_mes)};font-weight:600">${s.ret_mes>=0?'+':''}${s.ret_mes.toFixed(1)}%</td>
+      <td style="color:${retColor(s.ret_anual)};font-weight:600">${s.ret_anual>=0?'+':''}${s.ret_anual.toFixed(1)}%</td>
+      <td>${s.rsi.toFixed(0)}</td>
+      <td style="color:#fbbf24;font-weight:700">${s.score_final.toFixed(0)}</td>
+      <td style="color:${sigColor(s.signal)};font-weight:600">${s.signal}</td>
+    </tr>`).join('');
+}
+
+function buildStats(divId, marketKey){
+  const st = IDX[marketKey]||{};
+  const d = document.getElementById(divId);
+  const items = [
+    ['Cierre actual', st.actual?st.actual.toLocaleString('es-AR'):'—', ''],
+    ['Variación 12m', st.ret_anual!=null?(st.ret_anual>=0?'+':'')+st.ret_anual.toFixed(2)+'%':'—', st.ret_anual>=0?'#4ade80':'#f87171'],
+    ['Máximo 12m',    st.max_12m?st.max_12m.toLocaleString('es-AR'):'—', '#fbbf24'],
+    ['Mínimo 12m',    st.min_12m?st.min_12m.toLocaleString('es-AR'):'—', '#f87171'],
+  ];
+  d.innerHTML = items.map(([label,val,color])=>`
+    <div class="card">
+      <div class="card-title">${label}</div>
+      <div class="card-value" style="color:${color||'#fff'}">${val}</div>
+      ${label.includes('Máx')?`<div class="card-sub">${st.max_12m_date||''}</div>`:''}
+      ${label.includes('Mín')?`<div class="card-sub">${st.min_12m_date||''}</div>`:''}
+    </div>`).join('');
+}
+
+function normalize(arr){
+  const base = arr[0]||1;
+  return arr.map(v=>+(v/base*100).toFixed(1));
+}
+
+const chartOpts = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{legend:{display:false}},
+  scales:{
+    x:{ticks:{color:'#666',font:{size:11},autoSkip:false,maxRotation:45},grid:{color:'rgba(255,255,255,.05)'}},
+    y:{ticks:{color:'#666',font:{size:11}},grid:{color:'rgba(255,255,255,.05)'}},
+  }
+};
+
+// Charts
+const mL = [];
+const mV = [];
+const bL = [];
+const bV = [];
+const sL = [];
+const sV = [];
+
+if(mL.length&&bL.length&&sL.length){
+  const allL = [...new Set([...mL,...bL,...sL])].sort();
+  const pick = (labels,vals,all)=>all.map(l=>{const i=labels.indexOf(l);return i>=0?vals[i]:null;});
+  new Chart(document.getElementById('chartPano'),{
+    type:'line',
+    data:{labels:allL,datasets:[
+      {label:'MERVAL', data:normalize(pick(mL,mV,allL).filter(v=>v!=null)), borderColor:'#5ba3ff',borderWidth:2,pointRadius:3,pointBackgroundColor:'#5ba3ff',tension:.3},
+      {label:'BOVESPA',data:normalize(pick(bL,bV,allL).filter(v=>v!=null)), borderColor:'#4ade80',borderWidth:2,pointRadius:3,pointBackgroundColor:'#4ade80',tension:.3,borderDash:[4,4]},
+      {label:'S&P 500',data:normalize(pick(sL,sV,allL).filter(v=>v!=null)), borderColor:'#fbbf24',borderWidth:2,pointRadius:3,pointBackgroundColor:'#fbbf24',tension:.3,borderDash:[2,2]},
+    ]},
+    options:{...chartOpts,plugins:{...chartOpts.plugins,legend:{display:false}}}
+  });
+}
+
+if(mL.length) new Chart(document.getElementById('chartMerval'),{type:'bar',data:{labels:mL,datasets:[{data:mV,backgroundColor:mV.map((v,i,a)=>i==0?'#444':v>a[i-1]?'rgba(74,222,128,.6)':'rgba(248,113,113,.6)'),borderWidth:1}]},options:chartOpts});
+if(bL.length) new Chart(document.getElementById('chartBovespa'),{type:'line',data:{labels:bL,datasets:[{data:bV,borderColor:'#4ade80',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(74,222,128,.08)',tension:.3}]},options:chartOpts});
+if(sL.length) new Chart(document.getElementById('chartSP500'),{type:'line',data:{labels:sL,datasets:[{data:sV,borderColor:'#fbbf24',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(251,191,36,.08)',tension:.3}]},options:chartOpts});
+
+// Tablas
+buildTable('tbl-global', null);
+buildTable('tbl-merval',  'MERVAL');
+buildTable('tbl-bovespa', 'BOVESPA');
+buildTable('tbl-sp500',   'SP500');
+
+// Stats
+buildStats('merval-stats',  'merval');
+buildStats('bovespa-stats', 'bovespa');
+buildStats('sp500-stats',   'sp500');
+
+// Conclusiones
+const compras = SIGNALS.filter(s=>s.signal.includes('COMPRA'));
+const ventas  = SIGNALS.filter(s=>s.signal.includes('VENTA'));
+const flag = m => m==='MERVAL'?'🇦🇷':m==='BOVESPA'?'🇧🇷':'🇺🇸';
+
+document.getElementById('compras-block').innerHTML = compras.slice(0,8).map(s=>`
+  <div style="background:#0d2b1a;border:1px solid #1a3a1a;border-radius:10px;padding:16px;margin-bottom:12px">
+    <div style="font-size:16px;font-weight:700;color:#4ade80;margin-bottom:6px">
+      ${flag(s.mercado)} ${s.signal} ${s.ticker} — ${s.empresa}
+    </div>
+    <div style="font-size:13px;color:#aaa;display:flex;gap:20px;flex-wrap:wrap">
+      <span>Score: <b style="color:#fff">${s.score_final.toFixed(0)}</b></span>
+      <span>RSI: <b style="color:#fff">${s.rsi.toFixed(0)}</b></span>
+      <span>Sem: <b style="color:${retColor(s.ret_sem)}">${s.ret_sem>=0?'+':''}${s.ret_sem.toFixed(1)}%</b></span>
+      <span>Anual: <b style="color:${retColor(s.ret_anual)}">${s.ret_anual>=0?'+':''}${s.ret_anual.toFixed(1)}%</b></span>
+      <span>Sector: ${s.sector}</span>
+    </div>
+  </div>`).join('');
+
+document.getElementById('ventas-block').innerHTML = ventas.slice(0,5).map(s=>`
+  <div style="background:#1f0d0d;border:1px solid #3a1a1a;border-radius:10px;padding:16px;margin-bottom:12px">
+    <div style="font-size:16px;font-weight:700;color:#fb923c;margin-bottom:6px">
+      ${flag(s.mercado)} ${s.signal} ${s.ticker} — ${s.empresa}
+    </div>
+    <div style="font-size:13px;color:#aaa;display:flex;gap:20px;flex-wrap:wrap">
+      <span>Score: <b style="color:#fff">${s.score_final.toFixed(0)}</b></span>
+      <span>Sem: <b style="color:${retColor(s.ret_sem)}">${s.ret_sem>=0?'+':''}${s.ret_sem.toFixed(1)}%</b></span>
+      <span>Anual: <b style="color:${retColor(s.ret_anual)}">${s.ret_anual>=0?'+':''}${s.ret_anual.toFixed(1)}%</b></span>
+    </div>
+  </div>`).join('');
+</script>
+</body>
+</html>
