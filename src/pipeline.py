@@ -1,18 +1,17 @@
 """
-src/pipeline.py
-Orquestador del pipeline completo.
+src/pipeline.py - Con push a GitHub Pages
 """
 
 import logging
 import os
 import time
 import json
+import subprocess
 from datetime import datetime
 import pytz
 
 from src.downloader import download_all, save_csvs, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
-from src.analyzer   import (analyze_market, detect_signal_changes, save_signals,
-                             get_index_stats)
+from src.analyzer   import (analyze_market, detect_signal_changes, save_signals, get_index_stats)
 from src.notifier   import (send_daily_report, send_signal_change_alerts,
                              send_excel, send_error_notification)
 from src.generator  import generate_dashboard, generate_excel
@@ -20,10 +19,46 @@ from src.generator  import generate_dashboard, generate_excel
 logger = logging.getLogger(__name__)
 
 TIMEZONE     = os.getenv("TIMEZONE", "America/Argentina/Buenos_Aires")
-SEND_EXCEL   = os.getenv("SEND_EXCEL", "true").lower() == "true"
+SEND_EXCEL   = os.getenv("SEND_EXCEL", "false").lower() == "true"
 ALERT_CHANGE = os.getenv("SEND_ALERT_ON_CHANGE", "true").lower() == "true"
 OUTPUT_DIR   = "outputs"
 DATA_DIR     = "data"
+GH_TOKEN     = os.getenv("GH_TOKEN", "")
+GH_USER      = os.getenv("GH_USER", "Brunogatti79")
+GH_REPO      = os.getenv("GH_REPO", "inversiones-bursatiles")
+
+
+def push_dashboard_to_github(dashboard_path: str, run_date: str):
+    """Pushea el dashboard HTML a GitHub para que GitHub Pages lo sirva."""
+    if not GH_TOKEN:
+        logger.warning("GH_TOKEN no configurado - no se puede pushear a GitHub Pages")
+        return False
+    try:
+        repo_url = f"https://{GH_USER}:{GH_TOKEN}@github.com/{GH_USER}/{GH_REPO}.git"
+        cwd = "/app"
+
+        # Configurar git
+        subprocess.run(["git", "config", "user.email", "bot@inversiones.com"], cwd=cwd)
+        subprocess.run(["git", "config", "user.name", "InversionesBot"], cwd=cwd)
+
+        # Agregar y commitear el dashboard
+        subprocess.run(["git", "add", dashboard_path], cwd=cwd)
+        result = subprocess.run(
+            ["git", "commit", "-m", f"dashboard {run_date}"],
+            cwd=cwd, capture_output=True, text=True
+        )
+
+        if "nothing to commit" in result.stdout:
+            logger.info("Dashboard sin cambios, no hay nada que pushear")
+            return True
+
+        # Push
+        subprocess.run(["git", "push", repo_url, "main"], cwd=cwd)
+        logger.info(f"Dashboard pusheado a GitHub Pages: {dashboard_path}")
+        return True
+    except Exception as e:
+        logger.error(f"Error pusheando a GitHub: {e}")
+        return False
 
 
 def run_pipeline():
@@ -90,6 +125,9 @@ def run_pipeline():
         )
         logger.info(f"Dashboard generado: {dashboard_path}")
 
+        # Push a GitHub Pages
+        push_dashboard_to_github(dashboard_path, run_date)
+
         excel_path = None
         if SEND_EXCEL:
             logger.info("6/7 Generando fichas Excel...")
@@ -130,7 +168,7 @@ def _save_status(run_date, success, duration, tz, error=""):
         "success":     success,
         "duration_sec": round(duration, 1),
         "error":       error,
-        "next_run":    f"Mañana a las {run_time} UTC",
+        "next_run":    f"Manana a las {run_time} UTC",
     }
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(f"{DATA_DIR}/last_run_status.json", "w") as f:
