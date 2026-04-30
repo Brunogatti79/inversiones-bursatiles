@@ -3,6 +3,7 @@ FROM python:3.12-slim
 # Dependencias del sistema (mínimas)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
