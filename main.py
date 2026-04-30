@@ -1,14 +1,15 @@
 """
 main.py - Entry point
-Servidor HTTP en hilo principal (Railway necesita respuesta en PORT)
-Bot de Telegram + Scheduler en hilos daemon
+El servidor HTTP corre en hilo principal.
+El bot de Telegram corre con su propio event loop en hilo separado.
 """
 
 import logging
 import os
 import sys
 import threading
-from datetime import datetime
+import time
+import asyncio
 
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -27,7 +28,6 @@ logger = logging.getLogger(__name__)
 
 from src.pipeline import run_pipeline
 from src.notifier import send_startup_message
-from src.bot      import build_application
 
 
 def start_scheduler():
@@ -48,24 +48,32 @@ def start_scheduler():
     return scheduler
 
 
-def run_bot_thread():
-    """Corre el bot en un hilo separado (no bloqueante para el servidor HTTP)."""
-    try:
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+def run_bot_in_thread():
+    """Corre el bot con su propio event loop en hilo separado."""
+    async def _start():
+        from src.bot import build_application
         app = build_application()
-        logger.info("Bot de Telegram iniciado - modo polling")
-        app.run_polling(allowed_updates=["message"])
+        await app.initialize()
+        await app.start()
+        logger.info("Bot de Telegram activo")
+        await app.updater.start_polling(allowed_updates=["message"])
+        # Mantener el bot corriendo
+        while True:
+            await asyncio.sleep(3600)
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_start())
     except Exception as e:
         logger.error(f"Error en bot: {e}")
+    finally:
+        loop.close()
 
 
 def run_http_server():
-    """Servidor HTTP en hilo principal - Railway necesita esto."""
-    import os
+    """Servidor HTTP en hilo principal."""
     from http.server import HTTPServer, SimpleHTTPRequestHandler
-
     OUTPUT_DIR = "outputs"
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     PORT = int(os.getenv("PORT", 8080))
@@ -83,41 +91,37 @@ def run_http_server():
 
 def main():
     logger.info("=== Inversiones Bursatiles - Iniciando ===")
-    logger.info(f"Python {sys.version}")
     logger.info(f"RUN_TIME_UTC: {os.getenv('RUN_TIME_UTC','15:00')}")
     logger.info(f"TIMEZONE: {os.getenv('TIMEZONE','America/Argentina/Buenos_Aires')}")
 
     for var in ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]:
         if not os.getenv(var):
-            logger.error(f"Variable de entorno faltante: {var}")
+            logger.error(f"Variable faltante: {var}")
             sys.exit(1)
 
     # Scheduler en hilo daemon
     scheduler = start_scheduler()
 
-    # Bot de Telegram en hilo daemon
-    bot_thread = threading.Thread(target=run_bot_thread, daemon=True)
+    # Bot en hilo daemon con su propio event loop
+    bot_thread = threading.Thread(target=run_bot_in_thread, daemon=True)
     bot_thread.start()
 
-    # Notificar inicio (con pequeña pausa para que el bot arranque)
-    import time
-    time.sleep(3)
+    # Esperar que el bot arranque
+    time.sleep(4)
     send_startup_message()
 
-    # Ejecutar pipeline ahora si se pasa el argumento
+    # Pipeline inmediato si se pide
     if "--run-now" in sys.argv:
-        logger.info("Ejecutando pipeline ahora...")
         t = threading.Thread(target=run_pipeline, daemon=True)
         t.start()
 
-    # Servidor HTTP en hilo PRINCIPAL (bloquea aqui - Railway necesita esto)
+    # HTTP server en hilo principal (bloquea aqui)
     try:
         run_http_server()
     except KeyboardInterrupt:
         logger.info("Deteniendo...")
     finally:
         scheduler.shutdown()
-        logger.info("Adios.")
 
 
 if __name__ == "__main__":
