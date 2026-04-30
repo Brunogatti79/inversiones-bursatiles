@@ -178,6 +178,9 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict) -> list[di
     Analiza todas las acciones de un mercado.
     Retorna lista de dicts con todas las métricas por acción.
     """
+    if df is None or df.empty or len(df) < 5:
+        logger.warning(f"[{market}] DataFrame vacío, saltando análisis")
+        return []
     end = df.index[-1]
     start_12m = end - pd.DateOffset(months=12)
     start_1m  = end - pd.DateOffset(days=30)
@@ -309,11 +312,9 @@ def get_index_stats(df: pd.DataFrame, index_col: str) -> dict:
     serie = df[df.index >= start][index_col].dropna()
 
     if len(serie) < 2:
-    continue
+        return {}
 
-if len(serie) < 2:
-    return {}
-ret = (serie.iloc[-1] / serie.iloc[0] - 1) * 100
+    ret = (serie.iloc[-1] / serie.iloc[0] - 1) * 100
     vol = serie.pct_change().dropna().std() * np.sqrt(252) * 100
     max_val = serie.max()
     min_val = serie.min()
