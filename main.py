@@ -1,10 +1,6 @@
 """
 main.py
-Punto de entrada de la aplicación.
-Levanta:
-  - APScheduler con el cron diario
-  - Bot de Telegram en modo polling
-Ambos corren en el mismo proceso con threading.
+Entry point: scheduler + bot de Telegram + servidor HTTP para el dashboard.
 """
 
 import logging
@@ -18,10 +14,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 
-# ─── Cargar .env (sólo en desarrollo local) ───────────────────────
 load_dotenv()
 
-# ─── Logging ──────────────────────────────────────────────────────
 LOG_LEVEL = logging.DEBUG if os.getenv("DEBUG_MODE","false").lower()=="true" else logging.INFO
 logging.basicConfig(
     level=LOG_LEVEL,
@@ -30,16 +24,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ─── Imports propios (después de load_dotenv) ─────────────────────
 from src.pipeline import run_pipeline
 from src.notifier import send_startup_message
 from src.bot      import build_application
+from server       import start_server_thread
 
 
 def start_scheduler():
-    """Inicia el cron diario con APScheduler."""
     tz       = os.getenv("TIMEZONE", "America/Argentina/Buenos_Aires")
-    run_time = os.getenv("RUN_TIME_UTC", "21:30")
+    run_time = os.getenv("RUN_TIME_UTC", "15:00")
     h, m     = run_time.split(":")
 
     scheduler = BackgroundScheduler(timezone=pytz.UTC)
@@ -48,7 +41,7 @@ def start_scheduler():
         trigger=CronTrigger(hour=int(h), minute=int(m), timezone=pytz.UTC),
         id="daily_analysis",
         name="Análisis diario de mercados",
-        misfire_grace_time=3600,   # tolera hasta 1h de retraso
+        misfire_grace_time=3600,
         coalesce=True,
     )
     scheduler.start()
@@ -57,7 +50,6 @@ def start_scheduler():
 
 
 def run_bot():
-    """Corre el bot de Telegram en el hilo principal (blocking)."""
     app = build_application()
     logger.info("Bot de Telegram iniciado — modo polling")
     app.run_polling(allowed_updates=["message"])
@@ -65,36 +57,34 @@ def run_bot():
 
 def main():
     logger.info("═══ Inversiones Bursátiles — Iniciando ═══")
-    logger.info(f"Python {sys.version}")
-    logger.info(f"RUN_TIME_UTC: {os.getenv('RUN_TIME_UTC','21:30')}")
-    logger.info(f"TIMEZONE: {os.getenv('TIMEZONE','America/Argentina/Buenos_Aires')}")
 
-    # Validar variables obligatorias
     for var in ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]:
         if not os.getenv(var):
             logger.error(f"Variable de entorno faltante: {var}")
             sys.exit(1)
 
-    # Iniciar scheduler en hilo separado (no bloqueante)
+    # Servidor HTTP para el dashboard (hilo daemon)
+    start_server_thread()
+
+    # Scheduler en background
     scheduler = start_scheduler()
 
-    # Notificar inicio por Telegram
+    # Notificar inicio
     send_startup_message()
 
-    # Si se pasa arg --run-now, ejecutar inmediatamente
+    # Ejecutar ahora si se pasa el argumento
     if "--run-now" in sys.argv:
-        logger.info("Argumento --run-now detectado. Ejecutando pipeline ahora...")
+        logger.info("Ejecutando pipeline ahora...")
         t = threading.Thread(target=run_pipeline, daemon=True)
         t.start()
 
-    # Bot en hilo principal (bloqueante hasta Ctrl+C)
     try:
         run_bot()
     except KeyboardInterrupt:
         logger.info("Deteniendo...")
     finally:
         scheduler.shutdown()
-        logger.info("Scheduler detenido. Adiós.")
+        logger.info("Adiós.")
 
 
 if __name__ == "__main__":
