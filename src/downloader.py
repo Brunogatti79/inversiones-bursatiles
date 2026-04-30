@@ -150,8 +150,15 @@ def download_all() -> dict:
         ("bovespa", BOVESPA_TICKERS, BOVESPA_INDEX),
         ("sp500",   SP500_TICKERS,   SP500_INDEX),
     ]:
-        results[key] = _download_batch(tickers, index, key.upper())
-        time.sleep(5)
+        for intento in range(3):
+            df = _download_batch(tickers, index, key.upper())
+            if not df.empty:
+                results[key] = df
+                break
+            logger.warning(f"[{key.upper()}] Intento {intento+1}/3 vacío, esperando 30s...")
+            time.sleep(30)
+        else:
+            results[key] = pd.DataFrame()
     return results
 
 
