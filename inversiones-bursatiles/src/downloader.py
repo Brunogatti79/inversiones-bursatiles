@@ -1,22 +1,25 @@
 """
-src/downloader.py
-Descarga automática de precios desde Yahoo Finance.
-Cubre MERVAL (Argentina), BOVESPA (Brasil) y S&P 500 (EE.UU.).
+src/downloader.py  ── versión GitHub Actions (lee CSVs, no descarga)
+Los datos ya fueron descargados por GitHub Actions a las 14:50 UTC
+y commiteados al repo. Railway simplemente los lee del disco.
+ 
+Si los CSVs no existen o son viejos (> 2 días) → RuntimeError claro.
 """
-
-import yfinance as yf
+ 
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import logging
+import json
+import os
 import pytz
-
+ 
 logger = logging.getLogger(__name__)
-
+ 
 # ─────────────────────────────────────────────
-# Tickers por mercado
+# Tickers por mercado (se usan en analyzer.py)
 # ─────────────────────────────────────────────
-
+ 
 MERVAL_TICKERS = {
     "GGAL.BA":  "Grupo Financiero Galicia",
     "BMA.BA":   "Banco Macro",
@@ -40,7 +43,7 @@ MERVAL_TICKERS = {
     "IRSA.BA":  "IRSA",
 }
 MERVAL_INDEX = "^MERV"
-
+ 
 BOVESPA_TICKERS = {
     "PETR4.SA":  "Petrobras PN",
     "VALE3.SA":  "Vale",
@@ -63,7 +66,7 @@ BOVESPA_TICKERS = {
     "BPAC11.SA": "BTG Pactual",
 }
 BOVESPA_INDEX = "^BVSP"
-
+ 
 SP500_TICKERS = {
     "AAPL":  "Apple",
     "MSFT":  "Microsoft",
@@ -90,100 +93,109 @@ SP500_TICKERS = {
     "TSLA":  "Tesla",
 }
 SP500_INDEX = "^GSPC"
-
-
+ 
+MIN_ROWS    = 10
+MAX_AGE_DAYS = 3   # Si el CSV tiene más de 3 días → advertencia (puede ser finde/feriado)
+ 
+ 
 # ─────────────────────────────────────────────
-# Funciones de descarga
+# Lectura de CSVs
 # ─────────────────────────────────────────────
-
-def _get_period():
-    """Retorna start/end para los últimos 13 meses (buffer de 1 mes)."""
-    end = datetime.now(pytz.UTC)
-    start = end - timedelta(days=400)
-    return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
-
-
-def _download_batch(tickers: dict, index_ticker: str, market_name: str) -> pd.DataFrame:
+ 
+def _load_csv(market: str, data_dir: str) -> pd.DataFrame:
     """
-    Descarga precios de cierre ajustados para un conjunto de tickers + índice.
-    Retorna DataFrame con columna 'Fecha' + columna por cada empresa + columna índice.
+    Lee el CSV generado por GitHub Actions.
+    Valida existencia, tamaño mínimo y frescura.
     """
-    start, end = _get_period()
-    all_tickers = list(tickers.keys()) + [index_ticker]
-
-    logger.info(f"[{market_name}] Descargando {len(all_tickers)} tickers desde {start}...")
-
+    path = os.path.join(data_dir, f"{market.lower()}_cierres.csv")
+ 
+    # ── Existencia ───────────────────────────────────────────────────
+    if not os.path.exists(path):
+        raise RuntimeError(
+            f"[{market}] CSV no encontrado: {path}\n"
+            f"GitHub Actions aún no corrió o falló. "
+            f"Verificá en https://github.com/Brunogatti79/inversiones-bursatiles/actions"
+        )
+ 
+    # ── Lectura ──────────────────────────────────────────────────────
     try:
-        raw = yf.download(
-            tickers=all_tickers,
-            start=start,
-            end=end,
-            auto_adjust=True,
-            progress=False,
-            threads=True,
+        df = pd.read_csv(
+            path,
+            sep=";",
+            decimal=",",
+            index_col=0,
+            encoding="utf-8-sig",
         )
     except Exception as e:
-        logger.error(f"[{market_name}] Error en descarga: {e}")
-        raise
-
-    # yfinance devuelve MultiIndex (Price, Ticker) cuando son múltiples tickers
-    if isinstance(raw.columns, pd.MultiIndex):
-        closes = raw["Close"]
+        raise RuntimeError(f"[{market}] Error leyendo CSV {path}: {e}")
+ 
+    # Limpiar columnas numéricas (miles con espacio, decimal con coma)
+    for col in df.columns:
+        df[col] = (
+            df[col].astype(str)
+            .str.replace(" ", "", regex=False)
+            .str.replace(",", ".", regex=False)
+        )
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+ 
+    df.index = pd.to_datetime(df.index, errors="coerce")
+    df.index.name = "Fecha"
+    df = df.sort_index().dropna(how="all")
+ 
+    # ── Validación de tamaño ─────────────────────────────────────────
+    if len(df) < MIN_ROWS:
+        raise RuntimeError(
+            f"[{market}] CSV con solo {len(df)} filas — datos insuficientes."
+        )
+ 
+    # ── Validación de frescura ───────────────────────────────────────
+    last_date  = df.index[-1].date()
+    today      = datetime.now(pytz.UTC).date()
+    age_days   = (today - last_date).days
+    if age_days > MAX_AGE_DAYS:
+        logger.warning(
+            f"[{market}] CSV desactualizado: último dato {last_date} "
+            f"({age_days} días atrás). GitHub Actions puede haber fallado."
+        )
     else:
-        closes = raw[["Close"]].rename(columns={"Close": all_tickers[0]})
-
-    # Renombrar columnas: ticker → nombre empresa (índice se deja aparte)
-    rename_map = {t: n for t, n in tickers.items() if t in closes.columns}
-    # Renombrar índice a nombre legible
-    index_col_name = _index_display_name(market_name)
-    if index_ticker in closes.columns:
-        rename_map[index_ticker] = index_col_name
-
-    closes = closes.rename(columns=rename_map)
-    closes.index = pd.to_datetime(closes.index)
-    closes.index.name = "Fecha"
-    closes = closes.sort_index()
-
-    # Eliminar filas completamente vacías
-    closes = closes.dropna(how="all")
-
-    logger.info(f"[{market_name}] OK — {len(closes)} días, {len(closes.columns)} columnas")
-    return closes
-
-
-def _index_display_name(market: str) -> str:
-    mapping = {
-        "MERVAL":  "ÍNDICE MERVAL",
-        "BOVESPA": "ÍNDICE BOVESPA",
-        "SP500":   "ÍNDICE S&P 500",
-    }
-    return mapping.get(market, market)
-
-
-def download_all() -> dict:
+        logger.info(f"[{market}] ✓ CSV OK — {len(df)} filas, último: {last_date}")
+ 
+    return df
+ 
+ 
+def download_all(data_dir: str = "data") -> dict:
     """
-    Punto de entrada principal.
-    Retorna dict con keys 'merval', 'bovespa', 'sp500' → DataFrames de cierres.
+    Lee los CSVs descargados por GitHub Actions.
+    Retorna dict con keys 'merval', 'bovespa', 'sp500'.
     """
+    # Verificar status de GitHub Actions si existe
+    status_path = os.path.join(data_dir, "download_status.json")
+    if os.path.exists(status_path):
+        with open(status_path) as f:
+            st = json.load(f)
+        ts = st.get("timestamp_utc", "desconocido")
+        ok = st.get("success", False)
+        if not ok:
+            logger.warning(f"download_status.json indica fallo en descarga de {ts}")
+        else:
+            logger.info(f"Datos descargados por GitHub Actions el {ts}")
+ 
     results = {}
-
-    results["merval"]  = _download_batch(MERVAL_TICKERS,  MERVAL_INDEX,  "MERVAL")
-    results["bovespa"] = _download_batch(BOVESPA_TICKERS, BOVESPA_INDEX, "BOVESPA")
-    results["sp500"]   = _download_batch(SP500_TICKERS,   SP500_INDEX,   "SP500")
-
+    results["merval"]  = _load_csv("merval",  data_dir)
+    results["bovespa"] = _load_csv("bovespa", data_dir)
+    results["sp500"]   = _load_csv("sp500",   data_dir)
     return results
-
-
+ 
+ 
 def save_csvs(data: dict, output_dir: str = "data") -> dict:
-    """Guarda los DataFrames como CSV compatibles con el formato del proyecto."""
-    import os
-    os.makedirs(output_dir, exist_ok=True)
-
+    """
+    En esta arquitectura los CSVs ya existen (los escribió GitHub Actions).
+    Esta función es un no-op que retorna las rutas para compatibilidad
+    con pipeline.py.
+    """
     paths = {}
-    for market, df in data.items():
-        path = f"{output_dir}/{market}_cierres.csv"
-        df.to_csv(path, sep=";", decimal=",", encoding="utf-8-sig")
+    for market in data:
+        path = os.path.join(output_dir, f"{market.lower()}_cierres.csv")
         paths[market] = path
-        logger.info(f"Guardado: {path} ({len(df)} filas)")
-
+        logger.debug(f"CSV ya existe en {path} (escrito por GitHub Actions)")
     return paths
