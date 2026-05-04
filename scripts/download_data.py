@@ -1,4 +1,4 @@
-  """
+"""
 scripts/download_data.py
 Corre en GitHub Actions a las 14:50 UTC.
 Descarga precios de Yahoo Finance y guarda CSVs en data/.
@@ -208,3 +208,4 @@ def main():
  
 if __name__ == "__main__":
     main()
+ 
