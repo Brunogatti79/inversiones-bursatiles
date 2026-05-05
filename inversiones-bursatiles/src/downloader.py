@@ -1,10 +1,3 @@
-src/downloader.py  ── versión GitHub Actions (lee CSVs, no descarga)
-Los datos ya fueron descargados por GitHub Actions a las 14:50 UTC
-y commiteados al repo. Railway simplemente los lee del disco.
- 
-Si los CSVs no existen o son viejos (> 2 días) → RuntimeError claro.
-"""
- 
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
