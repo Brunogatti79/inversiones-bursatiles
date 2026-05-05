@@ -1,4 +1,3 @@
-"""
 src/downloader.py  ── versión GitHub Actions (lee CSVs, no descarga)
 Los datos ya fueron descargados por GitHub Actions a las 14:50 UTC
 y commiteados al repo. Railway simplemente los lee del disco.
@@ -199,3 +198,4 @@ def save_csvs(data: dict, output_dir: str = "data") -> dict:
         paths[market] = path
         logger.debug(f"CSV ya existe en {path} (escrito por GitHub Actions)")
     return paths
+ 
