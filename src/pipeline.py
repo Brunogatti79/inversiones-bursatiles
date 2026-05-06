@@ -1,12 +1,11 @@
 """
-src/pipeline.py  ── versión con validación anti-blank
+src/pipeline.py  ── versión con publish_dashboard integrado
 Orquestador del pipeline completo.
  
-CAMBIOS v2:
-  - Pasa data_dir a download_all() para que el fallback sepa dónde buscar los CSV
-  - Valida index_stats después del análisis: si los 3 mercados están vacíos → aborta
-  - Agrega banner de ADVERTENCIA en el HTML cuando se usó fallback (datos del día anterior)
-  - _save_status registra si se usó fallback
+CAMBIOS v3:
+  - Importa publish_dashboard desde notifier_new (tiene la lógica de GitHub API)
+  - Llama publish_dashboard() en el paso 5b, después de generar el HTML
+  - Resto del pipeline sin cambios
 """
  
 import logging
@@ -16,12 +15,13 @@ import json
 from datetime import datetime
 import pytz
  
-from src.downloader import download_all, save_csvs, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
-from src.analyzer   import (analyze_market, detect_signal_changes, save_signals,
-                             get_index_stats)
-from src.notifier   import (send_daily_report, send_signal_change_alerts,
-                             send_excel, send_error_notification)
-from src.generator  import generate_dashboard, generate_excel
+from src.downloader   import download_all, save_csvs, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
+from src.analyzer     import (analyze_market, detect_signal_changes, save_signals,
+                               get_index_stats)
+from src.notifier_new import (send_daily_report, send_signal_change_alerts,
+                               send_excel, send_error_notification,
+                               publish_dashboard)
+from src.generator    import generate_dashboard, generate_excel
  
 logger = logging.getLogger(__name__)
  
@@ -37,14 +37,11 @@ def run_pipeline():
     tz       = pytz.timezone(TIMEZONE)
     start_ts = time.time()
     run_date = datetime.now(tz).strftime("%d/%m/%Y %H:%M")
-    logger.info(f"═══ Pipeline iniciado: {run_date} ═══")
+    logger.info(f"Pipeline iniciado: {run_date}")
  
     try:
         # ── 1. DESCARGA ──────────────────────────────────────────────
-        # download_all() ahora recibe data_dir para poder usar el fallback CSV
-        # Si la descarga falla Y no hay CSV guardado → lanza RuntimeError aquí
-        # (nunca llega al paso 5 con datos vacíos)
-        logger.info("1/7 Descargando datos de Yahoo Finance...")
+        logger.info("1/7 Descargando datos...")
         data = download_all(data_dir=DATA_DIR)
         save_csvs(data, DATA_DIR)
  
@@ -53,7 +50,7 @@ def run_pipeline():
         sp500_df   = data["sp500"]
  
         # ── 2. ANÁLISIS ──────────────────────────────────────────────
-        logger.info("2/7 Calculando señales del modelo...")
+        logger.info("2/7 Calculando señales...")
         signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS)
         signals_bovespa = analyze_market(bovespa_df, "BOVESPA", BOVESPA_TICKERS)
         signals_sp500   = analyze_market(sp500_df,   "SP500",   SP500_TICKERS)
@@ -61,7 +58,7 @@ def run_pipeline():
         all_signals.sort(key=lambda x: x["score_final"], reverse=True)
  
         # ── 3. ESTADÍSTICAS DE ÍNDICES ───────────────────────────────
-        logger.info("3/7 Calculando estadísticas de índices...")
+        logger.info("3/7 Calculando estadísticas...")
  
         def _idx_col(df, keyword):
             cols = [c for c in df.columns if keyword in c]
@@ -74,8 +71,6 @@ def run_pipeline():
         }
  
         # ── VALIDACIÓN ANTI-BLANK ─────────────────────────────────────
-        # Si los 3 index_stats están vacíos significa que _idx_col no encontró
-        # la columna del índice → los nombres no coinciden → abortar
         empty_markets = [k for k, v in index_stats.items() if not v or v.get("actual", 0) == 0]
         if len(empty_markets) == 3:
             raise RuntimeError(
@@ -89,12 +84,12 @@ def run_pipeline():
             logger.warning(f"index_stats vacío para: {empty_markets} — se usará 0 en esos mercados")
  
         # ── 4. DETECCIÓN DE CAMBIOS ──────────────────────────────────
-        logger.info("4/7 Detectando cambios de señal...")
+        logger.info("4/7 Detectando cambios...")
         changes = detect_signal_changes(all_signals, f"{DATA_DIR}/signals_prev.json")
         save_signals(all_signals, f"{DATA_DIR}/signals_prev.json")
  
         # ── 5. DASHBOARD HTML ────────────────────────────────────────
-        logger.info("5/7 Generando dashboard HTML...")
+        logger.info("5/7 Generando dashboard...")
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         dashboard_name = datetime.now(tz).strftime("informe_inversiones_%m%Y.html")
         dashboard_path = f"{OUTPUT_DIR}/{dashboard_name}"
@@ -106,6 +101,14 @@ def run_pipeline():
         )
         logger.info(f"Dashboard generado: {dashboard_path}")
  
+        # ── 5b. PUBLICAR EN GITHUB PAGES ─────────────────────────────
+        logger.info("5b/7 Publicando en GitHub Pages...")
+        published = publish_dashboard(dashboard_path, dashboard_name)
+        if published:
+            logger.info("Dashboard publicado en GitHub Pages correctamente")
+        else:
+            logger.warning("No se pudo publicar en GitHub Pages (revisar GH_TOKEN)")
+ 
         # ── 6. EXCEL (OPCIONAL) ──────────────────────────────────────
         excel_path = None
         if SEND_EXCEL:
@@ -115,7 +118,7 @@ def run_pipeline():
             generate_excel(all_signals, index_stats, excel_path)
  
         # ── 7. NOTIFICACIONES TELEGRAM ───────────────────────────────
-        logger.info("7/7 Enviando notificaciones a Telegram...")
+        logger.info("7/7 Enviando Telegram...")
  
         if ALERT_CHANGE and changes:
             send_signal_change_alerts(changes)
@@ -130,10 +133,10 @@ def run_pipeline():
         if SEND_EXCEL and excel_path and os.path.exists(excel_path):
             send_excel(excel_path)
  
-        # ── 8. GUARDAR ESTADO ────────────────────────────────────────
+        # ── 8. ESTADO ────────────────────────────────────────────────
         duration = time.time() - start_ts
         _save_status(run_date=run_date, success=True, duration=duration, tz=tz)
-        logger.info(f"═══ Pipeline completado en {duration:.1f}s ═══")
+        logger.info(f"Pipeline completado en {duration:.1f}s")
  
     except Exception as e:
         duration = time.time() - start_ts
@@ -156,3 +159,4 @@ def _save_status(run_date, success, duration, tz, error=""):
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(f"{DATA_DIR}/last_run_status.json", "w") as f:
         json.dump(status, f, ensure_ascii=False, indent=2)
+ 
