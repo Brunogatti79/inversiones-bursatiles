@@ -1,4 +1,4 @@
-"""
+""" 
 src/generator.py
 Genera el dashboard HTML dark y las fichas Excel.
 Versión actualizada con:
