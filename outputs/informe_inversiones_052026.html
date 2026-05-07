@@ -71,7 +71,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="tab" onclick="sw('sp500',this)">S&amp;P 500</div>
   <div class="tab" onclick="sw('conclusiones',this)">Conclusiones</div>
 </div>
-
+ 
 <!-- PANORAMA -->
 <div id="panorama" class="page on">
   <div class="pano-header">
@@ -122,7 +122,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="section-title">Ranking global de oportunidades</div>
   <table class="tbl" id="tbl-global"></table>
 </div>
-
+ 
 <!-- MERVAL -->
 <div id="merval" class="page">
   <div class="section-title">MERVAL — Estadísticas 12 meses</div>
@@ -131,7 +131,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="section-title">Señales del modelo</div>
   <table class="tbl" id="tbl-merval"></table>
 </div>
-
+ 
 <!-- BOVESPA -->
 <div id="bovespa" class="page">
   <div class="section-title">BOVESPA — Estadísticas 12 meses</div>
@@ -140,7 +140,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="section-title">Señales del modelo</div>
   <table class="tbl" id="tbl-bovespa"></table>
 </div>
-
+ 
 <!-- SP500 -->
 <div id="sp500" class="page">
   <div class="section-title">S&amp;P 500 — Estadísticas 12 meses</div>
@@ -149,7 +149,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="section-title">Señales del modelo</div>
   <table class="tbl" id="tbl-sp500"></table>
 </div>
-
+ 
 <!-- CONCLUSIONES -->
 <div id="conclusiones" class="page">
   <div class="section-title" style="color:#86efac">🔭 Radar de Oportunidades Tempranas</div>
@@ -166,7 +166,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="section-title" style="margin-top:20px">🔴 Señales de reducción</div>
   <div id="ventas-block"></div>
 </div>
-
+ 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const SIGNALS = [{"ticker": "EGIE3.SA", "empresa": "Engie Brasil", "sector": "UTILITIES", "mercado": "BOVESPA", "precio_actual": 34.04, "ret_anual": 23.46, "ret_mes": 3.66, "ret_sem": -1.77, "max_12m": 37.88, "max_12m_date": "15/04/2026", "min_12m": 26.89, "min_12m_date": "12/05/2025", "rsi": 30.0, "momentum_21d": 3.72, "ma_cross": true, "score_macro": 52.5, "score_tecnico": 64.0, "score_sector": 44.0, "score_final": 55.4, "signal": "🟡 NEUTRAL/ESPERAR", "fecha": "2026-05-05"}, {"ticker": "HAPV3.SA", "empresa": "Hapvida", "sector": "SALUD", "mercado": "BOVESPA", "precio_actual": 11.71, "ret_anual": -65.46, "ret_mes": 9.64, "ret_sem": -2.74, "max_12m": 43.8, "max_12m_date": "27/05/2025", "min_12m": 8.21, "min_12m_date": "18/03/2026", "rsi": 40.0, "momentum_21d": 10.26, "ma_cross": true, "score_macro": 52.5, "score_tecnico": 61.5, "score_sector": 46.0, "score_final": 54.8, "signal": "🟡 NEUTRAL/ESPERAR", "fecha": "2026-05-05"}, {"ticker": "BPAC11.SA", "empresa": "BTG Pactual", "sector": "FINANCIERO", "mercado": "BOVESPA", "precio_actual": 57.94, "ret_anual": 58.89, "ret_mes": 0.4, "ret_sem": -3.72, "max_12m": 64.34, "max_12m_date": "16/04/2026", "min_12m": 36.36, "min_12m_date": "06/05/2025", "rsi": 22.5, "momentum_21d": 1.17, "ma_cross": true, "score_macro": 52.5, "score_tecnico": 64.0, "score_sector": 40.0, "score_final": 54.6, "signal": "🟡 NEUTRAL/ESPERAR", "fecha": "2026-05-05"}, {"ticker": "META", "empresa": "Meta Platforms", "sector": "TECNOLOGÍA", "mercado": "SP500", "precio_actual": 604.96, "ret_anual": 1.26, "ret_mes": 5.57, "ret_sem": -9.89, "max_12m": 788.15, "max_12m_date": "12/08/2025", "min_12m": 525.72, "min_12m_date": "27/03/2026", "rsi": 28.5, "momentum_21d": 5.2, "ma_cross": true, "score_macro": 44.1, "score_tecnico": 66.8, "score_sector": 42.0, "score_final": 52.8, "signal": "🟡 NEUTRAL/ESPERAR", "fecha": "2026-05-05"}, {"ticker": "TXAR.BA", "empresa": "Ternium Argentina", "sector": "MATERIALES", "mercado": "MERVAL", "precio_actual": 668.5, "ret_anual": 12.67, "ret_mes": -2.7, "ret_sem": -3.54, "max_12m": 834.66, "max_12m_date": "10/11/2025", "min_12m": 490.41, "min_12m_date": "05/09/2025", "rsi": 16.9, "momentum_21d": 0.0, "ma_cross": true, "score_macro": 41.9, "score_tecnico": 61.5, "score_sector": 43.0, "score_final": 50.0, "signal": "🟡 NEUTRAL/ESPERAR", "fecha": "2026-05-05"}, {"ticker": "GGAL.BA", "empresa": "Grupo Financiero Galicia", "sector": "FINANCIERO", "mercado": "MERVAL", "precio_actual": 6015.0, "ret_anual": -8.64, "ret_mes": -10.55, "ret_sem": -6.31, "max_12m": 8870.1, "max_12m_date": "03/11/2025", "min_12m": 3927.21, "min_12m_date": "19/09/2025", "rsi": 13.1, "momentum_21d": -8.76, "ma_cross": true, "score_macro": 41.9, "score_tecnico": 58.0, "score_sector": 40.0, "score_final": 48.0, "signal": "🟡 NEUTRAL/ESPERAR", "fecha": "2026-05-05"}, {"ticker": "JNJ", "empresa": "Johnson & Johnson", "sector": "SALUD", "mercado": "SP500", "precio_actual": 225.55, "ret_anual": 49.57, "ret_mes": -6.4, "ret_sem": -0.98, "max_12m": 248.56, "max_12m_date": "02/03/2026", "min_12m": 142.39, "min_12m_date": "14/05/2025", "rsi": 31.2, "momentum_21d": -5.39, "ma_cross": false, "score_macro": 44.1, "score_tecnico": 45.2, "score_sector": 46.0, "score_final": 44.9, "signal": "🟠 VENTA PARCIAL", "fecha": "2026-05-05"}, {"ticker": "CVX", "empresa": "Chevron", "sector": "ENERGIA", "mercado": "SP500", "precio_actual": 192.64, "ret_anual": 48.57, "ret_mes": -3.13, "ret_sem": 2.27, "max_12m": 211.15, "max_12m_date": "27/03/2026", "min_12m": 129.66, "min_12m_date": "05/05/2025", "rsi": 63.5, "momentum_21d": -4.42, "ma_cross": false, "score_macro": 44.1, "score_tecnico": 47.0, "score_sector": 42.0, "score_final": 44.8, "signal": "🟠 VENTA PARCIAL", "fecha": "2026-05-05"}, {"ticker": "EDN.BA", "empresa": "Edenor", "sector": "UTILITIES", "mercado": "MERVAL", "precio_actual": 1820.0, "ret_anual": 4.0, "ret_mes": -21.75, "ret_sem": -4.21, "max_12m": 2717.5, "max_12m_date": "03/12/2025", "min_12m": 1166.0, "min_12m_date": "18/09/2025", "rsi": 30.9, "momentum_21d": -19.25, "ma_cross": false, "score_macro": 41.9, "score_tecnico": 41.8, "score_sector": 44.0, "score_final": 42.3, "signal": "🟠 VENTA PARCIAL", "fecha": "2026-05-05"}];
@@ -177,7 +177,7 @@ const bL = ["May-25", "Jun-25", "Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25"
 const bV = [137027.0, 138855.0, 133071.0, 141422.0, 146237.0, 149540.0, 159072.0, 161125.0, 181364.0, 188787.0, 187462.0, 187318.0, 186754.0];
 const sL = ["May-25", "Jun-25", "Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25", "Dec-25", "Jan-26", "Feb-26", "Mar-26", "Apr-26", "May-26"];
 const sV = [5911.69, 6204.95, 6339.39, 6460.26, 6688.46, 6840.2, 6849.09, 6845.5, 6939.03, 6878.88, 6528.52, 7209.01, 7259.22];
-
+ 
 function fmtDay(v){ if(v===null||v===undefined) return '—'; return (v>=0?'+':'')+v.toFixed(2)+'%'; }
 function dayColor(v){ return v===null||v===undefined?'#888':v>=0?'#4ade80':'#f87171'; }
 function refreshDayChange(){
@@ -190,7 +190,7 @@ function refreshDayChange(){
 }
 refreshDayChange();
 setInterval(refreshDayChange,10000);
-
+ 
 function sw(id,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -204,24 +204,24 @@ function sigColor(s){
   return '#f87171';
 }
 function retColor(v){ return v>=0?'#4ade80':'#f87171'; }
-
+ 
 function buildTable(tbId,market){
   const rows=market?SIGNALS.filter(s=>s.mercado===market):SIGNALS.slice(0,20);
   const tb=document.getElementById(tbId); if(!tb) return;
   tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Sector</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>Anual%</th><th>RSI</th><th>Score</th><th>Señal</th></tr>'
     +rows.map(s=>`<tr><td class="ticker">${s.ticker}</td><td style="color:#ccc">${s.empresa.substring(0,22)}</td><td style="color:#888;font-size:11px">${s.sector}</td><td>${s.precio_actual.toLocaleString('es-AR')}</td><td style="color:${retColor(s.ret_sem)};font-weight:600">${s.ret_sem>=0?'+':''}${s.ret_sem.toFixed(1)}%</td><td style="color:${retColor(s.ret_mes)};font-weight:600">${s.ret_mes>=0?'+':''}${s.ret_mes.toFixed(1)}%</td><td style="color:${retColor(s.ret_anual)};font-weight:600">${s.ret_anual>=0?'+':''}${s.ret_anual.toFixed(1)}%</td><td>${s.rsi.toFixed(0)}</td><td style="color:#fbbf24;font-weight:700">${s.score_final.toFixed(0)}</td><td style="color:${sigColor(s.signal)};font-weight:600">${s.signal}</td></tr>`).join('');
 }
-
+ 
 function buildStats(divId,marketKey){
   const st=IDX[marketKey]||{};
   const d=document.getElementById(divId); if(!d) return;
   d.innerHTML=[['Cierre actual',st.actual?st.actual.toLocaleString('es-AR'):'—',''],['Variación 12m',st.ret_anual!=null?(st.ret_anual>=0?'+':'')+st.ret_anual.toFixed(2)+'%':'—',st.ret_anual>=0?'#4ade80':'#f87171'],['Máximo 12m',st.max_12m?st.max_12m.toLocaleString('es-AR'):'—','#fbbf24'],['Mínimo 12m',st.min_12m?st.min_12m.toLocaleString('es-AR'):'—','#f87171']]
     .map(([l,v,c])=>`<div class="card"><div class="card-title">${l}</div><div class="card-value" style="color:${c||'#fff'}">${v}</div>${l.includes('Máx')?`<div class="card-sub">${st.max_12m_date||''}</div>`:''}${l.includes('Mín')?`<div class="card-sub">${st.min_12m_date||''}</div>`:''}</div>`).join('');
 }
-
+ 
 function normalize(arr){ const b=arr[0]||1; return arr.map(v=>+(v/b*100).toFixed(1)); }
 const scaleOpts={x:{ticks:{color:'#666',font:{size:11},autoSkip:true,maxTicksLimit:12,maxRotation:45},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#666',font:{size:11}},grid:{color:'rgba(255,255,255,.05)'}}};
-
+ 
 // Panorama — base 100 cronológico con leyenda
 if(mL.length&&bL.length&&sL.length){
   const allL=[...new Set([...mL,...bL,...sL])].sort();
@@ -232,15 +232,15 @@ if(mL.length&&bL.length&&sL.length){
     {label:'S&P 500',data:normalize(pick(sL,sV,allL).filter(v=>v!==null)),borderColor:'#fbbf24',borderWidth:2,pointRadius:3,pointBackgroundColor:'#fbbf24',tension:.3,fill:false,borderDash:[2,3]},
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:scaleOpts}});
 }
-
+ 
 // MERVAL — línea (no barras)
 if(mL.length) new Chart(document.getElementById('chartMerval'),{type:'line',data:{labels:mL,datasets:[{data:mV,borderColor:'#5ba3ff',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#5ba3ff',fill:true,backgroundColor:'rgba(91,163,255,.07)',tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:scaleOpts}});
 if(bL.length) new Chart(document.getElementById('chartBovespa'),{type:'line',data:{labels:bL,datasets:[{data:bV,borderColor:'#4ade80',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(74,222,128,.07)',tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:scaleOpts}});
 if(sL.length) new Chart(document.getElementById('chartSP500'),{type:'line',data:{labels:sL,datasets:[{data:sV,borderColor:'#fbbf24',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(251,191,36,.07)',tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:scaleOpts}});
-
+ 
 buildTable('tbl-global',null); buildTable('tbl-merval','MERVAL'); buildTable('tbl-bovespa','BOVESPA'); buildTable('tbl-sp500','SP500');
 buildStats('merval-stats','merval'); buildStats('bovespa-stats','bovespa'); buildStats('sp500-stats','sp500');
-
+ 
 // Radar de Oportunidades Tempranas
 function computeRadarScore(s){
   let score=0;
@@ -256,7 +256,7 @@ function computeRadarScore(s){
   }
   return Math.min(Math.round(score),100);
 }
-
+ 
 function buildRadar(){
   const ranked=SIGNALS.filter(s=>!s.signal.includes('VENTA'))
     .map(s=>(({...s,radar_score:computeRadarScore(s)})))
@@ -302,7 +302,7 @@ function buildRadar(){
   if(c) c.innerHTML=html||'<div style="color:#666;padding:20px">Sin datos.</div>';
 }
 buildRadar();
-
+ 
 const compras=SIGNALS.filter(s=>s.signal.includes('COMPRA'));
 const ventas=SIGNALS.filter(s=>s.signal.includes('VENTA'));
 const flag=m=>m==='MERVAL'?'🇦🇷':m==='BOVESPA'?'🇧🇷':'🇺🇸';
