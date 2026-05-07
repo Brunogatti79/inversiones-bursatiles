@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código fuente
-ARG CACHE_BUST=2026-05-07-v2
+ARG CACHE_BUST=2026-05-07-v3
 COPY . .
 
 # Crear directorios de trabajo
