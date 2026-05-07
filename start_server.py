@@ -10,6 +10,19 @@ import subprocess
 import threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
+# ── Actualizar código desde GitHub en cada arranque ──────────────
+try:
+    result = subprocess.run(
+        ["git", "pull", "origin", "main"],
+        capture_output=True, text=True, timeout=30
+    )
+    print(f"[start_server] git pull: {result.stdout.strip()}", flush=True)
+    if result.returncode != 0:
+        print(f"[start_server] git pull error: {result.stderr.strip()}", flush=True)
+except Exception as e:
+    print(f"[start_server] git pull excepción: {e}", flush=True)
+# ─────────────────────────────────────────────────────────────────
+
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 PORT = int(os.environ.get("PORT", 8080))
@@ -20,21 +33,18 @@ class Handler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=OUTPUT_DIR, **kwargs)
 
     def log_message(self, format, *args):
-        pass  # silenciar logs HTTP
+        pass
 
 
 def launch_main():
-    """Lanza main.py en un proceso separado."""
     import time
-    time.sleep(2)  # pequeña pausa para que el servidor HTTP arranque
+    time.sleep(2)
     subprocess.run([sys.executable, "main.py"])
 
 
-# Lanzar main.py en hilo daemon
 t = threading.Thread(target=launch_main, daemon=True)
 t.start()
 
-# Servidor HTTP en hilo principal (Railway hace health check aqui)
 print(f"[start_server] Servidor HTTP en puerto {PORT}", flush=True)
 httpd = HTTPServer(("0.0.0.0", PORT), Handler)
 httpd.serve_forever()
