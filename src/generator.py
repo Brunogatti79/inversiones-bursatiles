@@ -6,6 +6,8 @@ Versión actualizada con:
   2. Leyenda en gráfico base-100 + eje temporal con fecha más reciente a la derecha
   3. MERVAL usa gráfico de líneas (igual que BOVESPA y S&P 500)
   4. Sección "Radar de Oportunidades Tempranas" en Conclusiones (ranking por score)
+  5. Cards Panorama más grandes con mejor jerarquía visual
+  6. Sort cronológico real en gráfico comparativo base-100
 """
  
 import os
@@ -15,7 +17,7 @@ from datetime import datetime
 from typing import Optional
  
 logger = logging.getLogger(__name__)
-logger.warning("=== GENERATOR VERSION NUEVA 2026-05-07 ===")
+logger.warning("=== GENERATOR VERSION NUEVA 2026-05-08 ===")
  
  
 # ─────────────────────────────────────────────
@@ -50,7 +52,6 @@ def generate_dashboard(
     b_vol  = index_stats.get("bovespa", {}).get("volatilidad", 0)
     s_vol  = index_stats.get("sp500",   {}).get("volatilidad", 0)
  
-    # Variación diaria (puede ser None si no está disponible aún)
     m_day  = index_stats.get("merval",  {}).get("ret_dia", None)
     b_day  = index_stats.get("bovespa", {}).get("ret_dia", None)
     s_day  = index_stats.get("sp500",   {}).get("ret_dia", None)
@@ -87,19 +88,19 @@ def generate_dashboard(
   .ticker{{font-weight:700;color:#5ba3ff;font-family:monospace;font-size:12px}}
   .chart-wrap{{position:relative;width:100%;height:260px;margin-bottom:24px}}
   .sig-buy{{color:#4ade80}}.sig-neu{{color:#fbbf24}}.sig-sell{{color:#fb923c}}
-  /* ── Panorama cards ── */
+  /* ── Panorama cards — CAMBIO 5: más grandes, mejor jerarquía ── */
   .pano-header{{display:flex;gap:14px;margin-bottom:24px}}
-  .pano-card{{flex:1;background:#16161e;border:1px solid #222230;border-radius:10px;padding:16px}}
-  .pano-flag{{font-size:22px;margin-bottom:6px}}
-  .pano-label{{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.7px}}
-  .pano-value{{font-size:18px;font-weight:700;color:#fff;margin:3px 0}}
-  .pano-anual{{font-size:20px;font-weight:800}}
-  .pano-day-row{{display:flex;align-items:center;gap:8px;margin-top:6px}}
-  .pano-day-label{{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.5px}}
-  .pano-day-value{{font-size:13px;font-weight:700}}
-  .pano-day-dot{{width:7px;height:7px;border-radius:50%;animation:pulse 2s infinite}}
+  .pano-card{{flex:1;background:#16161e;border:1px solid #222230;border-radius:10px;padding:20px 24px;display:flex;flex-direction:column;justify-content:space-between;min-height:180px}}
+  .pano-flag{{font-size:28px;margin-bottom:4px}}
+  .pano-label{{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:1px;font-weight:500}}
+  .pano-value{{font-size:32px;font-weight:800;color:#fff;margin:6px 0;line-height:1;letter-spacing:-1px}}
+  .pano-anual{{font-size:28px;font-weight:900;line-height:1}}
+  .pano-day-row{{display:flex;align-items:center;gap:8px;margin-top:10px}}
+  .pano-day-label{{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.5px}}
+  .pano-day-value{{font-size:16px;font-weight:700}}
+  .pano-day-dot{{width:8px;height:8px;border-radius:50%;animation:pulse 2s infinite}}
   @keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
-  .pano-vol{{font-size:11px;color:#666;margin-top:4px}}
+  .pano-vol{{font-size:12px;color:#555;margin-top:4px}}
   /* ── Leyenda gráfico comparativo ── */
   .chart-legend{{display:flex;gap:20px;margin-bottom:10px;flex-wrap:wrap}}
   .legend-item{{display:flex;align-items:center;gap:6px;font-size:12px;color:#aaa}}
@@ -156,19 +157,14 @@ def generate_dashboard(
   <div class="tab"     onclick="sw('conclusiones',this)">Conclusiones</div>
 </div>
  
-<!-- ══════════════════════════════════
-     PANORAMA
-══════════════════════════════════ -->
+<!-- PANORAMA -->
 <div id="panorama" class="page on">
- 
-  <!-- Cards con variación anual + diaria -->
   <div class="pano-header">
- 
     <div class="pano-card">
       <div class="pano-flag">🇦🇷</div>
       <div class="pano-label">MERVAL</div>
       <div class="pano-value" id="pano-m-val">{m_act:,.0f}</div>
-      <div class="pano-anual" id="pano-m-anual" style="color:{'#4ade80' if m_ret>=0 else '#f87171'}">{'+' if m_ret>=0 else ''}{m_ret:.2f}%</div>
+      <div class="pano-anual" id="pano-m-anual" style="color:{'#4ade80' if m_ret>=0 else '#f87171'}">{'+ ' if m_ret>=0 else ''}{m_ret:.2f}%</div>
       <div class="pano-day-row">
         <div class="pano-day-dot" id="dot-m" style="background:#4ade80"></div>
         <span class="pano-day-label">HOY</span>
@@ -176,12 +172,11 @@ def generate_dashboard(
       </div>
       <div class="pano-vol">Vol {m_vol:.1f}%</div>
     </div>
- 
     <div class="pano-card">
       <div class="pano-flag">🇧🇷</div>
       <div class="pano-label">BOVESPA</div>
       <div class="pano-value" id="pano-b-val">{b_act:,.0f}</div>
-      <div class="pano-anual" id="pano-b-anual" style="color:{'#4ade80' if b_ret>=0 else '#f87171'}">{'+' if b_ret>=0 else ''}{b_ret:.2f}%</div>
+      <div class="pano-anual" id="pano-b-anual" style="color:{'#4ade80' if b_ret>=0 else '#f87171'}">{'+ ' if b_ret>=0 else ''}{b_ret:.2f}%</div>
       <div class="pano-day-row">
         <div class="pano-day-dot" id="dot-b" style="background:#4ade80"></div>
         <span class="pano-day-label">HOY</span>
@@ -189,12 +184,11 @@ def generate_dashboard(
       </div>
       <div class="pano-vol">Vol {b_vol:.1f}%</div>
     </div>
- 
     <div class="pano-card">
       <div class="pano-flag">🇺🇸</div>
       <div class="pano-label">S&amp;P 500</div>
       <div class="pano-value" id="pano-s-val">{s_act:,.0f}</div>
-      <div class="pano-anual" id="pano-s-anual" style="color:{'#4ade80' if s_ret>=0 else '#f87171'}">{'+' if s_ret>=0 else ''}{s_ret:.2f}%</div>
+      <div class="pano-anual" id="pano-s-anual" style="color:{'#4ade80' if s_ret>=0 else '#f87171'}">{'+ ' if s_ret>=0 else ''}{s_ret:.2f}%</div>
       <div class="pano-day-row">
         <div class="pano-day-dot" id="dot-s" style="background:#4ade80"></div>
         <span class="pano-day-label">HOY</span>
@@ -202,10 +196,8 @@ def generate_dashboard(
       </div>
       <div class="pano-vol">Vol {s_vol:.1f}%</div>
     </div>
- 
   </div>
  
-  <!-- Leyenda gráfico comparativo -->
   <div class="section-title">Evolución comparativa — base 100</div>
   <div class="chart-legend">
     <div class="legend-item">
@@ -213,7 +205,7 @@ def generate_dashboard(
       <span style="color:#5ba3ff;font-weight:600">MERVAL 🇦🇷</span>
     </div>
     <div class="legend-item">
-      <div class="legend-dot" style="background:#4ade80;height:3px;width:24px;border-radius:2px;border-bottom:2px dashed #4ade80"></div>
+      <div class="legend-dot" style="background:#4ade80;height:3px;width:24px;border-radius:2px"></div>
       <span style="color:#4ade80;font-weight:600">BOVESPA 🇧🇷</span>
     </div>
     <div class="legend-item">
@@ -221,54 +213,41 @@ def generate_dashboard(
       <span style="color:#fbbf24;font-weight:600">S&amp;P 500 🇺🇸</span>
     </div>
   </div>
-  <div class="chart-wrap"><canvas id="chartPano" role="img" aria-label="Evolución comparativa 3 índices"></canvas></div>
- 
+  <div class="chart-wrap"><canvas id="chartPano"></canvas></div>
   <div class="section-title">Ranking global de oportunidades</div>
   <table class="tbl" id="tbl-global"></table>
 </div>
  
-<!-- ══════════════════════════════════
-     MERVAL
-══════════════════════════════════ -->
+<!-- MERVAL -->
 <div id="merval" class="page">
   <div class="section-title">MERVAL — Estadísticas 12 meses</div>
   <div class="grid-4" id="merval-stats"></div>
-  <div class="chart-wrap"><canvas id="chartMerval" role="img" aria-label="Evolución MERVAL"></canvas></div>
+  <div class="chart-wrap"><canvas id="chartMerval"></canvas></div>
   <div class="section-title">Señales del modelo</div>
   <table class="tbl" id="tbl-merval"></table>
 </div>
  
-<!-- ══════════════════════════════════
-     BOVESPA
-══════════════════════════════════ -->
+<!-- BOVESPA -->
 <div id="bovespa" class="page">
   <div class="section-title">BOVESPA — Estadísticas 12 meses</div>
   <div class="grid-4" id="bovespa-stats"></div>
-  <div class="chart-wrap"><canvas id="chartBovespa" role="img" aria-label="Evolución BOVESPA"></canvas></div>
+  <div class="chart-wrap"><canvas id="chartBovespa"></canvas></div>
   <div class="section-title">Señales del modelo</div>
   <table class="tbl" id="tbl-bovespa"></table>
 </div>
  
-<!-- ══════════════════════════════════
-     S&P 500
-══════════════════════════════════ -->
+<!-- SP500 -->
 <div id="sp500" class="page">
   <div class="section-title">S&amp;P 500 — Estadísticas 12 meses</div>
   <div class="grid-4" id="sp500-stats"></div>
-  <div class="chart-wrap"><canvas id="chartSP500" role="img" aria-label="Evolución SP500"></canvas></div>
+  <div class="chart-wrap"><canvas id="chartSP500"></canvas></div>
   <div class="section-title">Señales del modelo</div>
   <table class="tbl" id="tbl-sp500"></table>
 </div>
  
-<!-- ══════════════════════════════════
-     CONCLUSIONES
-══════════════════════════════════ -->
+<!-- CONCLUSIONES -->
 <div id="conclusiones" class="page">
- 
-  <!-- NUEVO: Radar de Oportunidades Tempranas -->
-  <div class="section-title" style="color:#86efac">
-    🔭 Radar de Oportunidades Tempranas
-  </div>
+  <div class="section-title" style="color:#86efac">🔭 Radar de Oportunidades Tempranas</div>
   <div class="radar-criteria">
     <span>📊 <b style="color:#aaa">Score técnico</b> — RSI, momentum, cruces MA</span>
     <span>🕯️ <b style="color:#aaa">Patrones de vela</b> — últimas 12 semanas</span>
@@ -277,23 +256,16 @@ def generate_dashboard(
     <span>⚙️ <b style="color:#aaa">Score modelo</b> — macro × técnico × sectorial</span>
   </div>
   <div id="radar-block"></div>
- 
-  <!-- Compras confirmadas -->
   <div class="section-title" style="margin-top:28px">✅ Oportunidades de compra confirmadas</div>
   <div id="compras-block"></div>
- 
-  <!-- Ventas / reducción -->
   <div class="section-title" style="margin-top:20px">🔴 Señales de reducción</div>
   <div id="ventas-block"></div>
- 
 </div>
  
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const SIGNALS = {signals_json};
 const IDX     = {index_stats_json};
- 
-// ── Datos base retornados por Python ──
 const mL = {json.dumps(merval_labels)};
 const mV = {json.dumps(merval_values)};
 const bL = {json.dumps(bovespa_labels)};
@@ -301,408 +273,123 @@ const bV = {json.dumps(bovespa_values)};
 const sL = {json.dumps(sp500_labels)};
 const sV = {json.dumps(sp500_values)};
  
-// ──────────────────────────────────────────────────────────────
-// CAMBIO 1 — Refresh variación diaria cada 10 segundos
-// Intenta obtener variación diaria real desde yfinance vía API.
-// Si no hay endpoint de API, recalcula desde la última sesión
-// usando los datos estáticos ya disponibles en IDX.
-// ──────────────────────────────────────────────────────────────
-function fmtDay(v) {{
-  if (v === null || v === undefined) return '—';
-  const sign = v >= 0 ? '+' : '';
-  return sign + v.toFixed(2) + '%';
-}}
-function dayColor(v) {{
-  if (v === null || v === undefined) return '#888';
-  return v >= 0 ? '#4ade80' : '#f87171';
-}}
- 
-function refreshDayChange() {{
-  const tickers = [
-    {{ el: 'pano-m-day', dot: 'dot-m', key: 'merval'  }},
-    {{ el: 'pano-b-day', dot: 'dot-b', key: 'bovespa' }},
-    {{ el: 'pano-s-day', dot: 'dot-s', key: 'sp500'   }},
-  ];
-  tickers.forEach(t => {{
-    const val   = IDX[t.key] && IDX[t.key].ret_dia !== undefined ? IDX[t.key].ret_dia : null;
-    const elDay = document.getElementById(t.el);
-    const elDot = document.getElementById(t.dot);
-    if (elDay) {{
-      elDay.textContent  = fmtDay(val);
-      elDay.style.color  = dayColor(val);
-    }}
-    if (elDot) {{
-      elDot.style.background = dayColor(val);
-    }}
+function fmtDay(v){{ if(v===null||v===undefined) return '—'; return (v>=0?'+':'')+v.toFixed(2)+'%'; }}
+function dayColor(v){{ return v===null||v===undefined?'#888':v>=0?'#4ade80':'#f87171'; }}
+function refreshDayChange(){{
+  [['pano-m-day','dot-m','merval'],['pano-b-day','dot-b','bovespa'],['pano-s-day','dot-s','sp500']].forEach(([el,dot,key])=>{{
+    const val=IDX[key]&&IDX[key].ret_dia!==undefined?IDX[key].ret_dia:null;
+    const e=document.getElementById(el),d=document.getElementById(dot);
+    if(e){{e.textContent=fmtDay(val);e.style.color=dayColor(val);}}
+    if(d) d.style.background=dayColor(val);
   }});
 }}
- 
-// Ejecutar al cargar y cada 10 segundos
 refreshDayChange();
-setInterval(refreshDayChange, 10000);
+setInterval(refreshDayChange,10000);
  
-// ──────────────────────────────────────────────────────────────
-// Helpers genéricos
-// ──────────────────────────────────────────────────────────────
-function sw(id, el) {{
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById(id).classList.add('on');
+function sw(id,el){{
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on'); document.getElementById(id).classList.add('on');
 }}
- 
-function sigColor(s) {{
-  if (s.includes('COMPRA FUERTE')) return '#ffd700';
-  if (s.includes('COMPRA'))        return '#4ade80';
-  if (s.includes('NEUTRAL'))       return '#fbbf24';
-  if (s.includes('VENTA P'))       return '#fb923c';
+function sigColor(s){{
+  if(s.includes('COMPRA FUERTE')) return '#ffd700';
+  if(s.includes('COMPRA'))        return '#4ade80';
+  if(s.includes('NEUTRAL'))       return '#fbbf24';
+  if(s.includes('VENTA P'))       return '#fb923c';
   return '#f87171';
 }}
-function retColor(v) {{ return v >= 0 ? '#4ade80' : '#f87171'; }}
+function retColor(v){{ return v>=0?'#4ade80':'#f87171'; }}
  
-// ──────────────────────────────────────────────────────────────
-// Tablas de señales
-// ──────────────────────────────────────────────────────────────
-function buildTable(tbId, market) {{
-  const rows = market ? SIGNALS.filter(s => s.mercado === market) : SIGNALS.slice(0, 20);
-  const tb   = document.getElementById(tbId);
-  if (!tb) return;
-  tb.innerHTML = '<tr><th>Ticker</th><th>Empresa</th><th>Sector</th><th>Precio</th>'
-    + '<th>Sem%</th><th>Mes%</th><th>Anual%</th><th>RSI</th><th>Score</th><th>Señal</th></tr>'
-    + rows.map(s => `<tr>
-      <td class="ticker">${{s.ticker}}</td>
-      <td style="color:#ccc">${{s.empresa.substring(0,22)}}</td>
-      <td style="color:#888;font-size:11px">${{s.sector}}</td>
-      <td>${{s.precio_actual.toLocaleString('es-AR')}}</td>
-      <td style="color:${{retColor(s.ret_sem)}};font-weight:600">${{s.ret_sem>=0?'+':''}}${{s.ret_sem.toFixed(1)}}%</td>
-      <td style="color:${{retColor(s.ret_mes)}};font-weight:600">${{s.ret_mes>=0?'+':''}}${{s.ret_mes.toFixed(1)}}%</td>
-      <td style="color:${{retColor(s.ret_anual)}};font-weight:600">${{s.ret_anual>=0?'+':''}}${{s.ret_anual.toFixed(1)}}%</td>
-      <td>${{s.rsi.toFixed(0)}}</td>
-      <td style="color:#fbbf24;font-weight:700">${{s.score_final.toFixed(0)}}</td>
-      <td style="color:${{sigColor(s.signal)}};font-weight:600">${{s.signal}}</td>
-    </tr>`).join('');
+function buildTable(tbId,market){{
+  const rows=market?SIGNALS.filter(s=>s.mercado===market):SIGNALS.slice(0,20);
+  const tb=document.getElementById(tbId); if(!tb) return;
+  tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Sector</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>Anual%</th><th>RSI</th><th>Score</th><th>Señal</th></tr>'
+    +rows.map(s=>`<tr><td class="ticker">${{s.ticker}}</td><td style="color:#ccc">${{s.empresa.substring(0,22)}}</td><td style="color:#888;font-size:11px">${{s.sector}}</td><td>${{s.precio_actual.toLocaleString('es-AR')}}</td><td style="color:${{retColor(s.ret_sem)}};font-weight:600">${{s.ret_sem>=0?'+':''}}${{s.ret_sem.toFixed(1)}}%</td><td style="color:${{retColor(s.ret_mes)}};font-weight:600">${{s.ret_mes>=0?'+':''}}${{s.ret_mes.toFixed(1)}}%</td><td style="color:${{retColor(s.ret_anual)}};font-weight:600">${{s.ret_anual>=0?'+':''}}${{s.ret_anual.toFixed(1)}}%</td><td>${{s.rsi.toFixed(0)}}</td><td style="color:#fbbf24;font-weight:700">${{s.score_final.toFixed(0)}}</td><td style="color:${{sigColor(s.signal)}};font-weight:600">${{s.signal}}</td></tr>`).join('');
 }}
  
-function buildStats(divId, marketKey) {{
-  const st = IDX[marketKey] || {{}};
-  const d  = document.getElementById(divId);
-  if (!d) return;
-  const items = [
-    ['Cierre actual', st.actual  ? st.actual.toLocaleString('es-AR') : '—', ''],
-    ['Variación 12m', st.ret_anual != null ? (st.ret_anual>=0?'+':'') + st.ret_anual.toFixed(2) + '%' : '—',
-      st.ret_anual >= 0 ? '#4ade80' : '#f87171'],
-    ['Máximo 12m',    st.max_12m  ? st.max_12m.toLocaleString('es-AR') : '—', '#fbbf24'],
-    ['Mínimo 12m',    st.min_12m  ? st.min_12m.toLocaleString('es-AR') : '—', '#f87171'],
-  ];
-  d.innerHTML = items.map(([label, val, color]) => `
-    <div class="card">
-      <div class="card-title">${{label}}</div>
-      <div class="card-value" style="color:${{color || '#fff'}}">${{val}}</div>
-      ${{label.includes('Máx') ? `<div class="card-sub">${{st.max_12m_date || ''}}</div>` : ''}}
-      ${{label.includes('Mín') ? `<div class="card-sub">${{st.min_12m_date || ''}}</div>` : ''}}
-    </div>`).join('');
+function buildStats(divId,marketKey){{
+  const st=IDX[marketKey]||{{}};
+  const d=document.getElementById(divId); if(!d) return;
+  d.innerHTML=[['Cierre actual',st.actual?st.actual.toLocaleString('es-AR'):'—',''],['Variación 12m',st.ret_anual!=null?(st.ret_anual>=0?'+':'')+st.ret_anual.toFixed(2)+'%':'—',st.ret_anual>=0?'#4ade80':'#f87171'],['Máximo 12m',st.max_12m?st.max_12m.toLocaleString('es-AR'):'—','#fbbf24'],['Mínimo 12m',st.min_12m?st.min_12m.toLocaleString('es-AR'):'—','#f87171']]
+    .map(([l,v,c])=>`<div class="card"><div class="card-title">${{l}}</div><div class="card-value" style="color:${{c||'#fff'}}">${{v}}</div>${{l.includes('Máx')?`<div class="card-sub">${{st.max_12m_date||''}}</div>`:''}}${{l.includes('Mín')?`<div class="card-sub">${{st.min_12m_date||''}}</div>`:''}}</div>`).join('');
 }}
  
-// ──────────────────────────────────────────────────────────────
-// CAMBIO 2 — Gráfico comparativo base-100
-// • Leyenda visible (definida en HTML arriba)
-// • Eje X con fecha más reciente a la DERECHA (orden cronológico)
-// ──────────────────────────────────────────────────────────────
-function normalize(arr) {{
-  const base = arr[0] || 1;
-  return arr.map(v => +(v / base * 100).toFixed(1));
+function normalize(arr){{ const b=arr[0]||1; return arr.map(v=>+(v/b*100).toFixed(1)); }}
+const scaleOpts={{x:{{ticks:{{color:'#666',font:{{size:11}},autoSkip:true,maxTicksLimit:12,maxRotation:45}},grid:{{color:'rgba(255,255,255,.05)'}}}},y:{{ticks:{{color:'#666',font:{{size:11}}}},grid:{{color:'rgba(255,255,255,.05)'}}}}}} ;
+ 
+// CAMBIO 6 — Sort cronológico real para etiquetas tipo "Apr-26", "Dec-25"
+const monthMap={{Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11}};
+function labelToDate(l){{
+  const [m,y]=l.split('-');
+  const yr=parseInt(y)+(parseInt(y)<50?2000:1900);
+  return new Date(yr,monthMap[m]||0,1);
 }}
  
-// Opciones comunes de escala
-const scaleOpts = {{
-  x: {{ ticks: {{ color: '#666', font: {{ size: 11 }}, autoSkip: true, maxTicksLimit: 12, maxRotation: 45 }},
-       grid: {{ color: 'rgba(255,255,255,.05)' }} }},
-  y: {{ ticks: {{ color: '#666', font: {{ size: 11 }} }},
-       grid: {{ color: 'rgba(255,255,255,.05)' }} }},
-}};
+if(mL.length&&bL.length&&sL.length){{
+  const allL=[...new Set([...mL,...bL,...sL])].sort((a,b)=>labelToDate(a)-labelToDate(b));
+  const pick=(labels,vals,all)=>all.map(l=>{{const i=labels.indexOf(l);return i>=0?vals[i]:null;}});
+  const mNorm=normalize(pick(mL,mV,allL).filter(v=>v!==null));
+  const bNorm=normalize(pick(bL,bV,allL).filter(v=>v!==null));
+  const sNorm=normalize(pick(sL,sV,allL).filter(v=>v!==null));
+  new Chart(document.getElementById('chartPano'),{{type:'line',data:{{labels:allL,datasets:[
+    {{label:'MERVAL',data:mNorm,borderColor:'#5ba3ff',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#5ba3ff',tension:.3,fill:false}},
+    {{label:'BOVESPA',data:bNorm,borderColor:'#4ade80',borderWidth:2,pointRadius:3,pointBackgroundColor:'#4ade80',tension:.3,fill:false,borderDash:[5,4]}},
+    {{label:'S&P 500',data:sNorm,borderColor:'#fbbf24',borderWidth:2,pointRadius:3,pointBackgroundColor:'#fbbf24',tension:.3,fill:false,borderDash:[2,3]}},
+  ]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}},tooltip:{{mode:'index',intersect:false}}}},scales:scaleOpts}}}});
+}}
  
-if (mL.length && bL.length && sL.length) {{
-  // Unir todas las etiquetas y ordenar cronológicamente (más antiguo→reciente = izq→der)
-  const allL = [...new Set([...mL, ...bL, ...sL])].sort();
+if(mL.length) new Chart(document.getElementById('chartMerval'),{{type:'line',data:{{labels:mL,datasets:[{{data:mV,borderColor:'#5ba3ff',borderWidth:2.5,pointRadius:3,fill:true,backgroundColor:'rgba(91,163,255,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
+if(bL.length) new Chart(document.getElementById('chartBovespa'),{{type:'line',data:{{labels:bL,datasets:[{{data:bV,borderColor:'#4ade80',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(74,222,128,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
+if(sL.length) new Chart(document.getElementById('chartSP500'),{{type:'line',data:{{labels:sL,datasets:[{{data:sV,borderColor:'#fbbf24',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(251,191,36,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
  
-  function pick(labels, vals, all) {{
-    return all.map(l => {{ const i = labels.indexOf(l); return i >= 0 ? vals[i] : null; }});
+buildTable('tbl-global',null); buildTable('tbl-merval','MERVAL'); buildTable('tbl-bovespa','BOVESPA'); buildTable('tbl-sp500','SP500');
+buildStats('merval-stats','merval'); buildStats('bovespa-stats','bovespa'); buildStats('sp500-stats','sp500');
+ 
+function computeRadarScore(s){{
+  let score=0;
+  score+=Math.min(s.score_final/100,1)*35;
+  const rsi=s.rsi||50;
+  if(rsi>=28&&rsi<=45) score+=20; else if(rsi>45&&rsi<=55) score+=12; else if(rsi>55&&rsi<=65) score+=6;
+  const rs=s.ret_sem||0,rm=s.ret_mes||0;
+  if(rs>0&&rm<5) score+=20; else if(rs>0&&rm>=5&&rm<15) score+=12; else if(rs>0) score+=6;
+  if(s.ma_cross) score+=15;
+  if(s.precio_actual&&s.max_12m&&s.max_12m>0){{
+    const p=(s.max_12m-s.precio_actual)/s.max_12m;
+    if(p>0.35) score+=10; else if(p>0.20) score+=7; else if(p>0.10) score+=4;
   }}
- 
-  const mNorm = normalize(pick(mL, mV, allL).filter(v => v !== null));
-  const bNorm = normalize(pick(bL, bV, allL).filter(v => v !== null));
-  const sNorm = normalize(pick(sL, sV, allL).filter(v => v !== null));
- 
-  new Chart(document.getElementById('chartPano'), {{
-    type: 'line',
-    data: {{
-      labels: allL,                // cronológico: más viejo a la izq, más nuevo a la der
-      datasets: [
-        {{
-          label: 'MERVAL',
-          data: mNorm,
-          borderColor: '#5ba3ff', borderWidth: 2.5,
-          pointRadius: 3, pointBackgroundColor: '#5ba3ff',
-          tension: .3, fill: false,
-        }},
-        {{
-          label: 'BOVESPA',
-          data: bNorm,
-          borderColor: '#4ade80', borderWidth: 2,
-          pointRadius: 3, pointBackgroundColor: '#4ade80',
-          tension: .3, fill: false,
-          borderDash: [5, 4],
-        }},
-        {{
-          label: 'S&P 500',
-          data: sNorm,
-          borderColor: '#fbbf24', borderWidth: 2,
-          pointRadius: 3, pointBackgroundColor: '#fbbf24',
-          tension: .3, fill: false,
-          borderDash: [2, 3],
-        }},
-      ],
-    }},
-    options: {{
-      responsive: true, maintainAspectRatio: false,
-      plugins: {{
-        legend: {{ display: false }},   // leyenda custom en HTML (arriba del chart)
-        tooltip: {{
-          mode: 'index', intersect: false,
-          callbacks: {{
-            label: ctx => ` ${{ctx.dataset.label}}: ${{ctx.parsed.y.toFixed(1)}}`,
-          }},
-        }},
-      }},
-      scales: scaleOpts,
-    }},
-  }});
+  return Math.min(Math.round(score),100);
 }}
  
-// ──────────────────────────────────────────────────────────────
-// CAMBIO 3 — MERVAL usa línea (igual que BOVESPA y S&P 500)
-// ──────────────────────────────────────────────────────────────
-if (mL.length) {{
-  new Chart(document.getElementById('chartMerval'), {{
-    type: 'line',
-    data: {{
-      labels: mL,
-      datasets: [{{
-        data: mV,
-        borderColor: '#5ba3ff', borderWidth: 2.5,
-        pointRadius: 3, pointBackgroundColor: '#5ba3ff',
-        fill: true, backgroundColor: 'rgba(91,163,255,.07)',
-        tension: .3,
-      }}],
-    }},
-    options: {{
-      responsive: true, maintainAspectRatio: false,
-      plugins: {{ legend: {{ display: false }} }},
-      scales: scaleOpts,
-    }},
-  }});
-}}
- 
-if (bL.length) {{
-  new Chart(document.getElementById('chartBovespa'), {{
-    type: 'line',
-    data: {{
-      labels: bL,
-      datasets: [{{
-        data: bV,
-        borderColor: '#4ade80', borderWidth: 2,
-        pointRadius: 3, pointBackgroundColor: '#4ade80',
-        fill: true, backgroundColor: 'rgba(74,222,128,.07)',
-        tension: .3,
-      }}],
-    }},
-    options: {{
-      responsive: true, maintainAspectRatio: false,
-      plugins: {{ legend: {{ display: false }} }},
-      scales: scaleOpts,
-    }},
-  }});
-}}
- 
-if (sL.length) {{
-  new Chart(document.getElementById('chartSP500'), {{
-    type: 'line',
-    data: {{
-      labels: sL,
-      datasets: [{{
-        data: sV,
-        borderColor: '#fbbf24', borderWidth: 2,
-        pointRadius: 3, pointBackgroundColor: '#fbbf24',
-        fill: true, backgroundColor: 'rgba(251,191,36,.07)',
-        tension: .3,
-      }}],
-    }},
-    options: {{
-      responsive: true, maintainAspectRatio: false,
-      plugins: {{ legend: {{ display: false }} }},
-      scales: scaleOpts,
-    }},
-  }});
-}}
- 
-// ──────────────────────────────────────────────────────────────
-// Tablas y stats
-// ──────────────────────────────────────────────────────────────
-buildTable('tbl-global',  null);
-buildTable('tbl-merval',  'MERVAL');
-buildTable('tbl-bovespa', 'BOVESPA');
-buildTable('tbl-sp500',   'SP500');
-buildStats('merval-stats',  'merval');
-buildStats('bovespa-stats', 'bovespa');
-buildStats('sp500-stats',   'sp500');
- 
-// ──────────────────────────────────────────────────────────────
-// CAMBIO 4 — Radar de Oportunidades Tempranas
-// Ranking por score de probabilidad de suba con análisis
-// histórico de precio, volumen y patrones de velas.
-// ──────────────────────────────────────────────────────────────
-function computeRadarScore(s) {{
-  // Score compuesto 0–100 basado en múltiples señales tempranas
-  let score = 0;
- 
-  // 1) Score del modelo base (peso 35%)
-  const modelPct = Math.min(s.score_final / 100, 1);
-  score += modelPct * 35;
- 
-  // 2) RSI — zona de compra óptima 30–50 (peso 20%)
-  const rsi = s.rsi || 50;
-  if (rsi >= 28 && rsi <= 45)       score += 20;          // sobreventa saliendo
-  else if (rsi > 45 && rsi <= 55)   score += 12;          // zona neutral-positiva
-  else if (rsi > 55 && rsi <= 65)   score += 6;           // momentum positivo
- 
-  // 3) Momentum reciente: semanal positivo pero mensual aún bajo
-  //    (señal de arranque temprano) (peso 20%)
-  const retSem = s.ret_sem || 0;
-  const retMes = s.ret_mes || 0;
-  if (retSem > 0 && retMes < 5)     score += 20;          // aceleración temprana
-  else if (retSem > 0 && retMes >= 5 && retMes < 15) score += 12;
-  else if (retSem > 0)              score += 6;
- 
-  // 4) Cruces de medias (peso 15%)
-  if (s.ma_cross)                   score += 15;
- 
-  // 5) Ratio precio/máximo 12m — lejos del máximo = potencial upside (peso 10%)
-  if (s.precio_actual && s.max_12m && s.max_12m > 0) {{
-    const pctFromMax = (s.max_12m - s.precio_actual) / s.max_12m;
-    if (pctFromMax > 0.35)          score += 10;           // >35% abajo del máx
-    else if (pctFromMax > 0.20)     score += 7;
-    else if (pctFromMax > 0.10)     score += 4;
-  }}
- 
-  return Math.min(Math.round(score), 100);
-}}
- 
-function radarTag(label, cls) {{
-  return `<span class="radar-tag ${{cls}}">${{label}}</span>`;
-}}
- 
-function buildRadar() {{
-  // Excluir señales de venta y considerar todo el universo
-  const universe = SIGNALS.filter(s => !s.signal.includes('VENTA'));
- 
-  // Calcular radar score para cada acción
-  const ranked = universe
-    .map(s => ({{ ...s, radar_score: computeRadarScore(s) }}))
-    .sort((a, b) => b.radar_score - a.radar_score)
-    .slice(0, 10);  // Top 10
- 
-  const flag = m => m === 'MERVAL' ? '🇦🇷' : m === 'BOVESPA' ? '🇧🇷' : '🇺🇸';
- 
-  const html = ranked.map((s, i) => {{
-    const pctFromMax = s.max_12m > 0
-      ? ((s.max_12m - s.precio_actual) / s.max_12m * 100).toFixed(1)
-      : '—';
- 
-    // Tags de señales detectadas
-    const tags = [];
-    if (s.rsi >= 28 && s.rsi <= 45)       tags.push(radarTag('RSI sobreventa', 'tag-green'));
-    if (s.rsi > 45 && s.rsi <= 55)        tags.push(radarTag('RSI neutro-pos', 'tag-blue'));
-    if (s.ret_sem > 0 && s.ret_mes < 5)   tags.push(radarTag('Arranque temprano', 'tag-green'));
-    if (s.ret_sem > 0 && s.ret_mes >= 5)  tags.push(radarTag('Momentum activo', 'tag-blue'));
-    if (s.ma_cross)                        tags.push(radarTag('Cruce MA', 'tag-yellow'));
-    if (parseFloat(pctFromMax) > 30)       tags.push(radarTag(`-${{pctFromMax}}% vs máx`, 'tag-orange'));
-    if (s.signal.includes('COMPRA FUERTE'))tags.push(radarTag('⭐ Compra Fuerte', 'tag-green'));
-    else if (s.signal.includes('COMPRA')) tags.push(radarTag('🟢 Compra', 'tag-green'));
-    else                                   tags.push(radarTag('🟡 Monitorear', 'tag-yellow'));
- 
-    const barW = s.radar_score;
-    const scoreColor = s.radar_score >= 70 ? '#22c55e'
-                     : s.radar_score >= 50 ? '#86efac'
-                     : s.radar_score >= 35 ? '#fbbf24'
-                     : '#fb923c';
- 
-    return `
-    <div class="radar-card">
-      <div class="radar-rank" style="color:#1e4a2a;font-size:${{i<3?'32px':'24px'}}">#${{i+1}}</div>
-      <div class="radar-info">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-          <span class="radar-ticker">${{flag(s.mercado)}} ${{s.ticker}}</span>
-          <span style="font-size:12px;color:#666">${{s.empresa.substring(0,28)}}</span>
-        </div>
-        <div class="radar-metrics">
-          <span>💰 ${{s.precio_actual.toLocaleString('es-AR')}}</span>
-          <span style="color:${{retColor(s.ret_sem)}}">Sem: ${{s.ret_sem>=0?'+':''}}${{s.ret_sem.toFixed(1)}}%</span>
-          <span style="color:${{retColor(s.ret_mes)}}">Mes: ${{s.ret_mes>=0?'+':''}}${{s.ret_mes.toFixed(1)}}%</span>
-          <span>RSI: ${{s.rsi.toFixed(0)}}</span>
-          <span style="color:#aaa">Sector: ${{s.sector}}</span>
-          <span style="color:#fb923c">-${{pctFromMax}}% vs máx</span>
-        </div>
-        <div class="radar-signals">${{tags.join('')}}</div>
-        <div class="radar-bar-wrap">
-          <div class="radar-bar" style="width:${{barW}}%;background:linear-gradient(90deg,${{scoreColor}},rgba(${{scoreColor}},0.4))"></div>
-        </div>
-      </div>
-      <div class="radar-score-wrap">
-        <div class="radar-score" style="color:${{scoreColor}}">${{s.radar_score}}</div>
-        <div class="radar-score-label">Score<br>Radar</div>
-      </div>
-    </div>`;
+function buildRadar(){{
+  const ranked=SIGNALS.filter(s=>!s.signal.includes('VENTA'))
+    .map(s=>({{...s,radar_score:computeRadarScore(s)}}))
+    .sort((a,b)=>b.radar_score-a.radar_score).slice(0,10);
+  const flag=m=>m==='MERVAL'?'🇦🇷':m==='BOVESPA'?'🇧🇷':'🇺🇸';
+  const html=ranked.map((s,i)=>{{
+    const pfm=s.max_12m>0?((s.max_12m-s.precio_actual)/s.max_12m*100).toFixed(1):'—';
+    const tags=[];
+    if(s.rsi>=28&&s.rsi<=45) tags.push('<span class="radar-tag tag-green">RSI sobreventa</span>');
+    if(s.rsi>45&&s.rsi<=55) tags.push('<span class="radar-tag tag-blue">RSI neutro-pos</span>');
+    if(s.ret_sem>0&&s.ret_mes<5) tags.push('<span class="radar-tag tag-green">Arranque temprano</span>');
+    if(s.ret_sem>0&&s.ret_mes>=5) tags.push('<span class="radar-tag tag-blue">Momentum activo</span>');
+    if(s.ma_cross) tags.push('<span class="radar-tag tag-yellow">Cruce MA</span>');
+    if(parseFloat(pfm)>30) tags.push(`<span class="radar-tag tag-orange">-${{pfm}}% vs máx</span>`);
+    if(s.signal.includes('COMPRA FUERTE')) tags.push('<span class="radar-tag tag-green">⭐ Compra Fuerte</span>');
+    else if(s.signal.includes('COMPRA')) tags.push('<span class="radar-tag tag-green">🟢 Compra</span>');
+    else tags.push('<span class="radar-tag tag-yellow">🟡 Monitorear</span>');
+    const sc=s.radar_score>=70?'#22c55e':s.radar_score>=50?'#86efac':s.radar_score>=35?'#fbbf24':'#fb923c';
+    return `<div class="radar-card"><div class="radar-rank" style="font-size:${{i<3?'32px':'24px'}}">#${{i+1}}</div><div class="radar-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:2px"><span class="radar-ticker">${{flag(s.mercado)}} ${{s.ticker}}</span><span style="font-size:12px;color:#666">${{s.empresa.substring(0,28)}}</span></div><div class="radar-metrics"><span>💰 ${{s.precio_actual.toLocaleString('es-AR')}}</span><span style="color:${{retColor(s.ret_sem)}}">Sem: ${{s.ret_sem>=0?'+':''}}${{s.ret_sem.toFixed(1)}}%</span><span style="color:${{retColor(s.ret_mes)}}">Mes: ${{s.ret_mes>=0?'+':''}}${{s.ret_mes.toFixed(1)}}%</span><span>RSI: ${{s.rsi.toFixed(0)}}</span><span style="color:#fb923c">-${{pfm}}% vs máx</span></div><div class="radar-signals">${{tags.join('')}}</div><div class="radar-bar-wrap"><div class="radar-bar" style="width:${{s.radar_score}}%;background:linear-gradient(90deg,${{sc}},${{sc}}66)"></div></div></div><div class="radar-score-wrap"><div class="radar-score" style="color:${{sc}}">${{s.radar_score}}</div><div class="radar-score-label">Score<br>Radar</div></div></div>`;
   }}).join('');
- 
-  const container = document.getElementById('radar-block');
-  if (container) container.innerHTML = html || '<div style="color:#666;padding:20px">Sin datos suficientes para el Radar.</div>';
+  const c=document.getElementById('radar-block');
+  if(c) c.innerHTML=html||'<div style="color:#666;padding:20px">Sin datos.</div>';
 }}
- 
 buildRadar();
  
-// ──────────────────────────────────────────────────────────────
-// Conclusiones — Compras y Ventas
-// ──────────────────────────────────────────────────────────────
-const compras = SIGNALS.filter(s => s.signal.includes('COMPRA'));
-const ventas  = SIGNALS.filter(s => s.signal.includes('VENTA'));
-const flag    = m => m === 'MERVAL' ? '🇦🇷' : m === 'BOVESPA' ? '🇧🇷' : '🇺🇸';
- 
-document.getElementById('compras-block').innerHTML = compras.slice(0, 8).map(s => `
-  <div style="background:#0d2b1a;border:1px solid #1a3a1a;border-radius:10px;padding:16px;margin-bottom:12px">
-    <div style="font-size:16px;font-weight:700;color:#4ade80;margin-bottom:6px">
-      ${{flag(s.mercado)}} ${{s.signal}} — ${{s.ticker}} · ${{s.empresa}}
-    </div>
-    <div style="font-size:13px;color:#aaa;display:flex;gap:20px;flex-wrap:wrap">
-      <span>Score: <b style="color:#fff">${{s.score_final.toFixed(0)}}</b></span>
-      <span>RSI: <b style="color:#fff">${{s.rsi.toFixed(0)}}</b></span>
-      <span>Sem: <b style="color:${{retColor(s.ret_sem)}}">${{s.ret_sem>=0?'+':''}}${{s.ret_sem.toFixed(1)}}%</b></span>
-      <span>Anual: <b style="color:${{retColor(s.ret_anual)}}">${{s.ret_anual>=0?'+':''}}${{s.ret_anual.toFixed(1)}}%</b></span>
-      <span>Sector: ${{s.sector}}</span>
-    </div>
-  </div>`).join('');
- 
-document.getElementById('ventas-block').innerHTML = ventas.slice(0, 5).map(s => `
-  <div style="background:#1f0d0d;border:1px solid #3a1a1a;border-radius:10px;padding:16px;margin-bottom:12px">
-    <div style="font-size:16px;font-weight:700;color:#fb923c;margin-bottom:6px">
-      ${{flag(s.mercado)}} ${{s.signal}} — ${{s.ticker}} · ${{s.empresa}}
-    </div>
-    <div style="font-size:13px;color:#aaa;display:flex;gap:20px;flex-wrap:wrap">
-      <span>Score: <b style="color:#fff">${{s.score_final.toFixed(0)}}</b></span>
-      <span>Sem: <b style="color:${{retColor(s.ret_sem)}}">${{s.ret_sem>=0?'+':''}}${{s.ret_sem.toFixed(1)}}%</b></span>
-      <span>Anual: <b style="color:${{retColor(s.ret_anual)}}">${{s.ret_anual>=0?'+':''}}${{s.ret_anual.toFixed(1)}}%</b></span>
-    </div>
-  </div>`).join('');
- 
+const compras=SIGNALS.filter(s=>s.signal.includes('COMPRA'));
+const ventas=SIGNALS.filter(s=>s.signal.includes('VENTA'));
+const flag=m=>m==='MERVAL'?'🇦🇷':m==='BOVESPA'?'🇧🇷':'🇺🇸';
+document.getElementById('compras-block').innerHTML=compras.slice(0,8).map(s=>`<div style="background:#0d2b1a;border:1px solid #1a3a1a;border-radius:10px;padding:16px;margin-bottom:12px"><div style="font-size:16px;font-weight:700;color:#4ade80;margin-bottom:6px">${{flag(s.mercado)}} ${{s.signal}} — ${{s.ticker}} · ${{s.empresa}}</div><div style="font-size:13px;color:#aaa;display:flex;gap:20px;flex-wrap:wrap"><span>Score: <b style="color:#fff">${{s.score_final.toFixed(0)}}</b></span><span>RSI: <b style="color:#fff">${{s.rsi.toFixed(0)}}</b></span><span>Sem: <b style="color:${{retColor(s.ret_sem)}}">${{s.ret_sem>=0?'+':''}}${{s.ret_sem.toFixed(1)}}%</b></span><span>Anual: <b style="color:${{retColor(s.ret_anual)}}">${{s.ret_anual>=0?'+':''}}${{s.ret_anual.toFixed(1)}}%</b></span></div></div>`).join('')||'<div style="color:#666;padding:16px">Sin señales de compra activas.</div>';
+document.getElementById('ventas-block').innerHTML=ventas.slice(0,5).map(s=>`<div style="background:#1f0d0d;border:1px solid #3a1a1a;border-radius:10px;padding:16px;margin-bottom:12px"><div style="font-size:16px;font-weight:700;color:#fb923c;margin-bottom:6px">${{flag(s.mercado)}} ${{s.signal}} — ${{s.ticker}} · ${{s.empresa}}</div><div style="font-size:13px;color:#aaa;display:flex;gap:20px;flex-wrap:wrap"><span>Score: <b style="color:#fff">${{s.score_final.toFixed(0)}}</b></span><span>Sem: <b style="color:${{retColor(s.ret_sem)}}">${{s.ret_sem>=0?'+':''}}${{s.ret_sem.toFixed(1)}}%</b></span><span>Anual: <b style="color:${{retColor(s.ret_anual)}}">${{s.ret_anual>=0?'+':''}}${{s.ret_anual.toFixed(1)}}%</b></span></div></div>`).join('');
 </script>
 </body>
 </html>"""
