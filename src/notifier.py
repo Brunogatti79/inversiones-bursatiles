@@ -1,7 +1,7 @@
 """
 src/notifier.py
 Envía notificaciones a Telegram y publica el dashboard en GitHub Pages.
-Versión consolidada (unifica notifier.py + notifier_new.py).
+Versión consolidada con mensaje enriquecido: Radar + Compras + Reducciones por mercado.
 """
  
 import logging
@@ -20,6 +20,9 @@ TIMEZONE   = os.getenv("TIMEZONE", "America/Argentina/Buenos_Aires")
 GH_TOKEN   = os.getenv("GH_TOKEN", "")
 GH_USER    = os.getenv("GH_USER", "Brunogatti79")
 GH_REPO    = os.getenv("GH_REPO", "inversiones-bursatiles")
+ 
+FLAG = {"MERVAL": "🇦🇷", "BOVESPA": "🇧🇷", "SP500": "🇺🇸"}
+MARKETS = ["MERVAL", "BOVESPA", "SP500"]
  
  
 def _send_message(text, parse_mode="HTML"):
@@ -54,18 +57,12 @@ def _send_document(file_path, caption=""):
  
  
 def publish_dashboard(local_path, filename):
-    """
-    Sube el HTML generado a GitHub Pages via GitHub API.
-    Usa GH_TOKEN, GH_USER, GH_REPO del entorno de Railway.
-    """
     if not GH_TOKEN:
         logger.warning("GH_TOKEN no configurado — no se puede publicar dashboard.")
         return False
- 
     try:
         with open(local_path, "r", encoding="utf-8") as f:
             content = f.read()
- 
         content_b64 = base64.b64encode(content.encode("utf-8")).decode("utf-8")
         api_path = f"outputs/{filename}"
         api_url  = f"https://api.github.com/repos/{GH_USER}/{GH_REPO}/contents/{api_path}"
@@ -73,61 +70,105 @@ def publish_dashboard(local_path, filename):
             "Authorization": f"token {GH_TOKEN}",
             "Accept": "application/vnd.github.v3+json",
         }
- 
-        # Verificar si ya existe (necesitamos el SHA para actualizar)
         sha = None
         r = requests.get(api_url, headers=headers, timeout=15)
         if r.status_code == 200:
             sha = r.json().get("sha")
- 
         tz  = pytz.timezone(TIMEZONE)
         now = datetime.now(tz).strftime("%d/%m/%Y %H:%M")
-        payload = {
-            "message": f"dashboard: actualizacion automatica {now}",
-            "content": content_b64,
-        }
+        payload = {"message": f"dashboard: actualizacion automatica {now}", "content": content_b64}
         if sha:
             payload["sha"] = sha
- 
         r = requests.put(api_url, headers=headers, json=payload, timeout=30)
         r.raise_for_status()
         logger.info(f"Dashboard publicado en GitHub Pages: {api_path}")
         return True
- 
     except Exception as e:
         logger.error(f"Error publicando dashboard: {e}")
         return False
  
  
-def _signal_section(signals, market):
-    market_signals = [s for s in signals if s["mercado"] == market]
-    if not market_signals:
-        return ""
-    compras = [s for s in market_signals if "COMPRA" in s["signal"]]
-    ventas  = [s for s in market_signals if "VENTA"  in s["signal"]]
-    flag = "🇦🇷" if market == "MERVAL" else "🇧🇷" if market == "BOVESPA" else "🇺🇸"
-    lines = [f"\n<b>{flag} {market}</b>"]
-    if compras:
-        lines.append("  <b>Compras:</b>")
-        for s in compras[:5]:
-            lines.append(f"  {s['signal']} <code>{s['ticker']}</code> {s['empresa'][:20]} "
-                         f"— Score {s['score_final']:.0f} | Sem {s['ret_sem']:+.1f}%")
-    if ventas:
-        lines.append("  <b>Reducciones:</b>")
-        for s in ventas[:3]:
-            lines.append(f"  {s['signal']} <code>{s['ticker']}</code> {s['empresa'][:20]}")
-    if not compras and not ventas:
-        lines.append("  🟡 Sin señales de compra/venta activas")
-    return "\n".join(lines)
- 
- 
 def _index_line(stats, market):
-    flag = "🇦🇷" if market == "MERVAL" else "🇧🇷" if market == "BOVESPA" else "🇺🇸"
+    flag = FLAG.get(market, "")
     ret  = stats.get("ret_anual", 0)
     sign = "+" if ret >= 0 else ""
     vol  = stats.get("volatilidad", 0)
-    return (f"{flag} <b>{market}</b> {stats.get('actual', 0):,.0f}  "
+    act  = stats.get("actual", 0)
+    label = "S&P 500" if market == "SP500" else market
+    return (f"{flag} <b>{label}</b> {act:,.0f}  "
             f"<code>{sign}{ret:.1f}%</code> 12m  |  Vol {vol:.1f}%")
+ 
+ 
+def _radar_section(signals):
+    """Top 5 del Radar por score compuesto."""
+    def radar_score(s):
+        score = min(s["score_final"] / 100, 1) * 35
+        rsi = s.get("rsi", 50)
+        if 28 <= rsi <= 45:   score += 20
+        elif 45 < rsi <= 55:  score += 12
+        elif 55 < rsi <= 65:  score += 6
+        rs, rm = s.get("ret_sem", 0), s.get("ret_mes", 0)
+        if rs > 0 and rm < 5:          score += 20
+        elif rs > 0 and rm < 15:       score += 12
+        elif rs > 0:                   score += 6
+        if s.get("ma_cross"):          score += 15
+        pa, mx = s.get("precio_actual", 0), s.get("max_12m", 0)
+        if pa and mx > 0:
+            p = (mx - pa) / mx
+            if p > 0.35:   score += 10
+            elif p > 0.20: score += 7
+            elif p > 0.10: score += 4
+        return min(round(score), 100)
+ 
+    universe = [s for s in signals if "VENTA" not in s.get("signal", "")]
+    ranked = sorted(universe, key=radar_score, reverse=True)[:5]
+ 
+    lines = ["\n🔭 <b>Radar de Oportunidades</b>"]
+    for market in MARKETS:
+        market_ranked = [s for s in ranked if s["mercado"] == market]
+        if not market_ranked:
+            continue
+        flag = FLAG.get(market, "")
+        label = "S&P 500" if market == "SP500" else market
+        lines.append(f"  {flag} <b>{label}</b>")
+        for s in market_ranked:
+            sc = radar_score(s)
+            lines.append(f"  #{ranked.index(s)+1} <code>{s['ticker']}</code> {s['empresa'][:18]} "
+                         f"— Radar {sc} | RSI {s['rsi']:.0f}")
+    return "\n".join(lines)
+ 
+ 
+def _compras_section(signals):
+    """Señales de compra por mercado."""
+    lines = ["\n✅ <b>Compras</b>"]
+    for market in MARKETS:
+        flag = FLAG.get(market, "")
+        label = "S&P 500" if market == "SP500" else market
+        compras = [s for s in signals if s["mercado"] == market and "COMPRA" in s.get("signal", "")]
+        lines.append(f"  {flag} <b>{label}</b>")
+        if compras:
+            for s in compras[:4]:
+                lines.append(f"  {s['signal']} <code>{s['ticker']}</code> {s['empresa'][:18]} "
+                             f"— Score {s['score_final']:.0f} | Sem {s['ret_sem']:+.1f}%")
+        else:
+            lines.append("  🟡 Sin señales de compra")
+    return "\n".join(lines)
+ 
+ 
+def _reducciones_section(signals):
+    """Señales de venta/reducción por mercado."""
+    lines = ["\n🔴 <b>Reducciones</b>"]
+    for market in MARKETS:
+        flag = FLAG.get(market, "")
+        label = "S&P 500" if market == "SP500" else market
+        ventas = [s for s in signals if s["mercado"] == market and "VENTA" in s.get("signal", "")]
+        lines.append(f"  {flag} <b>{label}</b>")
+        if ventas:
+            for s in ventas[:3]:
+                lines.append(f"  {s['signal']} <code>{s['ticker']}</code> {s['empresa'][:18]}")
+        else:
+            lines.append("  🟡 Sin señales de reducción")
+    return "\n".join(lines)
  
  
 def send_daily_report(all_signals, index_stats, dashboard_filename, run_date=None):
@@ -136,37 +177,28 @@ def send_daily_report(all_signals, index_stats, dashboard_filename, run_date=Non
     run_date = run_date or now.strftime("%d/%m/%Y %H:%M")
     dash_url = f"{DASH_URL}/{dashboard_filename}"
  
-    header = (
-        f"📊 <b>Inversiones Bursátiles — {run_date}</b>\n"
-        f"{'─' * 32}\n"
-    )
+    sep = "─" * 32
+ 
+    header = f"📊 <b>Inversiones Bursátiles — {run_date}</b>\n{sep}\n"
+ 
     indices_block = "<b>Índices (12 meses)</b>\n"
-    for market_key, display in [("merval","MERVAL"),("bovespa","BOVESPA"),("sp500","S&P 500")]:
+    for market_key, display in [("merval","MERVAL"),("bovespa","BOVESPA"),("sp500","SP500")]:
         stats = index_stats.get(market_key, {})
         if stats:
             indices_block += _index_line(stats, display) + "\n"
  
-    signals_block = "\n<b>Señales activas del modelo</b>"
-    for market in ["MERVAL", "BOVESPA", "SP500"]:
-        signals_block += _signal_section(all_signals, market)
- 
-    top3 = [s for s in all_signals if "COMPRA" in s["signal"]][:3]
-    if top3:
-        ranking_block = "\n\n<b>🏆 Top 3 global</b>\n"
-        for i, s in enumerate(top3, 1):
-            ranking_block += (f"  {i}. {s['signal']} <code>{s['ticker']}</code> "
-                              f"— Score {s['score_final']:.0f} | "
-                              f"Sem {s['ret_sem']:+.1f}% | Anual {s['ret_anual']:+.1f}%\n")
-    else:
-        ranking_block = ""
+    senales_block = "\n<b>Señales activas del modelo</b>"
+    senales_block += _radar_section(all_signals)
+    senales_block += _compras_section(all_signals)
+    senales_block += _reducciones_section(all_signals)
  
     footer = (
-        f"\n{'─' * 32}\n"
+        f"\n{sep}\n"
         f"🔗 <a href='{dash_url}'>Ver dashboard completo</a>\n"
         f"⏱ Próxima actualización: mañana al cierre"
     )
  
-    full_msg = header + indices_block + signals_block + ranking_block + footer
+    full_msg = header + indices_block + senales_block + footer
     if len(full_msg) > 4000:
         full_msg = full_msg[:3990] + "\n…"
  
@@ -178,7 +210,7 @@ def send_signal_change_alerts(changes):
         return True
     lines = ["🚨 <b>Cambios de señal detectados</b>\n"]
     for c in changes:
-        flag = "🇦🇷" if c["mercado"] == "MERVAL" else "🇧🇷" if c["mercado"] == "BOVESPA" else "🇺🇸"
+        flag = FLAG.get(c["mercado"], "")
         lines.append(
             f"{flag} <code>{c['ticker']}</code> <b>{c['empresa'][:22]}</b>\n"
             f"   {c['prev_signal']} → {c['new_signal']}"
