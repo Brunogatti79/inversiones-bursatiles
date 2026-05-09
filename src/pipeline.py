@@ -1,11 +1,6 @@
 """
-src/pipeline.py  ── versión con publish_dashboard integrado
-Orquestador del pipeline completo.
- 
-CAMBIOS v3:
-  - Importa publish_dashboard desde notifier_new (tiene la lógica de GitHub API)
-  - Llama publish_dashboard() en el paso 5b, después de generar el HTML
-  - Resto del pipeline sin cambios
+src/pipeline.py — Fase 2
+Orquestador del pipeline completo con análisis fundamental y macro real.
 """
  
 import logging
@@ -16,11 +11,11 @@ from datetime import datetime
 import pytz
  
 from src.downloader   import download_all, save_csvs, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
-from src.analyzer     import (analyze_market, detect_signal_changes, save_signals,
-                               get_index_stats)
-from src.notifier import (send_daily_report, send_signal_change_alerts,
-                               send_excel, send_error_notification,
-                               publish_dashboard)
+from src.analyzer     import (analyze_market, detect_signal_changes, save_signals, get_index_stats)
+from src.macro_loader import load_xlsx_signals
+from src.fundamental  import load_fundamental_scores
+from src.notifier     import (send_daily_report, send_signal_change_alerts,
+                               send_excel, send_error_notification, publish_dashboard)
 from src.generator    import generate_dashboard, generate_excel
  
 logger = logging.getLogger(__name__)
@@ -33,33 +28,41 @@ DATA_DIR     = "data"
  
  
 def run_pipeline():
-    """Ejecuta el pipeline completo. Llamado por el scheduler o por /run."""
     tz       = pytz.timezone(TIMEZONE)
     start_ts = time.time()
     run_date = datetime.now(tz).strftime("%d/%m/%Y %H:%M")
     logger.info(f"Pipeline iniciado: {run_date}")
  
     try:
-        # ── 1. DESCARGA ──────────────────────────────────────────────
-        logger.info("1/7 Descargando datos...")
+        # 1. DESCARGA
+        logger.info("1/8 Descargando datos...")
         data = download_all(data_dir=DATA_DIR)
         save_csvs(data, DATA_DIR)
- 
         merval_df  = data["merval"]
         bovespa_df = data["bovespa"]
         sp500_df   = data["sp500"]
  
-        # ── 2. ANÁLISIS ──────────────────────────────────────────────
-        logger.info("2/7 Calculando señales...")
-        signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS)
-        signals_bovespa = analyze_market(bovespa_df, "BOVESPA", BOVESPA_TICKERS)
-        signals_sp500   = analyze_market(sp500_df,   "SP500",   SP500_TICKERS)
-        all_signals     = signals_merval + signals_bovespa + signals_sp500
+        # 2. CARGAR MODELO MACRO + FUNDAMENTAL
+        logger.info("2/8 Cargando modelo macro y fundamental...")
+        xlsx_signals = load_xlsx_signals(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")
+        fund_scores  = load_fundamental_scores(f"{DATA_DIR}/ratios_consolidado_quant.csv")
+        macro_scores = xlsx_signals.get("macro_scores", {})
+        logger.info(f"Macro scores: {macro_scores}")
+        logger.info(f"Fundamental scores cargados: {len(fund_scores)} tickers")
+ 
+        # 3. ANÁLISIS
+        logger.info("3/8 Calculando señales...")
+        signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS,
+                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores)
+        signals_bovespa = analyze_market(bovespa_df, "BOVESPA", BOVESPA_TICKERS,
+                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores)
+        signals_sp500   = analyze_market(sp500_df,   "SP500",   SP500_TICKERS,
+                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores)
+        all_signals = signals_merval + signals_bovespa + signals_sp500
         all_signals.sort(key=lambda x: x["score_final"], reverse=True)
  
-        # ── 3. ESTADÍSTICAS DE ÍNDICES ───────────────────────────────
-        logger.info("3/7 Calculando estadísticas...")
- 
+        # 4. ESTADÍSTICAS DE ÍNDICES
+        logger.info("4/8 Calculando estadísticas...")
         def _idx_col(df, keyword):
             cols = [c for c in df.columns if keyword in c]
             return cols[0] if cols else None
@@ -70,26 +73,19 @@ def run_pipeline():
             "sp500":   get_index_stats(sp500_df,   _idx_col(sp500_df,   "S&P")     or ""),
         }
  
-        # ── VALIDACIÓN ANTI-BLANK ─────────────────────────────────────
         empty_markets = [k for k, v in index_stats.items() if not v or v.get("actual", 0) == 0]
         if len(empty_markets) == 3:
-            raise RuntimeError(
-                f"index_stats vacío para los 3 mercados {empty_markets}. "
-                f"Columnas merval={list(merval_df.columns[:5])}, "
-                f"bovespa={list(bovespa_df.columns[:5])}, "
-                f"sp500={list(sp500_df.columns[:5])}. "
-                f"Revisar _idx_col() en pipeline.py."
-            )
+            raise RuntimeError(f"index_stats vacío para los 3 mercados {empty_markets}.")
         if empty_markets:
-            logger.warning(f"index_stats vacío para: {empty_markets} — se usará 0 en esos mercados")
+            logger.warning(f"index_stats vacío para: {empty_markets}")
  
-        # ── 4. DETECCIÓN DE CAMBIOS ──────────────────────────────────
-        logger.info("4/7 Detectando cambios...")
+        # 5. CAMBIOS
+        logger.info("5/8 Detectando cambios...")
         changes = detect_signal_changes(all_signals, f"{DATA_DIR}/signals_prev.json")
         save_signals(all_signals, f"{DATA_DIR}/signals_prev.json")
  
-        # ── 5. DASHBOARD HTML ────────────────────────────────────────
-        logger.info("5/7 Generando dashboard...")
+        # 6. DASHBOARD
+        logger.info("6/8 Generando dashboard...")
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         dashboard_name = datetime.now(tz).strftime("informe_inversiones_%m%Y.html")
         dashboard_path = f"{OUTPUT_DIR}/{dashboard_name}"
@@ -101,39 +97,35 @@ def run_pipeline():
         )
         logger.info(f"Dashboard generado: {dashboard_path}")
  
-        # ── 5b. PUBLICAR EN GITHUB PAGES ─────────────────────────────
-        logger.info("5b/7 Publicando en GitHub Pages...")
+        # 6b. PUBLICAR EN GITHUB PAGES
+        logger.info("6b/8 Publicando en GitHub Pages...")
         published = publish_dashboard(dashboard_path, dashboard_name)
         if published:
             logger.info("Dashboard publicado en GitHub Pages correctamente")
         else:
             logger.warning("No se pudo publicar en GitHub Pages (revisar GH_TOKEN)")
  
-        # ── 6. EXCEL (OPCIONAL) ──────────────────────────────────────
+        # 7. EXCEL
         excel_path = None
         if SEND_EXCEL:
-            logger.info("6/7 Generando fichas Excel...")
+            logger.info("7/8 Generando Excel...")
             excel_name = datetime.now(tz).strftime("fichas_inversion_%m%Y.xlsx")
             excel_path = f"{OUTPUT_DIR}/{excel_name}"
             generate_excel(all_signals, index_stats, excel_path)
  
-        # ── 7. NOTIFICACIONES TELEGRAM ───────────────────────────────
-        logger.info("7/7 Enviando Telegram...")
- 
+        # 8. TELEGRAM
+        logger.info("8/8 Enviando Telegram...")
         if ALERT_CHANGE and changes:
             send_signal_change_alerts(changes)
- 
         send_daily_report(
             all_signals=all_signals,
             index_stats=index_stats,
             dashboard_filename=dashboard_name,
             run_date=run_date,
         )
- 
         if SEND_EXCEL and excel_path and os.path.exists(excel_path):
             send_excel(excel_path)
  
-        # ── 8. ESTADO ────────────────────────────────────────────────
         duration = time.time() - start_ts
         _save_status(run_date=run_date, success=True, duration=duration, tz=tz)
         logger.info(f"Pipeline completado en {duration:.1f}s")
@@ -147,7 +139,6 @@ def run_pipeline():
  
  
 def _save_status(run_date, success, duration, tz, error=""):
-    """Persiste el estado de la última ejecución para /status."""
     run_time = os.getenv("RUN_TIME_UTC", "15:00")
     status = {
         "last_run":     run_date,
