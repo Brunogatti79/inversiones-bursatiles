@@ -88,19 +88,19 @@ def generate_dashboard(
   .ticker{{font-weight:700;color:#5ba3ff;font-family:monospace;font-size:12px}}
   .chart-wrap{{position:relative;width:100%;height:260px;margin-bottom:24px}}
   .sig-buy{{color:#4ade80}}.sig-neu{{color:#fbbf24}}.sig-sell{{color:#fb923c}}
-  /* ── Panorama cards — CAMBIO 5: más grandes, mejor jerarquía ── */
-  .pano-header{{display:flex;gap:14px;margin-bottom:24px}}
-  .pano-card{{flex:1;background:#16161e;border:1px solid #222230;border-radius:10px;padding:20px 24px;display:flex;flex-direction:column;justify-content:space-between;min-height:180px}}
-  .pano-flag{{font-size:28px;margin-bottom:4px}}
-  .pano-label{{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:1px;font-weight:500}}
-  .pano-value{{font-size:32px;font-weight:800;color:#fff;margin:6px 0;line-height:1;letter-spacing:-1px}}
-  .pano-anual{{font-size:28px;font-weight:900;line-height:1}}
-  .pano-day-row{{display:flex;align-items:center;gap:8px;margin-top:10px}}
-  .pano-day-label{{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.5px}}
-  .pano-day-value{{font-size:16px;font-weight:700}}
+  /* ── Panorama cards — full width, datos grandes ── */
+  .pano-header{{display:flex;flex-direction:column;gap:12px;margin-bottom:24px}}
+  .pano-card{{width:100%;background:#16161e;border:1px solid #222230;border-radius:12px;padding:20px 24px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:0 20px}}
+  .pano-flag{{font-size:36px;grid-row:1/4}}
+  .pano-label{{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1.5px;font-weight:600}}
+  .pano-value{{font-size:clamp(28px,7vw,48px);font-weight:900;color:#fff;line-height:1;letter-spacing:-1px}}
+  .pano-anual{{font-size:clamp(24px,6vw,40px);font-weight:900;line-height:1}}
+  .pano-day-row{{display:flex;align-items:center;gap:6px;grid-column:2}}
+  .pano-day-label{{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:.5px}}
+  .pano-day-value{{font-size:clamp(16px,4vw,22px);font-weight:700}}
   .pano-day-dot{{width:8px;height:8px;border-radius:50%;animation:pulse 2s infinite}}
   @keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
-  .pano-vol{{font-size:12px;color:#555;margin-top:4px}}
+  .pano-vol{{font-size:12px;color:#444;grid-column:3;text-align:right;align-self:center}}
   /* ── Leyenda gráfico comparativo ── */
   .chart-legend{{display:flex;gap:20px;margin-bottom:10px;flex-wrap:wrap}}
   .legend-item{{display:flex;align-items:center;gap:6px;font-size:12px;color:#aaa}}
@@ -160,42 +160,52 @@ def generate_dashboard(
 <!-- PANORAMA -->
 <div id="panorama" class="page on">
   <div class="pano-header">
+ 
     <div class="pano-card">
       <div class="pano-flag">🇦🇷</div>
-      <div class="pano-label">MERVAL</div>
-      <div class="pano-value" id="pano-m-val">{m_act:,.0f}</div>
-      <div class="pano-anual" id="pano-m-anual" style="color:{'#4ade80' if m_ret>=0 else '#f87171'}">{'+ ' if m_ret>=0 else ''}{m_ret:.2f}%</div>
-      <div class="pano-day-row">
-        <div class="pano-day-dot" id="dot-m" style="background:#4ade80"></div>
-        <span class="pano-day-label">HOY</span>
-        <span class="pano-day-value" id="pano-m-day">{'—' if m_day is None else ('+' if m_day>=0 else '')+f'{m_day:.2f}%'}</span>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div class="pano-label">MERVAL</div>
+        <div class="pano-value" id="pano-m-val">{m_act:,.0f}</div>
+        <div class="pano-anual" id="pano-m-anual" style="color:{'#4ade80' if m_ret>=0 else '#f87171'}">{'+ ' if m_ret>=0 else ''}{m_ret:.2f}%</div>
+        <div class="pano-day-row">
+          <div class="pano-day-dot" id="dot-m" style="background:#4ade80"></div>
+          <span class="pano-day-label">HOY</span>
+          <span class="pano-day-value" id="pano-m-day">{'—' if m_day is None else ('+' if m_day>=0 else '')+f'{m_day:.2f}%'}</span>
+        </div>
       </div>
-      <div class="pano-vol">Vol {m_vol:.1f}%</div>
+      <div class="pano-vol">Vol<br>{m_vol:.1f}%</div>
     </div>
+ 
     <div class="pano-card">
       <div class="pano-flag">🇧🇷</div>
-      <div class="pano-label">BOVESPA</div>
-      <div class="pano-value" id="pano-b-val">{b_act:,.0f}</div>
-      <div class="pano-anual" id="pano-b-anual" style="color:{'#4ade80' if b_ret>=0 else '#f87171'}">{'+ ' if b_ret>=0 else ''}{b_ret:.2f}%</div>
-      <div class="pano-day-row">
-        <div class="pano-day-dot" id="dot-b" style="background:#4ade80"></div>
-        <span class="pano-day-label">HOY</span>
-        <span class="pano-day-value" id="pano-b-day">{'—' if b_day is None else ('+' if b_day>=0 else '')+f'{b_day:.2f}%'}</span>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div class="pano-label">BOVESPA</div>
+        <div class="pano-value" id="pano-b-val">{b_act:,.0f}</div>
+        <div class="pano-anual" id="pano-b-anual" style="color:{'#4ade80' if b_ret>=0 else '#f87171'}">{'+ ' if b_ret>=0 else ''}{b_ret:.2f}%</div>
+        <div class="pano-day-row">
+          <div class="pano-day-dot" id="dot-b" style="background:#4ade80"></div>
+          <span class="pano-day-label">HOY</span>
+          <span class="pano-day-value" id="pano-b-day">{'—' if b_day is None else ('+' if b_day>=0 else '')+f'{b_day:.2f}%'}</span>
+        </div>
       </div>
-      <div class="pano-vol">Vol {b_vol:.1f}%</div>
+      <div class="pano-vol">Vol<br>{b_vol:.1f}%</div>
     </div>
+ 
     <div class="pano-card">
       <div class="pano-flag">🇺🇸</div>
-      <div class="pano-label">S&amp;P 500</div>
-      <div class="pano-value" id="pano-s-val">{s_act:,.0f}</div>
-      <div class="pano-anual" id="pano-s-anual" style="color:{'#4ade80' if s_ret>=0 else '#f87171'}">{'+ ' if s_ret>=0 else ''}{s_ret:.2f}%</div>
-      <div class="pano-day-row">
-        <div class="pano-day-dot" id="dot-s" style="background:#4ade80"></div>
-        <span class="pano-day-label">HOY</span>
-        <span class="pano-day-value" id="pano-s-day">{'—' if s_day is None else ('+' if s_day>=0 else '')+f'{s_day:.2f}%'}</span>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div class="pano-label">S&amp;P 500</div>
+        <div class="pano-value" id="pano-s-val">{s_act:,.0f}</div>
+        <div class="pano-anual" id="pano-s-anual" style="color:{'#4ade80' if s_ret>=0 else '#f87171'}">{'+ ' if s_ret>=0 else ''}{s_ret:.2f}%</div>
+        <div class="pano-day-row">
+          <div class="pano-day-dot" id="dot-s" style="background:#4ade80"></div>
+          <span class="pano-day-label">HOY</span>
+          <span class="pano-day-value" id="pano-s-day">{'—' if s_day is None else ('+' if s_day>=0 else '')+f'{s_day:.2f}%'}</span>
+        </div>
       </div>
-      <div class="pano-vol">Vol {s_vol:.1f}%</div>
+      <div class="pano-vol">Vol<br>{s_vol:.1f}%</div>
     </div>
+ 
   </div>
  
   <div class="section-title">Evolución comparativa — base 100</div>
