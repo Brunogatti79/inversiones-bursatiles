@@ -18,7 +18,7 @@ import pytz
 from src.downloader   import download_all, save_csvs, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
 from src.analyzer     import (analyze_market, detect_signal_changes, save_signals,
                                get_index_stats)
-from src.notifier_new import (send_daily_report, send_signal_change_alerts,
+from src.notifier import (send_daily_report, send_signal_change_alerts,
                                send_excel, send_error_notification,
                                publish_dashboard)
 from src.generator    import generate_dashboard, generate_excel
