@@ -1,13 +1,15 @@
 """
-src/downloader.py  ── versión con retry + fallback a CSV guardado
+src/downloader.py  ── versión v3 con descarga individual + anti-rate-limit
 Descarga automática de precios desde Yahoo Finance.
 Cubre MERVAL (Argentina), BOVESPA (Brasil) y S&P 500 (EE.UU.).
  
-CAMBIOS v2:
-  - retry_with_backoff: 3 intentos con espera 30s entre cada uno
-  - Validación explícita: si el DataFrame queda vacío → lanza RuntimeError
-  - Fallback: si la descarga falla y existe un CSV del día anterior, lo levanta
-  - Log detallado de errores HTTP para Railway
+CAMBIOS v3:
+  - Descarga ticker por ticker (no en batch) para evitar rate limit
+  - Delay aleatorio entre requests (2-5s)
+  - User-agent rotation para simular navegador real
+  - Session reutilizable con headers HTTP reales
+  - Retry por ticker individual antes de descartar
+  - Fallback CSV si falla más del 50% de los tickers
 """
  
 import yfinance as yf
@@ -17,6 +19,8 @@ from datetime import datetime, timedelta
 import logging
 import time
 import os
+import random
+import requests
 import pytz
  
 logger = logging.getLogger(__name__)
@@ -99,14 +103,43 @@ SP500_TICKERS = {
 }
 SP500_INDEX = "^GSPC"
  
+# ─────────────────────────────────────────────
+# Configuración anti-rate-limit
+# ─────────────────────────────────────────────
+ 
+MIN_ROWS       = 10
+DELAY_MIN      = 2.0   # segundos mínimos entre tickers
+DELAY_MAX      = 5.0   # segundos máximos entre tickers
+TICKER_RETRIES = 2     # reintentos por ticker individual
+MIN_SUCCESS_RATE = 0.5 # mínimo 50% de tickers exitosos para considerar válido
+ 
+# User agents reales para rotar
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+]
+ 
  
 # ─────────────────────────────────────────────
-# Configuración de retry
+# Session con headers reales
 # ─────────────────────────────────────────────
  
-MAX_RETRIES   = 3       # intentos totales
-RETRY_WAIT_S  = 30      # segundos entre intentos
-MIN_ROWS      = 10      # mínimo de filas para considerar descarga válida
+def _make_session() -> requests.Session:
+    """Crea una session HTTP con headers de navegador real."""
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        "DNT": "1",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+    })
+    return session
  
  
 # ─────────────────────────────────────────────
@@ -114,19 +147,17 @@ MIN_ROWS      = 10      # mínimo de filas para considerar descarga válida
 # ─────────────────────────────────────────────
  
 def _get_period():
-    """Retorna start/end para los últimos 13 meses (buffer de 1 mes)."""
     end   = datetime.now(pytz.UTC)
     start = end - timedelta(days=400)
     return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
  
  
 def _index_display_name(market: str) -> str:
-    mapping = {
+    return {
         "MERVAL":  "ÍNDICE MERVAL",
         "BOVESPA": "ÍNDICE BOVESPA",
         "SP500":   "ÍNDICE S&P 500",
-    }
-    return mapping.get(market, market)
+    }.get(market, market)
  
  
 def _csv_path(market: str, data_dir: str) -> str:
@@ -134,7 +165,6 @@ def _csv_path(market: str, data_dir: str) -> str:
  
  
 def _load_fallback(market: str, data_dir: str) -> pd.DataFrame | None:
-    """Carga el CSV guardado del último run exitoso como fallback."""
     path = _csv_path(market, data_dir)
     if not os.path.exists(path):
         return None
@@ -143,7 +173,6 @@ def _load_fallback(market: str, data_dir: str) -> pd.DataFrame | None:
                          encoding="utf-8-sig", thousands=" ")
         df.index = pd.to_datetime(df.index)
         df.index.name = "Fecha"
-        # Limpiar columnas numéricas
         for col in df.columns:
             df[col] = (
                 df[col].astype(str)
@@ -160,86 +189,110 @@ def _load_fallback(market: str, data_dir: str) -> pd.DataFrame | None:
  
  
 # ─────────────────────────────────────────────
-# Descarga con retry
+# Descarga individual por ticker
+# ─────────────────────────────────────────────
+ 
+def _download_single_ticker(ticker: str, start: str, end: str,
+                             session: requests.Session,
+                             market_name: str) -> pd.Series | None:
+    """
+    Descarga un solo ticker con reintentos y delay.
+    Retorna una Series con el cierre ajustado, o None si falla.
+    """
+    for attempt in range(1, TICKER_RETRIES + 1):
+        try:
+            t = yf.Ticker(ticker, session=session)
+            hist = t.history(start=start, end=end, auto_adjust=True)
+ 
+            if hist.empty or len(hist) < MIN_ROWS:
+                logger.debug(f"[{market_name}] {ticker}: sin datos (intento {attempt})")
+                if attempt < TICKER_RETRIES:
+                    time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
+                    # Rotar user agent en el reintento
+                    session.headers["User-Agent"] = random.choice(USER_AGENTS)
+                continue
+ 
+            serie = hist["Close"].copy()
+            serie.index = pd.to_datetime(serie.index).tz_localize(None)
+            serie.name = ticker
+            return serie
+ 
+        except Exception as e:
+            err_str = str(e).lower()
+            if "rate limit" in err_str or "429" in err_str or "too many" in err_str:
+                wait = random.uniform(10, 20)
+                logger.warning(f"[{market_name}] {ticker}: rate limit, esperando {wait:.0f}s...")
+                time.sleep(wait)
+                session.headers["User-Agent"] = random.choice(USER_AGENTS)
+            else:
+                logger.debug(f"[{market_name}] {ticker}: error {e}")
+                if attempt < TICKER_RETRIES:
+                    time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
+ 
+    return None
+ 
+ 
+# ─────────────────────────────────────────────
+# Descarga por mercado
 # ─────────────────────────────────────────────
  
 def _download_batch(tickers: dict, index_ticker: str, market_name: str,
                     data_dir: str = "data") -> pd.DataFrame:
     """
-    Descarga precios de cierre ajustados para un conjunto de tickers + índice.
-    Reintenta hasta MAX_RETRIES veces con espera RETRY_WAIT_S entre intentos.
-    Si todos los intentos fallan → intenta levantar CSV guardado.
-    Si tampoco existe → lanza RuntimeError.
+    Descarga ticker por ticker con delays anti-rate-limit.
+    Combina todo en un DataFrame de cierres.
+    Si más del 50% falla → usa fallback CSV.
     """
     start, end = _get_period()
-    all_tickers = list(tickers.keys()) + [index_ticker]
-    last_error  = None
+    session = _make_session()
+    all_tickers = {**tickers, index_ticker: _index_display_name(market_name)}
  
-    for attempt in range(1, MAX_RETRIES + 1):
-        logger.info(f"[{market_name}] Intento {attempt}/{MAX_RETRIES} — "
-                    f"descargando {len(all_tickers)} tickers desde {start}...")
-        try:
-            raw = yf.download(
-                tickers=all_tickers,
-                start=start,
-                end=end,
-                auto_adjust=True,
-                progress=False,
-                threads=False,   # threads=False evita condición de carrera en Railway
-            )
+    series_list = []
+    total = len(all_tickers)
+    ok = 0
  
-            # Extraer columna Close
-            if isinstance(raw.columns, pd.MultiIndex):
-                closes = raw["Close"].copy()
-            else:
-                closes = raw[["Close"]].rename(columns={"Close": all_tickers[0]}).copy()
+    logger.info(f"[{market_name}] Descargando {total} tickers individualmente...")
  
-            # Renombrar columnas
-            rename_map = {t: n for t, n in tickers.items() if t in closes.columns}
-            index_col_name = _index_display_name(market_name)
-            if index_ticker in closes.columns:
-                rename_map[index_ticker] = index_col_name
-            closes = closes.rename(columns=rename_map)
+    for i, (ticker, name) in enumerate(all_tickers.items()):
+        serie = _download_single_ticker(ticker, start, end, session, market_name)
  
-            closes.index = pd.to_datetime(closes.index)
-            closes.index.name = "Fecha"
-            closes = closes.sort_index().dropna(how="all")
+        if serie is not None:
+            # Renombrar con nombre legible
+            serie.name = name
+            series_list.append(serie)
+            ok += 1
+            logger.info(f"[{market_name}] ✓ {ticker} ({ok}/{total})")
+        else:
+            logger.warning(f"[{market_name}] ✗ {ticker} sin datos")
  
-            # ── VALIDACIÓN CRÍTICA ──────────────────────────────────
-            if len(closes) < MIN_ROWS:
-                msg = (f"[{market_name}] DataFrame vacío tras descarga "
-                       f"(filas={len(closes)}). "
-                       f"Posible bloqueo 403 de Yahoo Finance.")
-                logger.warning(msg)
-                last_error = RuntimeError(msg)
-                if attempt < MAX_RETRIES:
-                    logger.info(f"[{market_name}] Esperando {RETRY_WAIT_S}s antes del próximo intento...")
-                    time.sleep(RETRY_WAIT_S)
-                continue
-            # ───────────────────────────────────────────────────────
+        # Delay entre tickers (excepto el último)
+        if i < total - 1:
+            delay = random.uniform(DELAY_MIN, DELAY_MAX)
+            time.sleep(delay)
  
-            logger.info(f"[{market_name}] ✓ Descarga OK — "
-                        f"{len(closes)} días, {len(closes.columns)} columnas")
-            return closes
+        # Rotar user agent cada 5 tickers
+        if (i + 1) % 5 == 0:
+            session.headers["User-Agent"] = random.choice(USER_AGENTS)
  
-        except Exception as e:
-            last_error = e
-            logger.warning(f"[{market_name}] Error en intento {attempt}: {e}")
-            if attempt < MAX_RETRIES:
-                logger.info(f"[{market_name}] Esperando {RETRY_WAIT_S}s...")
-                time.sleep(RETRY_WAIT_S)
+    success_rate = ok / total if total > 0 else 0
+    logger.info(f"[{market_name}] Descarga completada: {ok}/{total} tickers ({success_rate:.0%})")
  
-    # Todos los intentos fallaron → intentar fallback
-    logger.error(f"[{market_name}] ✗ Todos los intentos fallaron. Último error: {last_error}")
+    if success_rate >= MIN_SUCCESS_RATE and series_list:
+        df = pd.concat(series_list, axis=1)
+        df.index.name = "Fecha"
+        df = df.sort_index().dropna(how="all")
+        logger.info(f"[{market_name}] ✓ DataFrame: {len(df)} días, {len(df.columns)} columnas")
+        return df
+ 
+    # Tasa de éxito insuficiente → fallback
+    logger.error(f"[{market_name}] Tasa de éxito {success_rate:.0%} < {MIN_SUCCESS_RATE:.0%} — usando fallback")
     fallback = _load_fallback(market_name, data_dir)
     if fallback is not None and len(fallback) >= MIN_ROWS:
         return fallback
  
-    # Sin fallback disponible → error explícito (nunca genera HTML en blanco)
     raise RuntimeError(
-        f"[{market_name}] Descarga fallida y sin CSV de respaldo disponible. "
-        f"El pipeline se detiene para evitar publicar un informe vacío. "
-        f"Error original: {last_error}"
+        f"[{market_name}] Descarga fallida ({ok}/{total} tickers) y sin CSV de respaldo. "
+        f"El pipeline se detiene para evitar publicar un informe vacío."
     )
  
  
@@ -248,11 +301,6 @@ def _download_batch(tickers: dict, index_ticker: str, market_name: str,
 # ─────────────────────────────────────────────
  
 def download_all(data_dir: str = "data") -> dict:
-    """
-    Punto de entrada principal.
-    Retorna dict con keys 'merval', 'bovespa', 'sp500' → DataFrames de cierres.
-    Propaga RuntimeError si algún mercado no pudo descargarse ni tiene fallback.
-    """
     results = {}
     results["merval"]  = _download_batch(MERVAL_TICKERS,  MERVAL_INDEX,  "MERVAL",  data_dir)
     results["bovespa"] = _download_batch(BOVESPA_TICKERS, BOVESPA_INDEX, "BOVESPA", data_dir)
@@ -261,7 +309,6 @@ def download_all(data_dir: str = "data") -> dict:
  
  
 def save_csvs(data: dict, output_dir: str = "data") -> dict:
-    """Guarda los DataFrames como CSV compatibles con el formato del proyecto."""
     os.makedirs(output_dir, exist_ok=True)
     paths = {}
     for market, df in data.items():
@@ -270,3 +317,4 @@ def save_csvs(data: dict, output_dir: str = "data") -> dict:
         paths[market] = path
         logger.info(f"Guardado: {path} ({len(df)} filas)")
     return paths
+ 
