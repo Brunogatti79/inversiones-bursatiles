@@ -9,7 +9,7 @@ on:
 jobs:
   download:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repo
@@ -33,6 +33,6 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/merval_cierres.csv inversiones-bursatiles/data/bovespa_cierres.csv inversiones-bursatiles/data/sp500_cierres.csv inversiones-bursatiles/data/download_status.json
+          git add data/merval_cierres.csv data/bovespa_cierres.csv data/sp500_cierres.csv data/download_status.json
           git diff --cached --quiet && echo "Sin cambios" || git commit -m "data: actualización automática $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
