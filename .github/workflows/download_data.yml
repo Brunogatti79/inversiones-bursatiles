@@ -3,7 +3,7 @@ name: Descargar datos de mercado
 on:
   schedule:
     # Corre a las 14:50 UTC (11:50 ART) — 10 min antes que Railway
-    - cron: '50 14 * * 1-5'
+    - cron: '21 20 * * 1-5'
   workflow_dispatch:  # permite correrlo manualmente desde GitHub
 
 jobs:
