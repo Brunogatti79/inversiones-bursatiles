@@ -90,7 +90,7 @@ SP500_TICKERS = {
 SP500_INDEX = "^GSPC"
  
 MIN_ROWS = 10
-DATA_DIR = "inversiones-bursatiles/data"
+DATA_DIR = "data"
  
  
 def get_period():
