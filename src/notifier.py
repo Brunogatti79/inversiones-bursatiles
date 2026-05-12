@@ -1,7 +1,7 @@
 """
 src/notifier.py
 Envía notificaciones a Telegram y publica el dashboard en GitHub Pages.
-Versión consolidada con mensaje enriquecido: Radar + Compras + Reducciones por mercado.
+NUEVO: Bloque de validación de datos en el mensaje diario.
 """
  
 import logging
@@ -21,7 +21,7 @@ GH_TOKEN   = os.getenv("GH_TOKEN", "")
 GH_USER    = os.getenv("GH_USER", "Brunogatti79")
 GH_REPO    = os.getenv("GH_REPO", "inversiones-bursatiles")
  
-FLAG = {"MERVAL": "🇦🇷", "BOVESPA": "🇧🇷", "SP500": "🇺🇸"}
+FLAG    = {"MERVAL": "🇦🇷", "BOVESPA": "🇧🇷", "SP500": "🇺🇸"}
 MARKETS = ["MERVAL", "BOVESPA", "SP500"]
  
  
@@ -89,14 +89,60 @@ def publish_dashboard(local_path, filename):
  
  
 def _index_line(stats, market):
-    flag = FLAG.get(market, "")
-    ret  = stats.get("ret_anual", 0)
-    sign = "+" if ret >= 0 else ""
-    vol  = stats.get("volatilidad", 0)
-    act  = stats.get("actual", 0)
+    flag  = FLAG.get(market, "")
+    ret   = stats.get("ret_anual", 0)
+    sign  = "+" if ret >= 0 else ""
+    vol   = stats.get("volatilidad", 0)
+    act   = stats.get("actual", 0)
     label = "S&P 500" if market == "SP500" else market
     return (f"{flag} <b>{label}</b> {act:,.0f}  "
             f"<code>{sign}{ret:.1f}%</code> 12m  |  Vol {vol:.1f}%")
+ 
+ 
+def _validacion_section(validacion: dict) -> str:
+    """
+    Bloque de validación de datos para el mensaje Telegram.
+    Muestra nivel global + detalle por mercado.
+    """
+    if not validacion:
+        return ""
+ 
+    nivel = validacion.get("nivel_global", "OK")
+    ts    = validacion.get("timestamp", "")
+ 
+    # Icono según nivel
+    if nivel == "ERROR":
+        icono_global = "🔴"
+        titulo = "ALERTA — Datos con problemas"
+    elif nivel == "WARNING":
+        icono_global = "🟡"
+        titulo = "Advertencia de datos"
+    else:
+        icono_global = "🟢"
+        titulo = "Datos OK"
+ 
+    lines = [f"\n{icono_global} <b>{titulo}</b>"]
+ 
+    market_map = {"merval": "MERVAL", "bovespa": "BOVESPA", "sp500": "SP500"}
+    for key, market in market_map.items():
+        res = validacion.get("mercados", {}).get(key, {})
+        if not res:
+            continue
+        flag         = FLAG.get(market, "")
+        nivel_m      = res.get("nivel", "OK")
+        ultima_fecha = res.get("ultima_fecha", "—")
+        icono_m      = "🟢" if nivel_m == "OK" else "🟡" if nivel_m == "WARNING" else "🔴"
+        label        = "S&P 500" if market == "SP500" else market
+ 
+        lines.append(f"  {icono_m} {flag} <b>{label}</b> — último cierre: <code>{ultima_fecha}</code>")
+ 
+        # Mostrar errores críticos
+        for err in res.get("errors", []):
+            # Extraer solo el mensaje sin el prefijo [MARKET]
+            msg = err.split("]")[-1].strip() if "]" in err else err
+            lines.append(f"    ⚠️ {msg[:80]}")
+ 
+    return "\n".join(lines)
  
  
 def _radar_section(signals):
@@ -121,14 +167,14 @@ def _radar_section(signals):
         return min(round(score), 100)
  
     universe = [s for s in signals if "VENTA" not in s.get("signal", "")]
-    ranked = sorted(universe, key=radar_score, reverse=True)[:5]
+    ranked   = sorted(universe, key=radar_score, reverse=True)[:5]
  
     lines = ["\n🔭 <b>Radar de Oportunidades</b>"]
     for market in MARKETS:
         market_ranked = [s for s in ranked if s["mercado"] == market]
         if not market_ranked:
             continue
-        flag = FLAG.get(market, "")
+        flag  = FLAG.get(market, "")
         label = "S&P 500" if market == "SP500" else market
         lines.append(f"  {flag} <b>{label}</b>")
         for s in market_ranked:
@@ -139,11 +185,10 @@ def _radar_section(signals):
  
  
 def _compras_section(signals):
-    """Señales de compra por mercado."""
     lines = ["\n✅ <b>Compras</b>"]
     for market in MARKETS:
-        flag = FLAG.get(market, "")
-        label = "S&P 500" if market == "SP500" else market
+        flag    = FLAG.get(market, "")
+        label   = "S&P 500" if market == "SP500" else market
         compras = [s for s in signals if s["mercado"] == market and "COMPRA" in s.get("signal", "")]
         lines.append(f"  {flag} <b>{label}</b>")
         if compras:
@@ -156,11 +201,10 @@ def _compras_section(signals):
  
  
 def _reducciones_section(signals):
-    """Señales de venta/reducción por mercado."""
     lines = ["\n🔴 <b>Reducciones</b>"]
     for market in MARKETS:
-        flag = FLAG.get(market, "")
-        label = "S&P 500" if market == "SP500" else market
+        flag   = FLAG.get(market, "")
+        label  = "S&P 500" if market == "SP500" else market
         ventas = [s for s in signals if s["mercado"] == market and "VENTA" in s.get("signal", "")]
         lines.append(f"  {flag} <b>{label}</b>")
         if ventas:
@@ -171,9 +215,10 @@ def _reducciones_section(signals):
     return "\n".join(lines)
  
  
-def send_daily_report(all_signals, index_stats, dashboard_filename, run_date=None):
-    tz  = pytz.timezone(TIMEZONE)
-    now = datetime.now(tz)
+def send_daily_report(all_signals, index_stats, dashboard_filename,
+                      run_date=None, validacion=None):
+    tz       = pytz.timezone(TIMEZONE)
+    now      = datetime.now(tz)
     run_date = run_date or now.strftime("%d/%m/%Y %H:%M")
     dash_url = f"{DASH_URL}/{dashboard_filename}"
  
@@ -187,7 +232,10 @@ def send_daily_report(all_signals, index_stats, dashboard_filename, run_date=Non
         if stats:
             indices_block += _index_line(stats, display) + "\n"
  
-    senales_block = "\n<b>Señales activas del modelo</b>"
+    # Bloque de validación — va inmediatamente después de los índices
+    validacion_block = _validacion_section(validacion) if validacion else ""
+ 
+    senales_block  = "\n<b>Señales activas del modelo</b>"
     senales_block += _radar_section(all_signals)
     senales_block += _compras_section(all_signals)
     senales_block += _reducciones_section(all_signals)
@@ -198,7 +246,8 @@ def send_daily_report(all_signals, index_stats, dashboard_filename, run_date=Non
         f"⏱ Próxima actualización: mañana al cierre"
     )
  
-    full_msg = header + indices_block + senales_block + footer
+    full_msg = header + indices_block + validacion_block + senales_block + footer
+ 
     if len(full_msg) > 4000:
         full_msg = full_msg[:3990] + "\n…"
  
