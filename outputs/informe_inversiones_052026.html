@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Inversiones Bursátiles — 12/05/2026 16:13</title>
+<title>Inversiones Bursátiles — 12/05/2026 16:45</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d0d0f;color:#e8e8ea;font-size:14px}
@@ -120,7 +120,7 @@
   <div>
     <div class="badge">INVERSIONES BURSÁTILES</div>
     <h1>Informe de Inversiones</h1>
-    <div style="font-size:12px;color:#666;margin-top:3px">MERVAL · BOVESPA · S&P 500 · Generado 12/05/2026 16:13</div>
+    <div style="font-size:12px;color:#666;margin-top:3px">MERVAL · BOVESPA · S&P 500 · Generado 12/05/2026 16:45</div>
   </div>
   <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>Modelo Fase 2 — 35M+35T+10S+20F</div>
 </div>
@@ -230,6 +230,18 @@
   <div id="op-rank-page">
     <div style="font-size:13px;font-weight:600;color:#aaa;margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid #222230">
       Acciones con señal de compra — Score Final descendente
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:4px 16px 8px;flex-wrap:wrap">
+      <div style="flex:1;min-width:140px"></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding-right:4px">
+        <div style="min-width:44px;text-align:right;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px">Precio</div>
+        <div style="min-width:44px;text-align:right;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px">12 meses</div>
+        <div style="min-width:44px;text-align:right;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px">RSI</div>
+        <div style="min-width:44px;text-align:right;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px">vs Máx</div>
+        <div style="min-width:44px;text-align:right;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px">Score</div>
+        <div style="min-width:44px;text-align:right;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px">R/R</div>
+        <div style="min-width:70px;text-align:right;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px">Señal</div>
+      </div>
     </div>
     <div id="op-rg"></div>
   </div>
@@ -494,10 +506,44 @@ function showOpFicha(ticker){
     '</div>'+
     '<div class="op-fgrid">'+
       '<div class="op-card"><h3>📐 Niveles operativos</h3>'+lvls+
-        '<div style="margin-top:8px;font-size:10px;color:#555">'+
-          (f.ma_cross?'✅ MA20 > MA50':'⚠️ MA20 ≤ MA50')+
-          ' · MA20: '+fn(f.ma20)+' · MA50: '+fn(f.ma50)+
-          (f.ma200?' · MA200: '+fn(f.ma200):'')+
+        '<div style="margin-top:10px">'+
+          '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">'+
+            '<div style="background:#111115;border:0.5px solid #1a1a2e;border-radius:6px;padding:6px 8px">'+
+              '<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">'+
+                '<div style="width:14px;height:2px;background:#fb923c;border-radius:1px"></div>'+
+                '<span style="font-size:11px;font-weight:600;color:#e8e8ea;font-family:monospace">MA20: '+fn(f.ma20)+'</span>'+
+              '</div>'+
+              '<div style="font-size:9px;color:#555">Corto plazo · 4 sem</div>'+
+              '<div style="font-size:10px;margin-top:2px;color:'+(f.ma20>f.ma50?'#4ade80':'#f87171')+'">'+
+                (f.ma20>f.ma50?'↗ sobre MA50':'↘ bajo MA50')+
+              '</div>'+
+            '</div>'+
+            '<div style="background:#111115;border:0.5px solid #1a1a2e;border-radius:6px;padding:6px 8px">'+
+              '<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">'+
+                '<div style="width:14px;height:2px;background:#bc8cff;border-radius:1px"></div>'+
+                '<span style="font-size:11px;font-weight:600;color:#e8e8ea;font-family:monospace">MA50: '+fn(f.ma50)+'</span>'+
+              '</div>'+
+              '<div style="font-size:9px;color:#555">Mediano plazo · 2.5m</div>'+
+              '<div style="font-size:10px;margin-top:2px;color:'+(f.precio>f.ma50?'#4ade80':'#f87171')+'">'+
+                (f.precio>f.ma50?'↗ precio sobre MA50':'↘ precio bajo MA50')+
+              '</div>'+
+            '</div>'+
+            (f.ma200?'<div style="background:#111115;border:0.5px solid #1a1a2e;border-radius:6px;padding:6px 8px">'+
+              '<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">'+
+                '<div style="width:14px;height:2px;background:#fbbf24;border-radius:1px"></div>'+
+                '<span style="font-size:11px;font-weight:600;color:#e8e8ea;font-family:monospace">MA200: '+fn(f.ma200)+'</span>'+
+              '</div>'+
+              '<div style="font-size:9px;color:#555">Largo plazo · 10 meses</div>'+
+              '<div style="font-size:10px;margin-top:2px;color:'+(f.precio>f.ma200?'#4ade80':'#f87171')+'">'+
+                (f.precio>f.ma200?'↗ precio sobre MA200':'↘ precio bajo MA200')+
+              '</div>'+
+            '</div>':'<div></div>')+
+          '</div>'+
+          '<div style="padding:5px 8px;background:#111115;border-radius:4px;border-left:2px solid '+(f.ma_cross?'#4ade80':'#f87171')+'">'+
+            '<span style="font-size:10px;color:#888">'+(f.ma_cross?'✅ MA20 > MA50 — momentum corto plazo positivo. ':'⚠️ MA20 < MA50 — presión bajista de corto plazo. ')+
+            (f.ma200?(f.precio>f.ma200?'Precio sobre MA200 — tendencia larga alcista.':'Precio bajo MA200 — tendencia larga bajista.'):'MA200 no disponible.')+
+            '</span>'+
+          '</div>'+
         '</div></div>'+
       '<div class="op-card"><h3>🧮 Scoring Fase 2 (35M+35T+10S+20F)</h3>'+
         '<div class="op-sc-row"><span class="op-sc-name">Macro (35%)</span>'+
