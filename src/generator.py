@@ -267,7 +267,10 @@ def generate_dashboard(
   .pano-day-value{{font-size:clamp(16px,4vw,22px);font-weight:700}}
   .pano-day-dot{{width:8px;height:8px;border-radius:50%;animation:pulse 2s infinite}}
   @keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
-  .pano-vol{{font-size:12px;color:#444;grid-column:3;text-align:right;align-self:center}}
+  .pano-vol{{font-size:12px;color:#555;grid-column:3;text-align:right;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:2px}}
+  .pano-vol-label{{font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.8px}}
+  .pano-vol-value{{font-size:clamp(16px,3vw,22px);font-weight:700;color:#888}}
+  .pano-vol-desc{{font-size:9px;color:#333;max-width:80px;text-align:right;line-height:1.3}}
   .chart-legend{{display:flex;gap:20px;margin-bottom:10px;flex-wrap:wrap}}
   .legend-item{{display:flex;align-items:center;gap:6px;font-size:12px;color:#aaa}}
   .radar-card{{background:#0d1a0d;border:1px solid #1a3320;border-radius:10px;padding:18px;margin-bottom:14px;display:flex;align-items:center;gap:16px;transition:background .2s}}
@@ -371,11 +374,16 @@ def generate_dashboard(
         <div class="pano-anual" id="pano-m-anual" style="color:{'#4ade80' if m_ret>=0 else '#f87171'}">{'+ ' if m_ret>=0 else ''}{m_ret:.2f}%</div>
         <div class="pano-day-row">
           <div class="pano-day-dot" id="dot-m" style="background:#4ade80"></div>
-          <span class="pano-day-label">HOY</span>
+          <span class="pano-day-label" title="Variación respecto al cierre anterior">ÚLTIMO CIERRE</span>
           <span class="pano-day-value" id="pano-m-day">{'—' if m_day is None else ('+' if m_day>=0 else '')+f'{m_day:.2f}%'}</span>
         </div>
+        <div id="pano-m-fecha" style="font-size:9px;color:#333;margin-top:2px"></div>
       </div>
-      <div class="pano-vol">Vol<br>{m_vol:.1f}%</div>
+      <div class="pano-vol">
+        <span class="pano-vol-label">Volatilidad</span>
+        <span class="pano-vol-value">{m_vol:.1f}%</span>
+        <span class="pano-vol-desc">anualizada<br>últimos 12m</span>
+      </div>
     </div>
     <div class="pano-card">
       <div class="pano-flag">🇧🇷</div>
@@ -385,11 +393,16 @@ def generate_dashboard(
         <div class="pano-anual" id="pano-b-anual" style="color:{'#4ade80' if b_ret>=0 else '#f87171'}">{'+ ' if b_ret>=0 else ''}{b_ret:.2f}%</div>
         <div class="pano-day-row">
           <div class="pano-day-dot" id="dot-b" style="background:#4ade80"></div>
-          <span class="pano-day-label">HOY</span>
+          <span class="pano-day-label" title="Variación respecto al cierre anterior">ÚLTIMO CIERRE</span>
           <span class="pano-day-value" id="pano-b-day">{'—' if b_day is None else ('+' if b_day>=0 else '')+f'{b_day:.2f}%'}</span>
         </div>
+        <div id="pano-b-fecha" style="font-size:9px;color:#333;margin-top:2px"></div>
       </div>
-      <div class="pano-vol">Vol<br>{b_vol:.1f}%</div>
+      <div class="pano-vol">
+        <span class="pano-vol-label">Volatilidad</span>
+        <span class="pano-vol-value">{b_vol:.1f}%</span>
+        <span class="pano-vol-desc">anualizada<br>últimos 12m</span>
+      </div>
     </div>
     <div class="pano-card">
       <div class="pano-flag">🇺🇸</div>
@@ -399,11 +412,16 @@ def generate_dashboard(
         <div class="pano-anual" id="pano-s-anual" style="color:{'#4ade80' if s_ret>=0 else '#f87171'}">{'+ ' if s_ret>=0 else ''}{s_ret:.2f}%</div>
         <div class="pano-day-row">
           <div class="pano-day-dot" id="dot-s" style="background:#4ade80"></div>
-          <span class="pano-day-label">HOY</span>
+          <span class="pano-day-label" title="Variación respecto al cierre anterior">ÚLTIMO CIERRE</span>
           <span class="pano-day-value" id="pano-s-day">{'—' if s_day is None else ('+' if s_day>=0 else '')+f'{s_day:.2f}%'}</span>
         </div>
+        <div id="pano-s-fecha" style="font-size:9px;color:#333;margin-top:2px"></div>
       </div>
-      <div class="pano-vol">Vol<br>{s_vol:.1f}%</div>
+      <div class="pano-vol">
+        <span class="pano-vol-label">Volatilidad</span>
+        <span class="pano-vol-value">{s_vol:.1f}%</span>
+        <span class="pano-vol-desc">anualizada<br>últimos 12m</span>
+      </div>
     </div>
   </div>
   <div class="section-title">Evolución comparativa — base 100</div>
@@ -511,12 +529,16 @@ function rc(v){{ return v>=0?'#4ade80':'#f87171'; }}
  
 // Day refresh
 function refreshDay(){{
-  [['pano-m-day','dot-m','merval'],['pano-b-day','dot-b','bovespa'],['pano-s-day','dot-s','sp500']].forEach(function(x){{
+  [['pano-m-day','dot-m','merval','pano-m-fecha'],
+   ['pano-b-day','dot-b','bovespa','pano-b-fecha'],
+   ['pano-s-day','dot-s','sp500','pano-s-fecha']].forEach(function(x){{
     var val=IDX[x[2]]&&IDX[x[2]].ret_dia!==undefined?IDX[x[2]].ret_dia:null;
-    var e=document.getElementById(x[0]),d=document.getElementById(x[1]);
+    var fecha=IDX[x[2]]&&IDX[x[2]].fecha?IDX[x[2]].fecha:'';
+    var e=document.getElementById(x[0]),d=document.getElementById(x[1]),f=document.getElementById(x[3]);
     var c=val===null?'#888':val>=0?'#4ade80':'#f87171';
     if(e){{e.textContent=val===null?'—':(val>=0?'+':'')+val.toFixed(2)+'%';e.style.color=c;}}
     if(d) d.style.background=c;
+    if(f&&fecha){{f.textContent='Cierre: '+fecha;}}
   }});
 }}
 refreshDay(); setInterval(refreshDay,10000);
