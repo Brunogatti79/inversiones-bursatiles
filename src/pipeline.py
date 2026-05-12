@@ -94,7 +94,9 @@ def run_pipeline():
             index_stats=index_stats,
             output_path=dashboard_path,
             run_date=run_date,
+            price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
         )
+¿Subís el generator.py a src/generator.py en GitHub y hacemos ese cambio en el pipeline.py?GeneratorPY Abrir en Python
         logger.info(f"Dashboard generado: {dashboard_path}")
  
         # 6b. PUBLICAR EN GITHUB PAGES
