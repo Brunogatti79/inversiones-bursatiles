@@ -150,6 +150,7 @@ def generate_dashboard(
     output_path: str,
     run_date: str = "",
     price_data: dict = None,
+    validacion: dict = None,
 ) -> str:
     """Genera el HTML del dashboard y lo escribe en output_path."""
  
@@ -160,6 +161,44 @@ def generate_dashboard(
             fichas = _build_oportunidades(signals, price_data)
         except Exception as e:
             logger.warning(f"No se pudieron generar fichas de oportunidades: {e}")
+ 
+    # Banner de validación para el header
+    if validacion:
+        nivel_g = validacion.get("nivel_global", "OK")
+        if nivel_g == "ERROR":
+            banner_bg   = "#2b0a0a"
+            banner_bord = "#6b1a1a"
+            banner_icon = "🔴"
+            banner_txt  = "ALERTA — Datos con problemas de calidad"
+            banner_col  = "#f87171"
+        elif nivel_g == "WARNING":
+            banner_bg   = "#2b2000"
+            banner_bord = "#6b4a00"
+            banner_icon = "🟡"
+            banner_txt  = "Advertencia — Revisar frescura de datos"
+            banner_col  = "#fbbf24"
+        else:
+            banner_bg   = "#0a2b0a"
+            banner_bord = "#1a4a1a"
+            banner_icon = "🟢"
+            banner_txt  = "Datos OK"
+            banner_col  = "#4ade80"
+ 
+        mercados_html = ""
+        for key, label in [("merval","MERVAL"), ("bovespa","BOVESPA"), ("sp500","S&P 500")]:
+            res = validacion.get("mercados", {}).get(key, {})
+            niv = res.get("nivel", "OK")
+            uf  = res.get("ultima_fecha", "—")
+            ic  = "🟢" if niv=="OK" else "🟡" if niv=="WARNING" else "🔴"
+            mercados_html += f'<span style="margin-right:16px">{ic} <b>{label}</b> <code style="font-size:11px">{uf}</code></span>'
+ 
+        validacion_banner = f'''<div style="background:{banner_bg};border-bottom:1px solid {banner_bord};padding:8px 32px;font-size:12px;color:{banner_col};display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+  <span>{banner_icon} <b>{banner_txt}</b></span>
+  <span style="color:#666">|</span>
+  {mercados_html}
+</div>'''
+    else:
+        validacion_banner = ""
  
     signals_json     = json.dumps(signals,     ensure_ascii=False)
     index_stats_json = json.dumps(index_stats, ensure_ascii=False)
@@ -311,7 +350,7 @@ def generate_dashboard(
   </div>
   <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>Modelo Fase 2 — 35M+35T+10S+20F</div>
 </div>
- 
+{{validacion_banner}}
 <div class="tabs">
   <div class="tab on" onclick="sw('panorama',this)">Panorama</div>
   <div class="tab"    onclick="sw('merval',this)">MERVAL</div>
