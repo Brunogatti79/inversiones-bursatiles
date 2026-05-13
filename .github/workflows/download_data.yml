@@ -1,13 +1,11 @@
 name: Descargar datos de mercado
 on:
   schedule:
-    # Múltiples horarios como red de seguridad (GitHub Actions puede saltear o demorar crons)
-    # El script detecta si ya corrió hoy y no duplica la descarga
-    - cron: '30 14 * * 1-5'   # 14:30 UTC (11:30 ART) — intento principal
-    - cron: '0 17 * * 1-5'    # 17:00 UTC (14:00 ART) — respaldo 1
-    - cron: '0 20 * * 1-5'    # 20:00 UTC (17:00 ART) — respaldo 2
-    - cron: '0 23 * * 1-5'    # 23:00 UTC (20:00 ART) — respaldo 3
-  workflow_dispatch:  # permite correrlo manualmente desde GitHub
+    - cron: '30 14 * * 1-5'
+    - cron: '0 17 * * 1-5'
+    - cron: '0 20 * * 1-5'
+    - cron: '0 23 * * 1-5'
+  workflow_dispatch:
  
 jobs:
   download:
@@ -19,7 +17,7 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
  
-      - name: Verificar si ya se descargó hoy
+      - name: Verificar si ya se descargo hoy
         id: check
         run: |
           TODAY=$(date -u '+%Y-%m-%d')
@@ -29,11 +27,11 @@ jobs:
               echo "Ya se descargaron datos hoy ($TODAY). Saltando."
               echo "skip=true" >> $GITHUB_OUTPUT
             else
-              echo "Última descarga: $LAST. Ejecutando para $TODAY."
+              echo "Ultima descarga: $LAST. Ejecutando para $TODAY."
               echo "skip=false" >> $GITHUB_OUTPUT
             fi
           else
-            echo "No existe download_status.json. Primera ejecución."
+            echo "No existe download_status.json. Primera ejecucion."
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
  
@@ -58,6 +56,25 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/merval_cierres.csv data/bovespa_cierres.csv data/sp500_cierres.csv data/download_status.json
-          git diff --cached --quiet && echo "Sin cambios" || git commit -m "data: actualización automática $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "data: actualizacion automatica $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
+ 
+      - name: Disparar pipeline en Railway
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          echo "Disparando pipeline en Railway..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
+            --max-time 30 \
+            https://inversiones-bursatiles-production.up.railway.app/webhook/run)
+          echo "Railway respondio: HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Pipeline disparado exitosamente"
+          elif [ "$HTTP_CODE" = "409" ]; then
+            echo "Pipeline ya en ejecucion"
+          else
+            echo "Error al disparar pipeline (HTTP $HTTP_CODE) - revisar Railway"
+          fi
  
