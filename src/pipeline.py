@@ -17,7 +17,8 @@ from src.macro_loader   import load_xlsx_signals
 from src.fundamental    import load_fundamental_scores
 from src.data_validator import validar_todos
 from src.notifier       import (send_daily_report, send_signal_change_alerts,
-                                 send_excel, send_error_notification, publish_dashboard)
+                                 send_excel, send_error_notification, publish_dashboard,
+                                 publish_index_html)
 from src.generator      import generate_dashboard, generate_excel
  
 logger = logging.getLogger(__name__)
@@ -153,7 +154,8 @@ def run_pipeline():
         logger.info("6b/8 Publicando en GitHub Pages...")
         published = publish_dashboard(dashboard_path, dashboard_name)
         if published:
-            logger.info("Dashboard publicado en GitHub Pages correctamente")
+            publish_index_html(dashboard_name)
+            logger.info("Dashboard + index.html publicados en GitHub Pages")
         else:
             logger.warning("No se pudo publicar en GitHub Pages (revisar GH_TOKEN)")
  
