@@ -143,8 +143,13 @@ def run_pipeline():
             validacion=validacion,
         )
         logger.info(f"Dashboard generado: {dashboard_path}")
- 
-        # 6b. PUBLICAR EN GITHUB PAGES
+
+        # 6b. INDEX.HTML + PUBLICAR EN GITHUB PAGES
+        index_path = f"{OUTPUT_DIR}/index.html"
+        with open(index_path, 'w') as f:
+            f.write(f'<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url={dashboard_name}"></head><body></body></html>')
+        logger.info(f"index.html generado -> {dashboard_name}")
+
         logger.info("6b/8 Publicando en GitHub Pages...")
         published = publish_dashboard(dashboard_path, dashboard_name)
         if published:
