@@ -54,8 +54,7 @@ def _send_document(file_path, caption=""):
     except Exception as e:
         logger.error(f"Error enviando archivo Telegram: {e}")
         return False
- 
- 
+  
 def publish_dashboard(local_path, filename):
     if not GH_TOKEN:
         logger.warning("GH_TOKEN no configurado — no se puede publicar dashboard.")
@@ -86,8 +85,35 @@ def publish_dashboard(local_path, filename):
     except Exception as e:
         logger.error(f"Error publicando dashboard: {e}")
         return False
- 
- 
+
+
+def publish_index_html(dashboard_filename):
+    """Publica index.html que redirige al último dashboard."""
+    if not GH_TOKEN:
+        return False
+    try:
+        content = f'<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url={dashboard_filename}"></head><body></body></html>'
+        content_b64 = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+        api_url = f"https://api.github.com/repos/{GH_USER}/{GH_REPO}/contents/outputs/index.html"
+        headers = {
+            "Authorization": f"token {GH_TOKEN}",
+            "Accept": "application/vnd.github.v3+json",
+        }
+        sha = None
+        r = requests.get(api_url, headers=headers, timeout=15)
+        if r.status_code == 200:
+            sha = r.json().get("sha")
+        payload = {"message": "index.html: redirect al ultimo dashboard", "content": content_b64}
+        if sha:
+            payload["sha"] = sha
+        r = requests.put(api_url, headers=headers, json=payload, timeout=30)
+        r.raise_for_status()
+        logger.info("index.html publicado en GitHub Pages")
+        return True
+    except Exception as e:
+        logger.error(f"Error publicando index.html: {e}")
+        return False
+     
 def _index_line(stats, market):
     flag  = FLAG.get(market, "")
     ret   = stats.get("ret_anual", 0)
