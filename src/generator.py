@@ -53,7 +53,6 @@ def _build_oportunidades(signals, price_data):
     price_data: dict {'merval': df, 'bovespa': df, 'sp500': df}
     """
     compras = [s for s in signals if 'COMPRA' in s.get('signal','')]
-    compras.sort(key=lambda x: x['score_final'], reverse=True)
  
     fichas = []
     for s in compras:
@@ -137,6 +136,8 @@ def _build_oportunidades(signals, price_data):
             'closes60': closes60, 'dates60': dates60,
             'ma20_line': ma20_line, 'ma50_line': ma50_line,
         })
+    # Ranking: Score desc, desempate por R/R cuando scores similares (banda 1 pto)
+    fichas.sort(key=lambda f: (-int(f['score_final']), -f['rr']))
     return fichas
  
  
