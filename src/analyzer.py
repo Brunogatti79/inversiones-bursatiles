@@ -141,6 +141,49 @@ def _score_to_signal(score: float) -> str:
     elif score >= 45: return "🟡 NEUTRAL/ESPERAR"
     elif score >= 35: return "🟠 VENTA PARCIAL"
     else:             return "🔴 VENTA"
+# ─────────────────────────────────────────────
+# Mejoras V2: Asset Quality, Entry Score, R/R
+# ─────────────────────────────────────────────
+
+def _calcular_rr(precio, max_52s, min_52s):
+    """Ratio Riesgo/Retorno normalizado a 0-100."""
+    if precio <= 0 or max_52s <= 0 or min_52s <= 0:
+        return 0.0, 0.0
+    upside = (max_52s - precio) / precio
+    downside = (precio - min_52s) / precio
+    if downside <= 0.001:
+        rr = min(upside / 0.001, 5.0)
+    else:
+        rr = upside / downside
+    rr_norm = min(100.0, max(0.0, (rr / 3.0) * 100.0))
+    return round(rr, 2), round(rr_norm, 1)
+
+def _normalizar_dist_max(dist_max_pct):
+    """0% (en el max) = score 0, -40%+ = score 100."""
+    return round(min(100.0, max(0.0, (abs(dist_max_pct) / 40.0) * 100.0)), 1)
+
+def _asset_quality(score_macro, score_fundamental, score_sectorial):
+    """50% Macro + 30% Fundamental + 20% Sectorial."""
+    return round(0.50 * score_macro + 0.30 * score_fundamental + 0.20 * score_sectorial, 1)
+
+def _entry_score(score_tecnico, rr_norm, dist_max_norm):
+    """60% Técnico + 25% R/R + 15% Dist Max."""
+    return round(0.60 * score_tecnico + 0.25 * rr_norm + 0.15 * dist_max_norm, 1)
+
+def _score_final_v2(asset_quality, entry_score):
+    """50% Asset Quality + 50% Entry Score."""
+    return round(0.50 * asset_quality + 0.50 * entry_score, 1)
+
+def _signal_v2(score):
+    if score >= 70: return "⭐ COMPRA FUERTE"
+    elif score >= 60: return "🟢 COMPRA"
+    elif score >= 45: return "🟡 NEUTRAL/ESPERAR"
+    elif score >= 35: return "🟠 VENTA PARCIAL"
+    else: return "🔴 VENTA"
+
+def _ranking_accionable(score_v2, rr_norm):
+    """60% Score V2 + 40% R/R Norm."""
+    return round(0.60 * score_v2 + 0.40 * rr_norm, 1)
  
  
 # ─────────────────────────────────────────────
@@ -255,28 +298,49 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         min_date = serie.idxmin().strftime("%d/%m/%Y")
  
         results.append({
-            "ticker":        ticker,
-            "empresa":       name,
-            "sector":        sector,
-            "mercado":       market,
+# ── V2: cálculos nuevos ──
+        dist_max_pct = ((precio_actual - max_val) / max_val) * 100 if max_val > 0 else 0
+        rr_ratio, rr_norm = _calcular_rr(precio_actual, max_val, min_val)
+        dist_max_norm = _normalizar_dist_max(dist_max_pct)
+        aq = _asset_quality(macro_score, s_fund, s_sect)
+        es = _entry_score(s_tec, rr_norm, dist_max_norm)
+        sf_v2 = _score_final_v2(aq, es)
+        sig_v2 = _signal_v2(sf_v2)
+        rank_acc = _ranking_accionable(sf_v2, rr_norm)
+
+        results.append({
+            "ticker": ticker,
+            "empresa": name,
+            "sector": sector,
+            "mercado": market,
             "precio_actual": round(precio_actual, 2),
-            "ret_anual":     round(ret_anual, 2),
-            "ret_mes":       round(ret_mes, 2),
-            "ret_sem":       round(ret_sem, 2),
-            "max_12m":       round(max_val, 2),
-            "max_12m_date":  max_date,
-            "min_12m":       round(min_val, 2),
-            "min_12m_date":  min_date,
-            "rsi":           round(rsi_final, 1),
-            "momentum_21d":  round(mom_final, 2),
-            "ma_cross":      ma_cr_final,
-            "score_macro":   macro_score,
+            "ret_anual": round(ret_anual, 2),
+            "ret_mes": round(ret_mes, 2),
+            "ret_sem": round(ret_sem, 2),
+            "max_12m": round(max_val, 2),
+            "max_12m_date": max_date,
+            "min_12m": round(min_val, 2),
+            "min_12m_date": min_date,
+            "rsi": round(rsi_final, 1),
+            "momentum_21d": round(mom_final, 2),
+            "ma_cross": ma_cr_final,
+            "score_macro": macro_score,
             "score_tecnico": round(s_tec, 1),
-            "score_sector":  s_sect,
+            "score_sector": s_sect,
             "score_fundamental": round(s_fund, 1),
-            "score_final":   score_final,
-            "signal":        signal,
-            "fecha":         end.strftime("%Y-%m-%d"),
+            "score_final": score_final,
+            "signal": signal,
+            "fecha": end.strftime("%Y-%m-%d"),
+            # ── V2 ──
+            "dist_max_pct": round(dist_max_pct, 1),
+            "rr_ratio": rr_ratio,
+            "rr_norm": rr_norm,
+            "dist_max_norm": dist_max_norm,
+            "asset_quality": aq,
+            "entry_score": es,
+            "score_final_v2": sf_v2,
+            "signal_v2": sig_v2,
+            "ranking_accionable": rank_acc,
         })
  
     results.sort(key=lambda x: x["score_final"], reverse=True)
