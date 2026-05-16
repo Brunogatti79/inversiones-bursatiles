@@ -558,14 +558,14 @@ function sigColor(s){{
   return '#f87171';
 }}
 
-function buildTable(tbId,market){
-var rows=market?SIGNALS.filter(function(s){return s.mercado===market;}):SIGNALS.sort(function(a,b){return b.ranking_accionable-a.ranking_accionable;}).slice(0,20);
+function buildTable(tbId,market){{
+var rows=market?SIGNALS.filter(function(s){{return s.mercado===market;}}):SIGNALS.sort(function(a,b){{return b.ranking_accionable-a.ranking_accionable;}}).slice(0,20);
 var tb=document.getElementById(tbId); if(!tb) return;
 tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>RSI</th><th>AQ</th><th>ES</th><th>R/R</th><th>Score V2</th><th>Rank</th><th>Señal V2</th></tr>'+
-rows.map(function(s){
+rows.map(function(s){{
 var aq=s.asset_quality||0, es=s.entry_score||0, rr=s.rr_ratio||0, sv2=s.score_final_v2||s.score_final, ra=s.ranking_accionable||sv2, sig2=s.signal_v2||s.signal;
-return '<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td></tr>';}).join('');
-} 
+return '<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td></tr>';}}).join('');
+}}
 function buildStats(divId,marketKey){{
   var st=IDX[marketKey]||{{}};
   var d=document.getElementById(divId); if(!d) return;
