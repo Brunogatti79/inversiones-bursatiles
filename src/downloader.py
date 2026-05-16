@@ -94,9 +94,13 @@ SP500_TICKERS = {
     "BA":    "Boeing",
     "GE":    "GE Aerospace",
     "TSLA":  "Tesla",
+    "COPX":  "Global X Copper Miners ETF",
+    "GLOB":  "Globant",
+    "IBB":   "iShares Biotechnology ETF",
+    "MELI":  "MercadoLibre",
+    "RIO":   "Rio Tinto",
 }
-SP500_INDEX = "^GSPC"
- 
+SP500_INDEX = "^GSPC" 
 MIN_ROWS      = 10
 MAX_CSV_AGE_DAYS = 3   # si el CSV tiene más de 3 días, intentar descarga directa
  
