@@ -352,7 +352,7 @@ def generate_dashboard(
     <h1>Informe de Inversiones</h1>
     <div style="font-size:12px;color:#666;margin-top:3px">MERVAL · BOVESPA · S&P 500 · Generado {run_date}</div>
   </div>
-  <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>Modelo Fase 2 — 35M+35T+10S+20F</div>
+  <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>Modelo v2.0 — AQ(50M+30F+20S) · ES(60T+25RR+15DM)</div>
 </div>
 {{validacion_banner}}
 <div class="tabs">
@@ -557,14 +557,15 @@ function sigColor(s){{
   if(s.indexOf('VENTA P')>=0)       return '#fb923c';
   return '#f87171';
 }}
- 
-function buildTable(tbId,market){{
-  var rows=market?SIGNALS.filter(function(s){{return s.mercado===market;}}):SIGNALS.slice(0,20);
-  var tb=document.getElementById(tbId); if(!tb) return;
-  tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Sector</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>Anual%</th><th>RSI</th><th>Score</th><th>Señal</th></tr>'+
-    rows.map(function(s){{return '<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td style="color:#888;font-size:11px">'+s.sector+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td style="color:'+rc(s.ret_anual)+';font-weight:600">'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#fbbf24;font-weight:700">'+s.score_final.toFixed(0)+'</td><td style="color:'+sigColor(s.signal)+';font-weight:600">'+s.signal+'</td></tr>';}}).join('');
-}}
- 
+
+function buildTable(tbId,market){
+var rows=market?SIGNALS.filter(function(s){return s.mercado===market;}):SIGNALS.sort(function(a,b){return b.ranking_accionable-a.ranking_accionable;}).slice(0,20);
+var tb=document.getElementById(tbId); if(!tb) return;
+tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>RSI</th><th>AQ</th><th>ES</th><th>R/R</th><th>Score V2</th><th>Rank</th><th>Señal V2</th></tr>'+
+rows.map(function(s){
+var aq=s.asset_quality||0, es=s.entry_score||0, rr=s.rr_ratio||0, sv2=s.score_final_v2||s.score_final, ra=s.ranking_accionable||sv2, sig2=s.signal_v2||s.signal;
+return '<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td></tr>';}).join('');
+} 
 function buildStats(divId,marketKey){{
   var st=IDX[marketKey]||{{}};
   var d=document.getElementById(divId); if(!d) return;
@@ -601,6 +602,8 @@ if(mL.length) new Chart(document.getElementById('chartMerval'),{{type:'line',dat
 if(bL.length) new Chart(document.getElementById('chartBovespa'),{{type:'line',data:{{labels:bL,datasets:[{{data:bV,borderColor:'#4ade80',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(74,222,128,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
 if(sL.length) new Chart(document.getElementById('chartSP500'),{{type:'line',data:{{labels:sL,datasets:[{{data:sV,borderColor:'#fbbf24',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(251,191,36,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
  
+var globalSorted=SIGNALS.slice().sort(function(a,b){return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);});
+SIGNALS=globalSorted;
 buildTable('tbl-global',null); buildTable('tbl-merval','MERVAL'); buildTable('tbl-bovespa','BOVESPA'); buildTable('tbl-sp500','SP500');
 buildStats('merval-stats','merval'); buildStats('bovespa-stats','bovespa'); buildStats('sp500-stats','sp500');
  
