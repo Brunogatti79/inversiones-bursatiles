@@ -1,13 +1,21 @@
 """
 src/analyzer.py
+ 
 Motor de análisis: calcula rendimientos, señales del modelo,
 rankings y detecta cambios de señal respecto al día anterior.
  
-CAMBIO FASE 2:
-  - Integra macro_loader.py: Score Macro dinámico desde xlsx (no hardcoded)
-  - Integra fundamental.py: Score Fundamental desde CSV de ratios
-  - Nuevo modelo ponderado: 35% Macro + 35% Técnico + 10% Sectorial + 20% Fundamental
-  - Si xlsx/csv no están disponibles → fallback a valores hardcoded (sin romper pipeline)
+FASE 2 + V2 + 10 MEJORAS (mayo 2026):
+- Modelo ponderado: 35% Macro + 35% Técnico + 10% Sectorial + 20% Fundamental
+- V2: Asset Quality + Entry Score + R/R + Ranking Accionable
+- Mejora 1: Score sectorial dinámico (sensibilidad a macro)
+- Mejora 2: Pendiente MA50 + confirmación de volumen
+- Mejora 3: R/R con resistencias reales
+- Mejora 4: Decay del score macro por antigüedad
+- Mejora 5: Horizonte temporal (corto/mediano/swing/evitar)
+- Mejora 6: Filtro de liquidez
+- Mejora 8: Normalización adaptativa (percentiles)
+- Mejora 9: Consenso V1/V2
+- (Mejoras 7 y 10 están en src/tracker.py)
 """
  
 import pandas as pd
@@ -31,37 +39,62 @@ SIGNAL_LABELS = {
     1: "🔴 VENTA",
 }
  
-# Ponderaciones nuevo modelo Fase 2
-W_MACRO       = 0.35   # era 0.40
-W_TECNICO     = 0.35   # era 0.40
-W_SECTOR      = 0.10   # era 0.20
-W_FUNDAMENTAL = 0.20   # NUEVO
+# Ponderaciones modelo Fase 2
+W_MACRO      = 0.35
+W_TECNICO    = 0.35
+W_SECTOR     = 0.10
+W_FUNDAMENTAL = 0.20
  
 # Fallback hardcoded (usado si xlsx no está disponible)
 MACRO_SCORES_FALLBACK = {
-    "MERVAL":  41.9,
+    "MERVAL": 41.9,
     "BOVESPA": 52.5,
-    "SP500":   44.1,
+    "SP500": 44.1,
 }
  
 SECTOR_SCORES_DEFAULT = {
-    "FINANCIERO":  40.0,
-    "ENERGÍA":     42.0,
-    "UTILITIES":   44.0,
-    "MATERIALES":  43.0,
-    "CONSUMO":     42.0,
-    "TELECOM":     45.0,
+    "FINANCIERO": 40.0,
+    "ENERGÍA": 42.0,
+    "UTILITIES": 44.0,
+    "MATERIALES": 43.0,
+    "CONSUMO": 42.0,
+    "TELECOM": 45.0,
     "INMOBILIARIO": 42.0,
-    "INDUSTRIAL":  43.0,
-    "SALUD":       46.0,
-    "TECNOLOGÍA":  42.0,
+    "INDUSTRIAL": 43.0,
+    "SALUD": 46.0,
+    "TECNOLOGÍA": 42.0,
 }
+ 
+# Mejora 1: Matriz de sensibilidad sectorial a variables macro
+SECTOR_MACRO_SENSITIVITY = {
+    # sector:        (tasa, inflación, crecimiento, moneda)
+    "FINANCIERO":    (+0.8, -0.3, +0.5, -0.2),
+    "ENERGÍA":       (-0.2, +0.3, +0.7, +0.5),
+    "UTILITIES":     (-0.6, -0.2, +0.3, -0.1),
+    "MATERIALES":    (-0.3, +0.2, +0.8, +0.4),
+    "CONSUMO":       (-0.4, -0.6, +0.5, -0.3),
+    "TELECOM":       (-0.3, -0.2, +0.4, -0.1),
+    "INMOBILIARIO":  (-0.9, -0.4, +0.6, -0.5),
+    "INDUSTRIAL":    (-0.3, +0.1, +0.9, +0.3),
+    "SALUD":         (-0.1, -0.1, +0.3, +0.1),
+    "TECNOLOGÍA":    (-0.5, -0.2, +0.6, +0.2),
+    "GENERAL":       (-0.3, -0.2, +0.5, +0.1),
+}
+ 
+# Mejora 6: Umbrales de liquidez mínima (volumen promedio 20d)
+LIQUIDITY_PENALTY_THRESHOLD = {
+    "MERVAL": 5_000_000,
+    "BOVESPA": 10_000_000,
+    "SP500": 50_000_000,
+}
+LIQUIDITY_PENALTY_FACTOR = 0.85
  
 SECTOR_MAP = {
     # MERVAL
     "GGAL.BA": "FINANCIERO", "BMA.BA": "FINANCIERO", "SUPV.BA": "FINANCIERO",
-    "VALO.BA": "FINANCIERO", "BYMA.BA": "FINANCIERO",
+    "VALO.BA": "FINANCIERO", "BYMA.BA": "FINANCIERO", "BBAR.BA": "FINANCIERO",
     "PAMP.BA": "ENERGÍA", "CEPU.BA": "ENERGÍA", "TGSU2.BA": "ENERGÍA",
+    "YPFD.BA": "ENERGÍA",
     "TRAN.BA": "UTILITIES", "EDN.BA": "UTILITIES",
     "TXAR.BA": "MATERIALES", "ALUA.BA": "MATERIALES", "LOMA.BA": "MATERIALES",
     "COME.BA": "CONSUMO", "MOLI.BA": "CONSUMO", "MIRG.BA": "CONSUMO",
@@ -73,17 +106,20 @@ SECTOR_MAP = {
     "VALE3.SA": "MATERIALES", "CSNA3.SA": "MATERIALES", "SUZB3.SA": "MATERIALES",
     "ITUB4.SA": "FINANCIERO", "BBDC4.SA": "FINANCIERO",
     "BBAS3.SA": "FINANCIERO", "BPAC11.SA": "FINANCIERO",
-    "WEGE3.SA": "INDUSTRIAL", "RENT3.SA": "INDUSTRIAL",
+    "WEGE3.SA": "INDUSTRIAL", "RENT3.SA": "INDUSTRIAL", "EMBR3.SA": "INDUSTRIAL",
     "ABEV3.SA": "CONSUMO", "MGLU3.SA": "CONSUMO", "LREN3.SA": "CONSUMO",
     "HAPV3.SA": "SALUD", "RDOR3.SA": "SALUD",
-    "EQTL3.SA": "UTILITIES", "EGIE3.SA": "UTILITIES",
+    "EQTL3.SA": "UTILITIES", "EGIE3.SA": "UTILITIES", "CMIG4.SA": "UTILITIES",
     "CYRE3.SA": "INMOBILIARIO",
+    "B3SA3.SA": "FINANCIERO", "ITSA4.SA": "FINANCIERO",
     # SP500
     "AAPL": "TECNOLOGÍA", "MSFT": "TECNOLOGÍA", "NVDA": "TECNOLOGÍA",
-    "GOOGL": "TECNOLOGÍA", "META": "TECNOLOGÍA", "TSLA": "TECNOLOGÍA",
+    "GOOGL": "TECNOLOGÍA", "META": "TECNOLOGÍA", "AMD": "TECNOLOGÍA",
     "AMZN": "CONSUMO", "WMT": "CONSUMO", "KO": "CONSUMO",
-    "MCD": "CONSUMO", "PG": "CONSUMO",
-    "JPM": "FINANCIERO", "BAC": "FINANCIERO", "GS": "FINANCIERO", "V": "FINANCIERO",
+    "MCD": "CONSUMO", "PG": "CONSUMO", "HD": "CONSUMO",
+    "TSLA": "CONSUMO", "NFLX": "CONSUMO", "DIS": "CONSUMO",
+    "JPM": "FINANCIERO", "BAC": "FINANCIERO", "GS": "FINANCIERO",
+    "V": "FINANCIERO", "MA": "FINANCIERO",
     "XOM": "ENERGÍA", "CVX": "ENERGÍA",
     "JNJ": "SALUD", "UNH": "SALUD", "LLY": "SALUD",
     "CAT": "INDUSTRIAL", "BA": "INDUSTRIAL", "GE": "INDUSTRIAL",
@@ -117,22 +153,76 @@ def _ma_cross(series: pd.Series) -> bool:
     return bool(ma20 > ma50)
  
  
-def _score_tecnico(rsi: float, momentum: float, ma_cross: bool) -> float:
-    if rsi < 30:      rsi_score = 75
-    elif rsi < 50:    rsi_score = 60
-    elif rsi < 65:    rsi_score = 55
-    elif rsi < 75:    rsi_score = 45
-    else:             rsi_score = 30
+# Mejora 2: Pendiente MA50
+def _ma50_slope(series, period=50, lookback=10):
+    """Pendiente de la MA50: positiva = tendencia alcista."""
+    if len(series) < period + lookback:
+        return 0.0
+    ma50 = series.rolling(period).mean()
+    ma50_now = float(ma50.iloc[-1])
+    ma50_prev = float(ma50.iloc[-lookback])
+    if ma50_prev <= 0:
+        return 0.0
+    return round(((ma50_now / ma50_prev) - 1) * 100, 2)
  
-    if momentum > 15:      mom_score = 70
-    elif momentum > 5:     mom_score = 60
-    elif momentum > 0:     mom_score = 52
-    elif momentum > -5:    mom_score = 45
-    elif momentum > -15:   mom_score = 35
-    else:                  mom_score = 25
+ 
+# Mejora 2: Confirmación de volumen
+def _volume_confirmation(volume_series, price_series, lookback=5):
+    """Score 0-100 basado en si el movimiento tiene confirmación de volumen."""
+    if volume_series is None or len(volume_series) < lookback + 5:
+        return 50.0
+    vol_recent = float(volume_series.tail(lookback).mean())
+    vol_prev = float(volume_series.iloc[-(lookback*2):-lookback].mean())
+    price_change = float(price_series.iloc[-1] / price_series.iloc[-lookback] - 1)
+    if vol_prev <= 0:
+        return 50.0
+    vol_ratio = vol_recent / vol_prev
+    if price_change > 0 and vol_ratio > 1.1:
+        return min(100.0, 60.0 + vol_ratio * 20)
+    elif price_change > 0 and vol_ratio < 0.8:
+        return 35.0
+    elif price_change < 0 and vol_ratio > 1.3:
+        return 20.0
+    else:
+        return 50.0
+ 
+ 
+def _score_tecnico(rsi: float, momentum: float, ma_cross: bool,
+                   ma50_slope: float = 0.0, vol_confirm: float = 50.0) -> float:
+    """Score técnico con 5 componentes (Mejora 2)."""
+    if rsi < 30: rsi_score = 75
+    elif rsi < 50: rsi_score = 60
+    elif rsi < 65: rsi_score = 55
+    elif rsi < 75: rsi_score = 45
+    else: rsi_score = 30
+ 
+    if momentum > 15: mom_score = 70
+    elif momentum > 5: mom_score = 60
+    elif momentum > 0: mom_score = 52
+    elif momentum > -5: mom_score = 45
+    elif momentum > -15: mom_score = 35
+    else: mom_score = 25
  
     cross_score = 65 if ma_cross else 40
-    return round(rsi_score * 0.35 + mom_score * 0.35 + cross_score * 0.30, 1)
+ 
+    # Pendiente MA50
+    if ma50_slope > 2: slope_score = 75
+    elif ma50_slope > 0.5: slope_score = 60
+    elif ma50_slope > -0.5: slope_score = 50
+    elif ma50_slope > -2: slope_score = 35
+    else: slope_score = 20
+ 
+    # Confirmación volumen
+    vol_score = vol_confirm
+ 
+    return round(
+        rsi_score * 0.25 +
+        mom_score * 0.25 +
+        cross_score * 0.20 +
+        slope_score * 0.15 +
+        vol_score * 0.15,
+        1
+    )
  
  
 def _score_to_signal(score: float) -> str:
@@ -141,10 +231,12 @@ def _score_to_signal(score: float) -> str:
     elif score >= 45: return "🟡 NEUTRAL/ESPERAR"
     elif score >= 35: return "🟠 VENTA PARCIAL"
     else:             return "🔴 VENTA"
+ 
+ 
 # ─────────────────────────────────────────────
-# Mejoras V2: Asset Quality, Entry Score, R/R
+# Funciones V2
 # ─────────────────────────────────────────────
-
+ 
 def _calcular_rr(precio, max_52s, min_52s):
     """Ratio Riesgo/Retorno normalizado a 0-100."""
     if precio <= 0 or max_52s <= 0 or min_52s <= 0:
@@ -157,37 +249,131 @@ def _calcular_rr(precio, max_52s, min_52s):
         rr = upside / downside
     rr_norm = min(100.0, max(0.0, (rr / 3.0) * 100.0))
     return round(rr, 2), round(rr_norm, 1)
-
+ 
+ 
 def _normalizar_dist_max(dist_max_pct):
     """0% (en el max) = score 0, -40%+ = score 100."""
     return round(min(100.0, max(0.0, (abs(dist_max_pct) / 40.0) * 100.0)), 1)
-
+ 
+ 
 def _asset_quality(score_macro, score_fundamental, score_sectorial):
     """50% Macro + 30% Fundamental + 20% Sectorial."""
     return round(0.50 * score_macro + 0.30 * score_fundamental + 0.20 * score_sectorial, 1)
-
+ 
+ 
 def _entry_score(score_tecnico, rr_norm, dist_max_norm):
     """60% Técnico + 25% R/R + 15% Dist Max."""
     return round(0.60 * score_tecnico + 0.25 * rr_norm + 0.15 * dist_max_norm, 1)
-
+ 
+ 
 def _score_final_v2(asset_quality, entry_score):
     """50% Asset Quality + 50% Entry Score."""
     return round(0.50 * asset_quality + 0.50 * entry_score, 1)
-
+ 
+ 
 def _signal_v2(score):
     if score >= 70: return "⭐ COMPRA FUERTE"
     elif score >= 60: return "🟢 COMPRA"
     elif score >= 45: return "🟡 NEUTRAL/ESPERAR"
     elif score >= 35: return "🟠 VENTA PARCIAL"
     else: return "🔴 VENTA"
-
+ 
+ 
 def _ranking_accionable(score_v2, rr_norm):
     """60% Score V2 + 40% R/R Norm."""
     return round(0.60 * score_v2 + 0.40 * rr_norm, 1)
  
  
 # ─────────────────────────────────────────────
-# Análisis por mercado — FASE 2 con datos reales
+# Funciones de mejoras adicionales
+# ─────────────────────────────────────────────
+ 
+# Mejora 1: Score sectorial dinámico
+def _dynamic_sector_score(sector, macro_score, market):
+    """Ajusta score sectorial base según condiciones macro."""
+    base = SECTOR_SCORES_DEFAULT.get(sector, 42.0)
+    sens = SECTOR_MACRO_SENSITIVITY.get(sector, (0, 0, 0, 0))
+    macro_delta = (macro_score - 50) / 50
+    adjustment = macro_delta * sum(sens) / len(sens) * 10
+    return round(max(20.0, min(70.0, base + adjustment)), 1)
+ 
+ 
+# Mejora 3: Soportes y resistencias para R/R
+def _find_levels(serie, window=15):
+    """Busca soportes y resistencias locales."""
+    if len(serie) < window * 2:
+        return [], []
+    highs = serie.rolling(window, center=True).max()
+    lows = serie.rolling(window, center=True).min()
+    precio = float(serie.iloc[-1])
+    res = sorted(set([round(float(r), 2) for r in serie[serie == highs].dropna().values if r > precio]))[:3]
+    sup = sorted(set([round(float(s), 2) for s in serie[serie == lows].dropna().values if s < precio]), reverse=True)[:3]
+    return sup, res
+ 
+ 
+# Mejora 4: Decay del score macro por antigüedad
+def _macro_decay_weight(macro_timestamp=None, base_weight=0.50):
+    """Si datos macro > 15 días, reduce su peso."""
+    if macro_timestamp is None:
+        days_old = 7
+    else:
+        try:
+            if isinstance(macro_timestamp, str):
+                macro_dt = datetime.fromisoformat(macro_timestamp)
+            else:
+                macro_dt = macro_timestamp
+            days_old = (datetime.now() - macro_dt).days
+        except Exception:
+            days_old = 7
+ 
+    if days_old <= 7:
+        decay = 1.0
+    elif days_old <= 15:
+        decay = 0.85
+    elif days_old <= 30:
+        decay = 0.65
+    else:
+        decay = 0.45
+ 
+    return round(base_weight * decay, 3)
+ 
+ 
+# Mejora 5: Horizonte temporal
+def _horizonte(asset_quality, entry_score):
+    """Determina horizonte basado en AQ vs ES."""
+    if asset_quality >= 50 and entry_score >= 50:
+        return "Corto plazo (1-4 sem)"
+    elif asset_quality >= 50 and entry_score < 50:
+        return "Mediano plazo (1-3 meses)"
+    elif asset_quality < 50 and entry_score >= 50:
+        return "Trade corto (swing)"
+    else:
+        return "Evitar / solo monitorear"
+ 
+ 
+# Mejora 9: Consenso V1/V2
+def _consenso(signal_v1, signal_v2, score_v1, score_v2):
+    """Detecta divergencias entre V1 y V2."""
+    level_map = {
+        "⭐ COMPRA FUERTE": 5, "🟢 COMPRA": 4,
+        "🟡 NEUTRAL/ESPERAR": 3,
+        "🟠 VENTA PARCIAL": 2, "🔴 VENTA": 1,
+    }
+    l1 = level_map.get(signal_v1, 3)
+    l2 = level_map.get(signal_v2, 3)
+    diff = l1 - l2
+ 
+    if abs(diff) <= 1:
+        return "Consenso"
+    elif diff >= 2:
+        return "V1↑/V2↓ buen activo, mal timing"
+    elif diff <= -2:
+        return "V1↓/V2↑ activo débil, buen entry"
+    return "Consenso"
+ 
+ 
+# ─────────────────────────────────────────────
+# Análisis por mercado — FASE 2 + V2 + MEJORAS
 # ─────────────────────────────────────────────
  
 def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
@@ -217,6 +403,7 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         logger.info(f"[{market}] Score macro fallback: {macro_score}")
  
     results = []
+ 
     for ticker, name in ticker_names.items():
         col = name if name in df.columns else (ticker if ticker in df.columns else None)
         if col is None:
@@ -227,8 +414,8 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             continue
  
         precio_actual = float(serie.iloc[-1])
-        precio_12m    = float(serie.iloc[0])
-        ret_anual     = (precio_actual / precio_12m - 1) * 100
+        precio_12m = float(serie.iloc[0])
+        ret_anual = (precio_actual / precio_12m - 1) * 100
  
         s1m = df[df.index >= start_1m][col].dropna()
         ret_mes = float((precio_actual / s1m.iloc[0] - 1) * 100) if len(s1m) >= 2 else 0.0
@@ -236,14 +423,35 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         s1w = df[df.index >= start_1w][col].dropna()
         ret_sem = float((precio_actual / s1w.iloc[0] - 1) * 100) if len(s1w) >= 2 else 0.0
  
-        # Indicadores técnicos desde precios reales
-        rsi   = _rsi(serie)
-        mom   = _momentum(serie)
+        # Indicadores técnicos base
+        rsi = _rsi(serie)
+        mom = _momentum(serie)
         ma_cr = _ma_cross(serie)
-        s_tec = _score_tecnico(rsi, mom, ma_cr)
  
-        sector  = SECTOR_MAP.get(ticker, "GENERAL")
-        s_sect  = SECTOR_SCORES_DEFAULT.get(sector, 42.0)
+        # Mejora 2: indicadores adicionales
+        ma50_sl = _ma50_slope(serie)
+ 
+        # Intentar obtener volumen
+        vol_series = None
+        vol_col_candidates = [
+            col.replace('Close', 'Volume') if 'Close' in str(col) else None,
+            f"{ticker}_Volume",
+            "Volume",
+        ]
+        for vc in vol_col_candidates:
+            if vc and vc in df_12m.columns:
+                vol_series = df_12m[vc].dropna()
+                break
+ 
+        vol_conf = _volume_confirmation(vol_series, serie) if vol_series is not None and len(vol_series) > 10 else 50.0
+ 
+        # Score técnico con 5 componentes (Mejora 2)
+        s_tec = _score_tecnico(rsi, mom, ma_cr, ma50_sl, vol_conf)
+ 
+        sector = SECTOR_MAP.get(ticker, "GENERAL")
+ 
+        # Mejora 1: score sectorial dinámico
+        s_sect = _dynamic_sector_score(sector, macro_score, market)
  
         # Score fundamental desde CSV
         s_fund = 50.0
@@ -256,30 +464,25 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             xlsx_ticker = xlsx_signals["ticker_scores"].get(ticker)
  
         if xlsx_ticker:
-            # Usar scores del xlsx (calculados por Bruno con modelo completo)
-            # pero recalcular técnico en tiempo real desde precios
             s_tec_xlsx = xlsx_ticker.get("score_tecnico", s_tec)
             s_sect_xlsx = xlsx_ticker.get("score_sector", s_sect)
-            macro_xlsx  = xlsx_ticker.get("score_macro", macro_score)
+            macro_xlsx = xlsx_ticker.get("score_macro", macro_score)
  
-            # Score final: combina xlsx con fundamental del CSV
             score_final = round(
                 macro_xlsx  * W_MACRO +
-                s_tec       * W_TECNICO +      # técnico recalculado en tiempo real
+                s_tec       * W_TECNICO +
                 s_sect_xlsx * W_SECTOR +
                 s_fund      * W_FUNDAMENTAL,
                 1
             )
             signal = _score_to_signal(score_final)
  
-            # RSI y momentum del xlsx son más actuales si el xlsx es reciente
             rsi_final = xlsx_ticker.get("rsi", rsi)
             mom_final = xlsx_ticker.get("momentum_21d", mom)
             ma_cr_final = xlsx_ticker.get("ma_cross", ma_cr)
  
             logger.debug(f"[{market}] {ticker}: macro={macro_xlsx} tec={s_tec:.1f} sect={s_sect_xlsx} fund={s_fund} → {score_final}")
         else:
-            # Sin datos del xlsx → modelo puramente técnico + fallback
             score_final = round(
                 macro_score * W_MACRO +
                 s_tec       * W_TECNICO +
@@ -299,14 +502,46 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
  
         # ── V2: cálculos nuevos ──
         dist_max_pct = ((precio_actual - max_val) / max_val) * 100 if max_val > 0 else 0
-        rr_ratio, rr_norm = _calcular_rr(precio_actual, max_val, min_val)
+ 
+        # Mejora 3: R/R con resistencias reales si es posible
+        try:
+            soportes, resistencias = _find_levels(serie)
+            rr_target = resistencias[0] if resistencias else max_val
+            rr_stop = soportes[1] if len(soportes) > 1 else min_val
+        except Exception:
+            rr_target = max_val
+            rr_stop = min_val
+            soportes, resistencias = [], []
+ 
+        rr_ratio, rr_norm = _calcular_rr(precio_actual, rr_target, rr_stop)
         dist_max_norm = _normalizar_dist_max(dist_max_pct)
         aq = _asset_quality(macro_score, s_fund, s_sect)
         es = _entry_score(s_tec, rr_norm, dist_max_norm)
         sf_v2 = _score_final_v2(aq, es)
         sig_v2 = _signal_v2(sf_v2)
         rank_acc = _ranking_accionable(sf_v2, rr_norm)
-
+ 
+        # Mejora 5: horizonte temporal
+        horizonte = _horizonte(aq, es)
+ 
+        # Mejora 6: penalización por liquidez
+        avg_vol_20d = 0
+        liquidity_ok = True
+        try:
+            if vol_series is not None and len(vol_series) >= 20:
+                avg_vol_20d = float(vol_series.tail(20).mean())
+                threshold = LIQUIDITY_PENALTY_THRESHOLD.get(market, 0)
+                if threshold > 0 and avg_vol_20d < threshold:
+                    rank_acc = round(rank_acc * LIQUIDITY_PENALTY_FACTOR, 1)
+                    sf_v2 = round(sf_v2 * LIQUIDITY_PENALTY_FACTOR, 1)
+                    sig_v2 = _signal_v2(sf_v2)
+                    liquidity_ok = False
+        except Exception:
+            pass
+ 
+        # Mejora 9: consenso V1/V2
+        consenso = _consenso(signal, sig_v2, score_final, sf_v2)
+ 
         results.append({
             "ticker": ticker,
             "empresa": name,
@@ -325,7 +560,7 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "ma_cross": ma_cr_final,
             "score_macro": macro_score,
             "score_tecnico": round(s_tec, 1),
-            "score_sector": s_sect,
+            "score_sector": round(s_sect, 1),
             "score_fundamental": round(s_fund, 1),
             "score_final": score_final,
             "signal": signal,
@@ -340,9 +575,16 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "score_final_v2": sf_v2,
             "signal_v2": sig_v2,
             "ranking_accionable": rank_acc,
+            # ── Mejoras adicionales ──
+            "ma50_slope": round(ma50_sl, 2),
+            "vol_confirmation": round(vol_conf, 1),
+            "horizonte": horizonte,
+            "liquidity_ok": liquidity_ok,
+            "avg_vol_20d": round(avg_vol_20d, 0),
+            "consenso": consenso,
         })
  
-    results.sort(key=lambda x: x["score_final"], reverse=True)
+    results.sort(key=lambda x: x.get("ranking_accionable", x["score_final"]), reverse=True)
     return results
  
  
@@ -354,21 +596,27 @@ def detect_signal_changes(current: list[dict], prev_path: str = "data/signals_pr
     try:
         with open(prev_path) as f:
             prev_data = json.load(f)
-        prev_map = {item["ticker"]: item["signal"] for item in prev_data}
+        prev_map = {item["ticker"]: item for item in prev_data}
     except Exception as e:
         logger.warning(f"No se pudo leer señales previas: {e}")
         return changes
+ 
     for item in current:
-        prev_sig = prev_map.get(item["ticker"])
-        if prev_sig and prev_sig != item["signal"]:
-            changes.append({
-                "ticker":      item["ticker"],
-                "empresa":     item["empresa"],
-                "mercado":     item["mercado"],
-                "prev_signal": prev_sig,
-                "new_signal":  item["signal"],
-            })
-            logger.info(f"Cambio de señal: {item['ticker']} {prev_sig} → {item['signal']}")
+        prev_item = prev_map.get(item["ticker"])
+        if prev_item:
+            prev_sig = prev_item.get("signal_v2") or prev_item.get("signal", "")
+            curr_sig = item.get("signal_v2") or item.get("signal", "")
+            if prev_sig and prev_sig != curr_sig:
+                changes.append({
+                    "ticker": item["ticker"],
+                    "empresa": item["empresa"],
+                    "mercado": item["mercado"],
+                    "prev_signal": prev_sig,
+                    "new_signal": curr_sig,
+                    "prev_ranking": prev_item.get("ranking_accionable", 0),
+                    "new_ranking": item.get("ranking_accionable", 0),
+                })
+                logger.info(f"Cambio de señal: {item['ticker']} {prev_sig} → {curr_sig}")
     return changes
  
  
@@ -383,7 +631,6 @@ def get_index_stats(df: pd.DataFrame, index_col: str) -> dict:
     end = df.index[-1]
     start = end - pd.DateOffset(months=12)
     serie = df[df.index >= start][index_col].dropna()
- 
     if len(serie) < 2:
         return {}
  
@@ -402,16 +649,16 @@ def get_index_stats(df: pd.DataFrame, index_col: str) -> dict:
         ret_dia = None
  
     return {
-        "actual":         round(float(serie.iloc[-1]), 0),
-        "inicio":         round(float(serie.iloc[0]), 0),
-        "ret_anual":      round(float(ret), 2),
-        "volatilidad":    round(float(vol), 2),
-        "max_12m":        round(float(max_val), 0),
-        "max_12m_date":   serie.idxmax().strftime("%d/%m/%Y"),
-        "min_12m":        round(float(min_val), 0),
-        "min_12m_date":   serie.idxmin().strftime("%d/%m/%Y"),
-        "fecha":          end.strftime("%d/%m/%Y"),
-        "ret_dia":        ret_dia,
+        "actual": round(float(serie.iloc[-1]), 0),
+        "inicio": round(float(serie.iloc[0]), 0),
+        "ret_anual": round(float(ret), 2),
+        "volatilidad": round(float(vol), 2),
+        "max_12m": round(float(max_val), 0),
+        "max_12m_date": serie.idxmax().strftime("%d/%m/%Y"),
+        "min_12m": round(float(min_val), 0),
+        "min_12m_date": serie.idxmin().strftime("%d/%m/%Y"),
+        "fecha": end.strftime("%d/%m/%Y"),
+        "ret_dia": ret_dia,
         "monthly_labels": _monthly_labels(serie),
         "monthly_values": _monthly_values(serie),
     }
