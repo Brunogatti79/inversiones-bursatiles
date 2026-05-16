@@ -20,6 +20,7 @@ from src.notifier       import (send_daily_report, send_signal_change_alerts,
                                  send_excel, send_error_notification, publish_dashboard,
                                  publish_index_html)
 from src.generator      import generate_dashboard, generate_excel
+from src.tracker        import update_history, compute_accuracy
  
 logger = logging.getLogger(__name__)
  
@@ -129,6 +130,8 @@ def run_pipeline():
         logger.info("5/8 Detectando cambios...")
         changes = detect_signal_changes(all_signals, f"{DATA_DIR}/signals_prev.json")
         save_signals(all_signals, f"{DATA_DIR}/signals_prev.json")
+        history = update_history(all_signals)
+        compute_accuracy(history)
  
         # 6. DASHBOARD
         logger.info("6/8 Generando dashboard...")
