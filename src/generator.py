@@ -602,7 +602,7 @@ if(mL.length) new Chart(document.getElementById('chartMerval'),{{type:'line',dat
 if(bL.length) new Chart(document.getElementById('chartBovespa'),{{type:'line',data:{{labels:bL,datasets:[{{data:bV,borderColor:'#4ade80',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(74,222,128,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
 if(sL.length) new Chart(document.getElementById('chartSP500'),{{type:'line',data:{{labels:sL,datasets:[{{data:sV,borderColor:'#fbbf24',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(251,191,36,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
  
-var globalSorted=SIGNALS.slice().sort(function(a,b){return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);});
+var globalSorted=SIGNALS.slice().sort(function(a,b){{return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);}});
 SIGNALS=globalSorted;
 buildTable('tbl-global',null); buildTable('tbl-merval','MERVAL'); buildTable('tbl-bovespa','BOVESPA'); buildTable('tbl-sp500','SP500');
 buildStats('merval-stats','merval'); buildStats('bovespa-stats','bovespa'); buildStats('sp500-stats','sp500');
