@@ -655,11 +655,12 @@ var radarHtml=ranked.map(function(s,i){{
 var rb=document.getElementById('radar-block');
 if(rb) rb.innerHTML=radarHtml||'<div style="color:#666;padding:20px">Sin datos.</div>';
  
-var compras=SIGNALS.filter(function(s){{return s.signal.indexOf('COMPRA')>=0;}});
+var compras=SIGNALS.filter(function(s){{var sig=s.signal_v2||s.signal;return sig.indexOf('COMPRA')>=0;}}).sort(function(a,b){{return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);}});
+var ventas=SIGNALS.filter(function(s){{var sig=s.signal_v2||s.signal;return sig.indexOf('VENTA')>=0;}}).sort(function(a,b){{return (a.ranking_accionable||a.score_final)-(b.ranking_accionable||b.score_final);}});
 var ventas=SIGNALS.filter(function(s){{return s.signal.indexOf('VENTA')>=0;}});
 document.getElementById('compras-block').innerHTML=compras.slice(0,8).map(function(s){{
   return '<div style="background:#0d2b1a;border:1px solid #1a3a1a;border-radius:10px;padding:16px;margin-bottom:12px">'+
-    '<div style="font-size:16px;font-weight:700;color:#4ade80;margin-bottom:6px">'+flagOf(s.mercado)+' '+s.signal+' — '+s.ticker+' · '+s.empresa+'</div>'+
+    '<div style="font-size:16px;font-weight:700;color:#4ade80;margin-bottom:6px">'+flagOf(s.mercado)+' '+(s.signal_v2||s.signal)+' — '+s.ticker+' — '+s.ticker+' · '+s.empresa+'</div>'+
     '<div style="font-size:13px;color:#aaa;display:flex;gap:20px;flex-wrap:wrap">'+
     '<span>Score: <b style="color:#fff">'+s.score_final.toFixed(0)+'</b></span>'+
     '<span>RSI: <b style="color:#fff">'+s.rsi.toFixed(0)+'</b></span>'+
@@ -668,7 +669,7 @@ document.getElementById('compras-block').innerHTML=compras.slice(0,8).map(functi
 }}).join('')||'<div style="color:#666;padding:16px">Sin señales de compra activas.</div>';
 document.getElementById('ventas-block').innerHTML=ventas.slice(0,5).map(function(s){{
   return '<div style="background:#1f0d0d;border:1px solid #3a1a1a;border-radius:10px;padding:16px;margin-bottom:12px">'+
-    '<div style="font-size:16px;font-weight:700;color:#fb923c;margin-bottom:6px">'+flagOf(s.mercado)+' '+s.signal+' — '+s.ticker+' · '+s.empresa+'</div>'+
+    '<div style="font-size:16px;font-weight:700;color:#fb923c;margin-bottom:6px">'+flagOf(s.mercado)+' '+(s.signal_v2||s.signal)+' — '+s.ticker+' · '+s.empresa+'</div>'+
     '<div style="font-size:13px;color:#aaa;display:flex;gap:20px;flex-wrap:wrap">'+
     '<span>Score: <b style="color:#fff">'+s.score_final.toFixed(0)+'</b></span>'+
     '<span>Sem: <b style="color:'+rc(s.ret_sem)+'">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
