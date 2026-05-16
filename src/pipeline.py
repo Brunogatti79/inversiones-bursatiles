@@ -132,7 +132,8 @@ def run_pipeline():
         save_signals(all_signals, f"{DATA_DIR}/signals_prev.json")
         history = update_history(all_signals)
         compute_accuracy(history)
- 
+        from src.tracker import check_portfolio_alerts
+        portfolio_alerts = check_portfolio_alerts(all_signals) 
         # 6. DASHBOARD
         logger.info("6/8 Generando dashboard...")
         os.makedirs(OUTPUT_DIR, exist_ok=True)
