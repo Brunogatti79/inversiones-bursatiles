@@ -297,8 +297,7 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         max_date = serie.idxmax().strftime("%d/%m/%Y")
         min_date = serie.idxmin().strftime("%d/%m/%Y")
  
-        results.append({
-# ── V2: cálculos nuevos ──
+        # ── V2: cálculos nuevos ──
         dist_max_pct = ((precio_actual - max_val) / max_val) * 100 if max_val > 0 else 0
         rr_ratio, rr_norm = _calcular_rr(precio_actual, max_val, min_val)
         dist_max_norm = _normalizar_dist_max(dist_max_pct)
