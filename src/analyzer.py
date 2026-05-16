@@ -136,6 +136,8 @@ SECTOR_MAP = {
     "XOM": "ENERGÍA", "CVX": "ENERGÍA",
     "JNJ": "SALUD", "UNH": "SALUD", "LLY": "SALUD",
     "CAT": "INDUSTRIAL", "BA": "INDUSTRIAL", "GE": "INDUSTRIAL",
+    "COPX": "MATERIALES", "GLOB": "TECNOLOGÍA", "IBB": "SALUD",
+    "MELI": "TECNOLOGÍA", "RIO": "MATERIALES",
 }
  
  
