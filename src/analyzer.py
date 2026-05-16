@@ -89,6 +89,19 @@ LIQUIDITY_PENALTY_THRESHOLD = {
 }
 LIQUIDITY_PENALTY_FACTOR = 0.85
  
+# Ponderaciones AQ/ES por mercado (feedback externo: emergentes necesitan más AQ)
+MARKET_WEIGHTS = {
+    "MERVAL":  {"aq_weight": 0.60, "es_weight": 0.40},  # Argentina: más calidad, menos timing
+    "BOVESPA": {"aq_weight": 0.55, "es_weight": 0.45},  # Brasil: intermedio
+    "SP500":   {"aq_weight": 0.50, "es_weight": 0.50},  # USA: equilibrado
+}
+ 
+# Ponderaciones dentro de Asset Quality (ajustadas: más fundamental)
+AQ_WEIGHTS = {"macro": 0.45, "fundamental": 0.35, "sectorial": 0.20}
+ 
+# Ponderaciones dentro de Entry Score (ajustadas: más R/R)
+ES_WEIGHTS = {"tecnico": 0.45, "rr": 0.35, "dist_max": 0.20}
+ 
 SECTOR_MAP = {
     # MERVAL
     "GGAL.BA": "FINANCIERO", "BMA.BA": "FINANCIERO", "SUPV.BA": "FINANCIERO",
@@ -187,6 +200,19 @@ def _volume_confirmation(volume_series, price_series, lookback=5):
         return 50.0
  
  
+# Mejora ATR: Average True Range para stops dinámicos
+def _atr(high_series, low_series, close_series, period=14):
+    """Calcula ATR(14) para stops dinámicos."""
+    if high_series is None or len(high_series) < period + 1:
+        return 0.0
+    tr1 = high_series - low_series
+    tr2 = abs(high_series - close_series.shift(1))
+    tr3 = abs(low_series - close_series.shift(1))
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    atr = tr.rolling(period).mean()
+    return float(atr.iloc[-1]) if not pd.isna(atr.iloc[-1]) else 0.0
+ 
+ 
 def _score_tecnico(rsi: float, momentum: float, ma_cross: bool,
                    ma50_slope: float = 0.0, vol_confirm: float = 50.0) -> float:
     """Score técnico con 5 componentes (Mejora 2)."""
@@ -257,18 +283,25 @@ def _normalizar_dist_max(dist_max_pct):
  
  
 def _asset_quality(score_macro, score_fundamental, score_sectorial):
-    """50% Macro + 30% Fundamental + 20% Sectorial."""
-    return round(0.50 * score_macro + 0.30 * score_fundamental + 0.20 * score_sectorial, 1)
+    """45% Macro + 35% Fundamental + 20% Sectorial (ajustado)."""
+    return round(
+        AQ_WEIGHTS["macro"] * score_macro +
+        AQ_WEIGHTS["fundamental"] * score_fundamental +
+        AQ_WEIGHTS["sectorial"] * score_sectorial, 1)
  
  
 def _entry_score(score_tecnico, rr_norm, dist_max_norm):
-    """60% Técnico + 25% R/R + 15% Dist Max."""
-    return round(0.60 * score_tecnico + 0.25 * rr_norm + 0.15 * dist_max_norm, 1)
+    """45% Técnico + 35% R/R + 20% Dist Max (ajustado: más R/R)."""
+    return round(
+        ES_WEIGHTS["tecnico"] * score_tecnico +
+        ES_WEIGHTS["rr"] * rr_norm +
+        ES_WEIGHTS["dist_max"] * dist_max_norm, 1)
  
  
-def _score_final_v2(asset_quality, entry_score):
-    """50% Asset Quality + 50% Entry Score."""
-    return round(0.50 * asset_quality + 0.50 * entry_score, 1)
+def _score_final_v2(asset_quality, entry_score, market="SP500"):
+    """Peso AQ/ES variable por mercado (emergentes → más AQ)."""
+    w = MARKET_WEIGHTS.get(market, {"aq_weight": 0.50, "es_weight": 0.50})
+    return round(w["aq_weight"] * asset_quality + w["es_weight"] * entry_score, 1)
  
  
 def _signal_v2(score):
@@ -517,9 +550,21 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         dist_max_norm = _normalizar_dist_max(dist_max_pct)
         aq = _asset_quality(macro_score, s_fund, s_sect)
         es = _entry_score(s_tec, rr_norm, dist_max_norm)
-        sf_v2 = _score_final_v2(aq, es)
+        sf_v2 = _score_final_v2(aq, es, market)
         sig_v2 = _signal_v2(sf_v2)
         rank_acc = _ranking_accionable(sf_v2, rr_norm)
+ 
+        # ATR para stops dinámicos
+        atr_val = 0.0
+        try:
+            high_col = col.replace('Close', 'High') if 'Close' in str(col) else None
+            low_col = col.replace('Close', 'Low') if 'Close' in str(col) else None
+            if high_col and low_col and high_col in df_12m.columns and low_col in df_12m.columns:
+                atr_val = _atr(df_12m[high_col], df_12m[low_col], serie)
+        except Exception:
+            atr_val = 0.0
+        atr_stop = round(precio_actual - (atr_val * 2), 2) if atr_val > 0 else 0.0
+        atr_target = round(precio_actual + (atr_val * 3), 2) if atr_val > 0 else 0.0
  
         # Mejora 5: horizonte temporal
         horizonte = _horizonte(aq, es)
@@ -582,6 +627,10 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "liquidity_ok": liquidity_ok,
             "avg_vol_20d": round(avg_vol_20d, 0),
             "consenso": consenso,
+            # ── ATR stops dinámicos ──
+            "atr": round(atr_val, 2),
+            "atr_stop": atr_stop,
+            "atr_target": atr_target,
         })
  
     results.sort(key=lambda x: x.get("ranking_accionable", x["score_final"]), reverse=True)
