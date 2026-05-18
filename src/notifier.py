@@ -302,6 +302,18 @@ def send_error_notification(error_msg):
     text = f"❌ <b>Error en pipeline Inversiones</b>\n<code>{error_msg[:500]}</code>"
     return _send_message(text)
  
+def send_portfolio_alerts(alerts):
+    """Envía alertas críticas del portfolio por Telegram."""
+    if not alerts:
+        return True
+    # Filtrar solo alertas críticas (no P&L)
+    criticas = [a for a in alerts if a.get("tipo") not in ("📊 P&L", "🟢 HOLD")]
+    if not criticas:
+        return True
+    lines = ["💼 <b>Alertas de Portfolio</b>\n"]
+    for a in criticas:
+        lines.append(f"<b>{a['tipo']}</b> {a['mensaje']}")
+    return _send_message("\n".join(lines))
  
 def send_startup_message():
     tz  = pytz.timezone(TIMEZONE)
