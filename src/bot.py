@@ -341,7 +341,8 @@ async def cmd_venta(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pnl_por_unidad = precio_venta - existing["precio_compra"]
     pnl_total = round(pnl_por_unidad * cantidad_venta, 2)
     pnl_pct = round((precio_venta / existing["precio_compra"] - 1) * 100, 2)
- 
+    precio_compra_orig = existing["precio_compra"]
+
     if cantidad_venta == existing["cantidad"]:
         # Venta total — eliminar posición
         portfolio["positions"] = [p for p in portfolio["positions"] if p["ticker"] != ticker]
@@ -359,7 +360,7 @@ async def cmd_venta(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{icon} <b>{tipo}</b>\n\n"
         f"📌 <code>{ticker}</code>\n"
         f"Vendido: {cantidad_venta} @ ${precio_venta:,.2f}\n"
-        f"Compra fue: ${existing['precio_compra'] if tipo == 'VENTA PARCIAL' else 'N/A':,.2f}\n"
+        f"Compra fue: ${precio_compra_orig:,.2f}\n"
         f"P&L: {color_pnl}${pnl_total:,.2f} ({color_pnl}{pnl_pct}%)\n"
         f"Fecha: {fecha}"
     )
