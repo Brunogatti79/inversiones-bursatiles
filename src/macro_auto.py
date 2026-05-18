@@ -149,25 +149,24 @@ def fetch_usa_macro():
 # BCRA (Argentina) — API pública
 # ─────────────────────────────────────────────
 
+# API alternativa estadisticasbcra.com (no requiere auth, API oficial v2 deprecada)
 BCRA_ENDPOINTS = {
-    "tasa_plazo_fijo": "https://api.bcra.gob.ar/estadisticas/v2.0/DatosVariable/6",    # TNA plazo fijo 30d
-    "reservas":        "https://api.bcra.gob.ar/estadisticas/v2.0/DatosVariable/1",    # Reservas internacionales
-    "tipo_cambio":     "https://api.bcra.gob.ar/estadisticas/v2.0/DatosVariable/4",    # TC minorista
+    "tasa_plazo_fijo": "https://api.estadisticasbcra.com/tasa_depositos_30_dias",
+    "reservas":        "https://api.estadisticasbcra.com/reservas",
+    "tipo_cambio":     "https://api.estadisticasbcra.com/usd_of",
 }
 
 
 def _bcra_latest(url):
-    """Obtiene el último valor de una variable BCRA."""
+    """Obtiene el último valor desde api.estadisticasbcra.com."""
     try:
-        today = datetime.now().strftime("%Y-%m-%d")
-        start = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-        full_url = f"{url}/{start}/{today}"
-        r = requests.get(full_url, timeout=15, verify=False)
+        headers = {"Authorization": "BEARER eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9"}
+        r = requests.get(url, timeout=15, headers=headers)
         r.raise_for_status()
-        results = r.json().get("results", [])
-        if results:
-            latest = results[-1]
-            return float(latest.get("valor", 0)), latest.get("fecha", "")
+        data = r.json()
+        if data and len(data) > 0:
+            latest = data[-1]
+            return float(latest.get("v", 0)), latest.get("d", "")
         return None, None
     except Exception as e:
         logger.warning(f"BCRA error: {e}")
