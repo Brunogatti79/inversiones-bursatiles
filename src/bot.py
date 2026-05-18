@@ -447,7 +447,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("start",     cmd_help))
     app.add_handler(CommandHandler("status",    cmd_status))
     app.add_handler(CommandHandler("senales",   cmd_señales))
-    app.add_handler(CommandHandler("señales",   cmd_señales))
+    app.add_handler(CommandHandler("senales",   cmd_señales))
     app.add_handler(CommandHandler("run",       cmd_run))
     app.add_handler(CommandHandler("compra",    cmd_compra))
     app.add_handler(CommandHandler("venta",     cmd_venta))
