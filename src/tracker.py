@@ -319,7 +319,7 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
         elif pnl_pct > 5 and sig_v2 and "COMPRA" in sig_v2:
             accion = "⭐ AGREGAR"
         else:
-            accion = "🟢 HOLD"
+            accion = "🟢 MANTENER"
  
         # Siempre agregar resumen de P&L
         alerts.append({
