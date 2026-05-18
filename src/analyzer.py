@@ -136,8 +136,6 @@ SECTOR_MAP = {
     "XOM": "ENERGÍA", "CVX": "ENERGÍA",
     "JNJ": "SALUD", "UNH": "SALUD", "LLY": "SALUD",
     "CAT": "INDUSTRIAL", "BA": "INDUSTRIAL", "GE": "INDUSTRIAL",
-    "COPX": "MATERIALES", "GLOB": "TECNOLOGÍA", "IBB": "SALUD",
-    "MELI": "TECNOLOGÍA", "RIO": "MATERIALES",
 }
  
  
@@ -213,6 +211,88 @@ def _atr(high_series, low_series, close_series, period=14):
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
     atr = tr.rolling(period).mean()
     return float(atr.iloc[-1]) if not pd.isna(atr.iloc[-1]) else 0.0
+ 
+ 
+# Indicador líder 1: RSI Divergences
+def _rsi_divergence(series, rsi_period=14, lookback=20):
+    """
+    Detecta divergencias RSI vs precio.
+    Bullish: precio lower low + RSI higher low → +10 entry
+    Bearish: precio higher high + RSI lower high → -10 entry
+    Retorna: (tipo, boost) donde tipo es 'bullish'/'bearish'/None y boost es +10/-10/0
+    """
+    if len(series) < rsi_period + lookback + 5:
+        return None, 0
+ 
+    # Calcular RSI serie completa
+    delta = series.diff().dropna()
+    gain = delta.clip(lower=0).rolling(rsi_period).mean()
+    loss = (-delta.clip(upper=0)).rolling(rsi_period).mean()
+    rs = gain / loss.replace(0, np.nan)
+    rsi_series = 100 - (100 / (1 + rs))
+    rsi_series = rsi_series.dropna()
+ 
+    if len(rsi_series) < lookback:
+        return None, 0
+ 
+    # Últimos N períodos divididos en dos mitades
+    half = lookback // 2
+    price_recent = series.iloc[-half:]
+    price_prev = series.iloc[-(lookback):-half]
+    rsi_recent = rsi_series.iloc[-half:]
+    rsi_prev = rsi_series.iloc[-(lookback):-half]
+ 
+    if len(price_prev) < 3 or len(rsi_prev) < 3:
+        return None, 0
+ 
+    price_low_prev = float(price_prev.min())
+    price_low_recent = float(price_recent.min())
+    rsi_low_prev = float(rsi_prev.min())
+    rsi_low_recent = float(rsi_recent.min())
+ 
+    price_high_prev = float(price_prev.max())
+    price_high_recent = float(price_recent.max())
+    rsi_high_prev = float(rsi_prev.max())
+    rsi_high_recent = float(rsi_recent.max())
+ 
+    # Bullish: precio lower low + RSI higher low
+    if price_low_recent < price_low_prev and rsi_low_recent > rsi_low_prev:
+        return "bullish", 10
+ 
+    # Bearish: precio higher high + RSI lower high
+    if price_high_recent > price_high_prev and rsi_high_recent < rsi_high_prev:
+        return "bearish", -10
+ 
+    return None, 0
+ 
+ 
+# Indicador líder 2: Volatility Squeeze (Bollinger Band compression)
+def _volatility_squeeze(series, bb_period=20, lookback=20):
+    """
+    Detecta compresión de volatilidad (squeeze).
+    BB width en mínimo de 20 días → breakout probable.
+    Retorna: (is_squeeze, boost) donde boost es +15 si squeeze con volumen, 0 sino.
+    """
+    if len(series) < bb_period + lookback:
+        return False, 0
+ 
+    # Bollinger Band width
+    ma = series.rolling(bb_period).mean()
+    std = series.rolling(bb_period).std()
+    bb_width = (std * 2) / ma  # ancho relativo de las bandas
+ 
+    bb_width = bb_width.dropna()
+    if len(bb_width) < lookback:
+        return False, 0
+ 
+    current_width = float(bb_width.iloc[-1])
+    min_width_20d = float(bb_width.iloc[-lookback:].min())
+ 
+    # Squeeze: width actual está en el mínimo o muy cerca (dentro del 10%)
+    if current_width <= min_width_20d * 1.10:
+        return True, 15
+ 
+    return False, 0
  
  
 def _score_tecnico(rsi: float, momentum: float, ma_cross: bool,
@@ -552,6 +632,13 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         dist_max_norm = _normalizar_dist_max(dist_max_pct)
         aq = _asset_quality(macro_score, s_fund, s_sect)
         es = _entry_score(s_tec, rr_norm, dist_max_norm)
+ 
+        # Indicadores líderes: RSI divergence + Volatility squeeze
+        div_type, div_boost = _rsi_divergence(serie)
+        is_squeeze, squeeze_boost = _volatility_squeeze(serie)
+        # Aplicar boosts al Entry Score (capped 0-100)
+        es = round(max(0, min(100, es + div_boost + squeeze_boost)), 1)
+ 
         sf_v2 = _score_final_v2(aq, es, market)
         sig_v2 = _signal_v2(sf_v2)
         rank_acc = _ranking_accionable(sf_v2, rr_norm)
@@ -633,6 +720,11 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "atr": round(atr_val, 2),
             "atr_stop": atr_stop,
             "atr_target": atr_target,
+            # ── Indicadores líderes ──
+            "rsi_divergence": div_type,
+            "rsi_div_boost": div_boost,
+            "volatility_squeeze": is_squeeze,
+            "squeeze_boost": squeeze_boost,
         })
  
     results.sort(key=lambda x: x.get("ranking_accionable", x["score_final"]), reverse=True)
