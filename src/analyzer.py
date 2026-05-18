@@ -99,8 +99,8 @@ MARKET_WEIGHTS = {
 # Ponderaciones dentro de Asset Quality (ajustadas: más fundamental)
 AQ_WEIGHTS = {"macro": 0.45, "fundamental": 0.35, "sectorial": 0.20}
  
-# Ponderaciones dentro de Entry Score (ajustadas: más R/R)
-ES_WEIGHTS = {"tecnico": 0.45, "rr": 0.35, "dist_max": 0.20}
+# Ponderaciones dentro de Entry Score (CORREGIDO: sin R/R, estaba doble contado)
+ES_WEIGHTS = {"tecnico": 0.55, "dist_max": 0.25, "dist_support": 0.20}
  
 SECTOR_MAP = {
     # MERVAL
@@ -372,12 +372,34 @@ def _asset_quality(score_macro, score_fundamental, score_sectorial):
         AQ_WEIGHTS["sectorial"] * score_sectorial, 1)
  
  
-def _entry_score(score_tecnico, rr_norm, dist_max_norm):
-    """45% Técnico + 35% R/R + 20% Dist Max (ajustado: más R/R)."""
+def _entry_score(score_tecnico, dist_max_norm, dist_support_norm):
+    """55% Técnico + 25% Dist Max + 20% Dist Support (sin R/R, evita doble conteo)."""
     return round(
         ES_WEIGHTS["tecnico"] * score_tecnico +
-        ES_WEIGHTS["rr"] * rr_norm +
-        ES_WEIGHTS["dist_max"] * dist_max_norm, 1)
+        ES_WEIGHTS["dist_max"] * dist_max_norm +
+        ES_WEIGHTS["dist_support"] * dist_support_norm, 1)
+ 
+ 
+# Distance to support normalizada
+def _dist_support_norm(precio, soportes):
+    """Qué tan cerca está del soporte más relevante. Más cerca = mejor entry."""
+    if not soportes or precio <= 0:
+        return 50.0  # neutral
+    soporte = soportes[0]  # primer soporte (más cercano)
+    if soporte <= 0:
+        return 50.0
+    dist_pct = ((precio - soporte) / precio) * 100  # positivo = arriba del soporte
+    # 0-2% arriba del soporte = score 100 (excelente entry)
+    # 5% arriba = score 60
+    # 10%+ arriba = score 30
+    if dist_pct <= 2:
+        return 100.0
+    elif dist_pct <= 5:
+        return round(100 - (dist_pct - 2) * 13.3, 1)
+    elif dist_pct <= 10:
+        return round(60 - (dist_pct - 5) * 6, 1)
+    else:
+        return max(10.0, round(30 - (dist_pct - 10) * 2, 1))
  
  
 def _score_final_v2(asset_quality, entry_score, market="SP500"):
@@ -394,9 +416,84 @@ def _signal_v2(score):
     else: return "🔴 VENTA"
  
  
-def _ranking_accionable(score_v2, rr_norm):
-    """60% Score V2 + 40% R/R Norm."""
-    return round(0.60 * score_v2 + 0.40 * rr_norm, 1)
+def _ranking_accionable(score_v2, asset_quality, rr_norm, volatility_score):
+    """
+    RANKING PRO: sin doble conteo de R/R.
+    50% Expected Return proxy (Score_V2 ya no tiene R/R)
+    30% Asset Quality (calidad del activo)
+    20% Risk Adjusted (inverso de volatilidad)
+    """
+    return round(
+        0.50 * score_v2 +
+        0.30 * asset_quality +
+        0.20 * volatility_score, 1)
+ 
+ 
+def _volatility_score(series, period=60):
+    """
+    Score de riesgo: baja volatilidad = score alto.
+    Volatilidad anualizada mapeada a 0-100.
+    Vol 10% → 90pts (muy estable)
+    Vol 30% → 60pts (normal)
+    Vol 60%+ → 20pts (muy volátil)
+    """
+    if len(series) < period:
+        return 50.0
+    returns = series.pct_change().dropna().tail(period)
+    vol = float(returns.std() * np.sqrt(252) * 100)  # anualizada
+    if vol <= 10:
+        return 90.0
+    elif vol <= 20:
+        return round(90 - (vol - 10) * 2, 1)
+    elif vol <= 40:
+        return round(70 - (vol - 20) * 1.5, 1)
+    elif vol <= 60:
+        return round(40 - (vol - 40) * 1, 1)
+    else:
+        return 20.0
+ 
+ 
+def _adx(high_series, low_series, close_series, period=14):
+    """
+    Average Directional Index: mide fuerza de tendencia (no dirección).
+    ADX > 25 = tendencia fuerte, ADX < 20 = sin tendencia.
+    Retorna: (adx_value, trend_strength_score)
+    """
+    if high_series is None or len(high_series) < period * 2:
+        return 0.0, 50.0
+ 
+    plus_dm = high_series.diff()
+    minus_dm = -low_series.diff()
+ 
+    plus_dm = plus_dm.where((plus_dm > minus_dm) & (plus_dm > 0), 0.0)
+    minus_dm = minus_dm.where((minus_dm > plus_dm) & (minus_dm > 0), 0.0)
+ 
+    tr1 = high_series - low_series
+    tr2 = abs(high_series - close_series.shift(1))
+    tr3 = abs(low_series - close_series.shift(1))
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+ 
+    atr_s = tr.rolling(period).mean()
+    plus_di = 100 * (plus_dm.rolling(period).mean() / atr_s)
+    minus_di = 100 * (minus_dm.rolling(period).mean() / atr_s)
+ 
+    dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di).replace(0, np.nan)
+    adx_val = float(dx.rolling(period).mean().iloc[-1])
+ 
+    if pd.isna(adx_val):
+        return 0.0, 50.0
+ 
+    # Score: ADX alto = tendencia fuerte = bueno para momentum
+    if adx_val >= 40:
+        score = 85.0
+    elif adx_val >= 25:
+        score = 70.0
+    elif adx_val >= 20:
+        score = 50.0
+    else:
+        score = 30.0  # sin tendencia, momentum unreliable
+ 
+    return round(adx_val, 1), round(score, 1)
  
  
 # ─────────────────────────────────────────────
@@ -630,8 +727,12 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
  
         rr_ratio, rr_norm = _calcular_rr(precio_actual, rr_target, rr_stop)
         dist_max_norm = _normalizar_dist_max(dist_max_pct)
+ 
+        # Distance to support (Fase 2)
+        dist_sup_norm = _dist_support_norm(precio_actual, soportes)
+ 
         aq = _asset_quality(macro_score, s_fund, s_sect)
-        es = _entry_score(s_tec, rr_norm, dist_max_norm)
+        es = _entry_score(s_tec, dist_max_norm, dist_sup_norm)
  
         # Indicadores líderes: RSI divergence + Volatility squeeze
         div_type, div_boost = _rsi_divergence(serie)
@@ -639,9 +740,20 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         # Aplicar boosts al Entry Score (capped 0-100)
         es = round(max(0, min(100, es + div_boost + squeeze_boost)), 1)
  
+        # Volatility score y ADX (Fase 2)
+        vol_score = _volatility_score(serie)
+        adx_val, adx_score = 0.0, 50.0
+        try:
+            high_col = col.replace('Close', 'High') if 'Close' in str(col) else None
+            low_col = col.replace('Close', 'Low') if 'Close' in str(col) else None
+            if high_col and low_col and high_col in df_12m.columns and low_col in df_12m.columns:
+                adx_val, adx_score = _adx(df_12m[high_col], df_12m[low_col], serie)
+        except Exception:
+            pass
+ 
         sf_v2 = _score_final_v2(aq, es, market)
         sig_v2 = _signal_v2(sf_v2)
-        rank_acc = _ranking_accionable(sf_v2, rr_norm)
+        rank_acc = _ranking_accionable(sf_v2, aq, rr_norm, vol_score)
  
         # ATR para stops dinámicos
         atr_val = 0.0
@@ -725,6 +837,11 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "rsi_div_boost": div_boost,
             "volatility_squeeze": is_squeeze,
             "squeeze_boost": squeeze_boost,
+            # ── Fase 2: riesgo y tendencia ──
+            "volatility_score": round(vol_score, 1),
+            "adx": adx_val,
+            "adx_score": adx_score,
+            "dist_support_norm": round(dist_sup_norm, 1),
         })
  
     results.sort(key=lambda x: x.get("ranking_accionable", x["score_final"]), reverse=True)
