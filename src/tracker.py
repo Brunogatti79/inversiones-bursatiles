@@ -116,19 +116,32 @@ def compute_accuracy(history: dict) -> dict:
                         ret = ((future_price / precio_entry) - 1) * 100
                         results[signal]["returns"][w].append(ret)
  
-    # Calcular estadísticas
+    # Calcular estadísticas + Expected Value
     report = {}
     for signal, data in results.items():
         entry = {"count": data["count"]}
         for w in lookback_windows:
             rets = data["returns"][w]
             if rets:
-                entry[f"avg_ret_{w}d"] = round(sum(rets) / len(rets), 2)
-                entry[f"hit_rate_{w}d"] = round(len([r for r in rets if r > 0]) / len(rets), 2)
+                avg_ret = round(sum(rets) / len(rets), 2)
+                win_rate = round(len([r for r in rets if r > 0]) / len(rets), 2)
+                loss_rate = round(1 - win_rate, 2)
+                avg_win = round(sum([r for r in rets if r > 0]) / max(1, len([r for r in rets if r > 0])), 2)
+                avg_loss = round(sum([abs(r) for r in rets if r < 0]) / max(1, len([r for r in rets if r < 0])), 2)
+                # Expected Value = (WinRate × AvgWin) - (LossRate × AvgLoss)
+                expected_value = round(win_rate * avg_win - loss_rate * avg_loss, 2)
+                entry[f"avg_ret_{w}d"] = avg_ret
+                entry[f"hit_rate_{w}d"] = win_rate
+                entry[f"avg_win_{w}d"] = avg_win
+                entry[f"avg_loss_{w}d"] = avg_loss
+                entry[f"expected_value_{w}d"] = expected_value
                 entry[f"samples_{w}d"] = len(rets)
             else:
                 entry[f"avg_ret_{w}d"] = None
                 entry[f"hit_rate_{w}d"] = None
+                entry[f"avg_win_{w}d"] = None
+                entry[f"avg_loss_{w}d"] = None
+                entry[f"expected_value_{w}d"] = None
                 entry[f"samples_{w}d"] = 0
         report[signal] = entry
  
@@ -319,7 +332,7 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
         elif pnl_pct > 5 and sig_v2 and "COMPRA" in sig_v2:
             accion = "⭐ AGREGAR"
         else:
-            accion = "🟢 MANTENER"
+            accion = "🟢 HOLD"
  
         # Siempre agregar resumen de P&L
         alerts.append({
