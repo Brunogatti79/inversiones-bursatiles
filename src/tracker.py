@@ -267,6 +267,60 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
                 "pnl_pct": pnl_pct,
             })
  
+        # ── REGLAS DE SALIDA ──
+ 
+        # Partial take profit: si ganancia > 20%, sugerir vender 50%
+        if pnl_pct >= 20:
+            alerts.append({
+                "ticker": ticker,
+                "tipo": "⭐ TAKE PROFIT PARCIAL",
+                "mensaje": f"{ticker}: ganancia {pnl_pct}% — considerar vender 50% y mover stop a breakeven",
+                "pnl_pct": pnl_pct,
+            })
+ 
+        # Trailing stop: si ganó >10% pero cayó >5% desde el máximo reciente
+        max_12m = sig.get("max_12m", 0)
+        if max_12m > 0 and pnl_pct > 10:
+            caida_desde_max = ((precio_actual - max_12m) / max_12m) * 100
+            if caida_desde_max < -5:
+                alerts.append({
+                    "ticker": ticker,
+                    "tipo": "🟠 TRAILING STOP",
+                    "mensaje": f"{ticker}: en ganancia {pnl_pct}% pero cayó {caida_desde_max:.1f}% desde máximo ({max_12m}) — proteger ganancias",
+                    "pnl_pct": pnl_pct,
+                })
+ 
+        # Time stop: si lleva >10 días y no avanza (P&L entre -3% y +3%)
+        fecha_compra = pos.get("fecha_compra")
+        if fecha_compra:
+            try:
+                if isinstance(fecha_compra, str):
+                    fc = datetime.fromisoformat(fecha_compra)
+                else:
+                    fc = fecha_compra
+                dias_en_posicion = (datetime.now() - fc).days
+                if dias_en_posicion >= 10 and -3 <= pnl_pct <= 3:
+                    alerts.append({
+                        "ticker": ticker,
+                        "tipo": "⏰ TIME STOP",
+                        "mensaje": f"{ticker}: {dias_en_posicion} días en posición, P&L {pnl_pct}% — capital inmovilizado, evaluar salida",
+                        "pnl_pct": pnl_pct,
+                    })
+            except Exception:
+                pass
+ 
+        # Acción sugerida para dashboard
+        if pnl_pct <= -8 or (atr_stop > 0 and precio_actual <= atr_stop):
+            accion = "🔴 VENDER"
+        elif "VENTA" in sig_v2:
+            accion = "🟡 REDUCIR"
+        elif pnl_pct >= 20:
+            accion = "⭐ PARCIAL"
+        elif pnl_pct > 5 and sig_v2 and "COMPRA" in sig_v2:
+            accion = "⭐ AGREGAR"
+        else:
+            accion = "🟢 HOLD"
+ 
         # Siempre agregar resumen de P&L
         alerts.append({
             "ticker": ticker,
@@ -277,6 +331,13 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
             "horizonte": sig.get("horizonte", ""),
             "consenso": sig.get("consenso", ""),
             "ranking": sig.get("ranking_accionable", 0),
+            "accion": accion,
+            "atr_stop": atr_stop,
+            "atr_target": sig.get("atr_target", 0),
+            "signal_v2": sig.get("signal_v2", ""),
+            "rr_ratio": sig.get("rr_ratio", 0),
+            "sector": sig.get("sector", ""),
+            "mercado": sig.get("mercado", ""),
         })
  
     # Guardar alertas
