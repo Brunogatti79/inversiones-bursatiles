@@ -204,6 +204,21 @@ def generate_dashboard(
     signals_json     = json.dumps(signals,     ensure_ascii=False)
     index_stats_json = json.dumps(index_stats, ensure_ascii=False)
     fichas_json      = json.dumps(fichas,      ensure_ascii=False, default=str)
+    # Portfolio data para la pestaña Portfolio
+    portfolio_json = "{}"
+    portfolio_alerts_json = "{}"
+    try:
+        import os as _os
+        _pf = "data/portfolio.json"
+        _pa = "data/portfolio_alerts.json"
+        if _os.path.exists(_pf):
+            with open(_pf) as _f:
+                portfolio_json = _f.read()
+        if _os.path.exists(_pa):
+            with open(_pa) as _f:
+                portfolio_alerts_json = _f.read()
+    except Exception as e:
+        logger.warning(f"Portfolio data no disponible: {e}")
  
     merval_labels  = index_stats.get("merval",  {}).get("monthly_labels", [])
     merval_values  = index_stats.get("merval",  {}).get("monthly_values", [])
@@ -523,6 +538,8 @@ def generate_dashboard(
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 var SIGNALS = {signals_json};
+var PORTFOLIO = {portfolio_json};
+var PORTFOLIO_ALERTS = {portfolio_alerts_json};
 var IDX     = {index_stats_json};
 var FICHAS  = {fichas_json};
 var mL = {json.dumps(merval_labels)};
@@ -881,6 +898,50 @@ function showOpFicha(ticker){{
     }});
   }},80);
 }}
+// ── PORTFOLIO TAB ──
+(function(){{
+  var portfolio = PORTFOLIO;
+  var pAlerts = PORTFOLIO_ALERTS;
+  if(!portfolio || !portfolio.positions) return;
+  var positions = portfolio.positions;
+  var alertsList = (pAlerts && pAlerts.alerts) ? pAlerts.alerts : [];
+  var pnlItems = alertsList.filter(function(a){{return a.tipo==='📊 P&L';}});
+  var totalInv=0, totalVal=0;
+  positions.forEach(function(p){{
+    totalInv += p.precio_compra * p.cantidad;
+    var sigData = SIGNALS.find(function(s){{return s.ticker===p.ticker || s.ticker===p.ticker.replace('.BA','');}});
+    var precioAct = sigData ? sigData.precio_actual : p.precio_compra;
+    totalVal += precioAct * p.cantidad;
+  }});
+  var totalPnl = totalVal - totalInv;
+  var totalPnlPct = totalInv > 0 ? ((totalVal/totalInv - 1)*100).toFixed(2) : '0';
+  var sm = document.getElementById('portfolio-summary');
+  if(sm) sm.innerHTML = '<div class="card"><div class="card-title">Invertido</div><div class="card-value">$'+totalInv.toLocaleString('es-AR')+'</div></div>'
+    +'<div class="card"><div class="card-title">Valor actual</div><div class="card-value">$'+totalVal.toLocaleString('es-AR')+'</div></div>'
+    +'<div class="card"><div class="card-title">P&L Total</div><div class="card-value" style="color:'+(totalPnl>=0?'#4ade80':'#f87171')+'">'+(totalPnl>=0?'+':'')+totalPnl.toLocaleString('es-AR')+' ('+totalPnlPct+'%)</div></div>'
+    +'<div class="card"><div class="card-title">Posiciones</div><div class="card-value">'+positions.length+'</div></div>';
+  var tb = document.getElementById('portfolio-table');
+  if(tb) tb.innerHTML = '<tr><th>Ticker</th><th>Compra</th><th>Actual</th><th>Cant</th><th>P&L%</th><th>P&L$</th><th>Señal</th><th>R/R</th><th>ATR Stop</th><th>Acción</th></tr>'
+    + positions.map(function(p){{
+      var pnl = pnlItems.find(function(a){{return a.ticker===p.ticker;}});
+      var sigData = SIGNALS.find(function(s){{return s.ticker===p.ticker || s.ticker===p.ticker.replace('.BA','');}});
+      var precioAct = sigData ? sigData.precio_actual : p.precio_compra;
+      var pnlPct = p.precio_compra > 0 ? ((precioAct/p.precio_compra-1)*100).toFixed(1) : '0';
+      var pnlAbs = ((precioAct - p.precio_compra) * p.cantidad).toFixed(0);
+      var sig2 = pnl ? (pnl.signal_v2||'—') : (sigData ? (sigData.signal_v2||'—') : '—');
+      var rr = pnl ? (pnl.rr_ratio||0).toFixed(1)+'x' : (sigData ? (sigData.rr_ratio||0).toFixed(1)+'x' : '—');
+      var atrS = pnl ? (pnl.atr_stop||0) : (sigData ? (sigData.atr_stop||0) : 0);
+      var acc = pnl ? (pnl.accion||'🟢 HOLD') : '🟢 HOLD';
+      var accColor = acc.indexOf('VENDER')>=0?'#f87171':acc.indexOf('REDUCIR')>=0?'#fbbf24':acc.indexOf('PARCIAL')>=0?'#c084fc':acc.indexOf('AGREGAR')>=0?'#4ade80':'#aaa';
+      return '<tr><td class="ticker">'+p.ticker+'</td><td>'+p.precio_compra.toLocaleString('es-AR')+'</td><td>'+precioAct.toLocaleString('es-AR')+'</td><td>'+p.cantidad+'</td><td style="color:'+(parseFloat(pnlPct)>=0?'#4ade80':'#f87171')+';font-weight:600">'+(parseFloat(pnlPct)>=0?'+':'')+pnlPct+'%</td><td style="color:'+(parseFloat(pnlAbs)>=0?'#4ade80':'#f87171')+'">$'+parseInt(pnlAbs).toLocaleString('es-AR')+'</td><td style="color:'+sigColor(sig2)+'">'+sig2+'</td><td style="color:#fbbf24">'+rr+'</td><td>'+(atrS>0?atrS.toLocaleString('es-AR'):'—')+'</td><td style="color:'+accColor+';font-weight:700">'+acc+'</td></tr>';
+    }}).join('');
+  var al = document.getElementById('portfolio-alerts');
+  var criticas = alertsList.filter(function(a){{return a.tipo!=='📊 P&L';}});
+  if(al){{
+    if(criticas.length===0){{ al.innerHTML='<div style="color:#4ade80;padding:8px">✅ Sin alertas activas</div>'; }}
+    else{{ al.innerHTML = criticas.map(function(a){{return '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)"><b>'+a.tipo+'</b> '+a.mensaje+'</div>';}}).join(''); }}
+  }}
+}})();
 </script>
 </body>
 </html>"""
