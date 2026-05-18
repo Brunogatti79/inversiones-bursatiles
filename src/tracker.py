@@ -324,7 +324,10 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
  
         # Acción sugerida para dashboard
         if pnl_pct <= -8 or (atr_stop > 0 and precio_actual <= atr_stop):
-            accion = "🔴 VENDER"
+            if "COMPRA" in sig_v2:
+                accion = "🔴 STOP (señal positiva, evaluar recompra)"
+            else:
+                accion = "🔴 VENDER"
         elif "VENTA" in sig_v2:
             accion = "🟡 REDUCIR"
         elif pnl_pct >= 20:
