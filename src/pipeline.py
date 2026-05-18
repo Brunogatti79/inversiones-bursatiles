@@ -98,11 +98,11 @@ def run_pipeline():
                 raise ValueError("Macro auto sin datos")
         except Exception as e:
             logger.warning(f"Macro auto falló ({e}), usando xlsx/fallback")
-            xlsx_signals = load_xlsx_signals(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")        fund_scores  = load_fundamental_scores(f"{DATA_DIR}/ratios_consolidado_quant.csv")
+            xlsx_signals = load_xlsx_signals(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")
+        fund_scores  = load_fundamental_scores(f"{DATA_DIR}/ratios_consolidado_quant.csv")
         macro_scores = xlsx_signals.get("macro_scores", {})
         logger.info(f"Macro scores: {macro_scores}")
-        logger.info(f"Fundamental scores cargados: {len(fund_scores)} tickers")
- 
+        logger.info(f"Fundamental scores cargados: {len(fund_scores)} tickers") 
         # 3. ANÁLISIS
         logger.info("3/8 Calculando señales...")
         signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS,
