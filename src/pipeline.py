@@ -145,6 +145,11 @@ def run_pipeline():
         compute_accuracy(history)
         from src.tracker import check_portfolio_alerts
         portfolio_alerts = check_portfolio_alerts(all_signals) 
+        if portfolio_alerts:
+            from src.notifier import send_portfolio_alerts
+            criticas = [a for a in portfolio_alerts if a.get("tipo") not in ("📊 P&L",)]
+            if criticas:
+                send_portfolio_alerts(portfolio_alerts)
         # 6. DASHBOARD
         logger.info("6/8 Generando dashboard...")
         os.makedirs(OUTPUT_DIR, exist_ok=True)
