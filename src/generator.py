@@ -362,6 +362,7 @@ def generate_dashboard(
   <div class="tab"    onclick="sw('sp500',this)">S&amp;P 500</div>
   <div class="tab"    onclick="sw('oportunidades',this)">🟢 Oportunidades</div>
   <div class="tab"    onclick="sw('conclusiones',this)">Conclusiones</div>
+  <div class="tab"    onclick="sw('portfolio',this)">💼 Portfolio</div>
 </div>
  
 <!-- PANORAMA -->
@@ -511,6 +512,14 @@ def generate_dashboard(
   <div id="ventas-block"></div>
 </div>
  
+<!-- PORTFOLIO -->
+<div id="portfolio" class="page">
+  <div class="section-title">💼 Mi Portfolio — Posiciones Activas</div>
+  <div id="portfolio-summary" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
+  <table class="tbl" id="portfolio-table"></table>
+  <div class="section-title" style="margin-top:20px">⚠️ Alertas Activas</div>
+  <div id="portfolio-alerts" style="font-size:13px"></div>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 var SIGNALS = {signals_json};
