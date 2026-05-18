@@ -14,6 +14,7 @@ import pytz
 from src.downloader     import download_all, save_csvs, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
 from src.analyzer       import (analyze_market, detect_signal_changes, save_signals, get_index_stats)
 from src.macro_loader   import load_xlsx_signals
+from src.macro_auto     import fetch_all_macro, get_cached_macro
 from src.fundamental    import load_fundamental_scores
 from src.data_validator import validar_todos
 from src.notifier       import (send_daily_report, send_signal_change_alerts,
@@ -86,8 +87,18 @@ def run_pipeline():
  
         # 2. CARGAR MODELO MACRO + FUNDAMENTAL
         logger.info("2/8 Cargando modelo macro y fundamental...")
-        xlsx_signals = load_xlsx_signals(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")
-        fund_scores  = load_fundamental_scores(f"{DATA_DIR}/ratios_consolidado_quant.csv")
+        # Intentar macro automático primero, fallback a xlsx
+        try:
+            macro_auto = fetch_all_macro()
+            if macro_auto and macro_auto.get("macro_scores"):
+                xlsx_signals = load_xlsx_signals(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")
+                xlsx_signals["macro_scores"] = macro_auto["macro_scores"]
+                logger.info(f"Macro AUTO: {macro_auto['macro_scores']}")
+            else:
+                raise ValueError("Macro auto sin datos")
+        except Exception as e:
+            logger.warning(f"Macro auto falló ({e}), usando xlsx/fallback")
+            xlsx_signals = load_xlsx_signals(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")        fund_scores  = load_fundamental_scores(f"{DATA_DIR}/ratios_consolidado_quant.csv")
         macro_scores = xlsx_signals.get("macro_scores", {})
         logger.info(f"Macro scores: {macro_scores}")
         logger.info(f"Fundamental scores cargados: {len(fund_scores)} tickers")
