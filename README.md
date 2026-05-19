@@ -266,3 +266,5 @@ subprocess.run([
 ```
 
 Y configurar `DASHBOARD_BASE_URL=https://TU_USUARIO.github.io/inversiones-bursatiles/outputs`.
+
+
