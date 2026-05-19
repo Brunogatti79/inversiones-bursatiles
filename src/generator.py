@@ -835,6 +835,7 @@ document.getElementById('ventas-block').innerHTML=ventas.length?ventas.map(funct
     '<div class="dl">Score cuantitativo <b>'+(s.score_cuant!=null?s.score_cuant.toFixed(1):'—')+'</b></div>'+
     '</div></div></div>';
 }}).join(''):'<div style="color:#666;padding:16px">Sin señales de venta activas.</div>';
+ 
   
 // ── OPORTUNIDADES DE COMPRA ────────────────────────────────────────────────
 function showOpRank(){{
