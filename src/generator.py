@@ -359,25 +359,25 @@ def generate_dashboard(
     .radar-card{{flex-direction:column;align-items:flex-start}}
   }}
 /* ── CONCLUSIONES EXPANDIBLES ── */
-.concl-subtitle{font-size:12px;color:#666;margin-bottom:14px;letter-spacing:0.3px}
-.concl-card-exp{border-radius:10px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all .2s}
-.concl-card-exp:hover{filter:brightness(1.08)}
-.concl-card-exp.buy{background:#0d2b1a;border:1px solid #1a3a1a}
-.concl-card-exp.radar{background:#0d1f2b;border:1px solid #1a2a3a}
-.concl-card-exp.sell{background:#1f0d0d;border:1px solid #3a1a1a}
-.concl-header{display:flex;align-items:center;gap:10px}
-.concl-rank{font-family:'DM Mono',monospace;font-size:22px;font-weight:800;color:#555;min-width:36px}
-.concl-main{flex:1}
-.concl-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.concl-arrow{font-size:18px;color:#666;transition:transform .25s;margin-left:auto}
-.concl-card-exp.open .concl-arrow{transform:rotate(180deg)}
-.concl-metrics-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:4px;font-size:12px;color:#888}
-.concl-metrics-row b{color:#ccc}
-.concl-detail{max-height:0;overflow:hidden;transition:max-height .35s ease;margin-top:0}
-.concl-card-exp.open .concl-detail{max-height:600px;margin-top:12px}
-.concl-detail-inner{border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:12px;color:#999}
-.concl-detail-inner .dl{display:flex;justify-content:space-between;padding:3px 0}
-.concl-detail-inner .dl b{color:#ddd}
+.concl-subtitle{{font-size:12px;color:#666;margin-bottom:14px;letter-spacing:0.3px}}
+.concl-card-exp{{border-radius:10px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all .2s}}
+.concl-card-exp:hover{{filter:brightness(1.08)}}
+.concl-card-exp.buy{{background:#0d2b1a;border:1px solid #1a3a1a}}
+.concl-card-exp.radar{{background:#0d1f2b;border:1px solid #1a2a3a}}
+.concl-card-exp.sell{{background:#1f0d0d;border:1px solid #3a1a1a}}
+.concl-header{{display:flex;align-items:center;gap:10px}}
+.concl-rank{{font-family:'DM Mono',monospace;font-size:22px;font-weight:800;color:#555;min-width:36px}}
+.concl-main{{flex:1}}
+.concl-title-row{{display:flex;align-items:center;gap:8px;flex-wrap:wrap}}
+.concl-arrow{{font-size:18px;color:#666;transition:transform .25s;margin-left:auto}}
+.concl-card-exp.open .concl-arrow{{transform:rotate(180deg)}}
+.concl-metrics-row{{display:flex;gap:16px;flex-wrap:wrap;margin-top:4px;font-size:12px;color:#888}}
+.concl-metrics-row b{{color:#ccc}}
+.concl-detail{{max-height:0;overflow:hidden;transition:max-height .35s ease;margin-top:0}}
+.concl-card-exp.open .concl-detail{{max-height:600px;margin-top:12px}}
+.concl-detail-inner{{border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:12px;color:#999}}
+.concl-detail-inner .dl{{display:flex;justify-content:space-between;padding:3px 0}}
+.concl-detail-inner .dl b{{color:#ddd}}
 </style>
 </head>
 <body>
