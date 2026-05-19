@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Inversiones Bursátiles — 19/05/2026 16:08</title>
+<title>Inversiones Bursátiles — 19/05/2026 17:01</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d0d0f;color:#e8e8ea;font-size:14px}
@@ -116,6 +116,26 @@
     .op-fgrid{grid-template-columns:1fr}
     .radar-card{flex-direction:column;align-items:flex-start}
   }
+/* ── CONCLUSIONES EXPANDIBLES ── */
+.concl-subtitle{font-size:12px;color:#666;margin-bottom:14px;letter-spacing:0.3px}
+.concl-card-exp{border-radius:10px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all .2s}
+.concl-card-exp:hover{filter:brightness(1.08)}
+.concl-card-exp.buy{background:#0d2b1a;border:1px solid #1a3a1a}
+.concl-card-exp.radar{background:#0d1f2b;border:1px solid #1a2a3a}
+.concl-card-exp.sell{background:#1f0d0d;border:1px solid #3a1a1a}
+.concl-header{display:flex;align-items:center;gap:10px}
+.concl-rank{font-family:'DM Mono',monospace;font-size:22px;font-weight:800;color:#555;min-width:36px}
+.concl-main{flex:1}
+.concl-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.concl-arrow{font-size:18px;color:#666;transition:transform .25s;margin-left:auto}
+.concl-card-exp.open .concl-arrow{transform:rotate(180deg)}
+.concl-metrics-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:4px;font-size:12px;color:#888}
+.concl-metrics-row b{color:#ccc}
+.concl-detail{max-height:0;overflow:hidden;transition:max-height .35s ease;margin-top:0}
+.concl-card-exp.open .concl-detail{max-height:600px;margin-top:12px}
+.concl-detail-inner{border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:12px;color:#999}
+.concl-detail-inner .dl{display:flex;justify-content:space-between;padding:3px 0}
+.concl-detail-inner .dl b{color:#ddd}
 </style>
 </head>
 <body>
@@ -123,7 +143,7 @@
   <div>
     <div class="badge">INVERSIONES BURSÁTILES</div>
     <h1>Informe de Inversiones</h1>
-    <div style="font-size:12px;color:#666;margin-top:3px">MERVAL · BOVESPA · S&P 500 · Generado 19/05/2026 16:08</div>
+    <div style="font-size:12px;color:#666;margin-top:3px">MERVAL · BOVESPA · S&P 500 · Generado 19/05/2026 17:01</div>
   </div>
   <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>Modelo v2.0 — Asset Quality(50%Macro+30%Fundamental+20%Sectorial) · Entry Score(60%Técnico+25%Riesgo/Retorno+15%Dist.Máximo)</div>
 </div>
@@ -272,17 +292,27 @@
  
 <!-- CONCLUSIONES -->
 <div id="conclusiones" class="page">
-  <div class="section-title" style="color:#86efac">🔭 Radar de Oportunidades Tempranas</div>
+ 
+  <!-- 1) COMPRAS CONFIRMADAS — PRIMERO -->
+  <div class="section-title" style="color:#4ade80;margin-bottom:6px">✅ Oportunidades de Compra Confirmadas</div>
+  <div class="concl-subtitle">Señales activas del modelo macro × técnico × sectorial × fundamental · Ordenadas por ranking accionable</div>
+  <div id="compras-block"></div>
+ 
+  <!-- 2) RADAR OPORTUNIDADES TEMPRANAS — SEGUNDO -->
+  <div class="section-title" style="color:#86efac;margin-top:32px;margin-bottom:6px">🔭 Radar de Oportunidades Tempranas</div>
+  <div class="concl-subtitle">Activos cercanos a zona de compra que aún no cumplen todos los criterios · Ordenados por score radar</div>
   <div class="radar-criteria">
     <span>📊 <b style="color:#aaa">Score técnico</b> — RSI, momentum, cruces MA</span>
     <span>📈 <b style="color:#aaa">Soporte/Resistencia</b> — proximidad a zonas clave</span>
     <span>⚙️ <b style="color:#aaa">Score modelo</b> — macro × técnico × sectorial × fundamental</span>
   </div>
   <div id="radar-block"></div>
-  <div class="section-title" style="margin-top:28px">✅ Oportunidades de compra confirmadas</div>
-  <div id="compras-block"></div>
-  <div class="section-title" style="margin-top:20px">🔴 Señales de reducción</div>
+ 
+  <!-- 3) SEÑALES DE REDUCCIÓN -->
+  <div class="section-title" style="color:#fb923c;margin-top:32px;margin-bottom:6px">🔴 Señales de Reducción de Portfolio</div>
+  <div class="concl-subtitle">Activos con señal de venta o venta parcial · Ordenados por urgencia de reducción</div>
   <div id="ventas-block"></div>
+ 
 </div>
  
 <!-- PORTFOLIO -->
@@ -429,7 +459,7 @@ var PORTFOLIO = {
   }
 };
 var PORTFOLIO_ALERTS = {
-  "generated": "2026-05-19T16:08:35.558404",
+  "generated": "2026-05-19T17:01:56.070607",
   "total_positions": 10,
   "alerts": [
     {
@@ -685,27 +715,131 @@ var radarHtml=ranked.map(function(s,i){
 var rb=document.getElementById('radar-block');
 if(rb) rb.innerHTML=radarHtml||'<div style="color:#666;padding:20px">Sin datos.</div>';
  
+// ── CONCLUSIONES: Compras confirmadas (PRIMERO) ──────────────────
 var compras=SIGNALS.filter(function(s){var sig=s.signal_v2||s.signal;return sig.indexOf('COMPRA')>=0;}).sort(function(a,b){return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);});
-var ventas=SIGNALS.filter(function(s){var sig=s.signal_v2||s.signal;return sig.indexOf('VENTA')>=0;}).sort(function(a,b){return (a.ranking_accionable||a.score_final)-(b.ranking_accionable||b.score_final);});
-var ventas=SIGNALS.filter(function(s){return s.signal.indexOf('VENTA')>=0;});
-document.getElementById('compras-block').innerHTML=compras.slice(0,8).map(function(s){
-  return '<div style="background:#0d2b1a;border:1px solid #1a3a1a;border-radius:10px;padding:16px;margin-bottom:12px">'+
-    '<div style="font-size:16px;font-weight:700;color:#4ade80;margin-bottom:6px">'+flagOf(s.mercado)+' '+(s.signal_v2||s.signal)+' — '+s.ticker+' — '+s.ticker+' · '+s.empresa+'</div>'+
-    '<div style="font-size:13px;color:#aaa;display:flex;gap:20px;flex-wrap:wrap">'+
-    '<span>Score: <b style="color:#fff">'+s.score_final.toFixed(0)+'</b></span>'+
-    '<span>RSI: <b style="color:#fff">'+s.rsi.toFixed(0)+'</b></span>'+
-    '<span>Sem: <b style="color:'+rc(s.ret_sem)+'">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
-    '<span>Anual: <b style="color:'+rc(s.ret_anual)+'">'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(1)+'%</b></span></div></div>';
-}).join('')||'<div style="color:#666;padding:16px">Sin señales de compra activas.</div>';
-document.getElementById('ventas-block').innerHTML=ventas.slice(0,5).map(function(s){
-  return '<div style="background:#1f0d0d;border:1px solid #3a1a1a;border-radius:10px;padding:16px;margin-bottom:12px">'+
-    '<div style="font-size:16px;font-weight:700;color:#fb923c;margin-bottom:6px">'+flagOf(s.mercado)+' '+(s.signal_v2||s.signal)+' — '+s.ticker+' · '+s.empresa+'</div>'+
-    '<div style="font-size:13px;color:#aaa;display:flex;gap:20px;flex-wrap:wrap">'+
-    '<span>Score: <b style="color:#fff">'+s.score_final.toFixed(0)+'</b></span>'+
-    '<span>Sem: <b style="color:'+rc(s.ret_sem)+'">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
-    '<span>Anual: <b style="color:'+rc(s.ret_anual)+'">'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(1)+'%</b></span></div></div>';
-}).join('');
+document.getElementById('compras-block').innerHTML=compras.length?compras.map(function(s,i){
+  var sig=s.signal_v2||s.signal;
+  var isFuerte=sig.indexOf('FUERTE')>=0;
+  var icon=isFuerte?'⭐':'🟢';
+  var upside=s.upside_graham!=null?(s.upside_graham>=0?'+':'')+s.upside_graham.toFixed(1)+'%':'—';
+  return '<div class="concl-card-exp buy" onclick="this.classList.toggle('open')">'+
+    '<div class="concl-header">'+
+    '<div class="concl-rank">#'+(i+1)+'</div>'+
+    '<div class="concl-main">'+
+    '<div class="concl-title-row">'+
+    '<span style="font-size:15px;font-weight:700;color:#4ade80">'+flagOf(s.mercado)+' '+icon+' '+sig+'</span>'+
+    '<span style="font-size:15px;font-weight:700;color:#fff">'+s.ticker+'</span>'+
+    '<span style="font-size:12px;color:#888">'+s.empresa.substring(0,30)+'</span></div>'+
+    '<div class="concl-metrics-row">'+
+    '<span>Score: <b>'+s.score_final.toFixed(0)+'</b></span>'+
+    '<span>RSI: <b>'+s.rsi.toFixed(0)+'</b></span>'+
+    '<span style="color:'+rc(s.ret_sem)+'">Sem: <b>'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
+    '<span style="color:'+rc(s.ret_mes)+'">Mes: <b>'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</b></span>'+
+    '<span style="color:'+rc(s.ret_anual)+'">Anual: <b>'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(1)+'%</b></span>'+
+    '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+
+    '</div></div>'+
+    '<div class="concl-arrow">▼</div></div>'+
+    '<div class="concl-detail"><div class="concl-detail-inner">'+
+    '<div class="dl">Ranking accionable <b>'+(s.ranking_accionable||s.score_final).toFixed(1)+'</b></div>'+
+    '<div class="dl">Score macro <b>'+(s.score_macro!=null?s.score_macro.toFixed(0):'—')+'</b></div>'+
+    '<div class="dl">Score técnico <b>'+(s.score_tecnico!=null?s.score_tecnico.toFixed(0):'—')+'</b></div>'+
+    '<div class="dl">Score sectorial <b>'+(s.score_sectorial!=null?s.score_sectorial.toFixed(0):'—')+'</b></div>'+
+    '<div class="dl">Momentum 21d <b>'+(s.momentum!=null?s.momentum.toFixed(2):'—')+'</b></div>'+
+    '<div class="dl">RSI(14) <b>'+s.rsi.toFixed(1)+'</b></div>'+
+    '<div class="dl">Upside Graham <b>'+upside+'</b></div>'+
+    '<div class="dl">Precio actual <b>'+s.precio_actual.toLocaleString('es-AR')+'</b></div>'+
+    '<div class="dl">Máximo 12M <b>'+(s.max_12m!=null?s.max_12m.toLocaleString('es-AR'):'—')+'</b></div>'+
+    '<div class="dl">Mínimo 12M <b>'+(s.min_12m!=null?s.min_12m.toLocaleString('es-AR'):'—')+'</b></div>'+
+    '<div class="dl">Ret. semanal <b style="color:'+rc(s.ret_sem)+'">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(2)+'%</b></div>'+
+    '<div class="dl">Ret. mensual <b style="color:'+rc(s.ret_mes)+'">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(2)+'%</b></div>'+
+    '<div class="dl">Ret. anual <b style="color:'+rc(s.ret_anual)+'">'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(2)+'%</b></div>'+
+    '<div class="dl">Score cuantitativo <b>'+(s.score_cuant!=null?s.score_cuant.toFixed(1):'—')+'</b></div>'+
+    '</div></div></div>';
+}).join(''):'<div style="color:#666;padding:16px">Sin señales de compra activas.</div>';
  
+// ── CONCLUSIONES: Radar de Oportunidades Tempranas (SEGUNDO) ─────
+var radarItems=SIGNALS.filter(function(s){return s.radar_score!=null && s.radar_score>0;}).sort(function(a,b){return b.radar_score-a.radar_score;});
+var radarHtml=radarItems.map(function(s,i){
+  var pfm=s.max_12m?((1-s.precio_actual/s.max_12m)*100).toFixed(1):'?';
+  var tags=[];
+  if(s.signal.indexOf('COMPRA FUERTE')>=0) tags.push('<span class="radar-tag tag-green">⭐ Compra Fuerte</span>');
+  else if(s.signal.indexOf('COMPRA')>=0) tags.push('<span class="radar-tag tag-green">🟢 Compra</span>');
+  else tags.push('<span class="radar-tag tag-yellow">🟡 Monitorear</span>');
+  var sc=s.radar_score>=70?'#22c55e':s.radar_score>=50?'#86efac':s.radar_score>=35?'#fbbf24':'#fb923c';
+  return '<div class="concl-card-exp radar" onclick="this.classList.toggle('open')">'+
+    '<div class="concl-header">'+
+    '<div class="concl-rank" style="color:'+sc+'">#'+(i+1)+'</div>'+
+    '<div class="concl-main">'+
+    '<div class="concl-title-row">'+
+    '<span class="radar-ticker">'+flagOf(s.mercado)+' '+s.ticker+'</span>'+
+    '<span style="font-size:12px;color:#888">'+s.empresa.substring(0,28)+'</span>'+
+    tags.join('')+
+    '<span style="font-size:13px;font-weight:700;color:'+sc+'">Score: '+s.radar_score+'</span></div>'+
+    '<div class="concl-metrics-row">'+
+    '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+
+    '<span style="color:'+rc(s.ret_sem)+'">Sem: <b>'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
+    '<span style="color:'+rc(s.ret_mes)+'">Mes: <b>'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</b></span>'+
+    '<span>RSI: <b>'+s.rsi.toFixed(0)+'</b></span>'+
+    '<span style="color:#fb923c">-'+pfm+'% vs máx</span>'+
+    '</div></div>'+
+    '<div class="concl-arrow">▼</div></div>'+
+    '<div class="concl-detail"><div class="concl-detail-inner">'+
+    '<div class="dl">Score radar <b style="color:'+sc+'">'+s.radar_score+'</b></div>'+
+    '<div class="dl">Score final modelo <b>'+s.score_final.toFixed(0)+'</b></div>'+
+    '<div class="dl">Score macro <b>'+(s.score_macro!=null?s.score_macro.toFixed(0):'—')+'</b></div>'+
+    '<div class="dl">Score técnico <b>'+(s.score_tecnico!=null?s.score_tecnico.toFixed(0):'—')+'</b></div>'+
+    '<div class="dl">RSI(14) <b>'+s.rsi.toFixed(1)+'</b></div>'+
+    '<div class="dl">Momentum 21d <b>'+(s.momentum!=null?s.momentum.toFixed(2):'—')+'</b></div>'+
+    '<div class="dl">Precio actual <b>'+s.precio_actual.toLocaleString('es-AR')+'</b></div>'+
+    '<div class="dl">Máximo 12M <b>'+(s.max_12m!=null?s.max_12m.toLocaleString('es-AR'):'—')+'</b></div>'+
+    '<div class="dl">Dist. vs máximo <b style="color:#fb923c">-'+pfm+'%</b></div>'+
+    '<div class="dl">Ret. semanal <b style="color:'+rc(s.ret_sem)+'">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(2)+'%</b></div>'+
+    '<div class="dl">Ret. mensual <b style="color:'+rc(s.ret_mes)+'">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(2)+'%</b></div>'+
+    '<div class="dl">Ret. anual <b style="color:'+rc(s.ret_anual)+'">'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(2)+'%</b></div>'+
+    '<div class="radar-bar-wrap" style="grid-column:1/-1"><div class="radar-bar" style="width:'+s.radar_score+'%;background:'+sc+'"></div></div>'+
+    '</div></div></div>';
+}).join('');
+var rb=document.getElementById('radar-block');
+if(rb) rb.innerHTML=radarHtml||'<div style="color:#666;padding:20px">Sin datos de radar.</div>';
+ 
+// ── CONCLUSIONES: Señales de Reducción (TERCERO) ─────────────────
+var ventas=SIGNALS.filter(function(s){var sig=s.signal_v2||s.signal;return sig.indexOf('VENTA')>=0;}).sort(function(a,b){return (a.ranking_accionable||a.score_final)-(b.ranking_accionable||b.score_final);});
+document.getElementById('ventas-block').innerHTML=ventas.length?ventas.map(function(s,i){
+  var sig=s.signal_v2||s.signal;
+  var isVenta=sig.indexOf('VENTA PARCIAL')<0;
+  var icon=isVenta?'🔴':'🟠';
+  return '<div class="concl-card-exp sell" onclick="this.classList.toggle('open')">'+
+    '<div class="concl-header">'+
+    '<div class="concl-rank">#'+(i+1)+'</div>'+
+    '<div class="concl-main">'+
+    '<div class="concl-title-row">'+
+    '<span style="font-size:15px;font-weight:700;color:'+(isVenta?'#f04d5a':'#fb923c')+'">'+flagOf(s.mercado)+' '+icon+' '+sig+'</span>'+
+    '<span style="font-size:15px;font-weight:700;color:#fff">'+s.ticker+'</span>'+
+    '<span style="font-size:12px;color:#888">'+s.empresa.substring(0,30)+'</span></div>'+
+    '<div class="concl-metrics-row">'+
+    '<span>Score: <b>'+s.score_final.toFixed(0)+'</b></span>'+
+    '<span>RSI: <b>'+s.rsi.toFixed(0)+'</b></span>'+
+    '<span style="color:'+rc(s.ret_sem)+'">Sem: <b>'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
+    '<span style="color:'+rc(s.ret_anual)+'">Anual: <b>'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(1)+'%</b></span>'+
+    '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+
+    '</div></div>'+
+    '<div class="concl-arrow">▼</div></div>'+
+    '<div class="concl-detail"><div class="concl-detail-inner">'+
+    '<div class="dl">Ranking accionable <b>'+(s.ranking_accionable||s.score_final).toFixed(1)+'</b></div>'+
+    '<div class="dl">Score macro <b>'+(s.score_macro!=null?s.score_macro.toFixed(0):'—')+'</b></div>'+
+    '<div class="dl">Score técnico <b>'+(s.score_tecnico!=null?s.score_tecnico.toFixed(0):'—')+'</b></div>'+
+    '<div class="dl">Score sectorial <b>'+(s.score_sectorial!=null?s.score_sectorial.toFixed(0):'—')+'</b></div>'+
+    '<div class="dl">RSI(14) <b>'+s.rsi.toFixed(1)+'</b></div>'+
+    '<div class="dl">Momentum 21d <b>'+(s.momentum!=null?s.momentum.toFixed(2):'—')+'</b></div>'+
+    '<div class="dl">Precio actual <b>'+s.precio_actual.toLocaleString('es-AR')+'</b></div>'+
+    '<div class="dl">Máximo 12M <b>'+(s.max_12m!=null?s.max_12m.toLocaleString('es-AR'):'—')+'</b></div>'+
+    '<div class="dl">Ret. semanal <b style="color:'+rc(s.ret_sem)+'">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(2)+'%</b></div>'+
+    '<div class="dl">Ret. mensual <b style="color:'+rc(s.ret_mes)+'">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(2)+'%</b></div>'+
+    '<div class="dl">Ret. anual <b style="color:'+rc(s.ret_anual)+'">'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(2)+'%</b></div>'+
+    '<div class="dl">Score cuantitativo <b>'+(s.score_cuant!=null?s.score_cuant.toFixed(1):'—')+'</b></div>'+
+    '</div></div></div>';
+}).join(''):'<div style="color:#666;padding:16px">Sin señales de venta activas.</div>';
+  
 // ── OPORTUNIDADES DE COMPRA ────────────────────────────────────────────────
 function showOpRank(){
   document.getElementById('op-rank-page').style.display='block';
