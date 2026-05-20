@@ -575,6 +575,7 @@ function sw(id,el){{
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
+try {{
 var SIGNALS = {signals_json};
 var PORTFOLIO = {portfolio_json};
 var PORTFOLIO_ALERTS = {portfolio_alerts_json};
@@ -1085,6 +1086,7 @@ function showOpFicha(ticker){{
     else{{ al.innerHTML = criticas.map(function(a){{return '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)"><b>'+a.tipo+'</b> '+a.mensaje+'</div>';}}).join(''); }}
   }}
 }})();
+}} catch(err) {{ document.body.insertAdjacentHTML('afterbegin','<div style="background:red;color:white;padding:20px;font-size:16px;z-index:9999;position:fixed;top:0;left:0;right:0">ERROR JS: '+err.message+'</div>'); }}
 </script>
 </body>
 </html>"""
