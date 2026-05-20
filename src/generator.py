@@ -565,6 +565,14 @@ def generate_dashboard(
   <div class="section-title" style="margin-top:20px">⚠️ Alertas Activas</div>
   <div id="portfolio-alerts" style="font-size:13px"></div>
 </div>
+<script>
+function sw(id,el){{
+  document.querySelectorAll('.tab').forEach(function(t){{t.classList.remove('on');}});
+  document.querySelectorAll('.page').forEach(function(p){{p.classList.remove('on');}});
+  el.classList.add('on'); document.getElementById(id).classList.add('on');
+  window.scrollTo(0,0);
+}}
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 var SIGNALS = {signals_json};
