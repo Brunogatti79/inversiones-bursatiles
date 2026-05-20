@@ -200,7 +200,8 @@ def generate_dashboard(
 </div>'''
     else:
         validacion_banner = ""
- 
+    
+    import math
     signals_clean    = json.loads(json.dumps(signals, ensure_ascii=False, default=str).replace(': NaN', ': null').replace(':NaN', ':null'))
     signals_json     = json.dumps(signals_clean, ensure_ascii=False)
     index_stats_json = json.dumps(index_stats, ensure_ascii=False, default=str).replace(': NaN', ': null').replace(':NaN', ':null')
