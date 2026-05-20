@@ -389,7 +389,7 @@ def generate_dashboard(
   </div>
   <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>Modelo v2.0 — Asset Quality(50%Macro+30%Fundamental+20%Sectorial) · Entry Score(60%Técnico+25%Riesgo/Retorno+15%Dist.Máximo)</div>
 </div>
-{{validacion_banner}}
+<!-- banner -->
 <div class="tabs">
   <div class="tab on" onclick="sw('panorama',this)">Panorama</div>
   <div class="tab"    onclick="sw('merval',this)">MERVAL</div>
