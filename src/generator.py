@@ -745,7 +745,7 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
   var isFuerte=sig.indexOf('FUERTE')>=0;
   var icon=isFuerte?'⭐':'🟢';
   var upside=s.upside_graham!=null?(s.upside_graham>=0?'+':'')+s.upside_graham.toFixed(1)+'%':'—';
-  return '<div class="concl-card-exp buy" onclick="this.classList.toggle(\'open\')">'+
+  return '<div class="concl-card-exp buy" onclick="this.classList.toggle(&#39;open&#39;)">'+
     '<div class="concl-header">'+
     '<div class="concl-rank">#'+(i+1)+'</div>'+
     '<div class="concl-main">'+
@@ -789,7 +789,7 @@ var radarHtml=radarItems.map(function(s,i){{
   else if(s.signal.indexOf('COMPRA')>=0) tags.push('<span class="radar-tag tag-green">🟢 Compra</span>');
   else tags.push('<span class="radar-tag tag-yellow">🟡 Monitorear</span>');
   var sc=s.radar_score>=70?'#22c55e':s.radar_score>=50?'#86efac':s.radar_score>=35?'#fbbf24':'#fb923c';
-  return '<div class="concl-card-exp radar" onclick="this.classList.toggle(\'open\')">'+
+  return '<div class="concl-card-exp radar" onclick="this.classList.toggle(&#39;open&#39;)">'+
     '<div class="concl-header">'+
     '<div class="concl-rank" style="color:'+sc+'">#'+(i+1)+'</div>'+
     '<div class="concl-main">'+
@@ -831,7 +831,7 @@ document.getElementById('ventas-block').innerHTML=ventas.length?ventas.map(funct
   var sig=s.signal_v2||s.signal;
   var isVenta=sig.indexOf('VENTA PARCIAL')<0;
   var icon=isVenta?'🔴':'🟠';
-  return '<div class="concl-card-exp sell" onclick="this.classList.toggle(\'open\')">'+
+  return '<div class="concl-card-exp sell" onclick="this.classList.toggle(&#39;open&#39;)">'+
     '<div class="concl-header">'+
     '<div class="concl-rank">#'+(i+1)+'</div>'+
     '<div class="concl-main">'+
