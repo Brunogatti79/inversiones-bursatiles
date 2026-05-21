@@ -571,6 +571,7 @@ function sw(id,el){{
   document.querySelectorAll('.page').forEach(function(p){{p.classList.remove('on');}});
   el.classList.add('on'); document.getElementById(id).classList.add('on');
   window.scrollTo(0,0);
+  setTimeout(function(){{window.dispatchEvent(new Event('resize'));}},50);
 }}
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -613,6 +614,7 @@ function sw(id,el){{
   document.querySelectorAll('.tab').forEach(function(t){{t.classList.remove('on');}});
   document.querySelectorAll('.page').forEach(function(p){{p.classList.remove('on');}});
   el.classList.add('on'); document.getElementById(id).classList.add('on');
+  setTimeout(function(){{window.dispatchEvent(new Event('resize'));}},50);
 }}
  
 function sigColor(s){{
@@ -622,7 +624,7 @@ function sigColor(s){{
   if(s.indexOf('VENTA P')>=0)       return '#fb923c';
   return '#f87171';
 }}
-
+ 
 function buildTable(tbId,market){{
 var rows=market?SIGNALS.filter(function(s){{return s.mercado===market;}}):SIGNALS.sort(function(a,b){{return b.ranking_accionable-a.ranking_accionable;}}).slice(0,20);
 var tb=document.getElementById(tbId); if(!tb) return;
@@ -650,6 +652,10 @@ function labelToDate(l){{
   return new Date(yr,monthMap[p[0]]||0,1);
 }}
  
+// ── VISIBILITY TRICK: show all pages so canvas has real dimensions ──
+var allPages=document.querySelectorAll('.page');
+allPages.forEach(function(p){{p.style.display='block';p.style.visibility='hidden';p.style.position='absolute';}});
+ 
 if(mL.length&&bL.length&&sL.length){{
   var allLabels=[].concat(mL,bL,sL).filter(function(v,i,a){{return a.indexOf(v)===i;}}).sort(function(a,b){{return labelToDate(a)-labelToDate(b);}});
   function pick(labels,vals,all){{return all.map(function(l){{var i=labels.indexOf(l);return i>=0?vals[i]:null;}});}}
@@ -666,6 +672,12 @@ if(mL.length&&bL.length&&sL.length){{
 if(mL.length) new Chart(document.getElementById('chartMerval'),{{type:'line',data:{{labels:mL,datasets:[{{data:mV,borderColor:'#5ba3ff',borderWidth:2.5,pointRadius:3,fill:true,backgroundColor:'rgba(91,163,255,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
 if(bL.length) new Chart(document.getElementById('chartBovespa'),{{type:'line',data:{{labels:bL,datasets:[{{data:bV,borderColor:'#4ade80',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(74,222,128,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
 if(sL.length) new Chart(document.getElementById('chartSP500'),{{type:'line',data:{{labels:sL,datasets:[{{data:sV,borderColor:'#fbbf24',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(251,191,36,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
+ 
+// ── RESTORE: hide pages, show only Panorama, then force resize ──
+allPages.forEach(function(p){{p.style.display='';p.style.visibility='';p.style.position='';}});
+setTimeout(function(){{
+  window.dispatchEvent(new Event('resize'));
+}},100);
  
 var globalSorted=SIGNALS.slice().sort(function(a,b){{return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);}});
 SIGNALS=globalSorted;
@@ -1182,4 +1194,5 @@ def generate_excel(signals: list[dict], index_stats: dict, output_path: str) -> 
     wb.save(output_path)
     logger.info(f"Excel guardado: {output_path}")
     return output_path
+ 
  
