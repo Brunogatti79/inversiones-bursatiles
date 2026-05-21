@@ -574,7 +574,9 @@ function sw(id,el){{
   setTimeout(function(){{window.dispatchEvent(new Event('resize'));}},50);
 }}
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" onerror="document.getElementById('cdnError').style.display='block'"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" onerror=""></script>
+<div id="cdnError" style="display:none;background:#b91c1c;color:white;padding:14px 24px;font-size:14px;position:sticky;top:42px;z-index:200">⚠️ Chart.js no pudo cargar (CDN bloqueado por firewall). Tablas y datos se muestran sin gráficos.</div>
 <script>
 try {{
 var SIGNALS = {signals_json};
@@ -656,6 +658,8 @@ function labelToDate(l){{
 var allPages=document.querySelectorAll('.page');
 allPages.forEach(function(p){{p.style.display='block';p.style.visibility='hidden';p.style.position='absolute';}});
  
+try {{
+if(typeof Chart!=='undefined'){{
 if(mL.length&&bL.length&&sL.length){{
   var allLabels=[].concat(mL,bL,sL).filter(function(v,i,a){{return a.indexOf(v)===i;}}).sort(function(a,b){{return labelToDate(a)-labelToDate(b);}});
   function pick(labels,vals,all){{return all.map(function(l){{var i=labels.indexOf(l);return i>=0?vals[i]:null;}});}}
@@ -672,6 +676,8 @@ if(mL.length&&bL.length&&sL.length){{
 if(mL.length) new Chart(document.getElementById('chartMerval'),{{type:'line',data:{{labels:mL,datasets:[{{data:mV,borderColor:'#5ba3ff',borderWidth:2.5,pointRadius:3,fill:true,backgroundColor:'rgba(91,163,255,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
 if(bL.length) new Chart(document.getElementById('chartBovespa'),{{type:'line',data:{{labels:bL,datasets:[{{data:bV,borderColor:'#4ade80',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(74,222,128,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
 if(sL.length) new Chart(document.getElementById('chartSP500'),{{type:'line',data:{{labels:sL,datasets:[{{data:sV,borderColor:'#fbbf24',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(251,191,36,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
+}} else {{ document.getElementById('cdnError').style.display='block'; }}
+}} catch(chartErr){{ document.getElementById('cdnError').style.display='block'; }}
  
 // ── RESTORE: hide pages, show only Panorama, then force resize ──
 allPages.forEach(function(p){{p.style.display='';p.style.visibility='';p.style.position='';}});
@@ -1004,6 +1010,7 @@ function showOpFicha(ticker){{
     '</div>';
  
   setTimeout(function(){{
+    if(typeof Chart==='undefined') return;
     var canvas=document.getElementById('opChartF');
     if(!canvas) return;
     var ctx=canvas.getContext('2d');
