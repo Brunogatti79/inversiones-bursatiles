@@ -628,13 +628,24 @@ function sigColor(s){{
 }}
  
 function buildTable(tbId,market){{
-var rows=market?SIGNALS.filter(function(s){{return s.mercado===market;}}):SIGNALS.sort(function(a,b){{return b.ranking_accionable-a.ranking_accionable;}}).slice(0,20);
+var signalOrder={{'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🟡 NEUTRAL/ESPERAR':2,'🟠 VENTA PARCIAL':3,'🔴 VENTA':4}};
+var mktOrder={{'MERVAL':0,'BOVESPA':1,'SP500':2}};
+var rows=market?SIGNALS.filter(function(s){{return s.mercado===market;}}):SIGNALS.slice();
+rows.sort(function(a,b){{
+  if(!market){{var ma=mktOrder[a.mercado]||9,mb=mktOrder[b.mercado]||9;if(ma!==mb) return ma-mb;}}
+  var sa=signalOrder[a.signal_v2||a.signal],sb=signalOrder[b.signal_v2||b.signal];
+  if(sa==null)sa=2;if(sb==null)sb=2;if(sa!==sb)return sa-sb;
+  return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);
+}});
+if(!market) rows=rows.slice(0,30);
 var tb=document.getElementById(tbId); if(!tb) return;
+var lastMkt='';
 tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>RSI</th><th>AQ</th><th>ES</th><th>R/R</th><th>Score V2</th><th>Rank</th><th>Señal V2</th></tr>'+
 rows.map(function(s){{
 var aq=s.asset_quality||0, es=s.entry_score||0, rr=s.rr_ratio||0, sv2=s.score_final_v2||s.score_final, ra=s.ranking_accionable||sv2, sig2=s.signal_v2||s.signal;
-return '<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td></tr>';}}).join('');
-}}
+var mktSep='';
+if(!market&&s.mercado!==lastMkt){{lastMkt=s.mercado;var fl=s.mercado==='MERVAL'?'🇦🇷':s.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';mktSep='<tr><td colspan="12" style="background:#111118;padding:8px 12px;font-weight:700;color:#5ba3ff;font-size:13px;border-bottom:2px solid #5ba3ff">'+fl+' '+s.mercado+'</td></tr>';}}
+return mktSep+'<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td></tr>';}}).join('');}}
 function buildStats(divId,marketKey){{
   var st=IDX[marketKey]||{{}};
   var d=document.getElementById(divId); if(!d) return;
@@ -739,13 +750,18 @@ var rb=document.getElementById('radar-block');
 if(rb) rb.innerHTML=radarHtml||'<div style="color:#666;padding:20px">Sin datos.</div>';
  
 // ── CONCLUSIONES: Compras confirmadas (PRIMERO) ──────────────────
-var compras=SIGNALS.filter(function(s){{var sig=s.signal_v2||s.signal;return sig.indexOf('COMPRA')>=0;}}).sort(function(a,b){{return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);}});
+var compras=SIGNALS.filter(function(s){{var sig=s.signal_v2||s.signal;return sig.indexOf('COMPRA')>=0;}}).sort(function(a,b){{var mo={{'MERVAL':0,'BOVESPA':1,'SP500':2}};var ma=mo[a.mercado]||9,mb=mo[b.mercado]||9;if(ma!==mb)return ma-mb;var aF=(a.signal_v2||a.signal).indexOf('FUERTE')>=0?0:1,bF=(b.signal_v2||b.signal).indexOf('FUERTE')>=0?0:1;if(aF!==bF)return aF-bF;return(b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);}});
+var lastCMkt='';
 document.getElementById('compras-block').innerHTML=compras.length?compras.map(function(s,i){{
   var sig=s.signal_v2||s.signal;
   var isFuerte=sig.indexOf('FUERTE')>=0;
   var icon=isFuerte?'⭐':'🟢';
   var upside=s.upside_graham!=null?(s.upside_graham>=0?'+':'')+s.upside_graham.toFixed(1)+'%':'—';
-  return '<div class="concl-card-exp buy" onclick="this.classList.toggle(&#39;open&#39;)">'+
+  var mktSep='';
+  if(s.mercado!==lastCMkt){{lastCMkt=s.mercado;var fl=flagOf(s.mercado);mktSep='<div style="padding:10px 0 6px;font-weight:700;color:#5ba3ff;font-size:14px;border-bottom:2px solid #5ba3ff;margin-bottom:8px">'+fl+' '+s.mercado+'</div>';}}
+  var fichaBtn='';
+  for(var fi=0;fi<FICHAS.length;fi++){{if(FICHAS[fi].ticker===s.ticker){{fichaBtn='<div class="dl" style="grid-column:1/-1"><button onclick="event.stopPropagation();sw(&#39;oportunidades&#39;,document.querySelectorAll(&#39;.tab&#39;)[5]);showOpFicha(&#39;'+s.ticker+'&#39;)" style="background:#0d2b1a;border:1px solid #1a3a1a;color:#4ade80;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;width:100%">📈 Ver ficha técnica con gráfico</button></div>';break;}}}}
+  return mktSep+'<div class="concl-card-exp buy" onclick="this.classList.toggle(&#39;open&#39;)">'+
     '<div class="concl-header">'+
     '<div class="concl-rank">#'+(i+1)+'</div>'+
     '<div class="concl-main">'+
@@ -781,15 +797,17 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
 }}).join(''):'<div style="color:#666;padding:16px">Sin señales de compra activas.</div>';
  
 // ── CONCLUSIONES: Radar de Oportunidades Tempranas (SEGUNDO) ─────
-var radarItems=SIGNALS.filter(function(s){{return s.radar_score!=null && s.radar_score>0;}}).sort(function(a,b){{return b.radar_score-a.radar_score;}});
-var radarHtml=radarItems.map(function(s,i){{
+var radarItems=SIGNALS.filter(function(s){{return s.radar_score!=null && s.radar_score>0;}}).sort(function(a,b){{var mo={{"MERVAL":0,"BOVESPA":1,"SP500":2}};var ma=mo[a.mercado]||9,mb=mo[b.mercado]||9;if(ma!==mb)return ma-mb;return b.radar_score-a.radar_score;}});
+var radarHtml='';var lastRMkt='';
+radarItems.forEach(function(s,i){{
   var pfm=s.max_12m?((1-s.precio_actual/s.max_12m)*100).toFixed(1):'?';
   var tags=[];
   if(s.signal.indexOf('COMPRA FUERTE')>=0) tags.push('<span class="radar-tag tag-green">⭐ Compra Fuerte</span>');
   else if(s.signal.indexOf('COMPRA')>=0) tags.push('<span class="radar-tag tag-green">🟢 Compra</span>');
   else tags.push('<span class="radar-tag tag-yellow">🟡 Monitorear</span>');
   var sc=s.radar_score>=70?'#22c55e':s.radar_score>=50?'#86efac':s.radar_score>=35?'#fbbf24':'#fb923c';
-  return '<div class="concl-card-exp radar" onclick="this.classList.toggle(&#39;open&#39;)">'+
+  if(s.mercado!==lastRMkt){{lastRMkt=s.mercado;radarHtml+='<div style="padding:10px 0 6px;font-weight:700;color:#5ba3ff;font-size:14px;border-bottom:2px solid #5ba3ff;margin-bottom:8px">'+flagOf(s.mercado)+' '+s.mercado+'</div>';}}
+  radarHtml+='<div class="concl-card-exp radar" onclick="this.classList.toggle(&#39;open&#39;)">'+
     '<div class="concl-header">'+
     '<div class="concl-rank" style="color:'+sc+'">#'+(i+1)+'</div>'+
     '<div class="concl-main">'+
@@ -821,17 +839,19 @@ var radarHtml=radarItems.map(function(s,i){{
     '<div class="dl">Ret. anual <b style="color:'+rc(s.ret_anual)+'">'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(2)+'%</b></div>'+
     '<div class="radar-bar-wrap" style="grid-column:1/-1"><div class="radar-bar" style="width:'+s.radar_score+'%;background:'+sc+'"></div></div>'+
     '</div></div></div>';
-}}).join('');
+}});
 var rb=document.getElementById('radar-block');
 if(rb) rb.innerHTML=radarHtml||'<div style="color:#666;padding:20px">Sin datos de radar.</div>';
  
 // ── CONCLUSIONES: Señales de Reducción (TERCERO) ─────────────────
-var ventas=SIGNALS.filter(function(s){{var sig=s.signal_v2||s.signal;return sig.indexOf('VENTA')>=0;}}).sort(function(a,b){{return (a.ranking_accionable||a.score_final)-(b.ranking_accionable||b.score_final);}});
-document.getElementById('ventas-block').innerHTML=ventas.length?ventas.map(function(s,i){{
+var ventas=SIGNALS.filter(function(s){{var sig=s.signal_v2||s.signal;return sig.indexOf('VENTA')>=0;}}).sort(function(a,b){{var mo={{"MERVAL":0,"BOVESPA":1,"SP500":2}};var ma=mo[a.mercado]||9,mb=mo[b.mercado]||9;if(ma!==mb)return ma-mb;var sO={{"🔴 VENTA":0,"🟠 VENTA PARCIAL":1}};var sa=sO[a.signal_v2||a.signal]||1,sb=sO[b.signal_v2||b.signal]||1;if(sa!==sb)return sa-sb;return (a.ranking_accionable||a.score_final)-(b.ranking_accionable||b.score_final);}});
+var ventasHtml='';var lastVMkt='';
+ventas.forEach(function(s,i){{
   var sig=s.signal_v2||s.signal;
   var isVenta=sig.indexOf('VENTA PARCIAL')<0;
   var icon=isVenta?'🔴':'🟠';
-  return '<div class="concl-card-exp sell" onclick="this.classList.toggle(&#39;open&#39;)">'+
+  if(s.mercado!==lastVMkt){{lastVMkt=s.mercado;ventasHtml+='<div style="padding:10px 0 6px;font-weight:700;color:#f87171;font-size:14px;border-bottom:2px solid #f87171;margin-bottom:8px">'+flagOf(s.mercado)+' '+s.mercado+'</div>';}}
+  ventasHtml+='<div class="concl-card-exp sell" onclick="this.classList.toggle(&#39;open&#39;)">'+
     '<div class="concl-header">'+
     '<div class="concl-rank">#'+(i+1)+'</div>'+
     '<div class="concl-main">'+
@@ -861,7 +881,8 @@ document.getElementById('ventas-block').innerHTML=ventas.length?ventas.map(funct
     '<div class="dl">Ret. anual <b style="color:'+rc(s.ret_anual)+'">'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(2)+'%</b></div>'+
     '<div class="dl">Score cuantitativo <b>'+(s.score_cuant!=null?s.score_cuant.toFixed(1):'—')+'</b></div>'+
     '</div></div></div>';
-}}).join(''):'<div style="color:#666;padding:16px">Sin señales de venta activas.</div>';
+}});
+document.getElementById('ventas-block').innerHTML=ventasHtml||'<div style="color:#666;padding:16px">Sin señales de venta activas.</div>';
  
   
 // ── OPORTUNIDADES DE COMPRA ────────────────────────────────────────────────
