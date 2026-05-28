@@ -13,7 +13,7 @@ import pytz
  
 from src.downloader     import download_all, save_csvs, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
 from src.analyzer       import (analyze_market, detect_signal_changes, save_signals, get_index_stats)
-from src.macro_loader   import load_xlsx_signals
+from src.macro_loader   import load_xlsx_signals, get_stress_data
 from src.macro_auto     import fetch_all_macro, get_cached_macro
 from src.fundamental    import load_fundamental_scores
 from src.data_validator import validar_todos
@@ -105,12 +105,24 @@ def run_pipeline():
         logger.info(f"Fundamental scores cargados: {len(fund_scores)} tickers") 
         # 3. ANÁLISIS
         logger.info("3/8 Calculando señales...")
+
+        # Fase 3: Stress data para MERVAL
+        stress_data = get_stress_data(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")
+
+        # Fase 3: Index series para Relative Strength
+        idx_merval  = merval_df[index_cols["merval"]].dropna()  if index_cols.get("merval")  and index_cols["merval"]  in merval_df.columns  else None
+        idx_bovespa = bovespa_df[index_cols["bovespa"]].dropna() if index_cols.get("bovespa") and index_cols["bovespa"] in bovespa_df.columns else None
+        idx_sp500   = sp500_df[index_cols["sp500"]].dropna()    if index_cols.get("sp500")   and index_cols["sp500"]   in sp500_df.columns   else None
+
         signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS,
-                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores)
+                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores,
+                                         stress_data=stress_data, index_series=idx_merval)
         signals_bovespa = analyze_market(bovespa_df, "BOVESPA", BOVESPA_TICKERS,
-                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores)
+                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores,
+                                         index_series=idx_bovespa)
         signals_sp500   = analyze_market(sp500_df,   "SP500",   SP500_TICKERS,
-                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores)
+                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores,
+                                         index_series=idx_sp500)
         all_signals = signals_merval + signals_bovespa + signals_sp500
         all_signals.sort(key=lambda x: x["score_final"], reverse=True)
  
