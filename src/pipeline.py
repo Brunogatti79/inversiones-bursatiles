@@ -126,6 +126,17 @@ def run_pipeline():
         all_signals = signals_merval + signals_bovespa + signals_sp500
         all_signals.sort(key=lambda x: x["score_final"], reverse=True)
  
+        # 4b. PREDICCIONES ENSEMBLE (5d / 10d / 21d)
+        logger.info("4b/8 Generando predicciones ensemble...")
+        try:
+            from src.predictor import run_predictions
+            all_signals = run_predictions(
+                all_signals,
+                {"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df}
+            )
+        except Exception as e:
+            logger.warning(f"Predicciones no disponibles: {e}")
+
         # 4. ESTADÍSTICAS DE ÍNDICES
         logger.info("4/8 Calculando estadísticas...")
         index_stats = {

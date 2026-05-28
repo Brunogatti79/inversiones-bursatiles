@@ -50,70 +50,104 @@ def _find_levels(serie, window=15):
 def _build_oportunidades(signals, price_data):
     """
     Construye fichas de oportunidades de compra con análisis técnico.
+    Si no encuentra la serie de precios en los CSVs, construye la ficha
+    con los datos de SIGNALS (sin gráfico de velas).
     price_data: dict {'merval': df, 'bovespa': df, 'sp500': df}
     """
     compras = [s for s in signals if 'COMPRA' in s.get('signal','')]
- 
+
     fichas = []
     for s in compras:
         ticker  = s['ticker']
         empresa = s['empresa']
         market  = s['mercado']
-        df_key  = 'merval' if market=='MERVAL' else 'bovespa' if market=='BOVESPA' else 'sp500'
-        df      = price_data.get(df_key)
-        if df is None or df.empty:
-            continue
- 
-        # Buscar columna
+        flag    = '🇦🇷' if market=='MERVAL' else '🇧🇷' if market=='BOVESPA' else '🇺🇸'
+        moneda  = 'ARS' if market=='MERVAL' else 'BRL' if market=='BOVESPA' else 'USD'
+
+        df_key = 'merval' if market=='MERVAL' else 'bovespa' if market=='BOVESPA' else 'sp500'
+        df     = price_data.get(df_key)
+
+        # Buscar columna — primero por ticker, luego por palabras del nombre
         col = None
-        for c in df.columns:
-            if any(w in c for w in empresa.split()[:2]):
-                col = c; break
-        if col is None:
-            continue
- 
-        serie = df[col].dropna()
-        if len(serie) < 20:
-            continue
- 
-        precio   = float(serie.iloc[-1])
-        max12m   = float(serie.max())
-        min12m   = float(serie.min())
-        max_dt   = serie.idxmax().strftime('%d/%m/%Y') if hasattr(serie.idxmax(), 'strftime') else ''
-        min_dt   = serie.idxmin().strftime('%d/%m/%Y') if hasattr(serie.idxmin(), 'strftime') else ''
-        dist_max = round((max12m - precio) / max12m * 100, 1) if max12m > 0 else 0
- 
-        ma20 = float(serie.rolling(20).mean().iloc[-1]) if len(serie)>=20 else precio
-        ma50 = float(serie.rolling(50).mean().iloc[-1]) if len(serie)>=50 else precio
-        ma200 = float(serie.rolling(200).mean().iloc[-1]) if len(serie)>=200 else None
- 
-        sup, res = _find_levels(serie)
- 
-        # Punto entrada
-        entrada = round(min(precio, ma20) * 0.99, 2)
-        stop    = round(sup[1]*0.985 if len(sup)>1 else entrada*0.94, 2)
-        target  = round(res[0]*0.995 if res else precio*1.12, 2)
-        riesgo  = round((entrada-stop)/entrada*100, 1) if entrada > 0 else 0
-        reward  = round((target-entrada)/entrada*100, 1) if entrada > 0 else 0
-        rr      = round(reward/riesgo, 1) if riesgo > 0 else 0
- 
-        # Serie de 60 sesiones para gráfico
-        tail60 = serie.tail(60)
-        closes60 = [round(float(v), 2) for v in tail60.values]
-        dates60  = [d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d) for d in tail60.index]
- 
-        # MA lines
-        ma20_line, ma50_line = [], []
-        if len(serie) >= 80:
-            s20 = serie.rolling(20).mean()
-            ma20_line = [round(float(v),2) if not pd.isna(v) else None for v in s20.tail(60).values]
-        if len(serie) >= 110:
-            s50 = serie.rolling(50).mean()
-            ma50_line = [round(float(v),2) if not pd.isna(v) else None for v in s50.tail(60).values]
- 
-        flag   = '🇦🇷' if market=='MERVAL' else '🇧🇷' if market=='BOVESPA' else '🇺🇸'
-        moneda = 'ARS' if market=='MERVAL' else 'BRL' if market=='BOVESPA' else 'USD'
- 
+        if df is not None and not df.empty:
+            ticker_base = ticker.replace('.BA', '')
+            for c in df.columns:
+                if ticker_base.upper() in c.upper():
+                    col = c; break
+            if col is None:
+                for c in df.columns:
+                    if any(w.lower() in c.lower() for w in empresa.split()[:2] if len(w) > 3):
+                        col = c; break
+
+        # ── Rama con serie de precios (cálculo técnico completo) ──
+        if col is not None:
+            serie = df[col].dropna()
+            if len(serie) < 20:
+                col = None  # caer al fallback
+
+        if col is not None:
+            serie    = df[col].dropna()
+            precio   = float(serie.iloc[-1])
+            max12m   = float(serie.max())
+            min12m   = float(serie.min())
+            max_dt   = serie.idxmax().strftime('%d/%m/%Y') if hasattr(serie.idxmax(), 'strftime') else ''
+            min_dt   = serie.idxmin().strftime('%d/%m/%Y') if hasattr(serie.idxmin(), 'strftime') else ''
+            dist_max = round((max12m - precio) / max12m * 100, 1) if max12m > 0 else 0
+
+            ma20  = float(serie.rolling(20).mean().iloc[-1]) if len(serie)>=20 else precio
+            ma50  = float(serie.rolling(50).mean().iloc[-1]) if len(serie)>=50 else precio
+            ma200 = float(serie.rolling(200).mean().iloc[-1]) if len(serie)>=200 else None
+
+            sup, res = _find_levels(serie)
+
+            entrada = round(min(precio, ma20) * 0.99, 2)
+            stop    = round(s.get('atr_stop') or (sup[1]*0.985 if len(sup)>1 else entrada*0.94), 2)
+            target  = round(s.get('atr_target') or (res[0]*0.995 if res else precio*1.12), 2)
+            riesgo  = round((entrada-stop)/entrada*100, 1) if entrada > 0 else 0
+            reward  = round((target-entrada)/entrada*100, 1) if entrada > 0 else 0
+            rr      = round(s.get('rr_ratio') or (reward/riesgo if riesgo > 0 else 0), 2)
+
+            tail60    = serie.tail(60)
+            closes60  = [round(float(v), 2) for v in tail60.values]
+            dates60   = [d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d) for d in tail60.index]
+            ma20_line, ma50_line = [], []
+            if len(serie) >= 80:
+                ma20_line = [round(float(v),2) if not pd.isna(v) else None for v in serie.rolling(20).mean().tail(60).values]
+            if len(serie) >= 110:
+                ma50_line = [round(float(v),2) if not pd.isna(v) else None for v in serie.rolling(50).mean().tail(60).values]
+
+            ma_cross  = bool(serie.rolling(20).mean().iloc[-1] > serie.rolling(50).mean().iloc[-1]) if len(serie)>=50 else False
+            momentum  = round(s.get('momentum_21d', _momentum(serie)), 1)
+            sin_grafico = False
+
+        else:
+            # ── Fallback: construir ficha 100% desde SIGNALS ──
+            precio   = float(s.get('precio_actual', 0))
+            max12m   = float(s.get('max_12m') or precio)
+            min12m   = float(s.get('min_12m') or precio)
+            max_dt   = s.get('max_12m_date', '')
+            min_dt   = s.get('min_12m_date', '')
+            dist_max = round(s.get('dist_max_pct', 0), 1)
+
+            ma20 = ma50 = precio
+            ma200    = None
+            ma_cross = bool(s.get('ma_cross', False))
+            sup, res = [], []
+
+            entrada = precio
+            stop    = float(s.get('atr_stop') or precio * 0.94)
+            target  = float(s.get('atr_target') or precio * 1.12)
+            riesgo  = round((entrada-stop)/entrada*100, 1) if entrada > 0 else 0
+            reward  = round((target-entrada)/entrada*100, 1) if entrada > 0 else 0
+            rr      = round(float(s.get('rr_ratio') or (reward/riesgo if riesgo > 0 else 0)), 2)
+
+            closes60 = []
+            dates60  = []
+            ma20_line = []
+            ma50_line = []
+            momentum  = round(s.get('momentum_21d', 0), 1)
+            sin_grafico = True
+
         fichas.append({
             'ticker': ticker, 'empresa': empresa, 'market': market,
             'flag': flag, 'moneda': moneda,
@@ -121,13 +155,19 @@ def _build_oportunidades(signals, price_data):
             'max_dt': max_dt, 'min_dt': min_dt, 'dist_max': dist_max,
             'ma20': round(ma20,2), 'ma50': round(ma50,2),
             'ma200': round(ma200,2) if ma200 else None,
-            'ma_cross': bool(serie.rolling(20).mean().iloc[-1] > serie.rolling(50).mean().iloc[-1]) if len(serie)>=50 else False,
+            'ma_cross': ma_cross,
             'rsi': round(s.get('rsi',50),1),
-            'momentum': round(s.get('momentum_21d', _momentum(serie)),1),
+            'momentum': momentum,
             'ret_anual': round(s.get('ret_anual',0),1),
             'soportes': sup, 'resistencias': res,
             'entrada': entrada, 'stop': stop, 'target': target,
             'riesgo': riesgo, 'reward': reward, 'rr': rr,
+            'atr_stop': s.get('atr_stop'),
+            'atr_target': s.get('atr_target'),
+            'rr_ratio': s.get('rr_ratio'),
+            'adx': s.get('adx'),
+            'stress_index': s.get('stress_index'),
+            'atr_percentile': s.get('atr_percentile'),
             'score_macro': round(s.get('score_macro',0),1),
             'score_tec':   round(s.get('score_tecnico',0),1),
             'score_fund':  round(s.get('score_fundamental',50),1),
@@ -135,6 +175,15 @@ def _build_oportunidades(signals, price_data):
             'signal': s.get('signal',''),
             'closes60': closes60, 'dates60': dates60,
             'ma20_line': ma20_line, 'ma50_line': ma50_line,
+            'sin_grafico': sin_grafico,
+            # ── Predicciones ARIMA/Ensemble ──
+            'pred_5d':          s.get('pred_5d'),
+            'pred_10d':         s.get('pred_10d'),
+            'pred_21d':         s.get('pred_21d'),
+            'pred_target':      s.get('pred_target'),
+            'pred_confidence':  s.get('pred_confidence'),
+            'pred_signal':      s.get('pred_signal', ''),
+            'pred_direction_agree': s.get('pred_direction_agree', False),
         })
     # Ranking: Score desc, desempate por R/R cuando scores similares (banda 1 pto)
     fichas.sort(key=lambda f: (-int(f['score_final']), -f['rr']))
@@ -358,6 +407,13 @@ def generate_dashboard(
     .op-fgrid{{grid-template-columns:1fr}}
     .radar-card{{flex-direction:column;align-items:flex-start}}
   }}
+/* ── FORMULARIO OPERACIONES ── */
+#op-form-grid{{display:grid;grid-template-columns:2fr 1fr 1.2fr 1.2fr auto;gap:12px;align-items:end}}
+@media(max-width:900px){{#op-form-grid{{grid-template-columns:1fr 1fr}}}}
+@media(max-width:600px){{#op-form-grid{{grid-template-columns:1fr}}}}
+.op-ticker-item{{padding:8px 12px;cursor:pointer;font-size:12px;font-family:monospace;border-bottom:1px solid #222230;display:flex;justify-content:space-between;align-items:center}}
+.op-ticker-item:hover{{background:#1e2a3a;color:#5ba3ff}}
+.op-ticker-item .oti-sig{{font-size:10px;padding:2px 6px;border-radius:4px}}
 /* ── CONCLUSIONES EXPANDIBLES ── */
 .concl-subtitle{{font-size:12px;color:#666;margin-bottom:14px;letter-spacing:0.3px}}
 .concl-card-exp{{border-radius:10px;padding:16px;margin-bottom:12px;cursor:pointer;transition:all .2s}}
@@ -468,8 +524,14 @@ def generate_dashboard(
     <div class="legend-item"><div style="background:#fbbf24;height:3px;width:24px;border-radius:2px"></div><span style="color:#fbbf24;font-weight:600">S&amp;P 500 🇺🇸</span></div>
   </div>
   <div class="chart-wrap"><canvas id="chartPano"></canvas></div>
-  <div class="section-title">Ranking global de oportunidades</div>
-  <table class="tbl" id="tbl-global"></table>
+  <div class="section-title">Señales por mercado — Ranking global</div>
+  <div style="margin-bottom:6px;font-size:11px;color:#555">Ordenado por Score V2 · Señal descendente</div>
+  <div style="margin:14px 0 4px;font-size:13px;font-weight:700;color:#5ba3ff;border-bottom:1px solid #5ba3ff;padding-bottom:4px">🇦🇷 MERVAL</div>
+  <table class="tbl" id="tbl-pano-merval"></table>
+  <div style="margin:18px 0 4px;font-size:13px;font-weight:700;color:#4ade80;border-bottom:1px solid #4ade80;padding-bottom:4px">🇧🇷 BOVESPA</div>
+  <table class="tbl" id="tbl-pano-bovespa"></table>
+  <div style="margin:18px 0 4px;font-size:13px;font-weight:700;color:#fbbf24;border-bottom:1px solid #fbbf24;padding-bottom:4px">🇺🇸 S&amp;P 500</div>
+  <table class="tbl" id="tbl-pano-sp500"></table>
 </div>
  
 <!-- MERVAL -->
@@ -563,7 +625,61 @@ def generate_dashboard(
   <div id="portfolio-summary" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
   <table class="tbl" id="portfolio-table"></table>
   <div class="section-title" style="margin-top:20px">⚠️ Alertas Activas</div>
-  <div id="portfolio-alerts" style="font-size:13px"></div>
+  <div id="portfolio-alerts" style="font-size:13px;margin-bottom:32px"></div>
+
+  <!-- ── FORMULARIO DE OPERACIONES ── -->
+  <div class="section-title" style="margin-top:8px;color:#5ba3ff">📝 Registrar Operación</div>
+  <div style="background:#16161e;border:1px solid #222230;border-radius:10px;padding:20px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:12px;align-items:end;flex-wrap:wrap" id="op-form-grid">
+      <!-- Ticker con autocomplete -->
+      <div>
+        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Ticker (modelo)</label>
+        <div style="position:relative">
+          <input id="op-ticker-input" type="text" placeholder="Ej: CEPU.BA, MELI…" autocomplete="off"
+            style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px;font-family:monospace"
+            oninput="tickerAutocomplete(this.value)" onblur="setTimeout(function(){{document.getElementById('op-ticker-drop').style.display='none';}},150)">
+          <div id="op-ticker-drop" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1a1a2a;border:1px solid #333;border-radius:6px;z-index:200;max-height:180px;overflow-y:auto"></div>
+        </div>
+        <div id="op-ticker-status" style="font-size:10px;margin-top:3px;color:#555">Ingresá un ticker del modelo</div>
+      </div>
+      <!-- Tipo -->
+      <div>
+        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Tipo</label>
+        <select id="op-tipo" style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px">
+          <option value="COMPRA">🟢 COMPRA</option>
+          <option value="VENTA">🔴 VENTA</option>
+        </select>
+      </div>
+      <!-- Precio total USD -->
+      <div>
+        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Precio unitario</label>
+        <input id="op-precio" type="number" step="0.01" min="0" placeholder="Precio por unidad"
+          style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px">
+      </div>
+      <!-- Valores nominales -->
+      <div>
+        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Cantidad (VN)</label>
+        <input id="op-cantidad" type="number" step="1" min="1" placeholder="Unidades / láminas"
+          style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px">
+      </div>
+      <!-- Botón -->
+      <div>
+        <button onclick="registrarOperacion()" style="background:#1e3a5f;border:1px solid #5ba3ff;color:#5ba3ff;padding:9px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap">
+          + Registrar
+        </button>
+      </div>
+    </div>
+    <div id="op-form-msg" style="margin-top:10px;font-size:12px;display:none"></div>
+  </div>
+
+  <!-- ── HISTORIAL DE OPERACIONES ── -->
+  <div class="section-title" style="color:#aaa">📋 Historial de Operaciones</div>
+  <div id="op-historial-wrap">
+    <table class="tbl" id="op-historial-table">
+      <tr><th>Fecha</th><th>Tipo</th><th>Ticker</th><th>Mercado</th><th>Señal actual</th><th>Precio unit.</th><th>Cantidad</th><th>Total</th><th></th></tr>
+    </table>
+    <div id="op-historial-empty" style="color:#555;font-size:12px;padding:12px">Sin operaciones registradas.</div>
+  </div>
 </div>
 <script>
 function sw(id,el){{
@@ -629,7 +745,7 @@ function sigColor(s){{
  
 function buildTable(tbId,market){{
 var signalOrder={{'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🟡 NEUTRAL/ESPERAR':2,'🟠 VENTA PARCIAL':3,'🔴 VENTA':4}};
-var mktOrder={{'MERVAL':0,'BOVESPA':1,'SP500':2}};
+var mktOrder={{'MERVAL':1,'BOVESPA':2,'SP500':3}};
 var rows=market?SIGNALS.filter(function(s){{return s.mercado===market;}}):SIGNALS.slice();
 rows.sort(function(a,b){{
   if(!market){{var ma=mktOrder[a.mercado]||9,mb=mktOrder[b.mercado]||9;if(ma!==mb) return ma-mb;}}
@@ -637,7 +753,7 @@ rows.sort(function(a,b){{
   if(sa==null)sa=2;if(sb==null)sb=2;if(sa!==sb)return sa-sb;
   return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);
 }});
-if(!market) rows=rows.slice(0,30);
+if(!market) rows=rows.slice(0,50);
 var tb=document.getElementById(tbId); if(!tb) return;
 var lastMkt='';
 tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>RSI</th><th>AQ</th><th>ES</th><th>R/R</th><th>Score V2</th><th>Rank</th><th>Señal V2</th></tr>'+
@@ -698,7 +814,8 @@ setTimeout(function(){{
  
 var globalSorted=SIGNALS.slice().sort(function(a,b){{return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);}});
 SIGNALS=globalSorted;
-buildTable('tbl-global',null); buildTable('tbl-merval','MERVAL'); buildTable('tbl-bovespa','BOVESPA'); buildTable('tbl-sp500','SP500');
+buildTable('tbl-pano-merval','MERVAL'); buildTable('tbl-pano-bovespa','BOVESPA'); buildTable('tbl-pano-sp500','SP500');
+buildTable('tbl-merval','MERVAL'); buildTable('tbl-bovespa','BOVESPA'); buildTable('tbl-sp500','SP500');
 buildStats('merval-stats','merval'); buildStats('bovespa-stats','bovespa'); buildStats('sp500-stats','sp500');
  
 // ── RADAR ──────────────────────────────────────────────────────────────────
@@ -799,6 +916,17 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
     '<div class="dl">ATR Percentil <b>'+(s.atr_percentile!=null?s.atr_percentile.toFixed(0)+'%':'—')+'</b></div>'+
     '<div class="dl">ADX <b style="color:'+(s.adx>25?'#4ade80':'#f87171')+'">'+(s.adx!=null?s.adx.toFixed(1):'—')+'</b></div>'+
     (s.stress_index!=null?'<div class="dl">Stress Index <b style="color:'+(s.stress_index>70?'#f87171':s.stress_index<40?'#4ade80':'#fbbf24')+'">'+s.stress_index.toFixed(0)+'</b></div>':'')+
+    (s.rr_ratio!=null?'<div class="dl">R/R Ratio <b style="color:#fbbf24">'+s.rr_ratio.toFixed(2)+'x</b></div>':'')+
+    (s.atr_stop!=null?'<div class="dl">ATR Stop <b style="color:#fb923c">'+s.atr_stop.toLocaleString(\'es-AR\')+'</b></div>':'')+
+    (s.atr_target!=null?'<div class="dl">ATR Target <b style="color:#bc8cff">'+s.atr_target.toLocaleString(\'es-AR\')+'</b></div>':'')+
+    (s.pred_signal?'<div class="dl" style="grid-column:1/-1;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;margin-top:4px"><b style="color:#a78bfa">🔭 PREDICCIÓN ENSEMBLE</b></div>'+
+      (s.pred_5d!=null?'<div class="dl">Pred. 5d <b style="color:'+(s.pred_5d>=0?'#4ade80':'#f87171')+'">'+(s.pred_5d>=0?'+':'')+s.pred_5d.toFixed(1)+'%</b></div>':'')+
+      (s.pred_21d!=null?'<div class="dl">Pred. 21d <b style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+'">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</b></div>':'')+
+      (s.pred_target?'<div class="dl">Target pred. <b style="color:#bc8cff">'+s.pred_target.toLocaleString(\'es-AR\')+'</b></div>':'')+
+      (s.pred_confidence?'<div class="dl">Confianza <b style="color:#a78bfa">'+fn(s.pred_confidence*100,0)+'%</b></div>':'')+
+      '<div class="dl">Señal pred. <b style="color:#a78bfa">'+s.pred_signal+'</b></div>'+
+      (s.pred_direction_agree!==undefined?'<div class="dl">vs Modelo <b style="color:'+(s.pred_direction_agree?'#4ade80':'#fbbf24')+'">'+(s.pred_direction_agree?'✅ Confirma':'⚠️ Diverge')+'</b></div>':'')
+    :'')+
     '</div></div></div>';
 }}).join(''):'<div style="color:#666;padding:16px">Sin señales de compra activas.</div>';
  
@@ -844,6 +972,9 @@ radarItems.forEach(function(s,i){{
     '<div class="dl">Ret. semanal <b style="color:'+rc(s.ret_sem)+'">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(2)+'%</b></div>'+
     '<div class="dl">Ret. mensual <b style="color:'+rc(s.ret_mes)+'">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(2)+'%</b></div>'+
     '<div class="dl">Ret. anual <b style="color:'+rc(s.ret_anual)+'">'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(2)+'%</b></div>'+
+    (s.rr_ratio!=null?'<div class="dl">R/R Ratio <b style="color:#fbbf24">'+s.rr_ratio.toFixed(2)+'x</b></div>':'')+
+    (s.atr_stop!=null?'<div class="dl">ATR Stop <b style="color:#fb923c">'+s.atr_stop.toLocaleString(\'es-AR\')+'</b></div>':'')+
+    (s.atr_target!=null?'<div class="dl">ATR Target <b style="color:#bc8cff">'+s.atr_target.toLocaleString(\'es-AR\')+'</b></div>':'')+
     '<div class="radar-bar-wrap" style="grid-column:1/-1"><div class="radar-bar" style="width:'+s.radar_score+'%;background:'+sc+'"></div></div>'+
     '</div></div></div>';
 }});
@@ -967,12 +1098,16 @@ function showOpFicha(ticker){{
     '</div>'+
     '<div class="op-card">'+
       '<h3>📈 Precio + MA20 + MA50 · 60 sesiones · Soportes/Resistencias</h3>'+
-      '<div class="op-chart-wrap"><canvas id="opChartF"></canvas></div>'+
+      (f.sin_grafico?
+        '<div style="padding:20px;text-align:center;color:#555;font-size:12px;border:1px dashed #222230;border-radius:6px">📉 Serie de precios no disponible en datos locales — datos del modelo activos</div>'
+        :'<div class="op-chart-wrap"><canvas id="opChartF"></canvas></div>')+
     '</div>'+
     '<div class="op-rrbox">'+
       '<div><div class="op-rrval" style="color:#5ba3ff">'+fn(f.entrada)+'</div><div class="op-rrlbl">Entrada</div></div>'+
-      '<div><div class="op-rrval" style="color:#bc8cff">'+fn(f.rr,1)+'x</div><div class="op-rrlbl">R/Recompensa</div></div>'+
+      '<div><div class="op-rrval" style="color:#bc8cff">'+fn(f.rr_ratio!=null?f.rr_ratio:f.rr,2)+'x</div><div class="op-rrlbl">R/R</div></div>'+
       '<div><div class="op-rrval" style="color:#4ade80">+'+fn(f.reward,1)+'%</div><div class="op-rrlbl">Upside</div></div>'+
+      (f.atr_stop!=null?'<div><div class="op-rrval" style="color:#fb923c">'+fn(f.atr_stop)+'</div><div class="op-rrlbl">ATR Stop</div></div>':'')+
+      (f.atr_target!=null?'<div><div class="op-rrval" style="color:#a78bfa">'+fn(f.atr_target)+'</div><div class="op-rrlbl">ATR Target</div></div>':'')+
     '</div>'+
     '<div class="op-fgrid">'+
       '<div class="op-card"><h3>📐 Niveles operativos</h3>'+lvls+
@@ -1034,9 +1169,40 @@ function showOpFicha(ticker){{
           '<span>Mom <b style="color:'+rc(f.momentum)+'">'+fp(f.momentum)+'</b></span>'+
           '<span style="color:#666">-'+fn(f.dist_max,1)+'% del máx</span>'+
           '<span>12m <b style="color:'+rc(f.ret_anual)+'">'+fp(f.ret_anual)+'</b></span>'+
+          (f.adx!=null?'<span>ADX <b style="color:'+(f.adx>25?'#4ade80':'#f87171')+'">'+fn(f.adx,1)+'</b></span>':'')+
+          (f.stress_index!=null?'<span>Stress <b style="color:'+(f.stress_index>70?'#f87171':f.stress_index<40?'#4ade80':'#fbbf24')+'">'+fn(f.stress_index,0)+'</b></span>':'')+
+          (f.atr_percentile!=null?'<span>ATR% <b>'+fn(f.atr_percentile,0)+'</b></span>':'')+
         '</div>'+
       '</div>'+
+      (f.pred_signal?'<div class="op-card"><h3>🔭 Predicción Ensemble (5d / 21d)</h3>'+
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">'+
+          '<div style="background:#0d1117;border:1px solid #1a2030;border-radius:6px;padding:8px;text-align:center">'+
+            '<div style="font-size:10px;color:#666;margin-bottom:3px">5 días</div>'+
+            '<div style="font-size:16px;font-weight:700;color:'+(f.pred_5d!=null&&f.pred_5d>=0?'#4ade80':'#f87171')+'">'+
+              (f.pred_5d!=null?(f.pred_5d>=0?'+':'')+fn(f.pred_5d,1)+'%':'—')+
+            '</div>'+
+          '</div>'+
+          '<div style="background:#0d1117;border:1px solid #1a2030;border-radius:6px;padding:8px;text-align:center">'+
+            '<div style="font-size:10px;color:#666;margin-bottom:3px">21 días</div>'+
+            '<div style="font-size:16px;font-weight:700;color:'+(f.pred_21d!=null&&f.pred_21d>=0?'#4ade80':'#f87171')+'">'+
+              (f.pred_21d!=null?(f.pred_21d>=0?'+':'')+fn(f.pred_21d,1)+'%':'—')+
+            '</div>'+
+          '</div>'+
+          '<div style="background:#0d1117;border:1px solid #1a2030;border-radius:6px;padding:8px;text-align:center">'+
+            '<div style="font-size:10px;color:#666;margin-bottom:3px">Confianza</div>'+
+            '<div style="font-size:16px;font-weight:700;color:#a78bfa">'+
+              (f.pred_confidence!=null?fn(f.pred_confidence*100,0)+'%':'—')+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">'+
+          '<div style="font-size:13px;font-weight:700;color:#a78bfa">'+f.pred_signal+'</div>'+
+          (f.pred_target?'<div style="font-size:12px;color:#666">Target: <b style="color:#bc8cff">'+fn(f.pred_target)+'</b></div>':'')+
+          (f.pred_direction_agree?'<div style="font-size:11px;color:#4ade80">✅ Confirma señal del modelo</div>':'<div style="font-size:11px;color:#fbbf24">⚠️ Diverge del modelo</div>')+
+        '</div>'+
+      '</div>':'')+ 
     '</div>';
+
  
   setTimeout(function(){{
     if(typeof Chart==='undefined') return;
@@ -1107,25 +1273,38 @@ function showOpFicha(ticker){{
   }});
   var totalPnl = totalVal - totalInv;
   var totalPnlPct = totalInv > 0 ? ((totalVal/totalInv - 1)*100).toFixed(2) : '0';
+  var capUsd = portfolio.capital_usd || null;
   var sm = document.getElementById('portfolio-summary');
-  if(sm) sm.innerHTML = '<div class="card"><div class="card-title">Invertido</div><div class="card-value">$'+totalInv.toLocaleString('es-AR')+'</div></div>'
-    +'<div class="card"><div class="card-title">Valor actual</div><div class="card-value">$'+totalVal.toLocaleString('es-AR')+'</div></div>'
+  if(sm) sm.innerHTML = '<div class="card"><div class="card-title">Invertido (broker)</div><div class="card-value" style="color:#5ba3ff">'+(capUsd?'USD '+capUsd.toLocaleString('es-AR'):'$'+totalInv.toLocaleString('es-AR'))+'</div><div class="card-sub">Referencia al momento de compra</div></div>'
+    +'<div class="card"><div class="card-title">Valor actual (ARS)</div><div class="card-value">$'+totalVal.toLocaleString('es-AR')+'</div><div class="card-sub">Precios de cierre vigentes</div></div>'
     +'<div class="card"><div class="card-title">P&L Total</div><div class="card-value" style="color:'+(totalPnl>=0?'#4ade80':'#f87171')+'">'+(totalPnl>=0?'+':'')+totalPnl.toLocaleString('es-AR')+' ('+totalPnlPct+'%)</div></div>'
     +'<div class="card"><div class="card-title">Posiciones</div><div class="card-value">'+positions.length+'</div></div>';
   var tb = document.getElementById('portfolio-table');
   if(tb) tb.innerHTML = '<tr><th>Ticker</th><th>Compra</th><th>Actual</th><th>Cant</th><th>P&L%</th><th>P&L$</th><th>Señal</th><th>R/R</th><th>ATR Stop</th><th>Acción</th></tr>'
     + positions.map(function(p){{
       var pnl = pnlItems.find(function(a){{return a.ticker===p.ticker;}});
-      var sigData = SIGNALS.find(function(s){{return s.ticker===p.ticker || s.ticker===p.ticker.replace('.BA','');}});
+      var sigData = SIGNALS.find(function(s){{return s.ticker===p.ticker || s.ticker===p.ticker.replace('.BA','') || s.ticker===p.ticker+'.SA';}});
+      var sinDatos = !sigData;
       var precioAct = sigData ? sigData.precio_actual : p.precio_compra;
       var pnlPct = p.precio_compra > 0 ? ((precioAct/p.precio_compra-1)*100).toFixed(1) : '0';
       var pnlAbs = ((precioAct - p.precio_compra) * p.cantidad).toFixed(0);
-      var sig2 = pnl ? (pnl.signal_v2||'—') : (sigData ? (sigData.signal_v2||'—') : '—');
+      var sig2 = pnl ? (pnl.signal_v2||'—') : (sigData ? (sigData.signal_v2||'—') : (sinDatos?'⚠️ Sin datos':'—'));
       var rr = pnl ? (pnl.rr_ratio||0).toFixed(1)+'x' : (sigData ? (sigData.rr_ratio||0).toFixed(1)+'x' : '—');
       var atrS = pnl ? (pnl.atr_stop||0) : (sigData ? (sigData.atr_stop||0) : 0);
-      var acc = pnl ? (pnl.accion||'🟢 HOLD') : '🟢 HOLD';
-      var accColor = acc.indexOf('VENDER')>=0?'#f87171':acc.indexOf('REDUCIR')>=0?'#fbbf24':acc.indexOf('PARCIAL')>=0?'#c084fc':acc.indexOf('AGREGAR')>=0?'#4ade80':'#aaa';
-      return '<tr><td class="ticker">'+p.ticker+'</td><td>'+p.precio_compra.toLocaleString('es-AR')+'</td><td>'+precioAct.toLocaleString('es-AR')+'</td><td>'+p.cantidad+'</td><td style="color:'+(parseFloat(pnlPct)>=0?'#4ade80':'#f87171')+';font-weight:600">'+(parseFloat(pnlPct)>=0?'+':'')+pnlPct+'%</td><td style="color:'+(parseFloat(pnlAbs)>=0?'#4ade80':'#f87171')+'">$'+parseInt(pnlAbs).toLocaleString('es-AR')+'</td><td style="color:'+sigColor(sig2)+'">'+sig2+'</td><td style="color:#fbbf24">'+rr+'</td><td>'+(atrS>0?atrS.toLocaleString('es-AR'):'—')+'</td><td style="color:'+accColor+';font-weight:700">'+acc+'</td></tr>';
+      var acc = pnl ? (pnl.accion||'🟢 HOLD') : (sinDatos ? '⚠️ Sin precio' : '🟢 HOLD');
+      var accColor = acc.indexOf('VENDER')>=0?'#f87171':acc.indexOf('REDUCIR')>=0?'#fbbf24':acc.indexOf('PARCIAL')>=0?'#c084fc':acc.indexOf('AGREGAR')>=0?'#4ade80':acc.indexOf('Sin')>=0?'#555':'#aaa';
+      var precioActStr = sinDatos ? '<span style="color:#555" title="Precio no disponible en último run">'+precioAct.toLocaleString('es-AR')+' ⚠️</span>' : precioAct.toLocaleString('es-AR');
+      return '<tr'+(sinDatos?' style="opacity:0.7"':'')+'>'+
+        '<td class="ticker">'+p.ticker+'</td>'+
+        '<td>'+p.precio_compra.toLocaleString('es-AR')+'</td>'+
+        '<td>'+precioActStr+'</td>'+
+        '<td>'+p.cantidad+'</td>'+
+        '<td style="color:'+(sinDatos?'#555':parseFloat(pnlPct)>=0?'#4ade80':'#f87171')+';font-weight:600">'+(parseFloat(pnlPct)>=0?'+':'')+pnlPct+'%</td>'+
+        '<td style="color:'+(sinDatos?'#555':parseFloat(pnlAbs)>=0?'#4ade80':'#f87171')+'">$'+parseInt(pnlAbs).toLocaleString('es-AR')+'</td>'+
+        '<td style="color:'+sigColor(sig2)+'">'+sig2+'</td>'+
+        '<td style="color:#fbbf24">'+rr+'</td>'+
+        '<td>'+(atrS>0?atrS.toLocaleString('es-AR'):'—')+'</td>'+
+        '<td style="color:'+accColor+';font-weight:700">'+acc+'</td></tr>';
     }}).join('');
   var al = document.getElementById('portfolio-alerts');
   var criticas = alertsList.filter(function(a){{return a.tipo!=='📊 P&L';}});
@@ -1134,6 +1313,140 @@ function showOpFicha(ticker){{
     else{{ al.innerHTML = criticas.map(function(a){{return '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)"><b>'+a.tipo+'</b> '+a.mensaje+'</div>';}}).join(''); }}
   }}
 }})();
+// ── SISTEMA DE OPERACIONES ────────────────────────────────────────────────────
+var OP_KEY = 'inv_operaciones_v1';
+var opTickerValido = null;
+
+// Índice de tickers válidos: solo los que están en SIGNALS
+var tickersModelo = {{}};
+SIGNALS.forEach(function(s){{
+  tickersModelo[s.ticker] = {{
+    empresa: s.empresa,
+    mercado: s.mercado,
+    signal: s.signal_v2 || s.signal,
+    precio_actual: s.precio_actual,
+  }};
+}});
+
+function tickerAutocomplete(val){{
+  var drop = document.getElementById('op-ticker-drop');
+  var status = document.getElementById('op-ticker-status');
+  opTickerValido = null;
+  val = val.trim().toUpperCase();
+  if(!val){{ drop.style.display='none'; status.textContent='Ingresá un ticker del modelo'; status.style.color='#555'; return; }}
+  var matches = Object.keys(tickersModelo).filter(function(t){{
+    return t.toUpperCase().indexOf(val)>=0 || tickersModelo[t].empresa.toUpperCase().indexOf(val)>=0;
+  }}).slice(0,8);
+  if(matches.length===0){{
+    drop.style.display='none';
+    status.textContent='⚠️ Ticker no encontrado en el modelo'; status.style.color='#f87171';
+    return;
+  }}
+  var sigColor2=function(sg){{return sg.indexOf('COMPRA FUERTE')>=0?'#ffd700':sg.indexOf('COMPRA')>=0?'#4ade80':sg.indexOf('NEUTRAL')>=0?'#fbbf24':sg.indexOf('VENTA')>=0?'#fb923c':'#888';}};
+  drop.innerHTML = matches.map(function(t){{
+    var d=tickersModelo[t];
+    var sc=sigColor2(d.signal);
+    return '<div class="op-ticker-item" onclick="seleccionarTicker(\''+t+'\')">'
+      +'<div><b style="color:#5ba3ff">'+t+'</b> <span style="color:#666;font-size:10px">'+d.empresa.substring(0,28)+'</span></div>'
+      +'<span class="oti-sig" style="color:'+sc+';border:1px solid '+sc+'20;background:'+sc+'10">'+d.signal+'</span>'
+      +'</div>';
+  }}).join('');
+  drop.style.display='block';
+  // Check exact match
+  if(tickersModelo[val]){{ opTickerValido=val; status.textContent='✅ '+tickersModelo[val].empresa+' · '+tickersModelo[val].mercado; status.style.color='#4ade80'; }}
+  else{{ status.textContent='Seleccioná un ticker de la lista'; status.style.color='#fbbf24'; }}
+}}
+
+function seleccionarTicker(t){{
+  document.getElementById('op-ticker-input').value=t;
+  document.getElementById('op-ticker-drop').style.display='none';
+  opTickerValido=t;
+  var d=tickersModelo[t];
+  var status=document.getElementById('op-ticker-status');
+  status.textContent='✅ '+d.empresa+' · '+d.mercado+' · Precio actual: '+d.precio_actual.toLocaleString('es-AR');
+  status.style.color='#4ade80';
+}}
+
+function registrarOperacion(){{
+  var msg=document.getElementById('op-form-msg');
+  msg.style.display='block';
+  if(!opTickerValido){{ msg.textContent='⚠️ Seleccioná un ticker válido del modelo.'; msg.style.color='#f87171'; return; }}
+  var precio=parseFloat(document.getElementById('op-precio').value);
+  var cantidad=parseInt(document.getElementById('op-cantidad').value);
+  var tipo=document.getElementById('op-tipo').value;
+  if(!precio||precio<=0){{ msg.textContent='⚠️ Ingresá un precio unitario válido.'; msg.style.color='#f87171'; return; }}
+  if(!cantidad||cantidad<=0){{ msg.textContent='⚠️ Ingresá una cantidad válida.'; msg.style.color='#f87171'; return; }}
+  var d=tickersModelo[opTickerValido];
+  var op={{
+    id: Date.now(),
+    fecha: new Date().toISOString().split('T')[0],
+    tipo: tipo,
+    ticker: opTickerValido,
+    empresa: d.empresa,
+    mercado: d.mercado,
+    precio: precio,
+    cantidad: cantidad,
+    total: Math.round(precio*cantidad*100)/100,
+    signal: d.signal,
+  }};
+  var ops=cargarOperaciones();
+  ops.unshift(op);
+  localStorage.setItem(OP_KEY, JSON.stringify(ops));
+  // Reset form
+  document.getElementById('op-ticker-input').value='';
+  document.getElementById('op-precio').value='';
+  document.getElementById('op-cantidad').value='';
+  document.getElementById('op-ticker-status').textContent='Ingresá un ticker del modelo';
+  document.getElementById('op-ticker-status').style.color='#555';
+  opTickerValido=null;
+  msg.textContent='✅ Operación registrada correctamente.'; msg.style.color='#4ade80';
+  setTimeout(function(){{msg.style.display='none';}},3000);
+  renderHistorial();
+}}
+
+function cargarOperaciones(){{
+  try{{ return JSON.parse(localStorage.getItem(OP_KEY)||'[]'); }}catch(e){{return[];}}
+}}
+
+function eliminarOperacion(id){{
+  var ops=cargarOperaciones().filter(function(o){{return o.id!==id;}});
+  localStorage.setItem(OP_KEY,JSON.stringify(ops));
+  renderHistorial();
+}}
+
+function renderHistorial(){{
+  var ops=cargarOperaciones();
+  var empty=document.getElementById('op-historial-empty');
+  var tb=document.getElementById('op-historial-table');
+  if(!ops.length){{ if(empty)empty.style.display='block'; if(tb)tb.style.display='none'; return; }}
+  if(empty)empty.style.display='none';
+  if(tb){{
+    tb.style.display='';
+    var sigColor2=function(sg){{return sg.indexOf('COMPRA FUERTE')>=0?'#ffd700':sg.indexOf('COMPRA')>=0?'#4ade80':sg.indexOf('NEUTRAL')>=0?'#fbbf24':sg.indexOf('VENTA')>=0?'#fb923c':'#888';}};
+    var current = tickersModelo;
+    tb.innerHTML='<tr><th>Fecha</th><th>Tipo</th><th>Ticker</th><th>Mercado</th><th>Señal actual</th><th>Precio unit.</th><th>Cantidad</th><th>Total</th><th></th></tr>'
+      +ops.map(function(o){{
+        var sigNow=(current[o.ticker]&&current[o.ticker].signal)||o.signal;
+        var sc=sigColor2(sigNow);
+        var tipoColor=o.tipo==='COMPRA'?'#4ade80':'#f87171';
+        return '<tr>'
+          +'<td style="color:#666">'+o.fecha+'</td>'
+          +'<td style="color:'+tipoColor+';font-weight:700">'+o.tipo+'</td>'
+          +'<td class="ticker">'+o.ticker+'</td>'
+          +'<td style="color:#666">'+o.mercado+'</td>'
+          +'<td style="color:'+sc+'">'+sigNow+'</td>'
+          +'<td>'+o.precio.toLocaleString('es-AR')+'</td>'
+          +'<td>'+o.cantidad.toLocaleString('es-AR')+'</td>'
+          +'<td style="font-weight:600">'+o.total.toLocaleString('es-AR')+'</td>'
+          +'<td><button onclick="eliminarOperacion('+o.id+')" style="background:none;border:1px solid #333;color:#666;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px">✕</button></td>'
+          +'</tr>';
+      }}).join('');
+  }}
+}}
+
+// Inicializar historial al cargar
+renderHistorial();
+
 }} catch(err) {{ document.body.insertAdjacentHTML('afterbegin','<div style="background:red;color:white;padding:20px;font-size:16px;z-index:9999;position:fixed;top:0;left:0;right:0">ERROR JS: '+err.message+'</div>'); }}
 </script>
 </body>
