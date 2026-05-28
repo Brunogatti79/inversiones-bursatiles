@@ -149,3 +149,45 @@ def get_macro_scores(xlsx_path: str = None) -> dict:
 def get_ticker_scores(xlsx_path: str = None) -> dict:
     """Retorna los scores completos por ticker."""
     return load_xlsx_signals(xlsx_path)["ticker_scores"]
+
+
+def get_stress_data(xlsx_path: str = None) -> dict:
+    """
+    Extrae datos para el Macro Stress Index ARG desde el xlsx.
+    Busca EMBI, brecha cambiaria, reservas BCRA y tasa real
+    en la hoja 'Macro Variables' para Argentina.
+    """
+    path = xlsx_path or XLSX_PATH
+    if not os.path.exists(path):
+        logger.warning("[macro_loader] xlsx no encontrado para stress_data")
+        return {}
+
+    try:
+        df = pd.read_excel(path, sheet_name="Macro Variables", engine="openpyxl")
+        arg_rows = df[df["País"] == "Argentina"]
+        if arg_rows.empty:
+            return {}
+
+        stress = {}
+        var_map = {
+            "EMBI": "embi",
+            "Brecha": "brecha",
+            "Reservas": "reservas",
+            "Tasa": "tasa_real",
+        }
+        for _, row in arg_rows.iterrows():
+            var_name = str(row.get("Variable", ""))
+            valor = _clean_numeric(row.get("Valor actual"))
+            if valor is None:
+                continue
+            for key_fragment, stress_key in var_map.items():
+                if key_fragment.lower() in var_name.lower():
+                    stress[stress_key] = valor
+                    break
+
+        logger.info(f"[macro_loader] Stress data ARG: {stress}")
+        return stress
+
+    except Exception as e:
+        logger.warning(f"[macro_loader] Error extrayendo stress_data: {e}")
+        return {}
