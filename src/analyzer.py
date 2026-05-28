@@ -5,7 +5,7 @@ Motor de análisis: calcula rendimientos, señales del modelo,
 rankings y detecta cambios de señal respecto al día anterior.
  
 FASE 2 + V2 + 10 MEJORAS (mayo 2026):
-- Modelo ponderado: 35% Macro + 35% Técnico + 10% Sectorial + 20% Fundamental
+- Modelo ponderado: optimizado por mercado
 - V2: Asset Quality + Entry Score + R/R + Ranking Accionable
 - Mejora 1: Score sectorial dinámico (sensibilidad a macro)
 - Mejora 2: Pendiente MA50 + confirmación de volumen
@@ -15,7 +15,8 @@ FASE 2 + V2 + 10 MEJORAS (mayo 2026):
 - Mejora 6: Filtro de liquidez
 - Mejora 8: Normalización adaptativa (percentiles)
 - Mejora 9: Consenso V1/V2
-- (Mejoras 7 y 10 están en src/tracker.py)
+- Multi-timeframe: penalización escalonada por tendencia semanal
+- Cross-market: correlación rolling entre mercados
 """
  
 import pandas as pd
@@ -39,11 +40,13 @@ SIGNAL_LABELS = {
     1: "🔴 VENTA",
 }
  
-# Ponderaciones modelo Fase 2
-W_MACRO      = 0.35
-W_TECNICO    = 0.35
-W_SECTOR     = 0.10
-W_FUNDAMENTAL = 0.20
+# Ponderaciones modelo Fase 2 — optimizadas por mercado
+W_DEFAULT = {"macro": 0.35, "tecnico": 0.35, "sector": 0.10, "fundamental": 0.20}
+W_POR_MERCADO = {
+    "MERVAL":  {"macro": 0.35, "tecnico": 0.25, "sector": 0.10, "fundamental": 0.30},
+    "BOVESPA": {"macro": 0.25, "tecnico": 0.35, "sector": 0.10, "fundamental": 0.30},
+    "SP500":   {"macro": 0.20, "tecnico": 0.30, "sector": 0.10, "fundamental": 0.40},
+}
  
 # Fallback hardcoded (usado si xlsx no está disponible)
 MACRO_SCORES_FALLBACK = {
@@ -67,7 +70,6 @@ SECTOR_SCORES_DEFAULT = {
  
 # Mejora 1: Matriz de sensibilidad sectorial a variables macro
 SECTOR_MACRO_SENSITIVITY = {
-    # sector:        (tasa, inflación, crecimiento, moneda)
     "FINANCIERO":    (+0.8, -0.3, +0.5, -0.2),
     "ENERGÍA":       (-0.2, +0.3, +0.7, +0.5),
     "UTILITIES":     (-0.6, -0.2, +0.3, -0.1),
@@ -89,17 +91,14 @@ LIQUIDITY_PENALTY_THRESHOLD = {
 }
 LIQUIDITY_PENALTY_FACTOR = 0.85
  
-# Ponderaciones AQ/ES por mercado (feedback externo: emergentes necesitan más AQ)
+# Ponderaciones AQ/ES por mercado
 MARKET_WEIGHTS = {
-    "MERVAL":  {"aq_weight": 0.60, "es_weight": 0.40},  # Argentina: más calidad, menos timing
-    "BOVESPA": {"aq_weight": 0.55, "es_weight": 0.45},  # Brasil: intermedio
-    "SP500":   {"aq_weight": 0.50, "es_weight": 0.50},  # USA: equilibrado
+    "MERVAL":  {"aq_weight": 0.60, "es_weight": 0.40},
+    "BOVESPA": {"aq_weight": 0.55, "es_weight": 0.45},
+    "SP500":   {"aq_weight": 0.50, "es_weight": 0.50},
 }
  
-# Ponderaciones dentro de Asset Quality (ajustadas: más fundamental)
 AQ_WEIGHTS = {"macro": 0.45, "fundamental": 0.35, "sectorial": 0.20}
- 
-# Ponderaciones dentro de Entry Score (CORREGIDO: sin R/R, estaba doble contado)
 ES_WEIGHTS = {"tecnico": 0.55, "dist_max": 0.25, "dist_support": 0.20}
  
 SECTOR_MAP = {
@@ -166,9 +165,7 @@ def _ma_cross(series: pd.Series) -> bool:
     return bool(ma20 > ma50)
  
  
-# Mejora 2: Pendiente MA50
 def _ma50_slope(series, period=50, lookback=10):
-    """Pendiente de la MA50: positiva = tendencia alcista."""
     if len(series) < period + lookback:
         return 0.0
     ma50 = series.rolling(period).mean()
@@ -179,9 +176,7 @@ def _ma50_slope(series, period=50, lookback=10):
     return round(((ma50_now / ma50_prev) - 1) * 100, 2)
  
  
-# Mejora 2: Confirmación de volumen
 def _volume_confirmation(volume_series, price_series, lookback=5):
-    """Score 0-100 basado en si el movimiento tiene confirmación de volumen."""
     if volume_series is None or len(volume_series) < lookback + 5:
         return 50.0
     vol_recent = float(volume_series.tail(lookback).mean())
@@ -200,9 +195,7 @@ def _volume_confirmation(volume_series, price_series, lookback=5):
         return 50.0
  
  
-# Mejora ATR: Average True Range para stops dinámicos
 def _atr(high_series, low_series, close_series, period=14):
-    """Calcula ATR(14) para stops dinámicos."""
     if high_series is None or len(high_series) < period + 1:
         return 0.0
     tr1 = high_series - low_series
@@ -213,91 +206,57 @@ def _atr(high_series, low_series, close_series, period=14):
     return float(atr.iloc[-1]) if not pd.isna(atr.iloc[-1]) else 0.0
  
  
-# Indicador líder 1: RSI Divergences
 def _rsi_divergence(series, rsi_period=14, lookback=20):
-    """
-    Detecta divergencias RSI vs precio.
-    Bullish: precio lower low + RSI higher low → +10 entry
-    Bearish: precio higher high + RSI lower high → -10 entry
-    Retorna: (tipo, boost) donde tipo es 'bullish'/'bearish'/None y boost es +10/-10/0
-    """
     if len(series) < rsi_period + lookback + 5:
         return None, 0
- 
-    # Calcular RSI serie completa
     delta = series.diff().dropna()
     gain = delta.clip(lower=0).rolling(rsi_period).mean()
     loss = (-delta.clip(upper=0)).rolling(rsi_period).mean()
     rs = gain / loss.replace(0, np.nan)
     rsi_series = 100 - (100 / (1 + rs))
     rsi_series = rsi_series.dropna()
- 
     if len(rsi_series) < lookback:
         return None, 0
- 
-    # Últimos N períodos divididos en dos mitades
     half = lookback // 2
     price_recent = series.iloc[-half:]
     price_prev = series.iloc[-(lookback):-half]
     rsi_recent = rsi_series.iloc[-half:]
     rsi_prev = rsi_series.iloc[-(lookback):-half]
- 
     if len(price_prev) < 3 or len(rsi_prev) < 3:
         return None, 0
- 
     price_low_prev = float(price_prev.min())
     price_low_recent = float(price_recent.min())
     rsi_low_prev = float(rsi_prev.min())
     rsi_low_recent = float(rsi_recent.min())
- 
     price_high_prev = float(price_prev.max())
     price_high_recent = float(price_recent.max())
     rsi_high_prev = float(rsi_prev.max())
     rsi_high_recent = float(rsi_recent.max())
- 
-    # Bullish: precio lower low + RSI higher low
     if price_low_recent < price_low_prev and rsi_low_recent > rsi_low_prev:
         return "bullish", 10
- 
-    # Bearish: precio higher high + RSI lower high
     if price_high_recent > price_high_prev and rsi_high_recent < rsi_high_prev:
         return "bearish", -10
- 
     return None, 0
  
  
-# Indicador líder 2: Volatility Squeeze (Bollinger Band compression)
 def _volatility_squeeze(series, bb_period=20, lookback=20):
-    """
-    Detecta compresión de volatilidad (squeeze).
-    BB width en mínimo de 20 días → breakout probable.
-    Retorna: (is_squeeze, boost) donde boost es +15 si squeeze con volumen, 0 sino.
-    """
     if len(series) < bb_period + lookback:
         return False, 0
- 
-    # Bollinger Band width
     ma = series.rolling(bb_period).mean()
     std = series.rolling(bb_period).std()
-    bb_width = (std * 2) / ma  # ancho relativo de las bandas
- 
+    bb_width = (std * 2) / ma
     bb_width = bb_width.dropna()
     if len(bb_width) < lookback:
         return False, 0
- 
     current_width = float(bb_width.iloc[-1])
     min_width_20d = float(bb_width.iloc[-lookback:].min())
- 
-    # Squeeze: width actual está en el mínimo o muy cerca (dentro del 10%)
     if current_width <= min_width_20d * 1.10:
         return True, 15
- 
     return False, 0
  
  
 def _score_tecnico(rsi: float, momentum: float, ma_cross: bool,
                    ma50_slope: float = 0.0, vol_confirm: float = 50.0) -> float:
-    """Score técnico con 5 componentes (Mejora 2)."""
     if rsi < 30: rsi_score = 75
     elif rsi < 50: rsi_score = 60
     elif rsi < 65: rsi_score = 55
@@ -313,14 +272,12 @@ def _score_tecnico(rsi: float, momentum: float, ma_cross: bool,
  
     cross_score = 65 if ma_cross else 40
  
-    # Pendiente MA50
     if ma50_slope > 2: slope_score = 75
     elif ma50_slope > 0.5: slope_score = 60
     elif ma50_slope > -0.5: slope_score = 50
     elif ma50_slope > -2: slope_score = 35
     else: slope_score = 20
  
-    # Confirmación volumen
     vol_score = vol_confirm
  
     return round(
@@ -346,7 +303,6 @@ def _score_to_signal(score: float) -> str:
 # ─────────────────────────────────────────────
  
 def _calcular_rr(precio, max_52s, min_52s):
-    """Ratio Riesgo/Retorno normalizado a 0-100."""
     if precio <= 0 or max_52s <= 0 or min_52s <= 0:
         return 0.0, 0.0
     upside = (max_52s - precio) / precio
@@ -360,38 +316,57 @@ def _calcular_rr(precio, max_52s, min_52s):
  
  
 def _normalizar_dist_max(dist_max_pct):
-    """0% (en el max) = score 0, -40%+ = score 100."""
     return round(min(100.0, max(0.0, (abs(dist_max_pct) / 40.0) * 100.0)), 1)
  
  
 def _asset_quality(score_macro, score_fundamental, score_sectorial):
-    """45% Macro + 35% Fundamental + 20% Sectorial (ajustado)."""
     return round(
         AQ_WEIGHTS["macro"] * score_macro +
         AQ_WEIGHTS["fundamental"] * score_fundamental +
         AQ_WEIGHTS["sectorial"] * score_sectorial, 1)
  
  
+def _weekly_trend(serie_diaria: pd.Series) -> dict:
+    """Calcula tendencia semanal como filtro confirmatorio."""
+    if len(serie_diaria) < 100:
+        return {"weekly_trend": "SIN DATOS", "weekly_rsi": 50.0,
+                "weekly_ma_cross": False, "weekly_confirms": True}
+    weekly = serie_diaria.resample('W').last().dropna()
+    if len(weekly) < 26:
+        return {"weekly_trend": "SIN DATOS", "weekly_rsi": 50.0,
+                "weekly_ma_cross": False, "weekly_confirms": True}
+    ma13w = weekly.rolling(13).mean()
+    ma26w = weekly.rolling(26).mean()
+    cross = bool(ma13w.iloc[-1] > ma26w.iloc[-1])
+    rsi_w = _rsi(weekly)
+    if cross and rsi_w > 40:
+        trend = "ALCISTA"
+    elif not cross and rsi_w < 60:
+        trend = "BAJISTA"
+    else:
+        trend = "LATERAL"
+    return {
+        "weekly_trend": trend,
+        "weekly_rsi": round(rsi_w, 1),
+        "weekly_ma_cross": cross,
+        "weekly_confirms": trend != "BAJISTA"
+    }
+ 
+ 
 def _entry_score(score_tecnico, dist_max_norm, dist_support_norm):
-    """55% Técnico + 25% Dist Max + 20% Dist Support (sin R/R, evita doble conteo)."""
     return round(
         ES_WEIGHTS["tecnico"] * score_tecnico +
         ES_WEIGHTS["dist_max"] * dist_max_norm +
         ES_WEIGHTS["dist_support"] * dist_support_norm, 1)
  
  
-# Distance to support normalizada
 def _dist_support_norm(precio, soportes):
-    """Qué tan cerca está del soporte más relevante. Más cerca = mejor entry."""
     if not soportes or precio <= 0:
-        return 50.0  # neutral
-    soporte = soportes[0]  # primer soporte (más cercano)
+        return 50.0
+    soporte = soportes[0]
     if soporte <= 0:
         return 50.0
-    dist_pct = ((precio - soporte) / precio) * 100  # positivo = arriba del soporte
-    # 0-2% arriba del soporte = score 100 (excelente entry)
-    # 5% arriba = score 60
-    # 10%+ arriba = score 30
+    dist_pct = ((precio - soporte) / precio) * 100
     if dist_pct <= 2:
         return 100.0
     elif dist_pct <= 5:
@@ -403,7 +378,6 @@ def _dist_support_norm(precio, soportes):
  
  
 def _score_final_v2(asset_quality, entry_score, market="SP500"):
-    """Peso AQ/ES variable por mercado (emergentes → más AQ)."""
     w = MARKET_WEIGHTS.get(market, {"aq_weight": 0.50, "es_weight": 0.50})
     return round(w["aq_weight"] * asset_quality + w["es_weight"] * entry_score, 1)
  
@@ -417,12 +391,6 @@ def _signal_v2(score):
  
  
 def _ranking_accionable(score_v2, asset_quality, rr_norm, volatility_score):
-    """
-    RANKING PRO: sin doble conteo de R/R.
-    50% Expected Return proxy (Score_V2 ya no tiene R/R)
-    30% Asset Quality (calidad del activo)
-    20% Risk Adjusted (inverso de volatilidad)
-    """
     return round(
         0.50 * score_v2 +
         0.30 * asset_quality +
@@ -430,17 +398,10 @@ def _ranking_accionable(score_v2, asset_quality, rr_norm, volatility_score):
  
  
 def _volatility_score(series, period=60):
-    """
-    Score de riesgo: baja volatilidad = score alto.
-    Volatilidad anualizada mapeada a 0-100.
-    Vol 10% → 90pts (muy estable)
-    Vol 30% → 60pts (normal)
-    Vol 60%+ → 20pts (muy volátil)
-    """
     if len(series) < period:
         return 50.0
     returns = series.pct_change().dropna().tail(period)
-    vol = float(returns.std() * np.sqrt(252) * 100)  # anualizada
+    vol = float(returns.std() * np.sqrt(252) * 100)
     if vol <= 10:
         return 90.0
     elif vol <= 20:
@@ -454,36 +415,23 @@ def _volatility_score(series, period=60):
  
  
 def _adx(high_series, low_series, close_series, period=14):
-    """
-    Average Directional Index: mide fuerza de tendencia (no dirección).
-    ADX > 25 = tendencia fuerte, ADX < 20 = sin tendencia.
-    Retorna: (adx_value, trend_strength_score)
-    """
     if high_series is None or len(high_series) < period * 2:
         return 0.0, 50.0
- 
     plus_dm = high_series.diff()
     minus_dm = -low_series.diff()
- 
     plus_dm = plus_dm.where((plus_dm > minus_dm) & (plus_dm > 0), 0.0)
     minus_dm = minus_dm.where((minus_dm > plus_dm) & (minus_dm > 0), 0.0)
- 
     tr1 = high_series - low_series
     tr2 = abs(high_series - close_series.shift(1))
     tr3 = abs(low_series - close_series.shift(1))
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
- 
     atr_s = tr.rolling(period).mean()
     plus_di = 100 * (plus_dm.rolling(period).mean() / atr_s)
     minus_di = 100 * (minus_dm.rolling(period).mean() / atr_s)
- 
     dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di).replace(0, np.nan)
     adx_val = float(dx.rolling(period).mean().iloc[-1])
- 
     if pd.isna(adx_val):
         return 0.0, 50.0
- 
-    # Score: ADX alto = tendencia fuerte = bueno para momentum
     if adx_val >= 40:
         score = 85.0
     elif adx_val >= 25:
@@ -491,8 +439,7 @@ def _adx(high_series, low_series, close_series, period=14):
     elif adx_val >= 20:
         score = 50.0
     else:
-        score = 30.0  # sin tendencia, momentum unreliable
- 
+        score = 30.0
     return round(adx_val, 1), round(score, 1)
  
  
@@ -500,9 +447,7 @@ def _adx(high_series, low_series, close_series, period=14):
 # Funciones de mejoras adicionales
 # ─────────────────────────────────────────────
  
-# Mejora 1: Score sectorial dinámico
 def _dynamic_sector_score(sector, macro_score, market):
-    """Ajusta score sectorial base según condiciones macro."""
     base = SECTOR_SCORES_DEFAULT.get(sector, 42.0)
     sens = SECTOR_MACRO_SENSITIVITY.get(sector, (0, 0, 0, 0))
     macro_delta = (macro_score - 50) / 50
@@ -510,9 +455,7 @@ def _dynamic_sector_score(sector, macro_score, market):
     return round(max(20.0, min(70.0, base + adjustment)), 1)
  
  
-# Mejora 3: Soportes y resistencias para R/R
 def _find_levels(serie, window=15):
-    """Busca soportes y resistencias locales."""
     if len(serie) < window * 2:
         return [], []
     highs = serie.rolling(window, center=True).max()
@@ -523,9 +466,7 @@ def _find_levels(serie, window=15):
     return sup, res
  
  
-# Mejora 4: Decay del score macro por antigüedad
 def _macro_decay_weight(macro_timestamp=None, base_weight=0.50):
-    """Si datos macro > 15 días, reduce su peso."""
     if macro_timestamp is None:
         days_old = 7
     else:
@@ -537,7 +478,6 @@ def _macro_decay_weight(macro_timestamp=None, base_weight=0.50):
             days_old = (datetime.now() - macro_dt).days
         except Exception:
             days_old = 7
- 
     if days_old <= 7:
         decay = 1.0
     elif days_old <= 15:
@@ -546,13 +486,10 @@ def _macro_decay_weight(macro_timestamp=None, base_weight=0.50):
         decay = 0.65
     else:
         decay = 0.45
- 
     return round(base_weight * decay, 3)
  
  
-# Mejora 5: Horizonte temporal
 def _horizonte(asset_quality, entry_score):
-    """Determina horizonte basado en AQ vs ES."""
     if asset_quality >= 50 and entry_score >= 50:
         return "Corto plazo (1-4 sem)"
     elif asset_quality >= 50 and entry_score < 50:
@@ -563,9 +500,7 @@ def _horizonte(asset_quality, entry_score):
         return "Evitar / solo monitorear"
  
  
-# Mejora 9: Consenso V1/V2
 def _consenso(signal_v1, signal_v2, score_v1, score_v2):
-    """Detecta divergencias entre V1 y V2."""
     level_map = {
         "⭐ COMPRA FUERTE": 5, "🟢 COMPRA": 4,
         "🟡 NEUTRAL/ESPERAR": 3,
@@ -574,7 +509,6 @@ def _consenso(signal_v1, signal_v2, score_v1, score_v2):
     l1 = level_map.get(signal_v1, 3)
     l2 = level_map.get(signal_v2, 3)
     diff = l1 - l2
- 
     if abs(diff) <= 1:
         return "Consenso"
     elif diff >= 2:
@@ -590,12 +524,6 @@ def _consenso(signal_v1, signal_v2, score_v1, score_v2):
  
 def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
                    xlsx_signals: dict = None, fund_scores: dict = None) -> list[dict]:
-    """
-    Analiza el mercado integrando:
-    - xlsx_signals: señales del modelo del xlsx de Bruno (prioridad)
-    - fund_scores: scores fundamentales del CSV de ratios
-    - df: precios de Yahoo Finance para cálculos técnicos en tiempo real
-    """
     if df is None or df.empty or len(df) < 5:
         logger.warning(f"[{market}] DataFrame vacío, saltando análisis")
         return []
@@ -613,6 +541,9 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
     else:
         macro_score = MACRO_SCORES_FALLBACK.get(market, 44.0)
         logger.info(f"[{market}] Score macro fallback: {macro_score}")
+ 
+    # Seleccionar pesos optimizados para este mercado
+    W = W_POR_MERCADO.get(market, W_DEFAULT)
  
     results = []
  
@@ -639,6 +570,8 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         rsi = _rsi(serie)
         mom = _momentum(serie)
         ma_cr = _ma_cross(serie)
+        # Multi-timeframe: tendencia semanal
+        wt = _weekly_trend(serie)
  
         # Mejora 2: indicadores adicionales
         ma50_sl = _ma50_slope(serie)
@@ -659,6 +592,7 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
  
         # Score técnico con 5 componentes (Mejora 2)
         s_tec = _score_tecnico(rsi, mom, ma_cr, ma50_sl, vol_conf)
+        # Multi-timeframe: penalización se aplica al score final (más abajo)
  
         sector = SECTOR_MAP.get(ticker, "GENERAL")
  
@@ -667,8 +601,16 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
  
         # Score fundamental desde CSV
         s_fund = 50.0
+        upside_graham = None
+        score_cuant = None
         if fund_scores:
-            s_fund = fund_scores.get(ticker, 50.0)
+            entry = fund_scores.get(ticker, 50.0)
+            if isinstance(entry, dict):
+                s_fund = entry.get("score", 50.0)
+                upside_graham = entry.get("upside_graham")
+                score_cuant = entry.get("score_cuant")
+            else:
+                s_fund = entry
  
         # Si el xlsx tiene señales precalculadas para este ticker, usarlas como base
         xlsx_ticker = None
@@ -679,29 +621,36 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             s_tec_xlsx = xlsx_ticker.get("score_tecnico", s_tec)
             s_sect_xlsx = xlsx_ticker.get("score_sector", s_sect)
             macro_xlsx = xlsx_ticker.get("score_macro", macro_score)
- 
             score_final = round(
-                macro_xlsx  * W_MACRO +
-                s_tec       * W_TECNICO +
-                s_sect_xlsx * W_SECTOR +
-                s_fund      * W_FUNDAMENTAL,
+                macro_xlsx  * W["macro"] +
+                s_tec       * W["tecnico"] +
+                s_sect_xlsx * W["sector"] +
+                s_fund      * W["fundamental"],
                 1
             )
+            # Penalización multi-timeframe escalonada al score final
+            if wt["weekly_trend"] == "BAJISTA" and wt["weekly_rsi"] < 40:
+                score_final = round(score_final * 0.80, 1)
+            elif wt["weekly_trend"] == "BAJISTA":
+                score_final = round(score_final * 0.90, 1)
             signal = _score_to_signal(score_final)
- 
             rsi_final = xlsx_ticker.get("rsi", rsi)
-            mom_final = xlsx_ticker.get("momentum_21d", mom)
+            mom_final = mom
             ma_cr_final = xlsx_ticker.get("ma_cross", ma_cr)
- 
             logger.debug(f"[{market}] {ticker}: macro={macro_xlsx} tec={s_tec:.1f} sect={s_sect_xlsx} fund={s_fund} → {score_final}")
         else:
             score_final = round(
-                macro_score * W_MACRO +
-                s_tec       * W_TECNICO +
-                s_sect      * W_SECTOR +
-                s_fund      * W_FUNDAMENTAL,
+                macro_score * W["macro"] +
+                s_tec       * W["tecnico"] +
+                s_sect      * W["sector"] +
+                s_fund      * W["fundamental"],
                 1
             )
+            # Penalización multi-timeframe escalonada al score final
+            if wt["weekly_trend"] == "BAJISTA" and wt["weekly_rsi"] < 40:
+                score_final = round(score_final * 0.80, 1)
+            elif wt["weekly_trend"] == "BAJISTA":
+                score_final = round(score_final * 0.90, 1)
             signal = _score_to_signal(score_final)
             rsi_final = rsi
             mom_final = mom
@@ -807,10 +756,15 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "score_macro": macro_score,
             "score_tecnico": round(s_tec, 1),
             "score_sector": round(s_sect, 1),
+            "score_sectorial": round(s_sect, 1),
             "score_fundamental": round(s_fund, 1),
             "score_final": score_final,
             "signal": signal,
             "fecha": end.strftime("%Y-%m-%d"),
+            # ── Fundamental detalle ──
+            "upside_graham": upside_graham,
+            "score_cuant": score_cuant,
+            "momentum": round(mom_final, 2),
             # ── V2 ──
             "dist_max_pct": round(dist_max_pct, 1),
             "rr_ratio": rr_ratio,
@@ -842,6 +796,11 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "adx": adx_val,
             "adx_score": adx_score,
             "dist_support_norm": round(dist_sup_norm, 1),
+            # ── Multi-timeframe ──
+            "weekly_trend": wt["weekly_trend"],
+            "weekly_rsi": wt["weekly_rsi"],
+            "weekly_ma_cross": wt["weekly_ma_cross"],
+            "weekly_confirms": wt["weekly_confirms"],
         })
  
     results.sort(key=lambda x: x.get("ranking_accionable", x["score_final"]), reverse=True)
@@ -932,4 +891,33 @@ def _monthly_labels(serie: pd.Series) -> list:
 def _monthly_values(serie: pd.Series) -> list:
     m = serie.resample("ME").last()
     return [round(float(v), 2) for v in m.values]
+ 
+ 
+def get_cross_market_correlation(merval_df, bovespa_df, sp500_df,
+                                  merval_col, bovespa_col, sp500_col,
+                                  window=21) -> dict:
+    """Calcula correlación rolling entre los 3 mercados."""
+    try:
+        mv = merval_df[merval_col].pct_change().dropna().tail(window * 2)
+        bv = bovespa_df[bovespa_col].pct_change().dropna().tail(window * 2)
+        sp = sp500_df[sp500_col].pct_change().dropna().tail(window * 2)
+        combined = pd.DataFrame({"mv": mv, "bv": bv, "sp": sp}).dropna()
+        if len(combined) < window:
+            return {"regime": "SIN DATOS", "avg_correlation": 0}
+        corr_mv_bv = combined["mv"].rolling(window).corr(combined["bv"]).iloc[-1]
+        corr_mv_sp = combined["mv"].rolling(window).corr(combined["sp"]).iloc[-1]
+        corr_bv_sp = combined["bv"].rolling(window).corr(combined["sp"]).iloc[-1]
+        avg = (corr_mv_bv + corr_mv_sp + corr_bv_sp) / 3
+        regime = ("CONVERGENTE" if avg > 0.5 else
+                  "DIVERGENTE" if avg < 0.1 else "MIXTO")
+        return {
+            "regime": regime,
+            "avg_correlation": round(float(avg), 2),
+            "merval_bovespa": round(float(corr_mv_bv), 2),
+            "merval_sp500": round(float(corr_mv_sp), 2),
+            "bovespa_sp500": round(float(corr_bv_sp), 2),
+        }
+    except Exception as e:
+        logger.warning(f"[cross_market] Error: {e}")
+        return {"regime": "ERROR", "avg_correlation": 0}
  
