@@ -784,6 +784,7 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
     '<div class="dl">Score técnico <b>'+(s.score_tecnico!=null?s.score_tecnico.toFixed(0):'—')+'</b></div>'+
     '<div class="dl">Score sectorial <b>'+(s.score_sectorial!=null?s.score_sectorial.toFixed(0):'—')+'</b></div>'+
     '<div class="dl">Momentum 21d <b>'+(s.momentum!=null?s.momentum.toFixed(2):'—')+'</b></div>'+
+    '<div class="dl">RS vs Índice <b style="color:'+(s.relative_strength>1.05?'#4ade80':s.relative_strength<0.95?'#f87171':'#aaa')+'">'+(s.relative_strength!=null?s.relative_strength.toFixed(3):'—')+'</b></div>'+
     '<div class="dl">RSI(14) <b>'+s.rsi.toFixed(1)+'</b></div>'+
     '<div class="dl">Upside Graham <b>'+upside+'</b></div>'+
     '<div class="dl">Precio actual <b>'+s.precio_actual.toLocaleString('es-AR')+'</b></div>'+
@@ -793,6 +794,11 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
     '<div class="dl">Ret. mensual <b style="color:'+rc(s.ret_mes)+'">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(2)+'%</b></div>'+
     '<div class="dl">Ret. anual <b style="color:'+rc(s.ret_anual)+'">'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(2)+'%</b></div>'+
     '<div class="dl">Score cuantitativo <b>'+(s.score_cuant!=null?s.score_cuant.toFixed(1):'—')+'</b></div>'+
+    '<div class="dl" style="grid-column:1/-1;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;margin-top:4px"><b style="color:#60a5fa">📊 FASE 3</b></div>'+
+    '<div class="dl">RS vs Índice <b style="color:'+(s.relative_strength>1.05?'#4ade80':s.relative_strength<0.95?'#f87171':'#aaa')+'">'+(s.relative_strength!=null?s.relative_strength.toFixed(3):'—')+'</b></div>'+
+    '<div class="dl">ATR Percentil <b>'+(s.atr_percentile!=null?s.atr_percentile.toFixed(0)+'%':'—')+'</b></div>'+
+    '<div class="dl">ADX <b style="color:'+(s.adx>25?'#4ade80':'#f87171')+'">'+(s.adx!=null?s.adx.toFixed(1):'—')+'</b></div>'+
+    (s.stress_index!=null?'<div class="dl">Stress Index <b style="color:'+(s.stress_index>70?'#f87171':s.stress_index<40?'#4ade80':'#fbbf24')+'">'+s.stress_index.toFixed(0)+'</b></div>':'')+
     '</div></div></div>';
 }}).join(''):'<div style="color:#666;padding:16px">Sin señales de compra activas.</div>';
  
@@ -831,6 +837,7 @@ radarItems.forEach(function(s,i){{
     '<div class="dl">Score técnico <b>'+(s.score_tecnico!=null?s.score_tecnico.toFixed(0):'—')+'</b></div>'+
     '<div class="dl">RSI(14) <b>'+s.rsi.toFixed(1)+'</b></div>'+
     '<div class="dl">Momentum 21d <b>'+(s.momentum!=null?s.momentum.toFixed(2):'—')+'</b></div>'+
+    '<div class="dl">RS vs Índice <b style="color:'+(s.relative_strength>1.05?'#4ade80':s.relative_strength<0.95?'#f87171':'#aaa')+'">'+(s.relative_strength!=null?s.relative_strength.toFixed(3):'—')+'</b></div>'+
     '<div class="dl">Precio actual <b>'+s.precio_actual.toLocaleString('es-AR')+'</b></div>'+
     '<div class="dl">Máximo 12M <b>'+(s.max_12m!=null?s.max_12m.toLocaleString('es-AR'):'—')+'</b></div>'+
     '<div class="dl">Dist. vs máximo <b style="color:#fb923c">-'+pfm+'%</b></div>'+
@@ -874,6 +881,7 @@ ventas.forEach(function(s,i){{
     '<div class="dl">Score sectorial <b>'+(s.score_sectorial!=null?s.score_sectorial.toFixed(0):'—')+'</b></div>'+
     '<div class="dl">RSI(14) <b>'+s.rsi.toFixed(1)+'</b></div>'+
     '<div class="dl">Momentum 21d <b>'+(s.momentum!=null?s.momentum.toFixed(2):'—')+'</b></div>'+
+    '<div class="dl">RS vs Índice <b style="color:'+(s.relative_strength>1.05?'#4ade80':s.relative_strength<0.95?'#f87171':'#aaa')+'">'+(s.relative_strength!=null?s.relative_strength.toFixed(3):'—')+'</b></div>'+
     '<div class="dl">Precio actual <b>'+s.precio_actual.toLocaleString('es-AR')+'</b></div>'+
     '<div class="dl">Máximo 12M <b>'+(s.max_12m!=null?s.max_12m.toLocaleString('es-AR'):'—')+'</b></div>'+
     '<div class="dl">Ret. semanal <b style="color:'+rc(s.ret_sem)+'">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(2)+'%</b></div>'+
