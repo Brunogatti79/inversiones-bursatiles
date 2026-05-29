@@ -1344,6 +1344,7 @@ function showOpFicha(ticker){{
     if(criticas.length===0){{ al.innerHTML='<div style="color:#4ade80;padding:8px">✅ Sin alertas activas</div>'; }}
     else{{ al.innerHTML = criticas.map(function(a){{return '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)"><b>'+a.tipo+'</b> '+a.mensaje+'</div>';}}).join(''); }}
   }}
+  }}  // end renderPortfolio
   // ── Auto-refresh cada 60s desde Railway (CORS habilitado) ──
   function _loadPortfolioFresh(){{
     if(!RAILWAY_API_URL){{ renderPortfolio(PORTFOLIO, PORTFOLIO_ALERTS); return; }}
