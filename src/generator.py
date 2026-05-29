@@ -664,7 +664,7 @@ def generate_dashboard(
       </div>
       <!-- Botón -->
       <div>
-        <button onclick="registrarOperacion()" style="background:#1e3a5f;border:1px solid #5ba3ff;color:#5ba3ff;padding:9px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap">
+        <button id="op-submit-btn" onclick="registrarOperacion()" disabled style="opacity:0.4;cursor:not-allowed;background:#1e3a5f;border:1px solid #5ba3ff;color:#5ba3ff;padding:9px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap">
           + Registrar
         </button>
       </div>
@@ -1264,46 +1264,53 @@ function showOpFicha(ticker){{
   var positions = portfolio.positions;
   var alertsList = (pAlerts && pAlerts.alerts) ? pAlerts.alerts : [];
   var pnlItems = alertsList.filter(function(a){{return a.tipo==='📊 P&L';}});
-  var totalInv=0, totalVal=0;
+  // ── Totales USD exactos desde broker ──
+  var totalActualUsd  = 0;
+  var totalInicialUsd = 0;
+  var totalRendUsd    = 0;
   positions.forEach(function(p){{
-    totalInv += p.precio_compra * p.cantidad;
-    var sigData = SIGNALS.find(function(s){{return s.ticker===p.ticker || s.ticker===p.ticker.replace('.BA','');}});
-    var precioAct = sigData ? sigData.precio_actual : p.precio_compra;
-    totalVal += precioAct * p.cantidad;
+    totalActualUsd  += (p.valor_actual_usd  || 0);
+    totalInicialUsd += (p.valor_inicial_usd || 0);
+    totalRendUsd    += (p.rend_usd          || 0);
   }});
-  var totalPnl = totalVal - totalInv;
-  var totalPnlPct = totalInv > 0 ? ((totalVal/totalInv - 1)*100).toFixed(2) : '0';
-  var capUsd = portfolio.capital_usd || null;
+  var pnlUsdPct = totalInicialUsd > 0 ? ((totalRendUsd / totalInicialUsd) * 100).toFixed(2) : '0';
   var sm = document.getElementById('portfolio-summary');
-  if(sm) sm.innerHTML = '<div class="card"><div class="card-title">Invertido (broker)</div><div class="card-value" style="color:#5ba3ff">'+(capUsd?'USD '+capUsd.toLocaleString('es-AR'):'$'+totalInv.toLocaleString('es-AR'))+'</div><div class="card-sub">Referencia al momento de compra</div></div>'
-    +'<div class="card"><div class="card-title">Valor actual (ARS)</div><div class="card-value">$'+totalVal.toLocaleString('es-AR')+'</div><div class="card-sub">Precios de cierre vigentes</div></div>'
-    +'<div class="card"><div class="card-title">P&L Total</div><div class="card-value" style="color:'+(totalPnl>=0?'#4ade80':'#f87171')+'">'+(totalPnl>=0?'+':'')+totalPnl.toLocaleString('es-AR')+' ('+totalPnlPct+'%)</div></div>'
-    +'<div class="card"><div class="card-title">Posiciones</div><div class="card-value">'+positions.length+'</div></div>';
+  if(sm) sm.innerHTML =
+    '<div class="card"><div class="card-title">💵 Invertido</div><div class="card-value" style="color:#5ba3ff">USD '+totalInicialUsd.toLocaleString('es-AR')+'</div><div class="card-sub">Valor de compra (broker)</div></div>'
+    +'<div class="card"><div class="card-title">📈 Valor actual (USD)</div><div class="card-value" style="color:#e2e8f0">USD '+totalActualUsd.toLocaleString('es-AR')+'</div><div class="card-sub">'+new Date().toLocaleDateString(\'es-AR\')+' — datos broker</div></div>'
+    +'<div class="card"><div class="card-title">💰 P&L Total (USD)</div><div class="card-value" style="color:'+(totalRendUsd>=0?\'#4ade80\':\'#f87171\')+'">\'+(totalRendUsd>=0?\'+\':\'\')+totalRendUsd.toLocaleString(\'es-AR\')+' (\'+(totalRendUsd>=0?\'+\':\'\')+pnlUsdPct+\'%)</div></div>'
+    +'<div class="card"><div class="card-title">📋 Posiciones</div><div class="card-value">'+positions.length+'</div><div class="card-sub">'+(totalRendUsd>=0?'✅ Cartera positiva':'⚠️ Cartera negativa')+'</div></div>';
   var tb = document.getElementById('portfolio-table');
-  if(tb) tb.innerHTML = '<tr><th>Ticker</th><th>Compra</th><th>Actual</th><th>Cant</th><th>P&L%</th><th>P&L$</th><th>Señal</th><th>R/R</th><th>ATR Stop</th><th>Acción</th></tr>'
+  if(tb) tb.innerHTML = '<tr><th>Ticker</th><th>Mercado</th><th>Compra</th><th>Actual USD</th><th>Cant</th><th>P&L%</th><th>P&L USD</th><th>Señal V2</th><th>R/R</th><th>Acción</th></tr>'
     + positions.map(function(p){{
       var pnl = pnlItems.find(function(a){{return a.ticker===p.ticker;}});
-      var sigData = SIGNALS.find(function(s){{return s.ticker===p.ticker || s.ticker===p.ticker.replace('.BA','') || s.ticker===p.ticker+'.SA';}});
+      var sigData = SIGNALS.find(function(s){{return s.ticker===p.ticker || s.ticker===p.ticker.replace('.BA','').replace('.SA','') || s.ticker===p.ticker+'.SA';}});
       var sinDatos = !sigData;
-      var precioAct = sigData ? sigData.precio_actual : p.precio_compra;
-      var pnlPct = p.precio_compra > 0 ? ((precioAct/p.precio_compra-1)*100).toFixed(1) : '0';
-      var pnlAbs = ((precioAct - p.precio_compra) * p.cantidad).toFixed(0);
-      var sig2 = pnl ? (pnl.signal_v2||'—') : (sigData ? (sigData.signal_v2||'—') : (sinDatos?'⚠️ Sin datos':'—'));
+      var usdActual = p.valor_actual_usd || 0;
+      // P&L% — desde señal si disponible, sino desde valor_actual_usd vs precio compra relativo
+      // Usar precio_compra_usd / precio_actual_usd del broker
+      var pCompUsd = p.precio_compra_usd || 0;
+      var pActUsd  = p.precio_actual_usd || 0;
+      var pnlPct = pCompUsd > 0 && pActUsd > 0 ? ((pActUsd/pCompUsd-1)*100).toFixed(1) : '—';
+      // P&L USD exacto = rend_usd del broker (más confiable que cualquier cálculo)
+      var pnlUsdPos = (p.rend_usd != null) ? p.rend_usd : 0;
+      var pnlUsdPosStr = (p.rend_usd != null) ? (pnlUsdPos>=0?'+':'')+pnlUsdPos.toFixed(0)+' USD' : '—';
+      var sig2 = pnl ? (pnl.signal_v2||'—') : (sigData ? (sigData.signal_v2||sigData.signal||'—') : (sinDatos?'⚠️ Sin datos':'—'));
       var rr = pnl ? (pnl.rr_ratio||0).toFixed(1)+'x' : (sigData ? (sigData.rr_ratio||0).toFixed(1)+'x' : '—');
-      var atrS = pnl ? (pnl.atr_stop||0) : (sigData ? (sigData.atr_stop||0) : 0);
       var acc = pnl ? (pnl.accion||'🟢 HOLD') : (sinDatos ? '⚠️ Sin precio' : '🟢 HOLD');
       var accColor = acc.indexOf('VENDER')>=0?'#f87171':acc.indexOf('REDUCIR')>=0?'#fbbf24':acc.indexOf('PARCIAL')>=0?'#c084fc':acc.indexOf('AGREGAR')>=0?'#4ade80':acc.indexOf('Sin')>=0?'#555':'#aaa';
-      var precioActStr = sinDatos ? '<span style="color:#555" title="Precio no disponible en último run">'+precioAct.toLocaleString('es-AR')+' ⚠️</span>' : precioAct.toLocaleString('es-AR');
-      return '<tr'+(sinDatos?' style="opacity:0.7"':'')+'>'+
-        '<td class="ticker">'+p.ticker+'</td>'+
+      var mercFlag = p.mercado==='MERVAL'?'🇦🇷':p.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';
+      var usdColor = usdActual>0?'#e2e8f0':'#555';
+      return '<tr>'+
+        '<td class="ticker">'+p.ticker+(p.notas&&p.notas.indexOf('Verificar')>=0?' <span style="color:#fbbf24;font-size:10px">⚠️</span>':'')+' </td>'+
+        '<td style="color:#888;font-size:11px">'+mercFlag+' '+p.mercado+'</td>'+
         '<td>'+p.precio_compra.toLocaleString('es-AR')+'</td>'+
-        '<td>'+precioActStr+'</td>'+
+        '<td style="color:'+usdColor+';font-weight:600">'+(pActUsd>0?'$'+pActUsd.toFixed(4)+'<span style="font-size:10px;color:#666"> /acc</span>':'—')+'</td>'+
         '<td>'+p.cantidad+'</td>'+
-        '<td style="color:'+(sinDatos?'#555':parseFloat(pnlPct)>=0?'#4ade80':'#f87171')+';font-weight:600">'+(parseFloat(pnlPct)>=0?'+':'')+pnlPct+'%</td>'+
-        '<td style="color:'+(sinDatos?'#555':parseFloat(pnlAbs)>=0?'#4ade80':'#f87171')+'">$'+parseInt(pnlAbs).toLocaleString('es-AR')+'</td>'+
+        '<td style="color:'+(pnlPct==='—'?'#555':parseFloat(pnlPct)>=0?'#4ade80':'#f87171')+';font-weight:600">'+(pnlPct!=='—'?(parseFloat(pnlPct)>=0?'+':'')+pnlPct+'%':pnlPct)+'</td>'+
+        '<td style="color:'+(pnlUsdPos>=0?'#4ade80':'#f87171')+'">'+pnlUsdPosStr+'</td>'+
         '<td style="color:'+sigColor(sig2)+'">'+sig2+'</td>'+
         '<td style="color:#fbbf24">'+rr+'</td>'+
-        '<td>'+(atrS>0?atrS.toLocaleString('es-AR'):'—')+'</td>'+
         '<td style="color:'+accColor+';font-weight:700">'+acc+'</td></tr>';
     }}).join('');
   var al = document.getElementById('portfolio-alerts');
@@ -1353,8 +1360,21 @@ function tickerAutocomplete(val){{
   }}).join('');
   drop.style.display='block';
   // Check exact match
-  if(tickersModelo[val]){{ opTickerValido=val; status.textContent='✅ '+tickersModelo[val].empresa+' · '+tickersModelo[val].mercado; status.style.color='#4ade80'; }}
-  else{{ status.textContent='Seleccioná un ticker de la lista'; status.style.color='#fbbf24'; }}
+  if(tickersModelo[val]){{
+    opTickerValido=val;
+    var d=tickersModelo[val];
+    var mf=d.mercado==='MERVAL'?'🇦🇷':d.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';
+    status.textContent='✅ '+d.empresa+' · '+mf+' '+d.mercado+' · Precio actual: '+d.precio_actual.toLocaleString('es-AR');
+    status.style.color='#4ade80';
+    document.getElementById('op-submit-btn').disabled=false;
+    document.getElementById('op-submit-btn').style.opacity='1';
+  }} else{{
+    opTickerValido=null;
+    status.textContent='⚠️ Seleccioná un ticker válido del modelo (solo tickers de MERVAL, BOVESPA o S&P 500)';
+    status.style.color='#fbbf24';
+    document.getElementById('op-submit-btn').disabled=true;
+    document.getElementById('op-submit-btn').style.opacity='0.4';
+  }}
 }}
 
 function seleccionarTicker(t){{
