@@ -6,6 +6,7 @@ NUEVO: Validación de consistencia de datos antes de generar dashboard.
  
 import logging
 import os
+import re
 import time
 import json
 from datetime import datetime
@@ -243,6 +244,37 @@ def run_pipeline():
             logger.info("Dashboard + index.html publicados en GitHub Pages")
         else:
             logger.warning("No se pudo publicar en GitHub Pages (revisar GH_TOKEN)")
+
+        # 6c. DASHBOARD PUBLICO (sin pestaña Portfolio)
+        try:
+            public_name = dashboard_name.replace(".html", "_publico.html")
+            public_path = f"{OUTPUT_DIR}/{public_name}"
+            with open(dashboard_path, "r", encoding="utf-8") as f:
+                html_priv = f.read()
+            # Quitar tab Portfolio del header
+            html_pub = re.sub(
+                r"<div class=['"]tab['"][^>]*onclick=['"][^'"]*portfolio[^'"]*['"][^>]*>.*?</div>",
+                "", html_pub := html_priv, flags=re.IGNORECASE
+            )
+            # Quitar página Portfolio completa
+            html_pub = re.sub(
+                r'<div[^>]*id=["']portfolio["'][^>]*>.*?(?=<div[^>]*class=["'][^"']*page)',
+                "", html_pub, flags=re.DOTALL | re.IGNORECASE
+            )
+            # Ocultar variable PORTFOLIO con datos sensibles
+            html_pub = html_pub.replace(
+                "var PORTFOLIO        =",
+                "var PORTFOLIO        = {}; // (oculto en version publica) //"
+            )
+            with open(public_path, "w", encoding="utf-8") as f:
+                f.write(html_pub)
+            pub_ok = publish_dashboard(public_path, public_name)
+            if pub_ok:
+                logger.info(f"Dashboard publico publicado: {public_name}")
+            else:
+                logger.warning("No se pudo publicar dashboard publico")
+        except Exception as e:
+            logger.warning(f"Error generando dashboard publico: {e}")
  
         # 7. EXCEL
         excel_path = None
