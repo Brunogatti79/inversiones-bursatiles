@@ -32,6 +32,54 @@ OUTPUT_DIR   = "outputs"
 DATA_DIR     = "data"
  
  
+
+def apply_prediction_override(signals: list[dict]) -> list[dict]:
+    """
+    Post-proceso: ajusta señales cuando predictor contradice V1.
+    Principio: el predictor tiene la ultima palabra en timing de entrada.
+    Reglas:
+      - pred_21d < 0%  + COMPRA* → NEUTRAL  (no entrar si baja proyectada)
+      - pred_21d < -5% + COMPRA* → VENTA PARCIAL (proyeccion muy negativa)
+      - pred_21d <-10% + cualquier señal → VENTA  (baja fuerte proyectada)
+      - ret_anual < -40% + COMPRA* → NEUTRAL  (caida estructural severa)
+    """
+    overrides = 0
+    for s in signals:
+        pred_21d  = s.get("pred_21d")
+        ret_anual = s.get("ret_anual", 0) or 0
+        signal    = s.get("signal", "")
+        is_buy    = "COMPRA" in signal
+
+        reasons = []
+
+        # Regla 1: prediccion negativa → no comprar
+        if pred_21d is not None and is_buy:
+            if pred_21d < -10:
+                s["signal"] = "🔴 VENTA"
+                reasons.append(f"Pred21d {pred_21d:.1f}% (BAJA FUERTE)")
+            elif pred_21d < -5:
+                s["signal"] = "🟠 VENTA PARCIAL"
+                reasons.append(f"Pred21d {pred_21d:.1f}% (<-5%)")
+            elif pred_21d < 0:
+                s["signal"] = "🟡 NEUTRAL/ESPERAR"
+                reasons.append(f"Pred21d {pred_21d:.1f}% (negativa)")
+
+        # Regla 2: caida estructural anual severa
+        if ret_anual < -40 and "COMPRA" in s.get("signal", ""):
+            s["signal"] = "🟡 NEUTRAL/ESPERAR"
+            reasons.append(f"Ret.anual {ret_anual:.1f}% (<-40% estructural)")
+
+        if reasons:
+            s["signal_override"] = " | ".join(reasons)
+            # Sincronizar signal_v2 si también era compra
+            if "COMPRA" in s.get("signal_v2", ""):
+                s["signal_v2"] = s["signal"]
+            overrides += 1
+
+    logger.info(f"Prediction override: {overrides} señales ajustadas por predictor/tendencia")
+    return signals
+
+
 def run_pipeline():
     tz       = pytz.timezone(TIMEZONE)
     start_ts = time.time()
