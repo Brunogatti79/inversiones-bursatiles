@@ -704,6 +704,7 @@ try {{
 var SIGNALS = {signals_json};
 var PORTFOLIO = {portfolio_json};
 var PORTFOLIO_ALERTS = {portfolio_alerts_json};
+var RAILWAY_API_URL  = 'https://inversiones-bursatiles-production.up.railway.app';
 var IDX     = {index_stats_json};
 var FICHAS  = {fichas_json};
 var mL = {json.dumps(merval_labels)};
