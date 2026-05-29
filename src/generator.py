@@ -756,7 +756,7 @@ rows.sort(function(a,b){{
 if(!market) rows=rows.slice(0,50);
 var tb=document.getElementById(tbId); if(!tb) return;
 var lastMkt='';
-tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>RSI</th><th>AQ</th><th>ES</th><th>R/R</th><th>Score V2</th><th>Rank</th><th>Señal V2</th><th style='color:#a78bfa'>📈21d</th><th style='color:#a78bfa'>🎯</th></tr>'+
+tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>RSI</th><th>AQ</th><th>ES</th><th>R/R</th><th>Score V2</th><th>Rank</th><th>Señal V2</th><th style=\"color:#a78bfa\">📈21d</th><th style=\"color:#a78bfa\">🎯</th></tr>'+
 rows.map(function(s){{
 var aq=s.asset_quality||0, es=s.entry_score||0, rr=s.rr_ratio||0, sv2=s.score_final_v2||s.score_final, ra=s.ranking_accionable||sv2, sig2=s.signal_v2||s.signal;
 var mktSep='';
