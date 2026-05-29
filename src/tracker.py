@@ -408,7 +408,20 @@ def update_portfolio_usd(signals: list[dict]) -> None:
         pass
 
     if ccl <= 0:
-        logger.warning("CCL no disponible, no se actualiza portfolio USD")
+        # Fallback: calcular CCL desde señales GGAL.BA vs GGAL si disponibles
+        try:
+            ggal_ba = next((s for s in signals if s.get("ticker") == "GGAL.BA"), None)
+            ggal_us = next((s for s in signals if s.get("ticker") == "GGAL"), None)
+            if ggal_ba and ggal_us:
+                p_ba = ggal_ba.get("precio_actual", 0)
+                p_us = ggal_us.get("precio_actual", 0)
+                if p_ba > 0 and p_us > 0:
+                    ccl = round(p_ba / p_us * 10, 2)  # ratio x10 por paridad CEDEAR
+                    logger.info(f"CCL calculado desde GGAL: {ccl:.1f}")
+        except Exception:
+            pass
+    if ccl <= 0:
+        logger.warning("CCL no disponible (cache + fallback fallaron), no se actualiza portfolio USD")
         return
 
     # Construir mapa de señales
