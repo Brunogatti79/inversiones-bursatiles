@@ -43,7 +43,8 @@ MERVAL_TICKERS = {
     "MOLI.BA": "Molinos Rio de la Plata",
     "BYMA.BA": "BYMA",
     "IRSA.BA": "IRSA",
-    "YPF.BA":  "YPF",
+    "YPFD.BA": "YPF",
+    "BBAR.BA": "BBVA Argentina",
 }
 MERVAL_INDEX = "^MERV"
  
@@ -67,6 +68,12 @@ BOVESPA_TICKERS = {
     "CYRE3.SA": "Cyrela",
     "EGIE3.SA": "Engie Brasil",
     "BPAC11.SA": "BTG Pactual",
+    "B3SA3.SA":  "B3 - Brasil Bolsa Balcao",
+    "EMBR3.SA":  "Embraer",
+    "JBSS3.SA":  "JBS",
+    "ITSA4.SA":  "Itausa",
+    "SANB11.SA": "Santander Brasil",
+    "VIVT3.SA":  "Vivo Telefonica Brasil",
 }
 BOVESPA_INDEX = "^BVSP"
  
@@ -102,6 +109,14 @@ SP500_TICKERS = {
     "PBR":  "Petrobras ADR",
     "QCOM": "Qualcomm",
     "EWZ":  "iShares MSCI Brazil ETF",
+    "NFLX": "Netflix",
+    "MA":   "Mastercard",
+    "AMD":  "Advanced Micro Devices",
+    "PLTR": "Palantir",
+    "HD":   "Home Depot",
+    "CRM":  "Salesforce",
+    "BRK-B":"Berkshire Hathaway",
+    "ORCL": "Oracle",
 }
 SP500_INDEX = "^GSPC"
  
