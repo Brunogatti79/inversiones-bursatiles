@@ -919,7 +919,7 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
     (s.rr_ratio!=null?'<div class="dl">R/R Ratio <b style="color:#fbbf24">'+s.rr_ratio.toFixed(2)+'x</b></div>':'')+
     (s.atr_stop!=null?'<div class="dl">ATR Stop <b style="color:#fb923c">'+s.atr_stop.toLocaleString(\'es-AR\')+'</b></div>':'')+
     (s.atr_target!=null?'<div class="dl">ATR Target <b style="color:#bc8cff">'+s.atr_target.toLocaleString(\'es-AR\')+'</b></div>':'')+
-    (s.pred_signal?'<div class="dl" style="grid-column:1/-1;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;margin-top:4px"><b style="color:#a78bfa">🔭 PREDICCIÓN ENSEMBLE</b></div>'+
+    ((s.pred_5d!=null||s.pred_21d!=null)?'<div class="dl" style="grid-column:1/-1;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;margin-top:4px"><b style="color:#a78bfa">🔭 PREDICCIÓN ENSEMBLE</b></div>'+
       (s.pred_5d!=null?'<div class="dl">Pred. 5d <b style="color:'+(s.pred_5d>=0?'#4ade80':'#f87171')+'">'+(s.pred_5d>=0?'+':'')+s.pred_5d.toFixed(1)+'%</b></div>':'')+
       (s.pred_21d!=null?'<div class="dl">Pred. 21d <b style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+'">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</b></div>':'')+
       (s.pred_target?'<div class="dl">Target pred. <b style="color:#bc8cff">'+s.pred_target.toLocaleString(\'es-AR\')+'</b></div>':'')+
@@ -1174,7 +1174,7 @@ function showOpFicha(ticker){{
           (f.atr_percentile!=null?'<span>ATR% <b>'+fn(f.atr_percentile,0)+'</b></span>':'')+
         '</div>'+
       '</div>'+
-      (f.pred_signal?'<div class="op-card"><h3>🔭 Predicción Ensemble (5d / 21d)</h3>'+
+      ((f.pred_5d!=null||f.pred_21d!=null)?'<div class="op-card"><h3>🔭 Predicción Ensemble (5d / 21d)</h3>'+
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">'+
           '<div style="background:#0d1117;border:1px solid #1a2030;border-radius:6px;padding:8px;text-align:center">'+
             '<div style="font-size:10px;color:#666;margin-bottom:3px">5 días</div>'+
