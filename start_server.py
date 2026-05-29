@@ -188,10 +188,25 @@ class Handler(SimpleHTTPRequestHandler):
             if portfolio.get("positions"):
                 try:
                     prices_cache = _get_latest_prices()
+                    # Obtener CCL para conversión ARS→USD
+                    ccl_val = 0.0
+                    try:
+                        ccl_path = "data/ccl_cache.json"
+                        if os.path.exists(ccl_path):
+                            with open(ccl_path) as fc:
+                                ccl_data = json.load(fc)
+                                ccl_val = float(ccl_data.get("compra", 0) or 0)
+                    except Exception:
+                        pass
                     for p in portfolio["positions"]:
                         t = p.get("ticker", "")
                         if t in prices_cache and prices_cache[t] > 0:
-                            p["precio_actual"] = prices_cache[t]
+                            precio_ars = prices_cache[t]
+                            p["precio_actual"] = precio_ars
+                            # Auto-calcular USD: precio_ARS / CCL (igual que broker)
+                            if ccl_val > 0:
+                                p["precio_actual_usd"] = round(precio_ars / ccl_val, 4)
+                                p["valor_actual_usd"]  = round(precio_ars / ccl_val * p.get("cantidad", 1), 2)
                 except Exception as e:
                     logger.warning(f"No se pudieron obtener precios de CSVs: {e}")
             self._send_json(200, portfolio)
