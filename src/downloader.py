@@ -44,7 +44,8 @@ MERVAL_TICKERS = {
     "MOLI.BA":  "Molinos Río de la Plata",
     "BYMA.BA":  "BYMA",
     "IRSA.BA":  "IRSA",
-    "YPF.BA":   "YPF",
+    "YPFD.BA":  "YPF",
+    "BBAR.BA":  "BBVA Argentina",
 }
 MERVAL_INDEX = "^MERV"
  
@@ -68,6 +69,12 @@ BOVESPA_TICKERS = {
     "CYRE3.SA":  "Cyrela",
     "EGIE3.SA":  "Engie Brasil",
     "BPAC11.SA": "BTG Pactual",
+    "B3SA3.SA":  "B3 - Brasil Bolsa Balcão",
+    "EMBR3.SA":  "Embraer",
+    "JBSS3.SA":  "JBS",
+    "ITSA4.SA":  "Itaúsa",
+    "SANB11.SA": "Santander Brasil",
+    "VIVT3.SA":  "Vivo Telefônica Brasil",
 }
 BOVESPA_INDEX = "^BVSP"
  
