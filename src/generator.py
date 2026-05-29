@@ -20,7 +20,7 @@ from datetime import datetime
 from typing import Optional
  
 logger = logging.getLogger(__name__)
-logger.warning("=== GENERATOR VERSION NUEVA 2026-05-08 ===")
+logger.warning("=== GENERATOR VERSION NUEVA 2026-05-29 ===")
  
  
 # ─────────────────────────────────────────────
