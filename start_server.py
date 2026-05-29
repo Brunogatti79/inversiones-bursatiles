@@ -266,9 +266,13 @@ class Handler(SimpleHTTPRequestHandler):
                     old_total = existing.get("total_invertido", existing["precio_compra"] * existing["cantidad"])
                     new_total_inv = old_total + total_invertido
                     new_cant = existing["cantidad"] + cantidad
-                    existing["precio_compra"] = round(new_total_inv / new_cant, 6)
-                    existing["cantidad"] = new_cant
-                    existing["total_invertido"] = round(new_total_inv, 2)
+                    new_precio_usd = round(new_total_inv / new_cant, 6)
+                    existing["precio_compra"]     = new_precio_usd
+                    existing["precio_compra_usd"] = new_precio_usd
+                    existing["cantidad"]          = new_cant
+                    existing["valor_inicial_usd"] = round(new_total_inv, 2)
+                    existing["valor_actual_usd"]  = round(new_total_inv, 2)
+                    existing["rend_usd"]          = 0
                     existing["fecha_compra"] = fecha
                     existing["notas"] = f"Promediado {fecha}: +{cantidad} nom, +U$D {total_invertido}"
                     msg = f"Compra agregada a {ticker}, total: U$D {new_total_inv:.0f}, {new_cant} nom"
@@ -281,8 +285,13 @@ class Handler(SimpleHTTPRequestHandler):
                     new_pos = {
                         "ticker": ticker, "nombre": nombre,
                         "mercado": mercado, "moneda": "USD",
-                        "precio_compra": precio_unitario, "cantidad": cantidad,
-                        "total_invertido": round(total_invertido, 2),
+                        "precio_compra":     precio_unitario,
+                        "precio_compra_usd": precio_unitario,
+                        "precio_actual_usd": precio_unitario,
+                        "cantidad": cantidad,
+                        "valor_inicial_usd": round(total_invertido, 2),
+                        "valor_actual_usd":  round(total_invertido, 2),
+                        "rend_usd": 0,
                         "fecha_compra": fecha, "stop_loss": None, "target": None,
                         "notas": f"Compra {fecha} via Dashboard",
                     }
@@ -300,14 +309,19 @@ class Handler(SimpleHTTPRequestHandler):
                 if cantidad > existing["cantidad"]:
                     self._send_json(400, {"error": f"Solo tenés {existing['cantidad']} de {ticker}"})
                     return
-                pnl_pct = round((precio / existing["precio_compra"] - 1) * 100, 2)
-                pnl_abs = round((precio - existing["precio_compra"]) * cantidad, 2)
+                pc = existing.get("precio_compra_usd") or existing.get("precio_compra", 0)
+                pnl_pct = round((precio_unitario / pc - 1) * 100, 2) if pc > 0 else 0
+                pnl_abs = round((precio_unitario - pc) * cantidad, 2)
                 if cantidad == existing["cantidad"]:
                     portfolio["positions"] = [p for p in portfolio["positions"] if p["ticker"] != ticker]
                     msg = f"Venta total {ticker}. P&L: {pnl_abs} ({pnl_pct}%)"
                 else:
-                    existing["cantidad"] -= cantidad
-                    existing["notas"] = f"Venta parcial {fecha}: -{cantidad} @ {precio}"
+                    restantes = existing["cantidad"] - cantidad
+                    existing["cantidad"] = restantes
+                    existing["valor_inicial_usd"] = round((existing.get("precio_compra_usd") or existing.get("precio_compra",0)) * restantes, 2)
+                    existing["valor_actual_usd"]  = round(precio_unitario * restantes, 2)
+                    existing["rend_usd"] = round((precio_unitario - (existing.get("precio_compra_usd") or existing.get("precio_compra",0))) * restantes, 2)
+                    existing["notas"] = f"Venta parcial {fecha}: -{cantidad} @ USD {precio_unitario}"
                     msg = f"Venta parcial {ticker}. P&L: {pnl_abs} ({pnl_pct}%)"
             portfolio["last_updated"] = dt.now().strftime("%Y-%m-%d %H:%M")
             with open(portfolio_path, "w") as f:
