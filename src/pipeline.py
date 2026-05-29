@@ -245,21 +245,19 @@ def run_pipeline():
         else:
             logger.warning("No se pudo publicar en GitHub Pages (revisar GH_TOKEN)")
 
-        # 6c. DASHBOARD PUBLICO (sin pestana Portfolio)
+        # 6c. DASHBOARD PUBLICO — copia identica sin datos de portfolio
         try:
             public_name = dashboard_name.replace(".html", "_publico.html")
             public_path = f"{OUTPUT_DIR}/{public_name}"
             with open(dashboard_path, "r", encoding="utf-8") as f:
                 html_pub = f.read()
-            # Ocultar datos del portfolio (privados)
+            # Solo vaciar los datos del portfolio (layout intacto)
             html_pub = html_pub.replace(
-                "var PORTFOLIO        =",
-                "var PORTFOLIO        = {}; var _HIDDEN ="
-            )
-            # Quitar boton tab Portfolio del nav
-            html_pub = html_pub.replace(
-                'onclick="sw(\'portfolio\',this)">\U0001f4bc Portfolio</div>',
-                '<!--portfolio-tab-hidden-->'
+                "var PORTFOLIO = {",
+                "var PORTFOLIO = {{/* datos privados */}} || {{"
+            ).replace(
+                "var PORTFOLIO = {",
+                "var PORTFOLIO = {}"
             )
             with open(public_path, "w", encoding="utf-8") as f:
                 f.write(html_pub)
