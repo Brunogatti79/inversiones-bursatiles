@@ -1,6 +1,6 @@
 FROM python:3.12.13-slim
 
-ARG CACHE_BUST=2026-05-07-v4
+ARG CACHE_BUST=2026-05-29-v1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
