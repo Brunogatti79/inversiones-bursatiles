@@ -266,13 +266,22 @@ def send_daily_report(all_signals, index_stats, dashboard_filename,
     senales_block += _compras_section(all_signals)
     senales_block += _reducciones_section(all_signals)
  
+    # Bloque de overrides por predictor
+    overrides = [s for s in all_signals if s.get("signal_override")]
+    override_block = ""
+    if overrides:
+        override_block = f"\n{sep}\n⚡ <b>Ajustados por predictor/tendencia</b>\n"
+        for s in sorted(overrides, key=lambda x: x.get("mercado",""))[:10]:
+            flag = "🇦🇷" if s.get("mercado")=="MERVAL" else "🇧🇷" if s.get("mercado")=="BOVESPA" else "🇺🇸"
+            override_block += f"  {flag} <code>{s['ticker']}</code> {s.get('signal','')} — {s['signal_override']}\n"
+
     footer = (
         f"\n{sep}\n"
         f"🔗 <a href='{dash_url}'>Ver dashboard completo</a>\n"
         f"⏱ Próxima actualización: mañana al cierre"
     )
  
-    full_msg = header + indices_block + validacion_block + senales_block + footer
+    full_msg = header + indices_block + validacion_block + senales_block + override_block + footer
  
     if len(full_msg) > 4000:
         full_msg = full_msg[:3990] + "\n…"
