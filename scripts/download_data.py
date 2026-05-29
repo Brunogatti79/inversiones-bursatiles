@@ -43,6 +43,7 @@ MERVAL_TICKERS = {
     "MOLI.BA": "Molinos Rio de la Plata",
     "BYMA.BA": "BYMA",
     "IRSA.BA": "IRSA",
+    "YPF.BA":  "YPF",
 }
 MERVAL_INDEX = "^MERV"
  
