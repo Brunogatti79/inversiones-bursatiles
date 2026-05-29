@@ -1346,7 +1346,7 @@ function tickerAutocomplete(val){{
   drop.innerHTML = matches.map(function(t){{
     var d=tickersModelo[t];
     var sc=sigColor2(d.signal);
-    return '<div class="op-ticker-item" onclick="seleccionarTicker(\''+t+'\')">'
+    return '<div class="op-ticker-item" onclick="seleccionarTicker(&#39;'+t+'&#39;)">'
       +'<div><b style="color:#5ba3ff">'+t+'</b> <span style="color:#666;font-size:10px">'+d.empresa.substring(0,28)+'</span></div>'
       +'<span class="oti-sig" style="color:'+sc+';border:1px solid '+sc+'20;background:'+sc+'10">'+d.signal+'</span>'
       +'</div>';
