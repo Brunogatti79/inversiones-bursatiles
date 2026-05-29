@@ -454,6 +454,7 @@ def update_portfolio_usd(signals: list[dict]) -> None:
 
 
 
+
 def _push_portfolio_to_github():
     """Pushea portfolio.json actualizado a GitHub."""
     try:
@@ -488,5 +489,12 @@ def _push_portfolio_to_github():
 
         if sha:
             payload["sha"] = sha
+
+        req_lib.put(url, json=payload, headers=headers, timeout=15)
+
+        logger.info("Portfolio.json pusheado a GitHub")
+
+    except Exception as e:
+        logger.warning(f"No se pudo pushear portfolio: {e}")
 
  
