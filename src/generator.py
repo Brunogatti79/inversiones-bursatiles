@@ -652,8 +652,8 @@ def generate_dashboard(
       </div>
       <!-- Precio total USD -->
       <div>
-        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Precio unitario</label>
-        <input id="op-precio" type="number" step="0.01" min="0" placeholder="Precio por unidad"
+        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Precio USD/acción <span id="op-precio-hint" style="color:#4ade80;font-size:9px"></span></label>
+        <input id="op-precio" type="number" step="0.0001" min="0" placeholder="Auto desde pipeline"
           style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px">
       </div>
       <!-- Valores nominales -->
@@ -1382,6 +1382,17 @@ function seleccionarTicker(t){{
   document.getElementById('op-ticker-drop').style.display='none';
   opTickerValido=t;
   var d=tickersModelo[t];
+  // Auto-sugerir precio actual en USD desde pipeline
+  var precioSug = d.precio_actual_usd || 0;
+  if(precioSug > 0){{
+    document.getElementById('op-precio').value = precioSug.toFixed(4);
+    document.getElementById('op-precio').style.borderColor='#4ade80';
+    setTimeout(function(){{document.getElementById('op-precio').style.borderColor='#333';}}, 2000);
+  }}
+  // Mostrar hint de precio sugerido
+  var hint = document.getElementById('op-precio-hint');
+  if(hint && precioSug > 0) hint.textContent = '(sugerido: USD '+precioSug.toFixed(4)+')';
+  else if(hint) hint.textContent = '';
   var status=document.getElementById('op-ticker-status');
   status.textContent='✅ '+d.empresa+' · '+d.mercado+' · Precio actual: '+d.precio_actual.toLocaleString('es-AR');
   status.style.color='#4ade80';
@@ -1409,19 +1420,56 @@ function registrarOperacion(){{
     total: Math.round(precio*cantidad*100)/100,
     signal: d.signal,
   }};
-  var ops=cargarOperaciones();
-  ops.unshift(op);
-  localStorage.setItem(OP_KEY, JSON.stringify(ops));
-  // Reset form
-  document.getElementById('op-ticker-input').value='';
-  document.getElementById('op-precio').value='';
-  document.getElementById('op-cantidad').value='';
-  document.getElementById('op-ticker-status').textContent='Ingresá un ticker del modelo';
-  document.getElementById('op-ticker-status').style.color='#555';
-  opTickerValido=null;
-  msg.textContent='✅ Operación registrada correctamente.'; msg.style.color='#4ade80';
-  setTimeout(function(){{msg.style.display='none';}},3000);
-  renderHistorial();
+  // ── POST al servidor Railway ──
+  var endpoint = tipo === 'COMPRA' ? '/api/compra' : '/api/venta';
+  msg.textContent='⏳ Enviando al servidor…'; msg.style.color='#fbbf24';
+  document.getElementById('op-submit-btn').disabled=true;
+  fetch(endpoint, {{
+    method:'POST',
+    headers:{{'Content-Type':'application/json'}},
+    body: JSON.stringify({{
+      ticker: op.ticker,
+      nombre: op.empresa,
+      mercado: op.mercado,
+      precio: op.precio,         // USD por acción
+      cantidad: op.cantidad,
+      total_usd: op.total,       // total en USD
+      signal: op.signal
+    }})
+  }})
+  .then(function(r){{ return r.json(); }})
+  .then(function(res){{
+    if(res.error){{
+      msg.textContent='❌ Error: '+res.error; msg.style.color='#f87171';
+    }} else {{
+      // Guardar en historial local también
+      var ops=cargarOperaciones();
+      ops.unshift(op);
+      localStorage.setItem(OP_KEY, JSON.stringify(ops));
+      msg.textContent='✅ '+res.message; msg.style.color='#4ade80';
+      setTimeout(function(){{msg.style.display='none'; loadPortfolioTab();}}, 2000);
+    }}
+  }})
+  .catch(function(err){{
+    msg.textContent='⚠️ Sin conexión al servidor — guardado local.'; msg.style.color='#fbbf24';
+    // Fallback: guardar localmente si el servidor no responde
+    var ops=cargarOperaciones();
+    ops.unshift(op);
+    localStorage.setItem(OP_KEY, JSON.stringify(ops));
+    setTimeout(function(){{msg.style.display='none';}},3000);
+  }})
+  .finally(function(){{
+    // Reset form
+    document.getElementById('op-ticker-input').value='';
+    document.getElementById('op-precio').value='';
+    document.getElementById('op-cantidad').value='';
+    document.getElementById('op-ticker-status').textContent='Ingresá un ticker del modelo';
+    document.getElementById('op-ticker-status').style.color='#555';
+    opTickerValido=null;
+    document.getElementById('op-submit-btn').disabled=false;
+    document.getElementById('op-submit-btn').style.opacity='1';
+    renderHistorial();
+  }});
 }}
 
 function cargarOperaciones(){{
