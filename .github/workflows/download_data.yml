@@ -17,21 +17,23 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
  
-      - name: Verificar si ya se descargo hoy
+      - name: Verificar cooldown 2h entre descargas
         id: check
         run: |
-          TODAY=$(date -u '+%Y-%m-%d')
           if [ -f data/download_status.json ]; then
-            LAST=$(python3 -c "import json; d=json.load(open('data/download_status.json')); print(d.get('timestamp_utc','')[:10])" 2>/dev/null || echo "")
-            if [ "$LAST" = "$TODAY" ]; then
-              echo "Ya se descargaron datos hoy ($TODAY). Saltando."
-              echo "skip=true" >> $GITHUB_OUTPUT
-            else
-              echo "Ultima descarga: $LAST. Ejecutando para $TODAY."
-              echo "skip=false" >> $GITHUB_OUTPUT
-            fi
+            LAST=$(python3 -c "import json; d=json.load(open('data/download_status.json')); print(d.get('timestamp_utc','2000-01-01T00:00:00Z'))" 2>/dev/null || echo "2000-01-01T00:00:00Z")
+            SKIP=$(python3 -c "
+from datetime import datetime, timezone
+try:
+    last=datetime.fromisoformat('$LAST'.replace('Z','+00:00'))
+    h=(datetime.now(timezone.utc)-last).total_seconds()/3600
+    print('true' if h<2.0 else 'false')
+except: print('false')
+" 2>/dev/null || echo "false")
+            echo "skip=$SKIP" >> $GITHUB_OUTPUT
+            echo "Resultado skip=$SKIP"
           else
-            echo "No existe download_status.json. Primera ejecucion."
+            echo "Primera ejecucion."
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
  
