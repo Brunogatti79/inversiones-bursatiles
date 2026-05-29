@@ -223,12 +223,21 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
             continue
  
         precio_actual = sig.get("precio_actual", 0)
-        if precio_actual <= 0:
-            continue
  
-        # P&L
-        pnl_pct = round(((precio_actual / precio_compra) - 1) * 100, 2) if precio_compra > 0 else 0
-        pnl_abs = round((precio_actual - precio_compra) * cantidad, 2)
+        # Usar precios USD del broker si disponibles (más confiable que ARS con CCL)
+        precio_compra_usd = pos.get("precio_compra_usd", 0)
+        precio_actual_usd = pos.get("precio_actual_usd", 0)
+        rend_usd_broker   = pos.get("rend_usd", None)
+ 
+        if precio_compra_usd > 0 and precio_actual_usd > 0:
+            pnl_pct = round(((precio_actual_usd / precio_compra_usd) - 1) * 100, 2)
+            pnl_abs = round(rend_usd_broker if rend_usd_broker is not None
+                            else (precio_actual_usd - precio_compra_usd) * cantidad, 2)
+        elif precio_actual <= 0:
+            continue
+        else:
+            pnl_pct = round(((precio_actual / precio_compra) - 1) * 100, 2) if precio_compra > 0 else 0
+            pnl_abs = round((precio_actual - precio_compra) * cantidad, 2)
  
         # Stop loss manual
         stop = pos.get("stop_loss")
