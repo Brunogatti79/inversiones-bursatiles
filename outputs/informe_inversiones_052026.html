@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Inversiones Bursátiles — 29/05/2026 16:06</title>
+<title>Inversiones Bursátiles — 29/05/2026 16:18</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d0d0f;color:#e8e8ea;font-size:14px}
@@ -150,7 +150,7 @@
   <div>
     <div class="badge">INVERSIONES BURSÁTILES</div>
     <h1>Informe de Inversiones</h1>
-    <div style="font-size:12px;color:#666;margin-top:3px">MERVAL · BOVESPA · S&P 500 · Generado 29/05/2026 16:06</div>
+    <div style="font-size:12px;color:#666;margin-top:3px">MERVAL · BOVESPA · S&P 500 · Generado 29/05/2026 16:18</div>
   </div>
   <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>Modelo v2.0 — Asset Quality(50%Macro+30%Fundamental+20%Sectorial) · Entry Score(60%Técnico+25%Riesgo/Retorno+15%Dist.Máximo)</div>
 </div>
@@ -643,7 +643,7 @@ var PORTFOLIO = {
   }
 };
 var PORTFOLIO_ALERTS = {
-  "generated": "2026-05-29T16:06:49.030715",
+  "generated": "2026-05-29T16:19:02.318492",
   "total_positions": 14,
   "alerts": [
     {
@@ -1520,6 +1520,7 @@ function showOpFicha(ticker){
     if(criticas.length===0){ al.innerHTML='<div style="color:#4ade80;padding:8px">✅ Sin alertas activas</div>'; }
     else{ al.innerHTML = criticas.map(function(a){return '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)"><b>'+a.tipo+'</b> '+a.mensaje+'</div>';}).join(''); }
   }
+  }  // end renderPortfolio
   // ── Auto-refresh cada 60s desde Railway (CORS habilitado) ──
   function _loadPortfolioFresh(){
     if(!RAILWAY_API_URL){ renderPortfolio(PORTFOLIO, PORTFOLIO_ALERTS); return; }
