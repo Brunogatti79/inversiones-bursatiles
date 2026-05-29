@@ -275,13 +275,44 @@ def run_predictions(signals: list[dict], price_data: dict) -> list[dict]:
             skipped += 1
             continue
 
-        # Buscar columna del ticker
+        # Buscar columna del ticker — 3 estrategias
         col = None
         ticker_base = ticker.replace(".BA", "").replace(".SA", "")
+        # Estrategia 1: ticker base como substring (TRAN → TRANSENER)
         for c in df.columns:
             if ticker_base.upper() in c.upper():
                 col = c
                 break
+        # Estrategia 2: ticker sin número final (PETR4→PETR, VALE3→VALE)
+        if col is None and ticker_base and ticker_base[-1].isdigit():
+            ticker_nonum = ticker_base.rstrip("0123456789")
+            if len(ticker_nonum) >= 3:
+                for c in df.columns:
+                    if ticker_nonum.upper() in c.upper():
+                        col = c
+                        break
+        # Estrategia 3: mapeo directo ticker→empresa usando dicts del downloader
+        if col is None:
+            try:
+                from src.downloader import MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
+                all_tickers = {**MERVAL_TICKERS, **BOVESPA_TICKERS, **SP500_TICKERS}
+                empresa = all_tickers.get(ticker, "")
+                if empresa:
+                    empresa_up = empresa.upper()
+                    # Buscar columna cuyo nombre coincide mejor con la empresa
+                    best, best_score = None, 0
+                    for c in df.columns:
+                        c_up = c.upper()
+                        # Score: palabras del nombre empresa que aparecen en columna
+                        words = [w for w in empresa_up.split() if len(w) >= 3]
+                        score = sum(1 for w in words if w in c_up)
+                        if score > best_score:
+                            best_score = score
+                            best = c
+                    if best_score > 0:
+                        col = best
+            except ImportError:
+                pass
 
         if col is None:
             skipped += 1
