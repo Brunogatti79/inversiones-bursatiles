@@ -245,26 +245,25 @@ def run_pipeline():
         else:
             logger.warning("No se pudo publicar en GitHub Pages (revisar GH_TOKEN)")
 
-        # 6c. DASHBOARD PUBLICO — copia identica sin datos de portfolio
+        # 6c. DASHBOARD PUBLICO — identico al privado con portfolio vaciado
         try:
             public_name = dashboard_name.replace(".html", "_publico.html")
             public_path = f"{OUTPUT_DIR}/{public_name}"
-            with open(dashboard_path, "r", encoding="utf-8") as f:
-                html_pub = f.read()
-            # Solo vaciar los datos del portfolio (layout intacto)
-            html_pub = html_pub.replace(
-                "var PORTFOLIO = {",
-                "var PORTFOLIO = {{/* datos privados */}} || {{"
-            ).replace(
-                "var PORTFOLIO = {",
-                "var PORTFOLIO = {}"
-            )
-            with open(public_path, "w", encoding="utf-8") as f:
-                f.write(html_pub)
+            with open(dashboard_path, "r", encoding="utf-8") as pf:
+                html_pub = pf.read()
+            # Vaciar datos privados del portfolio manteniendo layout
+            marker_start = "var PORTFOLIO = {"
+            marker_end   = "var PORTFOLIO_ALERTS ="
+            if marker_start in html_pub and marker_end in html_pub:
+                idx_s = html_pub.index(marker_start)
+                idx_e = html_pub.index(marker_end)
+                html_pub = html_pub[:idx_s] + "var PORTFOLIO = {};" + "\n" + html_pub[idx_e:]
+            with open(public_path, "w", encoding="utf-8") as pf:
+                f_write = pf.write(html_pub)
             pub_ok = publish_dashboard(public_path, public_name)
-            logger.info(f"Dashboard publico: {'OK' if pub_ok else 'error'} — {public_name}")
-        except Exception as e:
-            logger.warning(f"Error generando dashboard publico: {e}")
+            logger.info(f"Dashboard publico publicado: {public_name} ok={pub_ok}")
+        except Exception as e_pub:
+            logger.warning(f"Error dashboard publico: {e_pub}")
 
         # 7. EXCEL
         excel_path = None
