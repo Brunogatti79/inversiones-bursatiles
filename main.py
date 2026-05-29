@@ -1,16 +1,8 @@
 """
-main.py
-Bot de Telegram + Scheduler.
-El servidor HTTP lo maneja start_server.py (Railway entry point).
+main.py — Bot de Telegram + Scheduler.
+start_server.py es el entry point de Railway (HTTP server + webhook).
 """
-
-import logging
-import os
-import sys
-import threading
-import time
-import asyncio
-
+import logging, os, sys, threading, time, asyncio
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -18,9 +10,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-LOG_LEVEL = logging.DEBUG if os.getenv("DEBUG_MODE","false").lower()=="true" else logging.INFO
 logging.basicConfig(
-    level=LOG_LEVEL,
+    level=logging.DEBUG if os.getenv("DEBUG_MODE","false").lower()=="true" else logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
@@ -33,7 +24,6 @@ from src.notifier import send_startup_message
 def start_scheduler():
     run_time = os.getenv("RUN_TIME_UTC", "15:00")
     h, m = run_time.split(":")
-    tz = os.getenv("TIMEZONE", "America/Argentina/Buenos_Aires")
     scheduler = BackgroundScheduler(timezone=pytz.UTC)
     scheduler.add_job(
         func=run_pipeline,
@@ -44,37 +34,53 @@ def start_scheduler():
         coalesce=True,
     )
     scheduler.start()
-    logger.info(f"Scheduler activo - ejecucion diaria a las {run_time} UTC ({tz})")
+    logger.info(f"Scheduler activo - ejecucion diaria a las {run_time} UTC")
     return scheduler
 
 
-async def run_bot_async():
+async def _bot_lifecycle():
+    """
+    Ciclo de vida del bot usando API de bajo nivel (sin run_polling)
+    para evitar conflictos de event loop en threads secundarios.
+    """
     from src.bot import build_application
     app = build_application()
 
+    # Reset webhook y limpiar updates pendientes
     await app.bot.delete_webhook(drop_pending_updates=True)
-    logger.info("Bot de Telegram activo")
 
-    # stop_signals=() evita el error set_wakeup_fd en threads no-principales
-    await app.run_polling(allowed_updates=["message"], stop_signals=())
+    # Inicializar y arrancar componentes internos
+    await app.initialize()
+    await app.start()
+
+    # Arrancar el updater (polling) — bajo nivel, sin signal handlers
+    await app.updater.start_polling(
+        poll_interval=1.0,
+        timeout=10,
+        drop_pending_updates=True,
+    )
+
+    logger.info("Bot de Telegram activo — escuchando comandos")
+
+    # Mantener corriendo indefinidamente
+    stop_event = asyncio.Event()
+    try:
+        await stop_event.wait()
+    finally:
+        await app.updater.stop()
+        await app.stop()
+        await app.shutdown()
 
 
 def run_bot_thread():
-    """Corre el bot en un thread separado usando asyncio.run() que
-    maneja correctamente el ciclo de vida del event loop."""
+    """Corre el bot en un thread daemon con su propio event loop."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
-        asyncio.run(run_bot_async())
-    except RuntimeError as e:
-        if "cannot be called from a running event loop" in str(e):
-            # Fallback: crear nuevo loop manualmente
-            import nest_asyncio
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_forever()
-        else:
-            logger.error(f"Error en bot (RuntimeError): {e}")
+        loop.run_until_complete(_bot_lifecycle())
     except Exception as e:
         logger.error(f"Error en bot: {e}")
+    # No cerramos el loop — es un daemon thread, muere con el proceso
 
 
 def main():
@@ -87,23 +93,17 @@ def main():
             logger.error(f"Variable faltante: {var}")
             sys.exit(1)
 
-    # Scheduler en background
     scheduler = start_scheduler()
 
-    # Bot en hilo daemon
     bot_thread = threading.Thread(target=run_bot_thread, daemon=True)
     bot_thread.start()
 
-    # Notificar inicio
     time.sleep(3)
     send_startup_message()
 
-    # Pipeline inmediato si se pide
     if "--run-now" in sys.argv:
-        t = threading.Thread(target=run_pipeline, daemon=True)
-        t.start()
+        threading.Thread(target=run_pipeline, daemon=True).start()
 
-    # Mantener el proceso vivo
     try:
         while True:
             time.sleep(60)
@@ -111,7 +111,6 @@ def main():
         logger.info("Deteniendo...")
     finally:
         scheduler.shutdown()
-        logger.info("Adios.")
 
 
 if __name__ == "__main__":
