@@ -117,13 +117,13 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/run — Ejecutar análisis completo ahora\n"
         "/status — Estado del sistema\n"
         "/señales — Señales activas del modelo\n"
-        "/compra TICKER PRECIO CANTIDAD — Registrar compra\n"
-        "/venta TICKER PRECIO CANTIDAD — Registrar venta\n"
+        "/compra TICKER PRECIO_USD CANTIDAD — Registrar compra (precio en USD/acc)\n"
+        "/venta TICKER PRECIO_USD CANTIDAD — Registrar venta (precio en USD/acc)\n"
         "/portfolio — Ver posiciones actuales\n"
         "/help — Esta ayuda\n\n"
         "Ejemplos:\n"
-        "<code>/compra GGAL.BA 9500 100</code>\n"
-        "<code>/venta MSFT 420 36</code>\n\n"
+        "<code>/compra GGAL.BA 1.59 100</code>  (precio en USD)\n"
+        "<code>/venta MSFT 14.73 5</code>  (precio en USD)\n\n"
         "El análisis se ejecuta automáticamente al cierre de mercado cada día hábil."
     )
     await update.message.reply_text(text, parse_mode="HTML")
@@ -202,12 +202,13 @@ async def cmd_señales(update: Update, context: ContextTypes.DEFAULT_TYPE):
  
  
 async def cmd_compra(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Registrar compra: /compra TICKER PRECIO CANTIDAD"""
+    """Registrar compra: /compra TICKER PRECIO_USD CANTIDAD (precio en USD/acción, igual que broker)"""
     args = context.args
     if not args or len(args) < 3:
         await update.message.reply_text(
-            "⚠️ Formato: <code>/compra TICKER PRECIO CANTIDAD</code>\n"
-            "Ejemplo: <code>/compra GGAL.BA 9500 100</code>",
+            "⚠️ Formato: <code>/compra TICKER PRECIO_USD CANTIDAD</code>\n"
+            "Ejemplo: <code>/compra GGAL.BA 1.59 100</code>  (precio en USD/acc)\n"
+            "Ejemplo: <code>/compra MSFT 14.73 36</code>",
             parse_mode="HTML"
         )
         return
@@ -238,19 +239,24 @@ async def cmd_compra(update: Update, context: ContextTypes.DEFAULT_TYPE):
  
     if existing:
         # Promediar precio de compra
-        old_total = existing["precio_compra"] * existing["cantidad"]
-        new_total = precio * cantidad
+        old_ini = existing.get("valor_inicial_usd") or (existing.get("precio_compra", 0) * existing["cantidad"])
+        new_ini = precio * cantidad
         new_cantidad = existing["cantidad"] + cantidad
-        new_precio = round((old_total + new_total) / new_cantidad, 2)
-        existing["precio_compra"] = new_precio
-        existing["cantidad"] = new_cantidad
+        new_precio = round((old_ini + new_ini) / new_cantidad, 4)
+        existing["precio_compra"]     = new_precio
+        existing["precio_compra_usd"] = new_precio
+        existing["cantidad"]          = new_cantidad
+        existing["valor_inicial_usd"] = round(old_ini + new_ini, 2)
+        existing["valor_actual_usd"]  = existing["valor_inicial_usd"]  # se actualiza al próx. run
+        existing["rend_usd"]          = 0
         existing["fecha_compra"] = fecha
-        existing["notas"] = f"Promediado {fecha}: +{cantidad} @ {precio}"
+        existing["notas"] = f"Promediado {fecha}: +{cantidad} @ USD {precio}"
         msg = (
             f"✅ <b>Compra agregada a posición existente</b>\n\n"
             f"📌 <code>{ticker}</code>\n"
             f"Cantidad nueva: {new_cantidad}\n"
-            f"Precio promedio: ${new_precio:,.2f}\n"
+            f"Precio promedio: USD {new_precio:,.4f}/acc\n"
+            f"Invertido total: USD {existing['valor_inicial_usd']:,.2f}\n"
             f"Fecha: {fecha}"
         )
     else:
@@ -258,10 +264,15 @@ async def cmd_compra(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new_pos = {
             "ticker": ticker,
             "nombre": ticker,
-            "mercado": "MERVAL" if ".BA" in ticker else "SP500",
-            "moneda": "ARS" if ".BA" in ticker else "USD",
-            "precio_compra": precio,
+            "mercado": "MERVAL" if ".BA" in ticker else "BOVESPA" if ".SA" in ticker else "SP500",
+            "moneda": "USD",  # Todos los precios en USD (broker)
+            "precio_compra": precio,           # USD/acc backward compat
+            "precio_compra_usd": precio,        # USD/acc
+            "precio_actual_usd": precio,        # inicia igual a compra
             "cantidad": cantidad,
+            "valor_inicial_usd": round(precio * cantidad, 2),
+            "valor_actual_usd": round(precio * cantidad, 2),
+            "rend_usd": 0,
             "fecha_compra": fecha,
             "stop_loss": None,
             "target": None,
@@ -271,9 +282,9 @@ async def cmd_compra(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = (
             f"✅ <b>Nueva posición registrada</b>\n\n"
             f"📌 <code>{ticker}</code>\n"
-            f"Precio: ${precio:,.2f}\n"
+            f"Precio: USD {precio:,.4f}/acc\n"
             f"Cantidad: {cantidad}\n"
-            f"Total: ${precio * cantidad:,.2f}\n"
+            f"Total invertido: USD {precio * cantidad:,.2f}\n"
             f"Fecha: {fecha}"
         )
  
@@ -337,20 +348,24 @@ async def cmd_venta(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tz = pytz.timezone(TIMEZONE)
     fecha = datetime.now(tz).strftime("%Y-%m-%d")
  
-    # Calcular P&L de la venta
-    pnl_por_unidad = precio_venta - existing["precio_compra"]
+    # Calcular P&L en USD
+    precio_compra_orig = existing.get("precio_compra_usd") or existing.get("precio_compra", 0)
+    pnl_por_unidad = precio_venta - precio_compra_orig
     pnl_total = round(pnl_por_unidad * cantidad_venta, 2)
-    pnl_pct = round((precio_venta / existing["precio_compra"] - 1) * 100, 2)
-    precio_compra_orig = existing["precio_compra"]
+    pnl_pct = round((precio_venta / precio_compra_orig - 1) * 100, 2) if precio_compra_orig > 0 else 0
 
     if cantidad_venta == existing["cantidad"]:
         # Venta total — eliminar posición
         portfolio["positions"] = [p for p in portfolio["positions"] if p["ticker"] != ticker]
         tipo = "VENTA TOTAL"
     else:
-        # Venta parcial — reducir cantidad
-        existing["cantidad"] -= cantidad_venta
-        existing["notas"] = f"Venta parcial {fecha}: -{cantidad_venta} @ {precio_venta}"
+        # Venta parcial — reducir cantidad y actualizar USD fields
+        restantes = existing["cantidad"] - cantidad_venta
+        existing["cantidad"] = restantes
+        existing["valor_inicial_usd"] = round(precio_compra_orig * restantes, 2)
+        existing["valor_actual_usd"]  = round(precio_venta * restantes, 2)
+        existing["rend_usd"] = round((precio_venta - precio_compra_orig) * restantes, 2)
+        existing["notas"] = f"Venta parcial {fecha}: -{cantidad_venta} @ USD {precio_venta}"
         tipo = "VENTA PARCIAL"
  
     icon = "💰" if pnl_total >= 0 else "📉"
@@ -359,9 +374,9 @@ async def cmd_venta(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
         f"{icon} <b>{tipo}</b>\n\n"
         f"📌 <code>{ticker}</code>\n"
-        f"Vendido: {cantidad_venta} @ ${precio_venta:,.2f}\n"
-        f"Compra fue: ${precio_compra_orig:,.2f}\n"
-        f"P&L: {color_pnl}${pnl_total:,.2f} ({color_pnl}{pnl_pct}%)\n"
+        f"Vendido: {cantidad_venta} @ USD {precio_venta:,.4f}/acc\n"
+        f"Compra fue: USD {precio_compra_orig:,.4f}/acc\n"
+        f"P&L: {color_pnl}USD {pnl_total:,.2f} ({color_pnl}{pnl_pct}%)\n"
         f"Fecha: {fecha}"
     )
  
@@ -390,15 +405,29 @@ async def cmd_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
  
     lines = [f"💼 <b>Portfolio — {len(positions)} posiciones</b>\n"]
  
-    total_inv = 0
+
+    total_ini_usd = sum(p.get("valor_inicial_usd", p.get("precio_compra",0)*p.get("cantidad",0)) for p in positions)
+    total_act_usd = sum(p.get("valor_actual_usd", p.get("valor_inicial_usd",0)) for p in positions)
+    total_rend    = sum(p.get("rend_usd", 0) for p in positions)
+    pnl_pct_total = round((total_rend / total_ini_usd) * 100, 2) if total_ini_usd > 0 else 0
+
+    merc_map = {"MERVAL": "🇦🇷", "BOVESPA": "🇧🇷", "SP500": "🇺🇸"}
     for p in positions:
-        inv = p["precio_compra"] * p["cantidad"]
-        total_inv += inv
+        ini  = p.get("valor_inicial_usd", p.get("precio_compra",0)*p.get("cantidad",0))
+        act  = p.get("valor_actual_usd", ini)
+        rend = p.get("rend_usd", 0)
+        pct  = round((rend/ini)*100, 1) if ini > 0 else 0
+        flag = merc_map.get(p.get("mercado","SP500"), "🌍")
+        sign = "+" if rend >= 0 else ""
         lines.append(
-            f"<code>{p['ticker']:<10}</code> {p['cantidad']:>5} × ${p['precio_compra']:>10,.2f} = ${inv:>12,.0f}"
+            f"{flag} <code>{p['ticker']:<10}</code> {p['cantidad']:>6} | "
+            f"USD {act:>7,.0f} | <b>{sign}{rend:,.0f} ({sign}{pct:.1f}%)</b>"
         )
- 
-    lines.append(f"\n<b>Total invertido: ${total_inv:,.0f}</b>")
+
+    sign_t = "+" if total_rend >= 0 else ""
+    lines.append(f"\n💵 <b>Invertido: USD {total_ini_usd:,.0f}</b>")
+    lines.append(f"📈 <b>Actual:    USD {total_act_usd:,.0f}</b>")
+    lines.append(f"💰 <b>P&L Total: {sign_t}USD {total_rend:,.0f} ({sign_t}{pnl_pct_total:.2f}%)</b>")
     lines.append(f"\n<i>Actualizado: {portfolio.get('last_updated', '—')}</i>")
  
     await update.message.reply_text("\n".join(lines), parse_mode="HTML")
