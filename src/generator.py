@@ -900,7 +900,7 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
     '<span style="color:'+rc(s.ret_sem)+'">Sem: <b>'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
     '<span style="color:'+rc(s.ret_mes)+'">Mes: <b>'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</b></span>'+
     '<span style="color:'+rc(s.ret_anual)+'">Anual: <b>'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(1)+'%</b></span>'+
-    '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+
+    '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+(s.signal_override?'<span style="background:#92400e;color:#fef3c7;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px">⚡ '+s.signal_override+'</span>':'')+
     ((s.pred_5d!=null||s.pred_21d!=null)?'<span style="color:#a78bfa;font-size:10px;font-weight:700">📈 PRED:</span>'+
       (s.pred_5d!=null?'<span style="color:'+(s.pred_5d>=0?'#4ade80':'#f87171')+';font-size:11px">5d:'+(s.pred_5d>=0?'+':'')+s.pred_5d.toFixed(1)+'%</span>':'')+
       (s.pred_10d!=null?'<span style="color:'+(s.pred_10d>=0?'#4ade80':'#f87171')+';font-size:11px">10d:'+(s.pred_10d>=0?'+':'')+s.pred_10d.toFixed(1)+'%</span>':'')+
@@ -965,7 +965,7 @@ radarItems.forEach(function(s,i){{
     tags.join('')+
     '<span style="font-size:13px;font-weight:700;color:'+sc+'">Score: '+s.radar_score+'</span></div>'+
     '<div class="concl-metrics-row">'+
-    '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+
+    '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+(s.signal_override?'<span style="background:#92400e;color:#fef3c7;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px">⚡ '+s.signal_override+'</span>':'')+
     '<span style="color:'+rc(s.ret_sem)+'">Sem: <b>'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
     '<span style="color:'+rc(s.ret_mes)+'">Mes: <b>'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</b></span>'+
     '<span>RSI: <b>'+s.rsi.toFixed(0)+'</b></span>'+
@@ -1016,7 +1016,7 @@ ventas.forEach(function(s,i){{
     '<span>RSI: <b>'+s.rsi.toFixed(0)+'</b></span>'+
     '<span style="color:'+rc(s.ret_sem)+'">Sem: <b>'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
     '<span style="color:'+rc(s.ret_anual)+'">Anual: <b>'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(1)+'%</b></span>'+
-    '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+
+    '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+(s.signal_override?'<span style="background:#92400e;color:#fef3c7;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px">⚡ '+s.signal_override+'</span>':'')+
     ((s.pred_5d!=null||s.pred_21d!=null)?'<span style="color:#a78bfa;font-size:10px;font-weight:700">📈 PRED:</span>'+
       (s.pred_5d!=null?'<span style="color:'+(s.pred_5d>=0?'#4ade80':'#f87171')+';font-size:11px">5d:'+(s.pred_5d>=0?'+':'')+s.pred_5d.toFixed(1)+'%</span>':'')+
       (s.pred_10d!=null?'<span style="color:'+(s.pred_10d>=0?'#4ade80':'#f87171')+';font-size:11px">10d:'+(s.pred_10d>=0?'+':'')+s.pred_10d.toFixed(1)+'%</span>':'')+
