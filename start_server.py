@@ -209,7 +209,14 @@ class Handler(SimpleHTTPRequestHandler):
                                 p["valor_actual_usd"]  = round(precio_ars / ccl_val * p.get("cantidad", 1), 2)
                 except Exception as e:
                     logger.warning(f"No se pudieron obtener precios de CSVs: {e}")
-            self._send_json(200, portfolio)
+            # CORS para acceso desde GitHub Pages
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            import json as _j
+            self.wfile.write(_j.dumps(portfolio, ensure_ascii=False, default=str).encode())
+            return
         except Exception as e:
             self._send_json(500, {"error": str(e)})
  
