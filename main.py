@@ -51,12 +51,19 @@ def start_scheduler():
 async def run_bot_async():
     from src.bot import build_application
     app = build_application()
-    await app.initialize()
-    await app.start()
+
+async def run_bot_async():
+    from src.bot import build_application
+
+    app = build_application()
+
+    # 🔥 resetear webhook y evitar conflictos
+    await app.bot.delete_webhook(drop_pending_updates=True)
+
     logger.info("Bot de Telegram activo")
-    await app.updater.start_polling(allowed_updates=["message"])
-    while True:
-        await asyncio.sleep(3600)
+
+    # ✅ forma moderna correcta (maneja todo internamente)
+    await app.run_polling(allowed_updates=["message"])
 
 
 def run_bot_thread():
