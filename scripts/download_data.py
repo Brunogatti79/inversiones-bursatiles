@@ -93,6 +93,14 @@ SP500_TICKERS = {
     "BA": "Boeing",
     "GE": "GE Aerospace",
     "TSLA": "Tesla",
+    "COPX": "Global X Copper Miners ETF",
+    "GLOB": "Globant",
+    "IBB":  "iShares Biotechnology ETF",
+    "MELI": "MercadoLibre",
+    "RIO":  "Rio Tinto",
+    "PBR":  "Petrobras ADR",
+    "QCOM": "Qualcomm",
+    "EWZ":  "iShares MSCI Brazil ETF",
 }
 SP500_INDEX = "^GSPC"
  
