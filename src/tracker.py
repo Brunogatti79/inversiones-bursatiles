@@ -378,6 +378,105 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
     # Contar alertas críticas
     criticas = [a for a in alerts if a["tipo"] in ("🔴 STOP LOSS", "🟠 ATR STOP", "🟠 SEÑAL VENTA")]
     logger.info(f"Portfolio: {len(positions)} posiciones, {len(criticas)} alertas críticas")
+
+    return alerts
+
+
+def update_portfolio_usd(signals: list[dict]) -> None:
+    """
+    Recalcula precio_actual_usd, valor_actual_usd y rend_usd por posición
+    usando precios del pipeline + CCL actual. Guarda y pushea portfolio.json.
+    """
+    if not os.path.exists(PORTFOLIO_PATH):
+        return
+    try:
+        with open(PORTFOLIO_PATH) as f:
+            portfolio = json.load(f)
+    except Exception as e:
+        logger.warning(f"Error leyendo portfolio para update USD: {e}")
+        return
+
+    # Leer CCL actual
+    ccl = 0.0
+    try:
+        ccl_path = "data/ccl_cache.json"
+        if os.path.exists(ccl_path):
+            with open(ccl_path) as fc:
+                ccl_data = json.load(fc)
+                ccl = float(ccl_data.get("compra", 0) or 0)
+    except Exception:
+        pass
+
+    if ccl <= 0:
+        logger.warning("CCL no disponible, no se actualiza portfolio USD")
+        return
+
+    # Construir mapa de señales
+    signal_map = {}
+    for s in signals:
+        t = s.get("ticker", "")
+        signal_map[t] = s
+        signal_map[t.replace(".BA", "").replace(".SA", "")] = s
+
+    updated = 0
+    for pos in portfolio.get("positions", []):
+        ticker   = pos.get("ticker", "")
+        cantidad = pos.get("cantidad", 0)
+        ini_usd  = pos.get("valor_inicial_usd", 0)
+        if not ticker or not cantidad or not ini_usd:
+            continue
+        sig = signal_map.get(ticker) or signal_map.get(ticker.replace(".BA","").replace(".SA",""))
+        if not sig:
+            continue
+        precio_ars = sig.get("precio_actual", 0)
+        if precio_ars <= 0:
+            continue
+        precio_usd  = round(precio_ars / ccl, 4)
+        valor_act   = round(precio_usd * cantidad, 2)
+        rend        = round(valor_act - ini_usd, 2)
+        pos["precio_actual_usd"] = precio_usd
+        pos["valor_actual_usd"]  = valor_act
+        pos["rend_usd"]          = rend
+        updated += 1
+
+    portfolio["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    portfolio["capital_usd"]  = round(
+        sum(p.get("valor_actual_usd", p.get("valor_inicial_usd", 0))
+            for p in portfolio.get("positions", [])), 2)
+
+    with open(PORTFOLIO_PATH, "w") as f:
+        json.dump(portfolio, f, ensure_ascii=False, indent=2)
+
+    logger.info(f"Portfolio USD actualizado: {updated} posiciones, CCL={ccl:.1f}")
+
+    # Push a GitHub
+    _push_portfolio_to_github()
+
+
+def _push_portfolio_to_github():
+    """Pushea portfolio.json actualizado a GitHub."""    try:
+        import requests as req_lib
+        import base64 as b64
+        gh_token = os.environ.get("GH_TOKEN", "")
+        if not gh_token:
+            return
+        with open(PORTFOLIO_PATH) as f:
+            content = f.read()
+        b64_content = b64.b64encode(content.encode()).decode()
+        repo = "Brunogatti79/inversiones-bursatiles"
+        path = PORTFOLIO_PATH
+        url  = f"https://api.github.com/repos/{repo}/contents/{path}"
+        headers = {"Authorization": f"token {gh_token}", "Content-Type": "application/json"}
+        r = req_lib.get(url, headers=headers, timeout=10)
+        sha = r.json().get("sha", "") if r.ok else ""
+        payload = {"message": f"auto: portfolio USD actualizado {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                   "content": b64_content}
+        if sha:
+            payload["sha"] = sha
+        req_lib.put(url, json=payload, headers=headers, timeout=15)
+        logger.info("Portfolio.json pusheado a GitHub")
+    except Exception as e:
+        logger.warning(f"No se pudo pushear portfolio: {e}")
  
     return alerts
  
