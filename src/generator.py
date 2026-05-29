@@ -1344,6 +1344,22 @@ function showOpFicha(ticker){{
     if(criticas.length===0){{ al.innerHTML='<div style="color:#4ade80;padding:8px">✅ Sin alertas activas</div>'; }}
     else{{ al.innerHTML = criticas.map(function(a){{return '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)"><b>'+a.tipo+'</b> '+a.mensaje+'</div>';}}).join(''); }}
   }}
+  // ── Auto-refresh cada 60s desde Railway (CORS habilitado) ──
+  function _loadPortfolioFresh(){{
+    if(!RAILWAY_API_URL){{ renderPortfolio(PORTFOLIO, PORTFOLIO_ALERTS); return; }}
+    fetch(RAILWAY_API_URL+'/api/portfolio',{{method:'GET'}})
+      .then(function(r){{return r.ok?r.json():null;}})
+      .then(function(d){{
+        if(d&&d.positions) renderPortfolio(d, PORTFOLIO_ALERTS);
+        else renderPortfolio(PORTFOLIO, PORTFOLIO_ALERTS);
+      }})
+      .catch(function(){{renderPortfolio(PORTFOLIO, PORTFOLIO_ALERTS);}});
+  }}
+  _loadPortfolioFresh();
+  setInterval(function(){{
+    var pg=document.getElementById('portfolio');
+    if(pg&&pg.classList.contains('on')) _loadPortfolioFresh();
+  }},60000);
 }})();
 // ── SISTEMA DE OPERACIONES ────────────────────────────────────────────────────
 var OP_KEY = 'inv_operaciones_v1';
