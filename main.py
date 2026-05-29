@@ -52,18 +52,11 @@ async def run_bot_async():
     from src.bot import build_application
     app = build_application()
 
-async def run_bot_async():
-    from src.bot import build_application
-
-    app = build_application()
-
-    # 🔥 resetear webhook y evitar conflictos
     await app.bot.delete_webhook(drop_pending_updates=True)
-
     logger.info("Bot de Telegram activo")
 
-    # ✅ forma moderna correcta (maneja todo internamente)
-    await app.run_polling(allowed_updates=["message"])
+    # stop_signals=() evita el error set_wakeup_fd en threads no-principales
+    await app.run_polling(allowed_updates=["message"], stop_signals=())
 
 
 def run_bot_thread():
