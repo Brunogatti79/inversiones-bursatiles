@@ -204,7 +204,7 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
  
     for pos in positions:
         ticker = pos["ticker"]
-        precio_compra = pos["precio_compra"]
+        precio_compra = pos.get("precio_compra") or pos.get("precio_compra_usd", 0)
         cantidad = pos["cantidad"]
  
         # Buscar en señales
