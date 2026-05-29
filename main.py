@@ -60,14 +60,21 @@ async def run_bot_async():
 
 
 def run_bot_thread():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    """Corre el bot en un thread separado usando asyncio.run() que
+    maneja correctamente el ciclo de vida del event loop."""
     try:
-        loop.run_until_complete(run_bot_async())
+        asyncio.run(run_bot_async())
+    except RuntimeError as e:
+        if "cannot be called from a running event loop" in str(e):
+            # Fallback: crear nuevo loop manualmente
+            import nest_asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_forever()
+        else:
+            logger.error(f"Error en bot (RuntimeError): {e}")
     except Exception as e:
         logger.error(f"Error en bot: {e}")
-    finally:
-        loop.close()
 
 
 def main():
