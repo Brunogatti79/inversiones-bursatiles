@@ -155,8 +155,13 @@ def run_pipeline():
         save_signals(all_signals, f"{DATA_DIR}/signals_prev.json")
         history = update_history(all_signals)
         compute_accuracy(history)
-        from src.tracker import check_portfolio_alerts
-        portfolio_alerts = check_portfolio_alerts(all_signals) 
+        from src.tracker import check_portfolio_alerts, update_portfolio_usd
+        portfolio_alerts = check_portfolio_alerts(all_signals)
+        # Actualizar precios USD del portfolio con precios vigentes + CCL
+        try:
+            update_portfolio_usd(all_signals)
+        except Exception as e:
+            logger.warning(f"update_portfolio_usd falló: {e}") 
         if portfolio_alerts:
             from src.notifier import send_portfolio_alerts
             criticas = [a for a in portfolio_alerts if a.get("tipo") not in ("📊 P&L",)]
