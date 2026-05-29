@@ -253,6 +253,12 @@ def generate_dashboard(
     signals_json     = json.dumps(signals,     ensure_ascii=False)
     index_stats_json = json.dumps(index_stats, ensure_ascii=False)
     fichas_json      = json.dumps(fichas,      ensure_ascii=False, default=str)
+    railway_url      = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+    if railway_url and not railway_url.startswith("http"):
+        railway_url = "https://" + railway_url
+    # Fallback a URL conocida si no hay env var
+    if not railway_url:
+        railway_url = "https://inversiones-bursatiles-production.up.railway.app"
     # Portfolio data para la pestaña Portfolio
     portfolio_json = "{}"
     portfolio_alerts_json = "{}"
@@ -1276,9 +1282,10 @@ function showOpFicha(ticker){{
 }}
 // ── PORTFOLIO TAB ──
 (function(){{
-  var portfolio = PORTFOLIO;
-  var pAlerts = PORTFOLIO_ALERTS;
-  if(!portfolio || !portfolio.positions) return;
+  // Intentar fetch en tiempo real desde Railway (CORS habilitado)
+  function renderPortfolio(portfolio, pAlerts){{
+    if(!portfolio || !portfolio.positions) return;
+    pAlerts = pAlerts || {{}};
   var positions = portfolio.positions;
   var alertsList = (pAlerts && pAlerts.alerts) ? pAlerts.alerts : [];
   var pnlItems = alertsList.filter(function(a){{return a.tipo==='📊 P&L';}});
