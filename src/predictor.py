@@ -117,16 +117,45 @@ def _gradient_boosting(serie: np.ndarray, horizon: int) -> tuple[float, float]:
         from sklearn.model_selection import cross_val_score
 
         s = pd.Series(serie)
-        # Features: retornos rolling 5/10/21, volatilidad, RSI proxy
+
+        # ── Features extendidas (10 total) ───────────────────────────────────
+        # Retornos rolling múltiples timeframes
+        r3  = s.pct_change(3).fillna(0)
         r5  = s.pct_change(5).fillna(0)
         r10 = s.pct_change(10).fillna(0)
         r21 = s.pct_change(21).fillna(0)
-        vol = s.pct_change().rolling(10).std().fillna(0)
-        ma5  = s.rolling(5).mean().fillna(s)
-        ma20 = s.rolling(20).mean().fillna(s)
-        dist = ((s - ma20) / (ma20.replace(0, 1))).fillna(0)
 
-        X = np.column_stack([r5, r10, r21, vol, dist])
+        # Volatilidad rolling (riesgo implícito)
+        vol10 = s.pct_change().rolling(10).std().fillna(0)
+        vol21 = s.pct_change().rolling(21).std().fillna(0)
+
+        # Distancias a medias móviles (posición relativa)
+        ma5   = s.rolling(5).mean().fillna(s)
+        ma20  = s.rolling(20).mean().fillna(s)
+        ma50  = s.rolling(50).mean().fillna(s)
+        dist_ma20 = ((s - ma20) / ma20.replace(0, 1)).fillna(0)
+        dist_ma50 = ((s - ma50) / ma50.replace(0, 1)).fillna(0)
+
+        # RSI proxy: ratio ganancias/pérdidas rolling 14d
+        delta     = s.diff().fillna(0)
+        gain      = delta.clip(lower=0).rolling(14).mean().fillna(0)
+        loss      = (-delta.clip(upper=0)).rolling(14).mean().fillna(0)
+        rs        = gain / (loss.replace(0, 1e-9))
+        rsi_proxy = (100 - 100 / (1 + rs)).fillna(50)
+
+        # Distancia al máximo 52-week (momentum de largo plazo)
+        high_52w   = s.rolling(min(252, len(s))).max().fillna(s)
+        dist_high  = ((s - high_52w) / high_52w.replace(0, 1)).fillna(0)
+
+        X = np.column_stack([
+            r3, r5, r10, r21,          # retornos multi-timeframe
+            vol10, vol21,               # volatilidad
+            dist_ma20, dist_ma50,       # posición vs medias
+            rsi_proxy / 100,            # RSI normalizado 0-1
+            dist_high,                  # distancia al máximo
+        ])
+        # ─────────────────────────────────────────────────────────────────────
+
         y_raw = s.pct_change(horizon).shift(-horizon).fillna(0)
 
         # Ventana mínima de entrenamiento: 60 muestras
@@ -223,8 +252,10 @@ def predict_ticker(ticker: str, serie: pd.Series) -> dict:
         p5,  c5  = ensemble(hw5,  conf_hw5,  gb5,  conf_gb5)
         p21, c21 = ensemble(hw21, conf_hw21, gb21, conf_gb21)
 
-        # pred_10d: interpolación simple
-        p10 = (p5 + p21) / 2
+        # pred_10d: predicción real a 10d (no interpolación)
+        gb10, conf_gb10 = _gradient_boosting(arr, 10)
+        hw10, conf_hw10 = _holt_winters(arr, 10)
+        p10, c10 = ensemble(hw10, conf_hw10, gb10, conf_gb10)
 
         # Target precio a 21d
         target = round(price_last * (1 + p21 / 100), 2)
