@@ -27,6 +27,19 @@ import json
 import os
  
 logger = logging.getLogger(__name__)
+
+# ── Pesos optimizados (cargados lazy una vez por proceso) ───────────────────
+_OPTIMIZED_WEIGHTS: dict = {}
+
+def _load_optimized_weights_once():
+    global _OPTIMIZED_WEIGHTS
+    if _OPTIMIZED_WEIGHTS:
+        return
+    try:
+        from src.weight_optimizer import load_optimized_weights
+        _OPTIMIZED_WEIGHTS = load_optimized_weights()
+    except Exception:
+        _OPTIMIZED_WEIGHTS = {}
  
 # ─────────────────────────────────────────────
 # Constantes del modelo
@@ -550,7 +563,13 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         logger.info(f"[{market}] Score macro fallback: {macro_score}")
  
     # Seleccionar pesos optimizados para este mercado
-    W = W_POR_MERCADO.get(market, W_DEFAULT)
+    # Prioridad: archivo optimizados > hardcoded por mercado > default
+    _load_optimized_weights_once()
+    if _OPTIMIZED_WEIGHTS.get(market):
+        W = _OPTIMIZED_WEIGHTS[market]
+        logger.debug(f"[{market}] Usando pesos optimizados: {W}")
+    else:
+        W = W_POR_MERCADO.get(market, W_DEFAULT)
  
     results = []
  
