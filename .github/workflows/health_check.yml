@@ -1,0 +1,43 @@
+name: Health Check Pipeline
+
+on:
+  schedule:
+    - cron: '0 6,12,18,22 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  health_check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Verificar salud del pipeline en Railway
+        id: health
+        run: |
+          RESPONSE=$(curl -s --max-time 15 \
+            https://inversiones-bursatiles-production.up.railway.app/api/health \
+            || echo '{"error":"timeout"}')
+          SLA=$(echo "$RESPONSE" | python3 -c "
+          import sys, json
+          try:
+              print(json.load(sys.stdin).get('sla_status', 'UNKNOWN'))
+          except: print('PARSE_ERROR')
+          " 2>/dev/null || echo "UNKNOWN")
+          HOURS=$(echo "$RESPONSE" | python3 -c "
+          import sys, json
+          try:
+              print(json.load(sys.stdin).get('sla_hours_since_success', '?'))
+          except: print('?')
+          " 2>/dev/null || echo "?")
+          echo "SLA=$SLA | Hours=$HOURS"
+          echo "sla_status=$SLA" >> $GITHUB_OUTPUT
+          echo "hours=$HOURS"    >> $GITHUB_OUTPUT
+
+      - name: Alertar si pipeline crítico
+        if: steps.health.outputs.sla_status == 'CRITICAL' || steps.health.outputs.sla_status == 'UNKNOWN'
+        run: |
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=🚨 Pipeline sin run exitoso hace ${{ steps.health.outputs.hours }}h — verificar Railway" \
+            -d "parse_mode=HTML" || true
