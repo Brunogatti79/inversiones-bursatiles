@@ -27,6 +27,7 @@ from src.tracker        import update_history, compute_accuracy
 from src.backtester     import run_backtest
 from src.cross_market   import compute_cross_market_context
 from src.exit_model     import enrich_exit_levels
+from src.optimizer      import run_optimization, load_optimized_weights, apply_optimized_weights
  
 logger = logging.getLogger(__name__)
  
@@ -163,6 +164,19 @@ def run_pipeline():
         ticker_cols.update(BOVESPA_TICKERS)
         ticker_cols.update(SP500_TICKERS)
 
+        # ── PESOS OPTIMIZADOS (Fase 2) ────────────────────────────────────────
+        # Cargar pesos de la última optimización y aplicarlos al analyzer
+        try:
+            opt_weights = load_optimized_weights()
+            if opt_weights:
+                apply_optimized_weights(opt_weights)
+                logger.info(f"Pesos optimizados aplicados: {list(opt_weights.keys())}")
+            else:
+                logger.info("Sin pesos optimizados aún — usando defaults del modelo")
+        except Exception as e_ow:
+            logger.warning(f"Pesos optimizados no críticos — continuando: {e_ow}")
+        # ─────────────────────────────────────────────────────────────────────
+
         # ── CROSS-MARKET (Fase 1) ─────────────────────────────────────────────
         cross_market = {}
         try:
@@ -260,6 +274,19 @@ def run_pipeline():
             )
         except Exception as e_bt:
             logger.warning(f"Backtester no crítico — continuando: {e_bt}")
+        # ──────────────────────────────────────────────────────────────────────
+
+        # ── OPTIMIZER (Fase 2) ─────────────────────────────────────────────────
+        # Corre solo cada OPTIMIZE_EVERY_DAYS días para no ralentizar el pipeline
+        try:
+            run_optimization(
+                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                ticker_cols=ticker_cols,
+                xlsx_signals=xlsx_signals,
+                fund_scores=fund_scores,
+            )
+        except Exception as e_opt:
+            logger.warning(f"Optimizer no crítico — continuando: {e_opt}")
         # ──────────────────────────────────────────────────────────────────────
 
         from src.tracker import check_portfolio_alerts, update_portfolio_usd
