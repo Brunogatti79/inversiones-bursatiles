@@ -150,6 +150,8 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/webhook/status":
             self._handle_status()
+        elif self.path == "/api/health":
+            self._handle_health()
         elif self.path == "/api/portfolio":
             self._handle_get_portfolio()
         elif self.path == "/api/ccl":
@@ -374,6 +376,39 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(500, {"error": str(e)})
             print(f"[api] Error: {e}", flush=True)
  
+
+    def _handle_health(self):
+        """GET /api/health — devuelve métricas de salud del sistema."""
+        try:
+            health_path = "data/health_metrics.json"
+            if os.path.exists(health_path):
+                with open(health_path) as f:
+                    health = json.load(f)
+            else:
+                health = {"sla_status": "UNKNOWN", "error": "No health data yet"}
+
+            # SLA check en tiempo real
+            last_success = health.get("last_success")
+            if last_success:
+                from datetime import datetime as _dt
+                try:
+                    last_dt   = _dt.fromisoformat(last_success)
+                    hours_ago = (_dt.now() - last_dt).total_seconds() / 3600
+                    if hours_ago > 14:
+                        health["sla_status"] = "CRITICAL"
+                    elif hours_ago > 8:
+                        health["sla_status"] = "WARNING"
+                    else:
+                        health["sla_status"] = "OK"
+                    health["sla_hours_since_success"] = round(hours_ago, 1)
+                except Exception:
+                    pass
+
+            health["pipeline_running"] = _pipeline_running
+            self._send_json(200, health)
+        except Exception as e:
+            self._send_json(500, {"error": str(e), "sla_status": "ERROR"})
+
     def _handle_webhook(self):
         # Verificar secret si está configurado
         if WEBHOOK_SECRET:
