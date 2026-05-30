@@ -1,7 +1,8 @@
 """
-src/pipeline.py — Fase 2
+src/pipeline.py — Fase 2 + Fase 0 (Backtesting)
 Orquestador del pipeline completo con análisis fundamental y macro real.
 NUEVO: Validación de consistencia de datos antes de generar dashboard.
+FASE 0: Backtesting automático post-run sobre historial de señales.
 """
  
 import logging
@@ -23,6 +24,7 @@ from src.notifier       import (send_daily_report, send_signal_change_alerts,
                                  publish_index_html)
 from src.generator      import generate_dashboard, generate_excel
 from src.tracker        import update_history, compute_accuracy
+from src.backtester     import run_backtest
  
 logger = logging.getLogger(__name__)
  
@@ -204,6 +206,22 @@ def run_pipeline():
         save_signals(all_signals, f"{DATA_DIR}/signals_prev.json")
         history = update_history(all_signals)
         compute_accuracy(history)
+
+        # ── BACKTEST (Fase 0) ──────────────────────────────────────────────────
+        # Construir mapeo completo ticker → col_nombre para el índice de precios
+        ticker_cols = {}
+        ticker_cols.update(MERVAL_TICKERS)
+        ticker_cols.update(BOVESPA_TICKERS)
+        ticker_cols.update(SP500_TICKERS)
+        try:
+            run_backtest(
+                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                ticker_cols=ticker_cols,
+            )
+        except Exception as e_bt:
+            logger.warning(f"Backtester no crítico — continuando: {e_bt}")
+        # ──────────────────────────────────────────────────────────────────────
+
         from src.tracker import check_portfolio_alerts, update_portfolio_usd
         portfolio_alerts = check_portfolio_alerts(all_signals)
         # Actualizar precios USD del portfolio con precios vigentes + CCL
