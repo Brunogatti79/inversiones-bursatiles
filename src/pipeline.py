@@ -29,6 +29,7 @@ from src.cross_market   import compute_cross_market_context
 from src.exit_model     import enrich_exit_levels
 from src.weight_optimizer import run_weight_optimization
 from src.monitor          import update_health_metrics
+from src.portfolio_optimizer import optimize_portfolio_allocation
 from src.optimizer      import run_optimization, load_optimized_weights, apply_optimized_weights
  
 logger = logging.getLogger(__name__)
@@ -220,6 +221,18 @@ def run_pipeline():
             )
         except Exception as e:
             logger.warning(f"Predicciones no disponibles: {e}")
+
+        # ── PORTFOLIO OPTIMIZER (Fase 4) ──────────────────────────────────────
+        try:
+            backtest_results = {}
+            if os.path.exists("data/backtest_results.json"):
+                import json as _j
+                with open("data/backtest_results.json") as _f:
+                    backtest_results = _j.load(_f)
+            all_signals = optimize_portfolio_allocation(all_signals, backtest_results)
+        except Exception as e_po:
+            logger.warning(f"Portfolio optimizer no crítico — continuando: {e_po}")
+        # ─────────────────────────────────────────────────────────────────────
 
         # ── EXIT MODEL (Fase 1) ───────────────────────────────────────────────
         try:
