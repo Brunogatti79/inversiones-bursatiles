@@ -27,6 +27,7 @@ from src.tracker        import update_history, compute_accuracy
 from src.backtester     import run_backtest
 from src.cross_market   import compute_cross_market_context
 from src.exit_model     import enrich_exit_levels
+from src.weight_optimizer import run_weight_optimization
 from src.optimizer      import run_optimization, load_optimized_weights, apply_optimized_weights
  
 logger = logging.getLogger(__name__)
@@ -276,17 +277,23 @@ def run_pipeline():
             logger.warning(f"Backtester no crítico — continuando: {e_bt}")
         # ──────────────────────────────────────────────────────────────────────
 
-        # ── OPTIMIZER (Fase 2) ─────────────────────────────────────────────────
-        # Corre solo cada OPTIMIZE_EVERY_DAYS días para no ralentizar el pipeline
+        # ── WEIGHT OPTIMIZER (Fase 2) ──────────────────────────────────────────
+        # Corre solo 1 vez por día (la primera ejecución). Las siguientes usan
+        # los pesos guardados en data/optimized_weights.json.
         try:
-            run_optimization(
-                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
-                ticker_cols=ticker_cols,
-                xlsx_signals=xlsx_signals,
-                fund_scores=fund_scores,
-            )
-        except Exception as e_opt:
-            logger.warning(f"Optimizer no crítico — continuando: {e_opt}")
+            _opt_path = "data/optimized_weights.json"
+            _run_opt  = True
+            if os.path.exists(_opt_path):
+                import time as _time
+                _age = _time.time() - os.path.getmtime(_opt_path)
+                _run_opt = _age > 3600 * 20  # re-optimizar si tiene >20h
+            if _run_opt:
+                run_weight_optimization(
+                    price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                    ticker_cols=ticker_cols,
+                )
+        except Exception as e_wo:
+            logger.warning(f"Weight optimizer no crítico — continuando: {e_wo}")
         # ──────────────────────────────────────────────────────────────────────
 
         from src.tracker import check_portfolio_alerts, update_portfolio_usd
