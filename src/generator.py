@@ -294,6 +294,48 @@ def generate_dashboard(
     m_day  = index_stats.get("merval",  {}).get("ret_dia", None)
     b_day  = index_stats.get("bovespa", {}).get("ret_dia", None)
     s_day  = index_stats.get("sp500",   {}).get("ret_dia", None)
+
+    # ── Cross-market (Fase 1/4) ──────────────────────────────────────────
+    _cm         = index_stats.get("cross_market", {})
+    cm_regime   = _cm.get("regime", "NEUTRAL")
+    cm_sp_trend = _cm.get("sp500_trend", "—")
+    cm_sp_score = _cm.get("sp500_trend_score", 50)
+    cm_adj_mv   = _cm.get("score_adjustments", {}).get("MERVAL", 0)
+    cm_adj_bv   = _cm.get("score_adjustments", {}).get("BOVESPA", 0)
+    cm_narrative= _cm.get("narrative", "Sin datos de contexto cross-market aún.")
+    cm_corr_sp_mv = _cm.get("correlations", {}).get("merval_sp500", 0)
+    cm_corr_sp_bv = _cm.get("correlations", {}).get("bovespa_sp500", 0)
+    cm_regime_color = {"RISK_ON": "#4ade80", "RISK_OFF": "#f87171"}.get(cm_regime, "#fbbf24")
+
+    # ── Health / Backtest (Fase 3) ────────────────────────────────────────
+    import json as _json, os as _os
+    _health = {}
+    _backtest = {}
+    try:
+        if _os.path.exists("data/health_metrics.json"):
+            with open("data/health_metrics.json") as _hf:
+                _health = _json.load(_hf)
+        if _os.path.exists("data/backtest_results.json"):
+            with open("data/backtest_results.json") as _bf:
+                _backtest = _json.load(_bf)
+    except Exception:
+        pass
+    hl_sla       = _health.get("sla_status", "UNKNOWN")
+    hl_runs      = _health.get("pipeline_runs_today", 0)
+    hl_dur       = _health.get("duration_last_sec", 0)
+    hl_buy       = _health.get("buy_signals", 0)
+    hl_sla_color = {"OK": "#4ade80", "WARNING": "#fbbf24", "CRITICAL": "#f87171"}.get(hl_sla, "#888")
+    bt_ev        = None
+    bt_acc       = None
+    bt_trades    = _backtest.get("total_trades", 0)
+    for _row in _backtest.get("signal_summary", []):
+        if "COMPRA" in _row.get("signal", "") and _row.get("expected_value") is not None:
+            bt_ev  = _row["expected_value"]
+            break
+    _pred = _backtest.get("predictor", {})
+    bt_acc = _pred.get("directional_accuracy")
+    bt_ev_str  = f"{bt_ev:+.1f}%" if bt_ev is not None else "—"
+    bt_acc_str = f"{bt_acc:.0%}"  if bt_acc is not None else "—"
  
     html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -523,6 +565,42 @@ def generate_dashboard(
       </div>
     </div>
   </div>
+  <!-- ── Health & Backtest metrics ── -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 18px;align-items:center">
+    <div style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:8px 14px;display:flex;gap:8px;align-items:center">
+      <span style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Sistema</span>
+      <span style="font-size:12px;font-weight:700;color:{hl_sla_color};background:{hl_sla_color}22;padding:2px 8px;border-radius:4px">{hl_sla}</span>
+      <span style="font-size:11px;color:#555">|</span>
+      <span style="font-size:11px;color:#666">Runs hoy: <b style="color:#aaa">{hl_runs}</b></span>
+      <span style="font-size:11px;color:#555">|</span>
+      <span style="font-size:11px;color:#666">Dur: <b style="color:#aaa">{hl_dur:.0f}s</b></span>
+      <span style="font-size:11px;color:#555">|</span>
+      <span style="font-size:11px;color:#666">Compras: <b style="color:#4ade80">{hl_buy}</b></span>
+    </div>
+    <div style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:8px 14px;display:flex;gap:8px;align-items:center">
+      <span style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Backtest</span>
+      <span style="font-size:11px;color:#666">EV compras 21d: <b style="color:{'#4ade80' if bt_ev and bt_ev>0 else '#f87171' if bt_ev and bt_ev<0 else '#888'}">{bt_ev_str}</b></span>
+      <span style="font-size:11px;color:#555">|</span>
+      <span style="font-size:11px;color:#666">Predictor acc: <b style="color:#a78bfa">{bt_acc_str}</b></span>
+      <span style="font-size:11px;color:#555">|</span>
+      <span style="font-size:11px;color:#666">n={bt_trades}</span>
+    </div>
+  </div>
+
+  <!-- ── Cross-Market Context ── -->
+  <div style="background:#0d0d14;border:1px solid #1a1a2e;border-radius:10px;padding:14px 18px;margin:0 0 18px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+      <span style="font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1px">Cross-Market</span>
+      <span style="font-size:13px;font-weight:800;color:{cm_regime_color};background:{cm_regime_color}22;padding:3px 10px;border-radius:5px">{cm_regime}</span>
+      <span style="font-size:12px;color:#666">SP500: <b style="color:{'#4ade80' if cm_sp_trend=='ALCISTA' else '#f87171' if cm_sp_trend=='BAJISTA' else '#fbbf24'}">{cm_sp_trend}</b> ({cm_sp_score:.0f}/100)</span>
+      <span style="font-size:12px;color:#666">Corr MV↔SP: <b style="color:#a78bfa">{cm_corr_sp_mv:.2f}</b></span>
+      <span style="font-size:12px;color:#666">Corr BV↔SP: <b style="color:#a78bfa">{cm_corr_sp_bv:.2f}</b></span>
+      <span style="font-size:12px;color:#666">Adj MERVAL: <b style="color:{'#4ade80' if cm_adj_mv>0 else '#f87171' if cm_adj_mv<0 else '#888'}">{cm_adj_mv:+.1f}pt</b></span>
+      <span style="font-size:12px;color:#666">Adj BOVESPA: <b style="color:{'#4ade80' if cm_adj_bv>0 else '#f87171' if cm_adj_bv<0 else '#888'}">{cm_adj_bv:+.1f}pt</b></span>
+    </div>
+    <div style="font-size:12px;color:#777;line-height:1.6;font-style:italic">{cm_narrative}</div>
+  </div>
+
   <div class="section-title">Evolución comparativa — base 100</div>
   <div class="chart-legend">
     <div class="legend-item"><div style="background:#5ba3ff;height:3px;width:24px;border-radius:2px"></div><span style="color:#5ba3ff;font-weight:600">MERVAL 🇦🇷</span></div>
@@ -763,12 +841,12 @@ rows.sort(function(a,b){{
 if(!market) rows=rows.slice(0,50);
 var tb=document.getElementById(tbId); if(!tb) return;
 var lastMkt='';
-tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>RSI</th><th>AQ</th><th>ES</th><th>R/R</th><th>Score V2</th><th>Rank</th><th>Señal V2</th><th style=\"color:#a78bfa\">📈21d</th><th style=\"color:#a78bfa\">🎯</th></tr>'+
+tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>RSI</th><th>AQ</th><th>ES</th><th>R/R</th><th>Score V2</th><th>Rank</th><th>Señal V2</th><th style=\"color:#a78bfa\">📈21d</th><th style=\"color:#a78bfa\">🎯</th><th style=\"color:#c084fc\" title=\"Alineación 3 timeframes\">Align</th><th title=\"Tendencia Mensual\">📅M</th></tr>'+
 rows.map(function(s){{
 var aq=s.asset_quality||0, es=s.entry_score||0, rr=s.rr_ratio||0, sv2=s.score_final_v2||s.score_final, ra=s.ranking_accionable||sv2, sig2=s.signal_v2||s.signal;
 var mktSep='';
 if(!market&&s.mercado!==lastMkt){{lastMkt=s.mercado;var fl=s.mercado==='MERVAL'?'🇦🇷':s.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';mktSep='<tr><td colspan="12" style="background:#111118;padding:8px 12px;font-weight:700;color:#5ba3ff;font-size:13px;border-bottom:2px solid #5ba3ff">'+fl+' '+s.mercado+'</td></tr>';}}
-return mktSep+'<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td>'+(s.pred_21d!=null?'<td style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-size:11px;font-weight:700">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</td>':'<td style="color:#444">—</td>')+(s.pred_confidence?'<td style="color:#a78bfa;font-size:11px">'+Math.round(s.pred_confidence*100)+'%</td>':'<td style="color:#444">—</td>')+'</tr>';}}).join('');}}
+return mktSep+'<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td>'+(s.pred_21d!=null?'<td style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-size:11px;font-weight:700">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</td>':'<td style="color:#444">—</td>')+(s.pred_confidence?'<td style="color:#a78bfa;font-size:11px">'+Math.round(s.pred_confidence*100)+'%</td>':'<td style="color:#444">—</td>')++(s.alignment_label?'<td style="font-size:10px;font-weight:700;color:'+(s.alignment_label.indexOf('TRIPLE')>=0?'#4ade80':s.alignment_label.indexOf('DOBLE')>=0?'#a78bfa':s.alignment_label.indexOf('CONFLICTO')>=0?'#f87171':'#666')+'">'+(s.alignment_label.indexOf('TRIPLE')>=0?'3✓':s.alignment_label.indexOf('DOBLE')>=0?'2✓':'?')+'</td>':'<td style="color:#444">—</td>')+(s.monthly_trend&&s.monthly_trend!=='SIN DATOS'?'<td style="color:'+(s.monthly_trend==='ALCISTA'?'#4ade80':s.monthly_trend==='BAJISTA'?'#f87171':'#fbbf24')+';font-size:12px;font-weight:700">'+(s.monthly_trend==='ALCISTA'?'▲':s.monthly_trend==='BAJISTA'?'▼':'●')+'</td>':'<td style="color:#444">—</td>')'</tr>';}}).join('');}}
 function buildStats(divId,marketKey){{
   var st=IDX[marketKey]||{{}};
   var d=document.getElementById(divId); if(!d) return;
@@ -1084,6 +1162,8 @@ if(FICHAS.length===0){{
         (f.pred_10d!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.pred_10d>=0?'#4ade80':'#f87171')+'">'+(f.pred_10d>=0?'+':'')+fn(f.pred_10d,1)+'%</span><span class="op-ml">10d</span></div>':'')+
         (f.pred_21d!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.pred_21d>=0?'#4ade80':'#f87171')+'">'+(f.pred_21d>=0?'+':'')+fn(f.pred_21d,1)+'%</span><span class="op-ml">21d</span></div>':'')+
         (f.pred_confidence?'<div class="op-m"><span class="op-mv" style="color:#a78bfa">'+Math.round(f.pred_confidence*100)+'%</span><span class="op-ml">🎯 conf.</span></div>':'')+
+        (f.suggested_pct!=null&&f.suggested_pct>0?'<div class="op-m"><span class="op-mv" style="color:#fbbf24;font-weight:800">'+f.suggested_pct.toFixed(1)+'%</span><span class="op-ml">💰 alloc.</span></div>':'')+
+        (f.exit_score!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.exit_score>=56?'#f87171':f.exit_score>=31?'#fbbf24':'#4ade80')+'">'+f.exit_score.toFixed(0)+'</span><span class="op-ml">exit⚡</span></div>':'')+
         '<span class="op-sig '+(f.signal.indexOf('FUERTE')>=0?'op-sig-f':'op-sig-c')+'">'+f.signal+'</span>';
       row.appendChild(mets);
       row.onclick=function(){{showOpFicha(f.ticker);}};
