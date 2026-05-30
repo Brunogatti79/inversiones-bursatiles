@@ -25,6 +25,8 @@ from src.notifier       import (send_daily_report, send_signal_change_alerts,
 from src.generator      import generate_dashboard, generate_excel
 from src.tracker        import update_history, compute_accuracy
 from src.backtester     import run_backtest
+from src.cross_market   import compute_cross_market_context
+from src.exit_model     import enrich_exit_levels
  
 logger = logging.getLogger(__name__)
  
@@ -152,8 +154,34 @@ def run_pipeline():
             xlsx_signals = load_xlsx_signals(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")
         fund_scores  = load_fundamental_scores(f"{DATA_DIR}/ratios_consolidado_quant.csv")
         macro_scores = xlsx_signals.get("macro_scores", {})
-        logger.info(f"Macro scores: {macro_scores}")
-        logger.info(f"Fundamental scores cargados: {len(fund_scores)} tickers") 
+        logger.info(f"Macro scores (pre-cross): {macro_scores}")
+        logger.info(f"Fundamental scores cargados: {len(fund_scores)} tickers")
+
+        # Mapeo ticker → col_nombre (usado por exit_model, backtester y cross_market)
+        ticker_cols = {}
+        ticker_cols.update(MERVAL_TICKERS)
+        ticker_cols.update(BOVESPA_TICKERS)
+        ticker_cols.update(SP500_TICKERS)
+
+        # ── CROSS-MARKET (Fase 1) ─────────────────────────────────────────────
+        cross_market = {}
+        try:
+            cross_market = compute_cross_market_context(
+                merval_df, bovespa_df, sp500_df, index_cols
+            )
+            # Aplicar ajuste al macro_score antes de analyze_market
+            for mkt, adj in cross_market.get("score_adjustments", {}).items():
+                if mkt in macro_scores and abs(adj) > 0.01:
+                    old = macro_scores[mkt]
+                    macro_scores[mkt] = round(max(0, min(100, old + adj)), 1)
+                    logger.info(f"  Macro adj {mkt}: {old} → {macro_scores[mkt]} ({adj:+.2f} cross-market)")
+            # Propagar macro_scores ajustados a xlsx_signals
+            xlsx_signals["macro_scores"] = macro_scores
+            logger.info(f"Cross-market: régimen={cross_market.get('regime')} | {cross_market.get('narrative','')[:80]}")
+        except Exception as e_cm:
+            logger.warning(f"Cross-market no crítico — continuando: {e_cm}")
+        # ─────────────────────────────────────────────────────────────────────
+
         # 3. ANÁLISIS
         logger.info("3/8 Calculando señales...")
 
@@ -177,6 +205,19 @@ def run_pipeline():
         except Exception as e:
             logger.warning(f"Predicciones no disponibles: {e}")
 
+        # ── EXIT MODEL (Fase 1) ───────────────────────────────────────────────
+        try:
+            regime = cross_market.get("regime", "NEUTRAL")
+            all_signals = enrich_exit_levels(
+                all_signals,
+                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                ticker_cols=ticker_cols,
+                regime=regime,
+            )
+        except Exception as e_em:
+            logger.warning(f"Exit model no crítico — continuando: {e_em}")
+        # ─────────────────────────────────────────────────────────────────────
+
         # 4. ESTADÍSTICAS DE ÍNDICES
         logger.info("4/8 Calculando estadísticas...")
         index_stats = {
@@ -199,6 +240,10 @@ def run_pipeline():
                 index_stats[key]["data_warnings"] = res.get("warnings", [])
                 index_stats[key]["data_errors"]   = res.get("errors", [])
                 index_stats[key]["ultima_fecha"]  = res.get("ultima_fecha", "—")
+
+        # Agregar contexto cross-market a index_stats (disponible para generator/dashboard)
+        if cross_market:
+            index_stats["cross_market"] = cross_market
  
         # 5. CAMBIOS
         logger.info("5/8 Detectando cambios...")
@@ -208,11 +253,6 @@ def run_pipeline():
         compute_accuracy(history)
 
         # ── BACKTEST (Fase 0) ──────────────────────────────────────────────────
-        # Construir mapeo completo ticker → col_nombre para el índice de precios
-        ticker_cols = {}
-        ticker_cols.update(MERVAL_TICKERS)
-        ticker_cols.update(BOVESPA_TICKERS)
-        ticker_cols.update(SP500_TICKERS)
         try:
             run_backtest(
                 price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
