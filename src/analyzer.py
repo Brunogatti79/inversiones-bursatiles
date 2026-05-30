@@ -371,8 +371,81 @@ def _weekly_trend(serie_diaria: pd.Series) -> dict:
         "weekly_ma_cross": cross,
         "weekly_confirms": trend != "BAJISTA"
     }
- 
- 
+
+
+def _monthly_trend(serie_diaria: pd.Series) -> dict:
+    """Tendencia mensual (MA6M/MA12M) como confirmación de largo plazo."""
+    if len(serie_diaria) < 200:
+        return {"monthly_trend": "SIN DATOS", "monthly_rsi": 50.0,
+                "monthly_ma_cross": False, "monthly_mom_6m": 0.0, "monthly_confirms": True}
+    monthly = serie_diaria.resample("ME").last().dropna()
+    if len(monthly) < 12:
+        return {"monthly_trend": "SIN DATOS", "monthly_rsi": 50.0,
+                "monthly_ma_cross": False, "monthly_mom_6m": 0.0, "monthly_confirms": True}
+    ma6m  = monthly.rolling(6).mean()
+    ma12m = monthly.rolling(12).mean()
+    cross = bool(ma6m.iloc[-1] > ma12m.iloc[-1])
+    rsi_m = _rsi(monthly)
+    if isinstance(rsi_m, float) and np.isnan(rsi_m):
+        rsi_m = 50.0
+    mom_6m = float((monthly.iloc[-1] / monthly.iloc[-7] - 1) * 100) if len(monthly) >= 7 else 0.0
+    if cross and mom_6m > -5:
+        trend = "ALCISTA"
+    elif not cross and mom_6m < 5:
+        trend = "BAJISTA"
+    else:
+        trend = "LATERAL"
+    return {
+        "monthly_trend":    trend,
+        "monthly_rsi":      round(rsi_m, 1),
+        "monthly_ma_cross": cross,
+        "monthly_mom_6m":   round(mom_6m, 1),
+        "monthly_confirms": trend != "BAJISTA",
+    }
+
+
+def _timeframe_alignment(daily_signal: str, weekly: dict, monthly: dict) -> dict:
+    """
+    Alineación de los 3 timeframes (diario, semanal, mensual).
+    Retorna bonus/penalización para ajustar el score_final.
+    """
+    is_buy  = any(x in daily_signal for x in ["COMPRA", "FUERTE"])
+    is_sell = any(x in daily_signal for x in ["VENTA"])
+
+    wk_ok = weekly.get("weekly_trend")  != "SIN DATOS"
+    mo_ok = monthly.get("monthly_trend") != "SIN DATOS"
+
+    if is_buy:
+        conf = sum([weekly.get("weekly_trend")  == "ALCISTA" if wk_ok else False,
+                    monthly.get("monthly_trend") == "ALCISTA" if mo_ok else False])
+        conf_opp = sum([weekly.get("weekly_trend")  == "BAJISTA" if wk_ok else False,
+                        monthly.get("monthly_trend") == "BAJISTA" if mo_ok else False])
+    elif is_sell:
+        conf = sum([weekly.get("weekly_trend")  == "BAJISTA" if wk_ok else False,
+                    monthly.get("monthly_trend") == "BAJISTA" if mo_ok else False])
+        conf_opp = sum([weekly.get("weekly_trend")  == "ALCISTA" if wk_ok else False,
+                        monthly.get("monthly_trend") == "ALCISTA" if mo_ok else False])
+    else:
+        return {"alignment_score": 50, "alignment_label": "NEUTRAL",
+                "alignment_bonus": 0, "alignment_penalty": 0}
+
+    if conf == 2 and conf_opp == 0:
+        score, label, bonus, penalty = 95, "TRIPLE CONFIRMACIÓN", 5, 0
+    elif conf == 1 and conf_opp == 0:
+        score, label, bonus, penalty = 70, "DOBLE CONFIRMACIÓN", 2, 0
+    elif conf == 0 and conf_opp == 0:
+        score, label, bonus, penalty = 50, "SIN DATOS", 0, 0
+    elif conf == 1 and conf_opp == 1:
+        score, label, bonus, penalty = 45, "SEÑALES MIXTAS", 0, 3
+    elif conf == 0 and conf_opp == 1:
+        score, label, bonus, penalty = 30, "CONFLICTO PARCIAL", 0, 5
+    else:
+        score, label, bonus, penalty = 15, "CONFLICTO TOTAL", 0, 8
+
+    return {"alignment_score": score, "alignment_label": label,
+            "alignment_bonus": bonus, "alignment_penalty": penalty}
+
+
 def _entry_score(score_tecnico, dist_max_norm, dist_support_norm):
     return round(
         ES_WEIGHTS["tecnico"] * score_tecnico +
@@ -596,8 +669,9 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         rsi = _rsi(serie)
         mom = _momentum(serie)
         ma_cr = _ma_cross(serie)
-        # Multi-timeframe: tendencia semanal
+        # Multi-timeframe: tendencia semanal + mensual
         wt = _weekly_trend(serie)
+        mt = _monthly_trend(serie)
  
         # Mejora 2: indicadores adicionales
         ma50_sl = _ma50_slope(serie)
@@ -659,6 +733,15 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
                 score_final = round(score_final * 0.80, 1)
             elif wt["weekly_trend"] == "BAJISTA":
                 score_final = round(score_final * 0.90, 1)
+            # Penalización mensual adicional
+            if mt["monthly_trend"] == "BAJISTA":
+                score_final = round(score_final * 0.93, 1)
+            signal = _score_to_signal(score_final)
+            # Alignment score
+            align = _timeframe_alignment(signal, wt, mt)
+            score_final = round(min(100, max(0,
+                score_final + align["alignment_bonus"] - align["alignment_penalty"]
+            )), 1)
             signal = _score_to_signal(score_final)
             rsi_final = xlsx_ticker.get("rsi", rsi)
             mom_final = mom
@@ -677,6 +760,15 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
                 score_final = round(score_final * 0.80, 1)
             elif wt["weekly_trend"] == "BAJISTA":
                 score_final = round(score_final * 0.90, 1)
+            # Penalización mensual adicional
+            if mt["monthly_trend"] == "BAJISTA":
+                score_final = round(score_final * 0.93, 1)
+            signal = _score_to_signal(score_final)
+            # Alignment score
+            align = _timeframe_alignment(signal, wt, mt)
+            score_final = round(min(100, max(0,
+                score_final + align["alignment_bonus"] - align["alignment_penalty"]
+            )), 1)
             signal = _score_to_signal(score_final)
             rsi_final = rsi
             mom_final = mom
@@ -823,10 +915,16 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "adx_score": adx_score,
             "dist_support_norm": round(dist_sup_norm, 1),
             # ── Multi-timeframe ──
-            "weekly_trend": wt["weekly_trend"],
-            "weekly_rsi": wt["weekly_rsi"],
+            "weekly_trend":    wt["weekly_trend"],
+            "weekly_rsi":      wt["weekly_rsi"],
             "weekly_ma_cross": wt["weekly_ma_cross"],
             "weekly_confirms": wt["weekly_confirms"],
+            "monthly_trend":    mt["monthly_trend"],
+            "monthly_rsi":      mt["monthly_rsi"],
+            "monthly_ma_cross": mt["monthly_ma_cross"],
+            "monthly_confirms": mt["monthly_confirms"],
+            "alignment_score":  align.get("alignment_score", 50),
+            "alignment_label":  align.get("alignment_label", ""),
         })
  
     results.sort(key=lambda x: x.get("ranking_accionable", x["score_final"]), reverse=True)
