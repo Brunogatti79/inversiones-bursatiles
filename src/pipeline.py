@@ -28,6 +28,7 @@ from src.backtester     import run_backtest
 from src.cross_market   import compute_cross_market_context
 from src.exit_model     import enrich_exit_levels
 from src.weight_optimizer import run_weight_optimization
+from src.monitor          import update_health_metrics
 from src.optimizer      import run_optimization, load_optimized_weights, apply_optimized_weights
  
 logger = logging.getLogger(__name__)
@@ -382,12 +383,32 @@ def run_pipeline():
         duration = time.time() - start_ts
         _save_status(run_date=run_date, success=True, duration=duration, tz=tz,
                      validacion_nivel=nivel)
+        # ── MONITOR (Fase 3) ──────────────────────────────────────────────
+        try:
+            update_health_metrics({
+                "success":          True,
+                "duration_sec":     duration,
+                "all_signals":      all_signals,
+                "cross_market":     cross_market,
+                "validacion_nivel": nivel,
+                "run_date":         run_date,
+            })
+        except Exception as e_mon:
+            logger.warning(f"Monitor no crítico — continuando: {e_mon}")
+        # ─────────────────────────────────────────────────────────────────
         logger.info(f"Pipeline completado en {duration:.1f}s — Validación: {nivel}")
- 
+
     except Exception as e:
         duration = time.time() - start_ts
         logger.error(f"Pipeline ERROR: {e}", exc_info=True)
         _save_status(run_date=run_date, success=False, duration=duration, error=str(e), tz=tz)
+        try:
+            update_health_metrics({
+                "success": False, "duration_sec": duration,
+                "all_signals": [], "cross_market": {}, "validacion_nivel": "ERROR",
+            })
+        except Exception:
+            pass
         send_error_notification(str(e))
         raise
  
