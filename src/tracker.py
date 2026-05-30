@@ -38,17 +38,38 @@ def update_history(signals: list[dict], max_days: int = 60):
     # Guardar snapshot de hoy (solo campos esenciales para no inflar el JSON)
     history[today] = [
         {
-            "ticker": s["ticker"],
-            "mercado": s.get("mercado", ""),
-            "precio": s.get("precio_actual", 0),
-            "signal": s.get("signal", ""),
-            "signal_v2": s.get("signal_v2", ""),
-            "score_v1": s.get("score_final", 0),
-            "score_v2": s.get("score_final_v2", 0),
-            "ranking": s.get("ranking_accionable", 0),
-            "rr_ratio": s.get("rr_ratio", 0),
+            # ── Identificación ──────────────────────────────────────
+            "ticker":        s["ticker"],
+            "mercado":       s.get("mercado", ""),
+            "sector":        s.get("sector", ""),
+            # ── Precio ──────────────────────────────────────────────
+            "precio":        s.get("precio_actual", 0),
+            # ── Señales ─────────────────────────────────────────────
+            "signal":        s.get("signal", ""),
+            "signal_v2":     s.get("signal_v2", ""),
+            # ── Scores ──────────────────────────────────────────────
+            "score_v1":      s.get("score_final", 0),
+            "score_v2":      s.get("score_final_v2", 0),
+            "score_macro":   s.get("score_macro", 0),
+            "score_tecnico": s.get("score_tecnico", 0),
+            "score_fund":    s.get("score_fundamental", 0),
+            "ranking":       s.get("ranking_accionable", 0),
+            "rr_ratio":      s.get("rr_ratio", 0),
             "asset_quality": s.get("asset_quality", 0),
-            "entry_score": s.get("entry_score", 0),
+            "entry_score":   s.get("entry_score", 0),
+            # ── Stops / Targets (para backtesting) ──────────────────
+            "atr_stop":      s.get("atr_stop", 0),
+            "atr_target":    s.get("atr_target", 0),
+            "atr":           s.get("atr", 0),
+            # ── Predictor (para backtesting accuracy) ───────────────
+            "pred_5d":       s.get("pred_5d"),
+            "pred_21d":      s.get("pred_21d"),
+            "pred_signal":   s.get("pred_signal", ""),
+            "pred_confidence": s.get("pred_confidence"),
+            # ── Indicadores técnicos clave ───────────────────────────
+            "rsi":           s.get("rsi", 0),
+            "ret_anual":     s.get("ret_anual", 0),
+            "ret_mes":       s.get("ret_mes", 0),
         }
         for s in signals
     ]
