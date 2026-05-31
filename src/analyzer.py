@@ -783,10 +783,22 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         dist_max_pct = ((precio_actual - max_val) / max_val) * 100 if max_val > 0 else 0
  
         # Mejora 3: R/R con resistencias reales si es posible
+        # Fix R/R máximos: si la resistencia más cercana está muy cerca (<3%)
+        # usar el siguiente nivel para evitar R/R colapsado
         try:
             soportes, resistencias = _find_levels(serie)
-            rr_target = resistencias[0] if resistencias else max_val
-            rr_stop = soportes[1] if len(soportes) > 1 else min_val
+            rr_stop = soportes[1] if len(soportes) > 1 else (soportes[0] if soportes else min_val)
+            if resistencias:
+                # Buscar primer nivel con distancia significativa (≥ 3%)
+                rr_target = next(
+                    (r for r in resistencias if (r - precio_actual) / max(precio_actual, 1) >= 0.03),
+                    resistencias[-1]  # fallback: resistencia más lejana
+                )
+                # Si aún así es demasiado cercana, proyectar con ATR
+                if (rr_target - precio_actual) / max(precio_actual, 1) < 0.02:
+                    rr_target = precio_actual * 1.06  # target mínimo 6%
+            else:
+                rr_target = max_val
         except Exception:
             rr_target = max_val
             rr_stop = min_val
