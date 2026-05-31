@@ -220,7 +220,7 @@ def _gradient_boosting(serie: np.ndarray, horizon: int, context: dict = None) ->
 
 # ── Predicción por ticker ──────────────────────────────────────────────────────
 
-def predict_ticker(ticker: str, serie: pd.Series) -> dict:
+def predict_ticker(ticker: str, serie: pd.Series, context: dict = None) -> dict:
     """
     Genera predicciones ensemble para un ticker dado su serie de precios.
     Retorna dict con pred_5d, pred_10d, pred_21d, pred_target,
@@ -302,7 +302,7 @@ def predict_ticker(ticker: str, serie: pd.Series) -> dict:
 
 # ── Función principal: predecir todos los tickers ─────────────────────────────
 
-def run_predictions(signals: list[dict], price_data: dict) -> list[dict]:
+def run_predictions(signals: list[dict], price_data: dict, ticker_cols: dict = None, context: dict = None) -> list[dict]:
     """
     Enriquece cada señal en `signals` con campos pred_* usando price_data.
     price_data: {'merval': df, 'bovespa': df, 'sp500': df}
@@ -370,7 +370,7 @@ def run_predictions(signals: list[dict], price_data: dict) -> list[dict]:
             skipped += 1
             continue
 
-        pred = predict_ticker(ticker, serie)
+        pred = predict_ticker(ticker, serie, context=context)
 
         # Determinar si la predicción coincide con la señal del modelo
         signal_up = "COMPRA" in s.get("signal", "")
