@@ -362,6 +362,18 @@ def generate_dashboard(
   .card-sub{{font-size:11px;color:#666;margin-top:5px}}
   .pos{{color:#4ade80}}.neg{{color:#f87171}}
   .section-title{{font-size:16px;font-weight:600;color:#fff;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #222230}}
+  /* ── Glosario tooltips ───────────────────────────────────────────── */
+  [data-tip]{{position:relative;cursor:help;border-bottom:1px dotted #555}}
+  [data-tip]::after{{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1a2e;color:#e8e8ea;font-size:11px;font-weight:400;padding:6px 10px;border-radius:6px;white-space:normal;width:220px;text-align:left;pointer-events:none;opacity:0;transition:opacity .2s;z-index:999;border:1px solid #333;line-height:1.4}}
+  [data-tip]:hover::after{{opacity:1}}
+  th[data-tip]{{border-bottom:1px dotted #4a4a6a!important;cursor:help}}
+  /* ── Chart containers nuevos ─────────────────────────────────────── */
+  .chart-scatter{{height:340px;background:#0a0a0f;border-radius:10px;padding:4px;margin-bottom:24px}}
+  .chart-heatmap-wrap{{margin-bottom:24px;overflow-x:auto}}
+  .hm-grid{{display:grid;gap:3px;margin-top:8px}}
+  .hm-cell{{display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;font-weight:700;cursor:default;transition:transform .15s}}
+  .hm-cell:hover{{transform:scale(1.08);z-index:2;position:relative}}
+  .chart-bubble{{height:360px;background:#0a0a0f;border-radius:10px;padding:4px;margin-bottom:24px}}
   .tbl{{width:100%;border-collapse:collapse;margin-bottom:24px}}
   .tbl th{{text-align:left;padding:9px 12px;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #222230}}
   .tbl td{{padding:10px 12px;border-bottom:1px solid #1a1a22;font-size:13px}}
@@ -680,9 +692,19 @@ def generate_dashboard(
  
 <!-- CONCLUSIONES -->
 <div id="conclusiones" class="page">
- 
+
+  <!-- ── A) SCATTER Score V2 vs Predicción 21d ── -->
+  <div class="section-title" style="color:#a78bfa;margin-bottom:4px">📊 Mapa de Señales — Score V2 vs Predicción 21d</div>
+  <div style="font-size:12px;color:#555;margin-bottom:10px">Cuadrante superior derecho = consenso modelo + predictor. Cada punto es un ticker. Hover para detalles.</div>
+  <div class="chart-scatter"><canvas id="chartScatter"></canvas></div>
+
+  <!-- ── B) HEATMAP sectores × mercados ── -->
+  <div class="section-title" style="color:#5ba3ff;margin-bottom:4px">🌡️ Heatmap — Score Promedio por Sector × Mercado</div>
+  <div style="font-size:12px;color:#555;margin-bottom:10px">Verde intenso = sector fuerte en ese mercado. Rojo = sector débil. Sirve para detectar rotación sectorial.</div>
+  <div class="chart-heatmap-wrap" id="heatmap-container"></div>
+
   <!-- 1) COMPRAS CONFIRMADAS — PRIMERO -->
-  <div class="section-title" style="color:#4ade80;margin-bottom:6px">✅ Oportunidades de Compra Confirmadas</div>
+  <div class="section-title" style="color:#4ade80;margin-bottom:6px;margin-top:28px">✅ Oportunidades de Compra Confirmadas</div>
   <div class="concl-subtitle">Señales activas del modelo macro × técnico × sectorial × fundamental · Ordenadas por ranking accionable</div>
   <div id="compras-block"></div>
  
@@ -707,6 +729,12 @@ def generate_dashboard(
 <div id="portfolio" class="page">
   <div class="section-title">💼 Mi Portfolio — Posiciones Activas</div>
   <div id="portfolio-summary" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
+
+  <!-- Bubble chart de posiciones -->
+  <div class="section-title" style="color:#5ba3ff;margin-bottom:4px;margin-top:8px">📈 Mapa de Posiciones</div>
+  <div style="font-size:12px;color:#555;margin-bottom:8px">Eje X = días en posición · Eje Y = retorno USD% · Tamaño = capital invertido · Color = señal actual</div>
+  <div class="chart-bubble"><canvas id="chartBubble"></canvas></div>
+
   <table class="tbl" id="portfolio-table"></table>
   <div class="section-title" style="margin-top:20px">⚠️ Alertas Activas</div>
   <div id="portfolio-alerts" style="font-size:13px;margin-bottom:32px"></div>
@@ -841,7 +869,24 @@ rows.sort(function(a,b){{
 if(!market) rows=rows.slice(0,50);
 var tb=document.getElementById(tbId); if(!tb) return;
 var lastMkt='';
-tb.innerHTML='<tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Sem%</th><th>Mes%</th><th>RSI</th><th>AQ</th><th>ES</th><th>R/R</th><th>Score V2</th><th>Rank</th><th>Señal V2</th><th style=\"color:#a78bfa\">📈21d</th><th style=\"color:#a78bfa\">🎯</th><th style=\"color:#c084fc\" title=\"Alineación 3 timeframes\">Align</th><th title=\"Tendencia Mensual\">📅M</th></tr>'+
+tb.innerHTML='<tr>'+
+'<th>Ticker</th>'+
+'<th>Empresa</th>'+
+'<th>Precio</th>'+
+'<th data-tip=\"Retorno últimos 7 días hábiles\">Sem%</th>'+
+'<th data-tip=\"Retorno últimos 30 días hábiles\">Mes%</th>'+
+'<th data-tip=\"RSI(14): mide sobrecompra/sobreventa. <30=sobrevendido (oportunidad), >70=sobrecomprado (precaución). El modelo lo usa INVERSO: RSI bajo = score alto.\">RSI</th>'+
+'<th data-tip=\"Asset Quality (0-100): calidad estructural del activo. Macro×0.45 + Fundamental×0.35 + Sectorial×0.20. No considera timing.\">AQ</th>'+
+'<th data-tip=\"Entry Score (0-100): calidad del timing de entrada. Técnico×0.55 + dist.máximo×0.25 + dist.soporte×0.20. Boosters por divergencia RSI (+10) y squeeze (+15).\">ES</th>'+
+'<th data-tip=\"Risk/Reward: (target-precio)/(precio-stop). >2x es favorable. Target = primera resistencia ≥3% del precio. Stop = ATR dinámico por volatilidad y régimen.\">R/R</th>'+
+'<th data-tip=\"Score final V2 (0-100): blend de AQ y ES ponderado por mercado. Incluye penalizaciones por tendencia semanal y mensual bajista.\">Score V2</th>'+
+'<th data-tip=\"Ranking accionable: Score V2×0.50 + AQ×0.30 + vol_score×0.20. Ordena la tabla. Es la prioridad real de acción entre los 68 tickers.\">Rank</th>'+
+'<th data-tip=\"Señal final: ⭐≥70 / 🟢58-69 / 🟡45-57 / 🟠35-44 / 🔴<35\">Señal V2</th>'+
+'<th style=\"color:#a78bfa\" data-tip=\"Predicción GBR Ensemble a 21 días (%). Si negativo + señal COMPRA → override automático degrada la señal.\">📈21d</th>'+
+'<th style=\"color:#a78bfa\" data-tip=\"Confianza del predictor (0-100%). Cross-validation del GBR. <50% = predicción poco confiable.\">🎯</th>'+
+'<th style=\"color:#c084fc\" data-tip=\"Alineación de 3 timeframes: 3✓=Triple confirmación (+5pts) / 2✓=Doble (+2pts) / 1✗=Conflicto parcial (-5pts) / 2✗=Conflicto total (-8pts)\">Align</th>'+
+'<th data-tip=\"Tendencia Mensual: MA6M vs MA12M + momentum 6m. ▲=alcista / ▼=bajista(×0.93 al score) / ●=lateral\">📅M</th>'+
+'</tr>'+
 rows.map(function(s){{
 var aq=s.asset_quality||0, es=s.entry_score||0, rr=s.rr_ratio||0, sv2=s.score_final_v2||s.score_final, ra=s.ranking_accionable||sv2, sig2=s.signal_v2||s.signal;
 var mktSep='';
@@ -890,7 +935,172 @@ if(bL.length) new Chart(document.getElementById('chartBovespa'),{{type:'line',da
 if(sL.length) new Chart(document.getElementById('chartSP500'),{{type:'line',data:{{labels:sL,datasets:[{{data:sV,borderColor:'#fbbf24',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(251,191,36,.07)',tension:.3}}]}},options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:scaleOpts}}}});
 }} else {{ document.getElementById('cdnError').style.display='block'; }}
 }} catch(chartErr){{ document.getElementById('cdnError').style.display='block'; }}
- 
+
+// ══════════════════════════════════════════════════════════════════════════
+// A) SCATTER: Score V2 vs Predicción 21d
+// ══════════════════════════════════════════════════════════════════════════
+(function(){{
+  var el=document.getElementById('chartScatter'); if(!el) return;
+  var mkColors={{'MERVAL':'rgba(91,163,255,0.85)','BOVESPA':'rgba(74,222,128,0.85)','SP500':'rgba(251,191,36,0.85)'}};
+  var datasets={{}};
+  SIGNALS.forEach(function(s){{
+    if(s.pred_21d==null||s.score_final_v2==null) return;
+    var mk=s.mercado||'SP500';
+    if(!datasets[mk]) datasets[mk]={{label:mk,data:[],backgroundColor:mkColors[mk]||'#888',pointRadius:7,pointHoverRadius:10}};
+    datasets[mk].data.push({{x:s.score_final_v2,y:s.pred_21d,ticker:s.ticker,signal:s.signal_v2||s.signal,empresa:s.empresa||''}});
+  }});
+  var ds=Object.values(datasets);
+  if(!ds.length) return;
+  new Chart(el,{{
+    type:'scatter',
+    data:{{datasets:ds}},
+    options:{{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{{
+        legend:{{display:true,position:'top',labels:{{color:'#aaa',font:{{size:12}}}}}},
+        tooltip:{{callbacks:{{
+          label:function(ctx){{
+            var d=ctx.raw;
+            return [ctx.dataset.label+': '+d.ticker,(d.empresa||'').substring(0,25),'Score V2: '+ctx.parsed.x.toFixed(1),'Pred 21d: '+(d.y>=0?'+':'')+d.y.toFixed(1)+'%','Señal: '+d.signal];
+          }}
+        }}}},
+        annotation:{{}}
+      }},
+      scales:{{
+        x:{{title:{{display:true,text:'Score V2',color:'#888',font:{{size:12}}}},min:0,max:100,ticks:{{color:'#666'}},grid:{{color:'rgba(255,255,255,.05)'}},
+          afterDraw:function(ax){{
+            var ctx2=ax.chart.ctx;
+            var y58=ax.getPixelForValue(58);
+            ctx2.save();ctx2.strokeStyle='rgba(74,222,128,0.3)';ctx2.lineWidth=1;ctx2.setLineDash([4,4]);
+            ctx2.beginPath();ctx2.moveTo(y58,ax.chart.chartArea.top);ctx2.lineTo(y58,ax.chart.chartArea.bottom);ctx2.stroke();
+            ctx2.restore();
+          }}
+        }},
+        y:{{title:{{display:true,text:'Predicción 21d (%)',color:'#888',font:{{size:12}}}},ticks:{{color:'#666',callback:function(v){{return(v>=0?'+':'')+v+'%';}}}},grid:{{color:'rgba(255,255,255,.05)'}},
+          afterDraw:function(ax){{
+            var ctx2=ax.chart.ctx;
+            var y0=ax.getPixelForValue(0);
+            ctx2.save();ctx2.strokeStyle='rgba(255,255,255,0.15)';ctx2.lineWidth=1;ctx2.setLineDash([4,4]);
+            ctx2.beginPath();ctx2.moveTo(ax.chart.chartArea.left,y0);ctx2.lineTo(ax.chart.chartArea.right,y0);ctx2.stroke();
+            ctx2.restore();
+          }}
+        }}
+      }}
+    }}
+  }});
+}})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// B) HEATMAP: Sectores × Mercados
+// ══════════════════════════════════════════════════════════════════════════
+(function(){{
+  var container=document.getElementById('heatmap-container'); if(!container) return;
+  var markets=['MERVAL','BOVESPA','SP500'];
+  var sectorScores={{}};
+  SIGNALS.forEach(function(s){{
+    var sec=(s.sector||'GENERAL').toUpperCase().substring(0,10);
+    var mk=s.mercado||'SP500';
+    var v=s.score_final_v2||s.score_final||0;
+    var key=sec+'|'+mk;
+    if(!sectorScores[key]) sectorScores[key]={{sum:0,n:0}};
+    sectorScores[key].sum+=v; sectorScores[key].n++;
+  }});
+  var sectors=[...new Set(SIGNALS.map(function(s){{return (s.sector||'GENERAL').toUpperCase().substring(0,10);}}))]
+    .filter(function(s){{return s&&s!=='ÍNDICE'&&s!=='INDICE';}}).sort();
+  if(!sectors.length) return;
+
+  var html='<div class="hm-grid" style="grid-template-columns:120px repeat('+markets.length+',1fr)">';
+  // Header
+  html+='<div style="font-size:11px;color:#555;padding:4px">Sector</div>';
+  markets.forEach(function(mk){{
+    var flag=mk==='MERVAL'?'🇦🇷':mk==='BOVESPA'?'🇧🇷':'🇺🇸';
+    html+='<div style="font-size:12px;font-weight:700;color:#aaa;text-align:center;padding:4px">'+flag+' '+mk+'</div>';
+  }});
+  // Rows
+  sectors.forEach(function(sec){{
+    html+='<div style="font-size:11px;color:#888;padding:4px 6px;display:flex;align-items:center">'+sec+'</div>';
+    markets.forEach(function(mk){{
+      var key=sec+'|'+mk;
+      var d=sectorScores[key];
+      if(!d||d.n===0){{html+='<div class="hm-cell" style="background:#111;color:#333;height:36px" title="Sin datos">—</div>';return;}}
+      var avg=d.sum/d.n;
+      // Color: 0-45 rojo, 45-58 amarillo, 58-70 verde, 70-100 verde intenso
+      var r,g,b;
+      if(avg>=70){{r=22;g=163;b=74;}}
+      else if(avg>=58){{r=45;g=212;b=191;}}
+      else if(avg>=45){{r=234;g=179;b=8;}}
+      else{{r=220;g=38;b=38;}}
+      var alpha=0.25+((avg/100)*0.65);
+      html+='<div class="hm-cell" style="background:rgba('+r+','+g+','+b+','+alpha.toFixed(2)+');color:#fff;height:36px;min-width:60px" title="'+sec+' en '+mk+' — Score promedio: '+avg.toFixed(1)+' ('+d.n+' tickers)">'+avg.toFixed(0)+'<br><span style=\"font-size:9px;opacity:.7\">n='+d.n+'</span></div>';
+    }});
+  }});
+  html+='</div>';
+  container.innerHTML=html;
+}})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// C) BUBBLE CHART: Portfolio positions
+// ══════════════════════════════════════════════════════════════════════════
+(function(){{
+  var el=document.getElementById('chartBubble'); if(!el) return;
+  var pos=PORTFOLIO&&PORTFOLIO.positions?PORTFOLIO.positions:[];
+  if(!pos.length){{
+    el.parentElement.style.display='none';
+    el.parentElement.previousElementSibling&&(el.parentElement.previousElementSibling.style.display='none');
+    return;
+  }}
+  var sigMap={{}};
+  SIGNALS.forEach(function(s){{sigMap[s.ticker]=s;}});
+  var bubbles=[];
+  pos.forEach(function(p){{
+    var dias=p.dias_en_posicion||0;
+    var pnl=p.rend_usd_pct||p.rend_pct||0;
+    var capital=p.total_invertido_usd||((p.precio_compra_usd||0)*p.cantidad);
+    var sig=sigMap[p.ticker]||{{}};
+    var sigLabel=sig.signal_v2||sig.signal||'—';
+    var color='rgba(91,163,255,0.80)';
+    if(sigLabel.indexOf('COMPRA FUERTE')>=0) color='rgba(74,222,128,0.90)';
+    else if(sigLabel.indexOf('COMPRA')>=0)   color='rgba(45,212,191,0.85)';
+    else if(sigLabel.indexOf('VENTA')>=0)    color='rgba(248,113,113,0.85)';
+    else if(sigLabel.indexOf('VENTA PARCIAL')>=0) color='rgba(251,146,60,0.85)';
+    var r=Math.max(8,Math.min(40,Math.sqrt(capital)*1.2));
+    bubbles.push({{x:dias,y:pnl,r:r,ticker:p.ticker,signal:sigLabel,capital:capital,color:color}});
+  }});
+  if(!bubbles.length) return;
+  new Chart(el,{{
+    type:'bubble',
+    data:{{datasets:[{{
+      data:bubbles,
+      backgroundColor:bubbles.map(function(b){{return b.color;}}),
+      borderColor:'rgba(255,255,255,0.2)',
+      borderWidth:1
+    }}]}},
+    options:{{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{{
+        legend:{{display:false}},
+        tooltip:{{callbacks:{{
+          label:function(ctx){{
+            var d=ctx.raw;
+            return [d.ticker,'Señal: '+d.signal,'P&L: '+(d.y>=0?'+':'')+d.y.toFixed(1)+'%','Capital: U$D '+d.capital.toFixed(0),'Días: '+d.x];
+          }}
+        }}}}
+      }},
+      scales:{{
+        x:{{title:{{display:true,text:'Días en posición',color:'#888',font:{{size:12}}}},ticks:{{color:'#666'}},grid:{{color:'rgba(255,255,255,.05)'}}}},
+        y:{{title:{{display:true,text:'Retorno USD%',color:'#888',font:{{size:12}}}},ticks:{{color:'#666',callback:function(v){{return(v>=0?'+':'')+v.toFixed(1)+'%';}}}},grid:{{color:'rgba(255,255,255,.05)'}},
+          afterDraw:function(ax){{
+            var ctx2=ax.chart.ctx,y0=ax.getPixelForValue(0);
+            ctx2.save();ctx2.strokeStyle='rgba(255,255,255,0.15)';ctx2.lineWidth=1;ctx2.setLineDash([4,4]);
+            ctx2.beginPath();ctx2.moveTo(ax.chart.chartArea.left,y0);ctx2.lineTo(ax.chart.chartArea.right,y0);ctx2.stroke();
+            ctx2.restore();
+          }}
+        }}
+      }}
+    }}
+  }});
+}})();
+
 // ── RESTORE: hide pages, show only Panorama, then force resize ──
 allPages.forEach(function(p){{p.style.display='';p.style.visibility='';p.style.position='';}});
 setTimeout(function(){{
