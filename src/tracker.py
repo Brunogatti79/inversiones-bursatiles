@@ -53,6 +53,7 @@ def update_history(signals: list[dict], max_days: int = 60):
             "score_macro":   s.get("score_macro", 0),
             "score_tecnico": s.get("score_tecnico", 0),
             "score_fund":    s.get("score_fundamental", 0),
+            "score_sectorial": s.get("score_sectorial", 0),
             "ranking":       s.get("ranking_accionable", 0),
             "rr_ratio":      s.get("rr_ratio", 0),
             "asset_quality": s.get("asset_quality", 0),
