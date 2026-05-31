@@ -160,6 +160,12 @@ def _calc_kelly_weights(buy_signals: list[dict], backtest: dict) -> list[float]:
             # Fallback basado en score: score 70 → Kelly ~0.08, score 58 → ~0.04
             kelly_f = max(0.0, (score_v1 - 50) / 250)
 
+        # Confidence-adjusted Kelly: f* = Kelly × min(1, sqrt(n/100))
+        # Penaliza Kelly cuando hay poca historia estadística (< 30 trades → máx 55% Kelly)
+        n_samples = metrics.get("samples", 0) if metrics else 0
+        conf_adj  = min(1.0, (max(1, n_samples) / 100) ** 0.5)
+        kelly_f   = kelly_f * conf_adj
+
         # Clamp: Kelly entre 0 y 0.20 (máximo 20% de capital en una posición)
         kelly_f = max(0.0, min(0.20, kelly_f))
         weights.append(kelly_f)
@@ -242,6 +248,12 @@ def _blend_and_cap(
     else:
         pcts = [MAX_POS_PCT / n] * n
 
+    # Pre-calcular concentración sectorial (correlación implícita intra-portfolio)
+    sector_counts: dict[str, int] = {}
+    for _sig in buy_signals:
+        _s = _sig.get("sector", "UNKNOWN") or "UNKNOWN"
+        sector_counts[_s] = sector_counts.get(_s, 0) + 1
+
     # Tracking de caps por mercado/sector
     market_used: dict[str, float] = {}
     sector_used: dict[str, float] = {}
@@ -257,6 +269,14 @@ def _blend_and_cap(
         if ticker in existing_tickers:
             pct = pct * EXISTING_POSITION_DISCOUNT
             cap_reason = "ya_en_cartera"
+
+        # Penalización por cluster sectorial (correlación implícita)
+        sector_count = sector_counts.get(sector, 1)
+        if sector_count >= 3:
+            cluster_factor = max(0.60, 1.0 - (sector_count - 2) * 0.15)
+            pct = pct * cluster_factor
+            if cap_reason is None:
+                cap_reason = f"cluster_{sector[:6]}"
 
         # Cap por posición
         if pct > MAX_POS_PCT:
