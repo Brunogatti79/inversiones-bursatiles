@@ -103,7 +103,7 @@ def _holt_winters(serie: np.ndarray, horizon: int) -> tuple[float, float]:
     return _safe_float(pred_pct, 0.0), 0.45
 
 
-def _gradient_boosting(serie: np.ndarray, horizon: int) -> tuple[float, float]:
+def _gradient_boosting(serie: np.ndarray, horizon: int, context: dict = None) -> tuple[float, float]:
     """
     Gradient Boosting Regressor con features de rolling.
     Retorna (forecast_pct_change, confidence 0-1).
@@ -147,12 +147,28 @@ def _gradient_boosting(serie: np.ndarray, horizon: int) -> tuple[float, float]:
         high_52w   = s.rolling(min(252, len(s))).max().fillna(s)
         dist_high  = ((s - high_52w) / high_52w.replace(0, 1)).fillna(0)
 
+        # ── Features macro/contexto (Fase 5) ─────────────────────────────────
+        ctx = context or {}
+        sp500_trend  = np.full(len(s), float(ctx.get("sp500_trend_score", 50)) / 100)
+        macro_local  = np.full(len(s), float(ctx.get("macro_score", 50)) / 100)
+        vol_regime_f = {"LOW": 0.25, "NORMAL": 0.50, "HIGH": 0.75}.get(
+                          ctx.get("vol_regime", "NORMAL"), 0.50)
+        vol_regime_v = np.full(len(s), vol_regime_f)
+        regime_enc   = {"RISK_ON": 0.75, "NEUTRAL": 0.50, "RISK_OFF": 0.25}.get(
+                          ctx.get("cross_market_regime", "NEUTRAL"), 0.50)
+        regime_v     = np.full(len(s), regime_enc)
+        # ─────────────────────────────────────────────────────────────────────
+
         X = np.column_stack([
             r3, r5, r10, r21,          # retornos multi-timeframe
             vol10, vol21,               # volatilidad
             dist_ma20, dist_ma50,       # posición vs medias
             rsi_proxy / 100,            # RSI normalizado 0-1
             dist_high,                  # distancia al máximo
+            sp500_trend,                # tendencia SP500 (0-1)
+            macro_local,                # score macro mercado local (0-1)
+            vol_regime_v,               # régimen de vol (0.25/0.50/0.75)
+            regime_v,                   # régimen cross-market (0.25/0.50/0.75)
         ])
         # ─────────────────────────────────────────────────────────────────────
 
@@ -234,8 +250,8 @@ def predict_ticker(ticker: str, serie: pd.Series) -> dict:
         hw21, conf_hw21 = _holt_winters(arr, 21)
 
         # ── Modelo 2: Gradient Boosting
-        gb5,  conf_gb5  = _gradient_boosting(arr, 5)
-        gb21, conf_gb21 = _gradient_boosting(arr, 21)
+        gb5,  conf_gb5  = _gradient_boosting(arr, 5,  context=context)
+        gb21, conf_gb21 = _gradient_boosting(arr, 21, context=context)
 
         # ── Ensemble ponderado por confianza
         def ensemble(hw, c_hw, gb, c_gb):
@@ -253,7 +269,7 @@ def predict_ticker(ticker: str, serie: pd.Series) -> dict:
         p21, c21 = ensemble(hw21, conf_hw21, gb21, conf_gb21)
 
         # pred_10d: predicción real a 10d (no interpolación)
-        gb10, conf_gb10 = _gradient_boosting(arr, 10)
+        gb10, conf_gb10 = _gradient_boosting(arr, 10, context=context)
         hw10, conf_hw10 = _holt_winters(arr, 10)
         p10, c10 = ensemble(hw10, conf_hw10, gb10, conf_gb10)
 
