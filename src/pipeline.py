@@ -27,8 +27,11 @@ from src.tracker        import update_history, compute_accuracy
 from src.backtester     import run_backtest
 from src.cross_market   import compute_cross_market_context
 from src.exit_model     import enrich_exit_levels
-from src.weight_optimizer import run_weight_optimization
-from src.monitor          import update_health_metrics
+from src.weight_optimizer    import run_weight_optimization
+from src.monitor             import update_health_metrics
+from src.historical_replay   import run_historical_replay
+from src.volatility_regime   import compute_volatility_regime
+from src.confidence_score    import enrich_confidence_scores
 from src.portfolio_optimizer import optimize_portfolio_allocation
 from src.optimizer      import run_optimization, load_optimized_weights, apply_optimized_weights
  
@@ -199,6 +202,24 @@ def run_pipeline():
             logger.warning(f"Cross-market no crítico — continuando: {e_cm}")
         # ─────────────────────────────────────────────────────────────────────
 
+        # ── VOLATILITY REGIME (Fase 5) ────────────────────────────────────────
+        vol_regime = {}
+        try:
+            vol_regime = compute_volatility_regime(
+                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                index_cols=index_cols,
+            )
+            logger.info(
+                f"Vol regime: {vol_regime.get('global_regime')} "
+                f"(factor={vol_regime.get('regime_factor')}) "
+                f"vol_score={vol_regime.get('global_vol_score')}"
+            )
+        except Exception as e_vr:
+            logger.warning(f"Vol regime no crítico — continuando: {e_vr}")
+        except Exception as e_cm:
+            logger.warning(f"Cross-market no crítico — continuando: {e_cm}")
+        # ─────────────────────────────────────────────────────────────────────
+
         # 3. ANÁLISIS
         logger.info("3/8 Calculando señales...")
 
@@ -215,9 +236,17 @@ def run_pipeline():
         logger.info("4b/8 Generando predicciones ensemble...")
         try:
             from src.predictor import run_predictions
+            predictor_context = {
+                "sp500_trend_score":   cross_market.get("sp500_trend_score", 50),
+                "macro_score":         macro_scores.get("SP500", 50),
+                "vol_regime":          vol_regime.get("global_regime", "NORMAL"),
+                "cross_market_regime": cross_market.get("regime", "NEUTRAL"),
+            }
             all_signals = run_predictions(
                 all_signals,
-                {"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df}
+                {"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                ticker_cols=ticker_cols,
+                context=predictor_context,
             )
         except Exception as e:
             logger.warning(f"Predicciones no disponibles: {e}")
@@ -232,6 +261,13 @@ def run_pipeline():
             all_signals = optimize_portfolio_allocation(all_signals, backtest_results)
         except Exception as e_po:
             logger.warning(f"Portfolio optimizer no crítico — continuando: {e_po}")
+        # ─────────────────────────────────────────────────────────────────────
+
+        # ── CONFIDENCE SCORE (Fase 5) ────────────────────────────────────────
+        try:
+            all_signals = enrich_confidence_scores(all_signals, vol_regime)
+        except Exception as e_cs:
+            logger.warning(f"Confidence score no crítico — continuando: {e_cs}")
         # ─────────────────────────────────────────────────────────────────────
 
         # ── EXIT MODEL (Fase 1) ───────────────────────────────────────────────
@@ -290,6 +326,18 @@ def run_pipeline():
         except Exception as e_bt:
             logger.warning(f"Backtester no crítico — continuando: {e_bt}")
         # ──────────────────────────────────────────────────────────────────────
+
+        # ── HISTORICAL REPLAY (Fase 5) ── alimenta weight optimizer ─────────
+        try:
+            run_historical_replay(
+                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                ticker_cols=ticker_cols,
+                macro_scores=macro_scores,
+                fund_scores=fund_scores,
+            )
+        except Exception as e_hr:
+            logger.warning(f"Historical replay no crítico — continuando: {e_hr}")
+        # ─────────────────────────────────────────────────────────────────────
 
         # ── WEIGHT OPTIMIZER (Fase 2) ──────────────────────────────────────────
         # Corre solo 1 vez por día (la primera ejecución). Las siguientes usan
