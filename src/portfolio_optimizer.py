@@ -71,6 +71,8 @@ BUY_SIGNALS = {"⭐ COMPRA FUERTE", "🟢 COMPRA"}
 def optimize_portfolio_allocation(
     signals: list[dict],
     backtest_results: Optional[dict] = None,
+    price_data: dict = None,
+    ticker_cols: dict = None,
 ) -> list[dict]:
     """
     Enriquece cada señal de compra con recomendaciones de asignación de capital.
@@ -107,7 +109,8 @@ def optimize_portfolio_allocation(
 
     # 3. Blend y aplicar restricciones
     final_weights = _blend_and_cap(
-        buy_signals, kelly_weights, rp_weights, existing_tickers
+        buy_signals, kelly_weights, rp_weights, existing_tickers,
+        price_data=price_data, ticker_cols=ticker_cols,
     )
 
     # 4. Actualizar signal dicts
@@ -212,11 +215,89 @@ def _calc_risk_parity_weights(buy_signals: list[dict]) -> list[float]:
 
 # ── Blend y restricciones ────────────────────────────────────────────────────
 
+def _covariance_adjustment(
+    buy_signals: list[dict],
+    price_data: dict,
+    ticker_cols: dict,
+) -> list[float]:
+    """
+    Calcula pesos ajustados por covarianza rolling (60 días).
+    Implementación: weights ∝ diagonal de inv(cov_matrix) (Risk Parity mejorado).
+    Retorna lista de pesos normalizados, en el mismo orden que buy_signals.
+
+    Si falla (pocas observaciones, tickers no encontrados), retorna pesos iguales.
+    """
+    n = len(buy_signals)
+    if n == 0:
+        return []
+    if n == 1:
+        return [1.0]
+
+    try:
+        import numpy as np
+        col_to_ticker = {v: k for k, v in ticker_cols.items()}
+        COV_WINDOW    = 60
+
+        # Construir matriz de retornos (tickers × fechas)
+        returns_dict = {}
+        for _, df in price_data.items():
+            if df is None or df.empty:
+                continue
+            for col in df.columns:
+                ticker = col_to_ticker.get(col, col)
+                series = df[col].pct_change().dropna()
+                if len(series) >= COV_WINDOW:
+                    returns_dict[ticker] = series.tail(COV_WINDOW).values
+
+        # Extraer retornos de los tickers que vamos a comprar
+        rets_matrix = []
+        valid_idx   = []
+        for i, sig in enumerate(buy_signals):
+            t = sig.get("ticker", "")
+            r = returns_dict.get(t)
+            if r is not None and len(r) == COV_WINDOW:
+                rets_matrix.append(r)
+                valid_idx.append(i)
+
+        if len(valid_idx) < 2:
+            return [1.0 / n] * n  # fallback: pesos iguales
+
+        R   = np.array(rets_matrix)          # shape: (n_valid, 60)
+        cov = np.cov(R)                       # covarianza 60d
+
+        # Regularización (Ledoit-Wolf simplificado): shrink toward diagonal
+        diag   = np.diag(np.diag(cov))
+        cov_s  = 0.7 * cov + 0.3 * diag     # shrinkage factor
+
+        # Risk contribution mínimo: w ∝ 1 / (diagonal de cov) → similar a risk parity
+        # pero respeta correlaciones vía shrinkage
+        diag_inv = 1.0 / np.maximum(np.diag(cov_s), 1e-10)
+        w_raw    = diag_inv / diag_inv.sum()
+
+        # Mapear de vuelta a posiciones originales
+        weights = [1.0 / n] * n  # fallback para los que no tienen datos
+        for idx_local, idx_orig in enumerate(valid_idx):
+            weights[idx_orig] = float(w_raw[idx_local])
+
+        # Renormalizar
+        total = sum(weights)
+        if total > 0:
+            weights = [w / total for w in weights]
+
+        return weights
+
+    except Exception as e:
+        logger.debug(f"[portfolio] Covarianza fallback: {e}")
+        return [1.0 / n] * n
+
+
 def _blend_and_cap(
     buy_signals: list[dict],
     kelly_weights: list[float],
     rp_weights: list[float],
     existing_tickers: set,
+    price_data: dict = None,
+    ticker_cols: dict = None,
 ) -> dict:
     """
     Combina Kelly + RiskParity, convierte a porcentajes y aplica caps.
@@ -233,11 +314,21 @@ def _blend_and_cap(
     else:
         kelly_norm = [1.0 / n] * n
 
-    # Blend
-    blended = [
-        KELLY_WEIGHT * kelly_norm[i] + RISKP_WEIGHT * rp_weights[i]
-        for i in range(n)
-    ]
+    # Covarianza (si hay datos disponibles)
+    cov_weights = None
+    if price_data and ticker_cols:
+        cov_weights = _covariance_adjustment(buy_signals, price_data, ticker_cols)
+
+    # Blend: Kelly + RiskParity + Covarianza (opcional)
+    if cov_weights and len(cov_weights) == n:
+        # Híbrido: 50% Kelly/RiskParity + 40% covarianza-ajustado + 10% buffer
+        kr_base = [KELLY_WEIGHT * kelly_norm[i] + RISKP_WEIGHT * rp_weights[i] for i in range(n)]
+        blended = [0.60 * kr_base[i] + 0.40 * cov_weights[i] for i in range(n)]
+    else:
+        blended = [
+            KELLY_WEIGHT * kelly_norm[i] + RISKP_WEIGHT * rp_weights[i]
+            for i in range(n)
+        ]
 
     # Convertir a % del capital total (suma = 100%, pero capreada)
     # Escalar para que la señal más fuerte no supere MAX_POS_PCT
