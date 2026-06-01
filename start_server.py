@@ -56,34 +56,70 @@ def _build_ticker_registry():
         return []
 
 def _get_latest_prices():
-    """Lee último precio de cierre de cada ticker desde los CSVs del sistema."""
+    """
+    Lee último precio de cierre de cada ticker.
+    Prioridad: CSV local → GitHub (fallback cuando Railway reinicia y borra el filesystem).
+    """
     prices = {}
     try:
         from src.downloader import MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
         csv_configs = [
-            ("data/merval_cierres.csv", MERVAL_TICKERS),
-            ("data/bovespa_cierres.csv", BOVESPA_TICKERS),
-            ("data/sp500_cierres.csv", SP500_TICKERS),
+            ("data/merval_cierres.csv",  "data/merval_cierres.csv",  MERVAL_TICKERS),
+            ("data/bovespa_cierres.csv", "data/bovespa_cierres.csv", BOVESPA_TICKERS),
+            ("data/sp500_cierres.csv",   "data/sp500_cierres.csv",   SP500_TICKERS),
         ]
-        for csv_path, ticker_map in csv_configs:
-            if not os.path.exists(csv_path):
-                continue
-            df = pd.read_csv(csv_path, sep=";", decimal=",", encoding="utf-8-sig", thousands=" ")
-            # Mapear nombre columna → ticker
-            nombre_to_ticker = {v: k for k, v in ticker_map.items()}
-            for col in df.columns:
-                if col == "Fecha":
-                    continue
-                ticker = nombre_to_ticker.get(col)
-                if not ticker:
-                    continue
+        gh_token = os.environ.get("GH_TOKEN", "")
+        for local_path, repo_path, ticker_map in csv_configs:
+            # 1. Intentar leer local
+            csv_content = None
+            if os.path.exists(local_path):
                 try:
-                    vals = pd.to_numeric(df[col].astype(str).str.replace(" ", "").str.replace(",", "."), errors="coerce")
-                    last_val = vals.dropna().iloc[-1] if not vals.dropna().empty else None
-                    if last_val and last_val > 0:
-                        prices[ticker] = round(float(last_val), 2)
+                    with open(local_path, encoding="utf-8-sig") as f:
+                        csv_content = f.read()
                 except Exception:
                     pass
+            # 2. Fallback: descargar desde GitHub si no está local
+            if not csv_content and gh_token:
+                try:
+                    import base64 as _b64
+                    gh_url = f"https://api.github.com/repos/Brunogatti79/inversiones-bursatiles/contents/{repo_path}"
+                    gh_r   = requests.get(gh_url,
+                                          headers={"Authorization": f"token {gh_token}"},
+                                          timeout=10)
+                    if gh_r.ok:
+                        csv_content = _b64.b64decode(gh_r.json()["content"]).decode("utf-8-sig")
+                        # Guardar localmente para próximas llamadas
+                        os.makedirs("data", exist_ok=True)
+                        with open(local_path, "w", encoding="utf-8-sig") as f:
+                            f.write(csv_content)
+                        logger.info(f"[portfolio] CSV descargado desde GitHub: {repo_path}")
+                except Exception as e_gh:
+                    logger.warning(f"[portfolio] GitHub fallback falló para {repo_path}: {e_gh}")
+            if not csv_content:
+                continue
+            # 3. Parsear CSV
+            try:
+                import io
+                df = pd.read_csv(io.StringIO(csv_content), sep=";", decimal=",", thousands=" ")
+                nombre_to_ticker = {v: k for k, v in ticker_map.items()}
+                for col in df.columns:
+                    if col == "Fecha":
+                        continue
+                    ticker = nombre_to_ticker.get(col)
+                    if not ticker:
+                        continue
+                    try:
+                        vals = pd.to_numeric(
+                            df[col].astype(str).str.replace(" ", "").str.replace(",", "."),
+                            errors="coerce"
+                        )
+                        last_val = vals.dropna().iloc[-1] if not vals.dropna().empty else None
+                        if last_val and last_val > 0:
+                            prices[ticker] = round(float(last_val), 2)
+                    except Exception:
+                        pass
+            except Exception as e_parse:
+                logger.warning(f"[portfolio] Error parseando {repo_path}: {e_parse}")
     except Exception as e:
         logger.warning(f"Error leyendo precios de CSVs: {e}")
     return prices
@@ -201,14 +237,28 @@ class Handler(SimpleHTTPRequestHandler):
                     except Exception:
                         pass
                     for p in portfolio["positions"]:
-                        t = p.get("ticker", "")
+                        t       = p.get("ticker", "")
+                        mercado = p.get("mercado", "MERVAL")
+                        cant    = p.get("cantidad", 1)
                         if t in prices_cache and prices_cache[t] > 0:
-                            precio_ars = prices_cache[t]
-                            p["precio_actual"] = precio_ars
-                            # Auto-calcular USD: precio_ARS / CCL (igual que broker)
-                            if ccl_val > 0:
-                                p["precio_actual_usd"] = round(precio_ars / ccl_val, 4)
-                                p["valor_actual_usd"]  = round(precio_ars / ccl_val * p.get("cantidad", 1), 2)
+                            precio_raw = prices_cache[t]
+                            p["precio_actual"] = precio_raw
+                            # Conversión correcta según mercado
+                            if mercado == "SP500" or (not t.endswith(".BA") and not t.endswith(".SA")):
+                                # SP500/CEDEARs: precio ya en USD desde Yahoo Finance
+                                precio_usd = round(precio_raw, 4)
+                            elif ccl_val > 0:
+                                # MERVAL: precio en ARS → dividir por CCL
+                                precio_usd = round(precio_raw / ccl_val, 4)
+                            else:
+                                precio_usd = p.get("precio_actual_usd", 0)
+                            if precio_usd > 0:
+                                p["precio_actual_usd"] = precio_usd
+                                p["valor_actual_usd"]  = round(precio_usd * cant, 2)
+                                ini = p.get("valor_inicial_usd", 0) or (p.get("precio_compra_usd", 0) * cant)
+                                if ini > 0:
+                                    p["rend_usd"]  = round(precio_usd * cant - ini, 2)
+                                    p["rend_pct"]  = round((precio_usd * cant / ini - 1) * 100, 2)
                 except Exception as e:
                     logger.warning(f"No se pudieron obtener precios de CSVs: {e}")
             # CORS para acceso desde GitHub Pages
