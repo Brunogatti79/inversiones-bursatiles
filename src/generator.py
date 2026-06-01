@@ -727,7 +727,13 @@ def generate_dashboard(
  
 <!-- PORTFOLIO -->
 <div id="portfolio" class="page">
-  <div class="section-title">💼 Mi Portfolio — Posiciones Activas</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div class="section-title" style="margin-bottom:0;border-bottom:none">💼 Mi Portfolio — Posiciones Activas</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="port-update-ts" style="font-size:11px;color:#555">Cargando precios...</span>
+      <button onclick="_loadPortfolioFresh()" style="background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:4px 12px;color:#5ba3ff;font-size:12px;cursor:pointer;font-family:inherit">↻ Actualizar</button>
+    </div>
+  </div>
   <div id="portfolio-summary" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
 
   <!-- Bubble chart de posiciones -->
@@ -1052,19 +1058,29 @@ if(sL.length) new Chart(document.getElementById('chartSP500'),{{type:'line',data
   var sigMap={{}};
   SIGNALS.forEach(function(s){{sigMap[s.ticker]=s;}});
   var bubbles=[];
+  var now=Date.now();
   pos.forEach(function(p){{
-    var dias=p.dias_en_posicion||0;
-    var pnl=p.rend_usd_pct||p.rend_pct||0;
-    var capital=p.total_invertido_usd||((p.precio_compra_usd||0)*p.cantidad);
+    // Días en posición desde fecha_compra
+    var dias=0;
+    if(p.fecha_compra){{ try{{dias=Math.round((now-new Date(p.fecha_compra))/86400000);}}catch(e){{}} }}
+    // P&L% desde valor_actual vs valor_inicial
+    var valIni=p.valor_inicial_usd||((p.precio_compra_usd||0)*p.cantidad)||1;
+    var valAct=p.valor_actual_usd||valIni;
+    var pnl=valIni>0?((valAct/valIni)-1)*100:0;
+    // Capital = valor invertido inicial
+    var capital=valIni;
     var sig=sigMap[p.ticker]||{{}};
     var sigLabel=sig.signal_v2||sig.signal||'—';
+    // Color por señal actual del modelo
     var color='rgba(91,163,255,0.80)';
     if(sigLabel.indexOf('COMPRA FUERTE')>=0) color='rgba(74,222,128,0.90)';
     else if(sigLabel.indexOf('COMPRA')>=0)   color='rgba(45,212,191,0.85)';
     else if(sigLabel.indexOf('VENTA')>=0)    color='rgba(248,113,113,0.85)';
-    else if(sigLabel.indexOf('VENTA PARCIAL')>=0) color='rgba(251,146,60,0.85)';
-    var r=Math.max(8,Math.min(40,Math.sqrt(capital)*1.2));
-    bubbles.push({{x:dias,y:pnl,r:r,ticker:p.ticker,signal:sigLabel,capital:capital,color:color}});
+    else if(sigLabel.indexOf('PARCIAL')>=0)  color='rgba(251,146,60,0.85)';
+    // También usar el color del P&L si no hay señal
+    if(sigLabel==='—') color=pnl>=0?'rgba(74,222,128,0.75)':'rgba(248,113,113,0.75)';
+    var r=Math.max(8,Math.min(42,Math.sqrt(Math.max(1,capital))*1.8));
+    bubbles.push({{x:dias,y:parseFloat(pnl.toFixed(2)),r:r,ticker:p.ticker,signal:sigLabel,capital:capital,color:color,pnlUsd:p.rend_usd||0}});
   }});
   if(!bubbles.length) return;
   new Chart(el,{{
@@ -1629,6 +1645,15 @@ function showOpFicha(ticker){{
         '<td style="color:#fbbf24">'+rr+'</td>'+
         '<td style="color:'+accColor+';font-weight:700">'+acc+'</td></tr>';
     }}).join('');
+  // Mostrar timestamp de última actualización
+  var tsEl = document.getElementById('port-update-ts');
+  if(tsEl){{
+    var lu = portfolio.last_updated || '';
+    var now2 = new Date();
+    tsEl.textContent = lu ? 'Actualizado: '+lu : 'Precios al '+now2.toLocaleTimeString('es-AR',{{hour:'2-digit',minute:'2-digit'}});
+    tsEl.style.color = '#4ade80';
+  }}
+
   var al = document.getElementById('portfolio-alerts');
   var criticas = alertsList.filter(function(a){{return a.tipo!=='📊 P&L';}});
   if(al){{
