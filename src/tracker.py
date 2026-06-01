@@ -71,6 +71,9 @@ def update_history(signals: list[dict], max_days: int = 60):
             "rsi":           s.get("rsi", 0),
             "ret_anual":     s.get("ret_anual", 0),
             "ret_mes":       s.get("ret_mes", 0),
+            # ── Factor decomposition (Fase 6) ──────────────────────────
+            "factor_contrib":    s.get("factor_contrib", {}),
+            "factor_dominante":  s.get("factor_dominante", ""),
         }
         for s in signals
     ]
