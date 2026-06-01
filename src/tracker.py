@@ -467,35 +467,39 @@ def update_portfolio_usd(signals: list[dict]) -> None:
         sig = signal_map.get(ticker) or signal_map.get(ticker.replace(".BA","").replace(".SA",""))
         if not sig:
             continue
-        precio_raw = sig.get("precio_actual", 0)
-        if precio_raw <= 0:
-            continue
-
-        # Conversión correcta según mercado:
-        # MERVAL → precio en ARS → dividir por CCL para obtener USD
-        # SP500  → precio en USD → usar directo (no dividir por CCL)
-        # BOVESPA → precio en BRL → dividir por BRL/USD (aprox CCL × 0.001 fallback)
-        mercado_pos = pos.get("mercado", "") or sig.get("mercado", "MERVAL")
         ticker_pos  = pos.get("ticker", "")
+        mercado_pos = pos.get("mercado", "") or sig.get("mercado", "MERVAL")
 
-        if mercado_pos == "SP500" or (not ticker_pos.endswith(".BA") and not ticker_pos.endswith(".SA")):
-            # Precio ya en USD — no dividir por CCL
-            precio_usd = round(precio_raw, 4)
-        elif mercado_pos == "BOVESPA" or ticker_pos.endswith(".SA"):
-            # Precio en BRL — necesitaría BRL/USD. Fallback: no actualizar si no hay tipo de cambio
-            # Por ahora: guardar en BRL y marcar para revisión
-            precio_usd = round(precio_raw / max(ccl * 0.001, 1), 4)  # estimación rough
+        # ── REGLA SIMPLE Y ROBUSTA ──────────────────────────────────────────────
+        # Solo actualizar precio para MERVAL (.BA): precio en ARS / CCL = USD
+        # Para SP500/BOVESPA: los CEDEARs tienen ratio propio vs precio USA.
+        #   El CSV de SP500 tiene precio USA (USD), NO el precio del CEDEAR.
+        #   Actualizar precio_actual_usd con el precio USA destruiría los valores.
+        #   → Para estos mercados, solo recalcular P&L con el precio_actual_usd ya guardado.
+        # ───────────────────────────────────────────────────────────────────────
+
+        if ticker_pos.endswith(".BA"):
+            # MERVAL: actualizar precio desde señal (precio en ARS / CCL)
+            precio_ars = sig.get("precio_actual", 0)
+            if precio_ars > 0 and ccl > 0:
+                precio_usd = round(precio_ars / ccl, 4)
+                pos["precio_actual_usd"] = precio_usd
+                valor_act = round(precio_usd * cantidad, 2)
+                pos["valor_actual_usd"] = valor_act
+            else:
+                valor_act = round(pos.get("precio_actual_usd", 0) * cantidad, 2)
+                pos["valor_actual_usd"] = valor_act
         else:
-            # MERVAL — ARS / CCL = USD
-            precio_usd  = round(precio_raw / ccl, 4)
+            # SP500 / BOVESPA: usar precio_actual_usd ya guardado, solo recalcular totales
+            precio_usd = pos.get("precio_actual_usd", 0)
+            valor_act  = round(precio_usd * cantidad, 2)
+            pos["valor_actual_usd"] = valor_act
 
-        valor_act  = round(precio_usd * cantidad, 2)
-        rend       = round(valor_act - ini_usd, 2)
-        rend_pct   = round((valor_act / ini_usd - 1) * 100, 2) if ini_usd > 0 else 0.0
-        pos["precio_actual_usd"] = precio_usd
-        pos["valor_actual_usd"]  = valor_act
-        pos["rend_usd"]          = rend
-        pos["rend_pct"]          = rend_pct
+        # Recalcular P&L siempre
+        rend     = round(valor_act - ini_usd, 2)
+        rend_pct = round((valor_act / ini_usd - 1) * 100, 2) if ini_usd > 0 else 0.0
+        pos["rend_usd"]  = rend
+        pos["rend_pct"]  = rend_pct
         updated += 1
 
     portfolio["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
