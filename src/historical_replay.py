@@ -74,7 +74,12 @@ def run_historical_replay(
             continue
 
         market_label = {"merval": "MERVAL", "bovespa": "BOVESPA", "sp500": "SP500"}.get(market_key, market_key.upper())
-        macro_score  = macro_scores.get(market_label, 50.0)
+        macro_score_current = macro_scores.get(market_label, 50.0)
+
+        # Macro rolling: construir serie histórica aproximada desde signals_history
+        # Para fechas recientes → usar valor actual
+        # Para fechas más viejas → decaer hacia neutral (50) con half-life de 60d
+        macro_history = _build_macro_history(market_label, macro_score_current)
 
         for col in df.columns:
             ticker = col_to_ticker.get(col, col)
@@ -86,7 +91,8 @@ def run_historical_replay(
                 continue
 
             fund_score = float(fund_scores.get(ticker, 50.0) or 50.0)
-            observations = _replay_ticker(ticker, serie, market_label, macro_score, fund_score)
+            observations = _replay_ticker(ticker, serie, market_label,
+                                         macro_score_current, fund_score, macro_history)
             all_observations.extend(observations)
             total_tickers += 1
 
@@ -118,6 +124,7 @@ def _replay_ticker(
     market: str,
     macro_score: float,
     fund_score: float,
+    macro_history: dict = None,
 ) -> list[dict]:
     """
     Genera observaciones retroactivas para un ticker.
@@ -158,12 +165,19 @@ def _replay_ticker(
             if future_rets.get("ret_21d") is None:
                 continue
 
+            # Macro score para esta fecha: usar histórico si disponible, sino decay
+            macro_at_date = macro_score
+            if macro_history:
+                # Interpolar: más reciente → macro actual, más viejo → hacia 50
+                frac_old = max(0, 1 - end_idx / len(serie))  # 0=reciente, 1=muy viejo
+                macro_at_date = round(macro_score * (1 - frac_old) + 50.0 * frac_old, 1)
+
             observations.append({
                 "ticker":    ticker,
                 "mercado":   market,
                 "date_idx":  end_idx,
                 "precio":    round(precio, 2),
-                "s_macro":   macro_score,
+                "s_macro":   macro_at_date,
                 "s_tec":     round(s_tec, 1),
                 "s_fund":    fund_score,
                 "dist_max":  round(dist_max, 1),
@@ -239,6 +253,29 @@ def _calc_dist_max(serie: pd.Series) -> float:
 
 
 # ── Loader para weight_optimizer ───────────────────────────────────────
+
+def _build_macro_history(market: str, macro_current: float) -> dict:
+    """
+    Construye aproximación del macro_score histórico desde signals_history.
+    Usa los valores guardados en el historial como proxy.
+    Fallback: decay lineal hacia 50 para fechas sin datos.
+    """
+    history_path = "data/signals_history.json"
+    if not os.path.exists(history_path):
+        return {}
+    try:
+        with open(history_path) as f:
+            history = json.load(f)
+        macro_by_date = {}
+        for date_str, entries in history.items():
+            for e in entries:
+                if e.get("mercado") == market and e.get("score_macro"):
+                    macro_by_date[date_str] = float(e["score_macro"])
+                    break
+        return macro_by_date
+    except Exception:
+        return {}
+
 
 def _load_replay() -> dict:
     """Carga el replay existente."""
