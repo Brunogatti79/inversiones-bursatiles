@@ -238,27 +238,28 @@ class Handler(SimpleHTTPRequestHandler):
                         pass
                     for p in portfolio["positions"]:
                         t       = p.get("ticker", "")
-                        mercado = p.get("mercado", "MERVAL")
                         cant    = p.get("cantidad", 1)
-                        if t in prices_cache and prices_cache[t] > 0:
-                            precio_raw = prices_cache[t]
-                            p["precio_actual"] = precio_raw
-                            # Conversión correcta según mercado
-                            if mercado == "SP500" or (not t.endswith(".BA") and not t.endswith(".SA")):
-                                # SP500/CEDEARs: precio ya en USD desde Yahoo Finance
-                                precio_usd = round(precio_raw, 4)
-                            elif ccl_val > 0:
-                                # MERVAL: precio en ARS → dividir por CCL
-                                precio_usd = round(precio_raw / ccl_val, 4)
-                            else:
-                                precio_usd = p.get("precio_actual_usd", 0)
-                            if precio_usd > 0:
-                                p["precio_actual_usd"] = precio_usd
-                                p["valor_actual_usd"]  = round(precio_usd * cant, 2)
-                                ini = p.get("valor_inicial_usd", 0) or (p.get("precio_compra_usd", 0) * cant)
-                                if ini > 0:
-                                    p["rend_usd"]  = round(precio_usd * cant - ini, 2)
-                                    p["rend_pct"]  = round((precio_usd * cant / ini - 1) * 100, 2)
+                        # Solo actualizar en tiempo real MERVAL (.BA) via CCL
+                        # SP500/BOVESPA: el pipeline ya los convirtió correctamente
+                        # en update_portfolio_usd — usar esos valores directamente
+                        if t.endswith(".BA") and t in prices_cache and prices_cache[t] > 0 and ccl_val > 0:
+                            precio_ars = prices_cache[t]
+                            precio_usd = round(precio_ars / ccl_val, 4)
+                            p["precio_actual"]     = precio_ars
+                            p["precio_actual_usd"] = precio_usd
+                            p["valor_actual_usd"]  = round(precio_usd * cant, 2)
+                            ini = p.get("valor_inicial_usd", 0) or (p.get("precio_compra_usd", 0) * cant)
+                            if ini > 0:
+                                p["rend_usd"] = round(precio_usd * cant - ini, 2)
+                                p["rend_pct"] = round((precio_usd * cant / ini - 1) * 100, 2)
+                        # Para todos: recalcular P&L con precio_actual_usd guardado
+                        elif p.get("precio_actual_usd") and p.get("valor_inicial_usd"):
+                            val_act = round(float(p["precio_actual_usd"]) * cant, 2)
+                            p["valor_actual_usd"] = val_act
+                            ini = float(p["valor_inicial_usd"])
+                            if ini > 0:
+                                p["rend_usd"] = round(val_act - ini, 2)
+                                p["rend_pct"] = round((val_act / ini - 1) * 100, 2)
                 except Exception as e:
                     logger.warning(f"No se pudieron obtener precios de CSVs: {e}")
             # CORS para acceso desde GitHub Pages
