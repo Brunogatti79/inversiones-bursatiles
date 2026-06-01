@@ -445,9 +445,10 @@ def update_portfolio_usd(signals: list[dict]) -> None:
                     logger.info(f"CCL calculado desde GGAL: {ccl:.1f}")
         except Exception:
             pass
+    CCL_HARDCODED_FALLBACK = 1150.0   # fallback conservador para MERVAL
     if ccl <= 0:
-        logger.warning("CCL no disponible (cache + fallback fallaron), no se actualiza portfolio USD")
-        return
+        logger.warning(f"CCL no disponible — usando fallback {CCL_HARDCODED_FALLBACK} para MERVAL. SP500/BOVESPA se actualiza igual.")
+        ccl = CCL_HARDCODED_FALLBACK
 
     # Construir mapa de señales
     signal_map = {}
