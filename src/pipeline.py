@@ -32,6 +32,8 @@ from src.monitor             import update_health_metrics
 from src.historical_replay   import run_historical_replay
 from src.volatility_regime   import compute_volatility_regime
 from src.confidence_score    import enrich_confidence_scores
+from src.trailing_stop       import apply_trailing_stops
+from src.predictor_health    import compute_predictor_health, apply_health_to_signals
 from src.portfolio_optimizer import optimize_portfolio_allocation
 from src.optimizer      import run_optimization, load_optimized_weights, apply_optimized_weights
  
@@ -258,9 +260,22 @@ def run_pipeline():
                 import json as _j
                 with open("data/backtest_results.json") as _f:
                     backtest_results = _j.load(_f)
-            all_signals = optimize_portfolio_allocation(all_signals, backtest_results)
+            all_signals = optimize_portfolio_allocation(
+                all_signals, backtest_results,
+                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                ticker_cols=ticker_cols,
+            )
         except Exception as e_po:
             logger.warning(f"Portfolio optimizer no crítico — continuando: {e_po}")
+        # ─────────────────────────────────────────────────────────────────────
+
+        # ── PREDICTOR HEALTH (Fase 6) ─────────────────────────────────────────
+        try:
+            predictor_health = compute_predictor_health()
+            all_signals = apply_health_to_signals(all_signals, predictor_health)
+        except Exception as e_ph:
+            logger.warning(f"Predictor health no crítico — continuando: {e_ph}")
+            predictor_health = {}
         # ─────────────────────────────────────────────────────────────────────
 
         # ── CONFIDENCE SCORE (Fase 5) ────────────────────────────────────────
@@ -309,6 +324,8 @@ def run_pipeline():
         # Agregar contexto cross-market a index_stats (disponible para generator/dashboard)
         if cross_market:
             index_stats["cross_market"] = cross_market
+        if predictor_health:
+            index_stats["predictor_health"] = predictor_health
  
         # 5. CAMBIOS
         logger.info("5/8 Detectando cambios...")
@@ -364,7 +381,27 @@ def run_pipeline():
         try:
             update_portfolio_usd(all_signals)
         except Exception as e:
-            logger.warning(f"update_portfolio_usd falló: {e}") 
+            logger.warning(f"update_portfolio_usd falló: {e}")
+        # ── TRAILING STOPS (Fase 6) ───────────────────────────────────────────
+        try:
+            trail_events = apply_trailing_stops(all_signals)
+            if trail_events:
+                logger.info(f"Trailing stops: {len(trail_events)} posiciones ajustadas")
+                # Enviar notificación Telegram si hay ajustes
+                for ev in trail_events:
+                    try:
+                        from src.notifier import send_telegram
+                        msg = (
+                            f"📈 Trailing Stop — {ev['ticker']}"
+                            + chr(10) + f"Nivel: {ev['nivel']} (R={ev['unrealized_R']:.1f}x)"
+                            + chr(10) + f"Stop: {ev['stop_anterior']:.4f} → {ev['stop_nuevo']:.4f} USD"
+                        )
+                        send_telegram(msg)
+                    except Exception:
+                        pass
+        except Exception as e_ts:
+            logger.warning(f"Trailing stop no crítico — continuando: {e_ts}")
+        # ───────────────────────────────────────────────────────────────────── 
         if portfolio_alerts:
             from src.notifier import send_portfolio_alerts
             criticas = [a for a in portfolio_alerts if a.get("tipo") not in ("📊 P&L",)]
