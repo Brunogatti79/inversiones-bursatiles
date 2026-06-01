@@ -23,13 +23,13 @@ jobs:
           if [ -f data/download_status.json ]; then
             LAST=$(python3 -c "import json; d=json.load(open('data/download_status.json')); print(d.get('timestamp_utc','2000-01-01T00:00:00Z'))" 2>/dev/null || echo "2000-01-01T00:00:00Z")
             SKIP=$(python3 -c "
-from datetime import datetime, timezone
-try:
-    last=datetime.fromisoformat('$LAST'.replace('Z','+00:00'))
-    h=(datetime.now(timezone.utc)-last).total_seconds()/3600
-    print('true' if h<2.0 else 'false')
-except: print('false')
-" 2>/dev/null || echo "false")
+            from datetime import datetime,timezone
+            try:
+              last=datetime.fromisoformat('$LAST'.replace('Z','+00:00'))
+              h=(datetime.now(timezone.utc)-last).total_seconds()/3600
+              print('true' if h<2.0 else 'false')
+            except: print('false')
+            " 2>/dev/null || echo "false")
             echo "skip=$SKIP" >> $GITHUB_OUTPUT
             echo "Resultado skip=$SKIP"
           else
