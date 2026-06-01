@@ -937,6 +937,21 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "monthly_confirms": mt["monthly_confirms"],
             "alignment_score":  align.get("alignment_score", 50),
             "alignment_label":  align.get("alignment_label", ""),
+            # ── Factor decomposition (Fase 6) ─────────────────────────────────
+            # Contribución de cada factor al score final (en puntos)
+            "factor_contrib": {
+                "macro":       round(macro_score * W["macro"], 1),
+                "tecnico":     round(s_tec       * W["tecnico"], 1),
+                "fundamental": round(s_fund      * W["fundamental"], 1),
+                "sector":      round(s_sect      * W["sector"], 1),
+            },
+            "factor_dominante": max(
+                [("macro", macro_score * W["macro"]),
+                 ("tecnico", s_tec * W["tecnico"]),
+                 ("fundamental", s_fund * W["fundamental"]),
+                 ("sector", s_sect * W["sector"])],
+                key=lambda x: x[1]
+            )[0],
         })
  
     results.sort(key=lambda x: x.get("ranking_accionable", x["score_final"]), reverse=True)
