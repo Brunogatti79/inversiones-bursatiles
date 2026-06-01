@@ -185,6 +185,27 @@ def run_pipeline():
             logger.warning(f"Pesos optimizados no críticos — continuando: {e_ow}")
         # ─────────────────────────────────────────────────────────────────────
 
+        # ── GUARDAR CCL A GITHUB (para que persista entre redeploys) ───────────
+        try:
+            import json as _j2
+            ccl_cache_path = "data/ccl_cache.json"
+            if os.path.exists(ccl_cache_path):
+                import requests as _req, base64 as _b64
+                _tok = os.environ.get("GH_TOKEN","")
+                if _tok:
+                    with open(ccl_cache_path) as _f: _ccl_content = _f.read()
+                    _url = "https://api.github.com/repos/Brunogatti79/inversiones-bursatiles/contents/data/ccl_cache.json"
+                    _hdrs = {"Authorization": f"token {_tok}", "Content-Type": "application/json"}
+                    _r_sha = _req.get(_url, headers=_hdrs, timeout=8)
+                    _old_sha = _r_sha.json().get("sha","") if _r_sha.ok else ""
+                    _payload = {"message": "auto: ccl_cache update", "content": _b64.b64encode(_ccl_content.encode()).decode()}
+                    if _old_sha: _payload["sha"] = _old_sha
+                    _req.put(_url, json=_payload, headers=_hdrs, timeout=10)
+                    logger.info("CCL cache pusheado a GitHub")
+        except Exception as e_ccl_push:
+            logger.debug(f"CCL push no crítico: {e_ccl_push}")
+        # ────────────────────────────────────────────────────────────────────────
+
         # ── CROSS-MARKET (Fase 1) ─────────────────────────────────────────────
         cross_market = {}
         try:
