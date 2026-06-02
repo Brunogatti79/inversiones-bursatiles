@@ -1,6 +1,6 @@
 FROM python:3.12.13-slim
 
-ARG CACHE_BUST=2026-05-29-v6
+ARG CACHE_BUST=2026-06-02-v2333
 RUN echo "Cache bust: $CACHE_BUST"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
