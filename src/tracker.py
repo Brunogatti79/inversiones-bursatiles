@@ -479,6 +479,10 @@ def update_portfolio_usd(signals: list[dict]) -> None:
         signal_map[t] = s
         signal_map[t.replace(".BA", "").replace(".SA", "")] = s
 
+    logger.info(f"update_portfolio_usd: {len(portfolio.get('positions',[]))} posiciones | CCL={ccl:.1f} | BRL/USD={brl_usd:.2f} | signals={len(signals)}")
+    # Log tickers disponibles en signal_map para debug
+    sp500_in_map = [t for t in signal_map if t in ["COPX","EWZ","GLOB","IBB","MELI","MSFT","PBR","QCOM","RIO"]]
+    logger.info(f"  SP500 tickers en signal_map: {sp500_in_map}")
     updated = 0
     for pos in portfolio.get("positions", []):
         ticker    = pos.get("ticker", "")
@@ -528,6 +532,7 @@ def update_portfolio_usd(signals: list[dict]) -> None:
         rend_usd  = round(valor_usd - ini_usd, 2)
         rend_pct  = round((valor_usd / ini_usd - 1) * 100, 2) if ini_usd > 0 else 0.0
 
+        logger.info(f"  {ticker}: fuente={fuente} ratio={ratio if fuente=='SP500_CSV' else '-'} p_usd={precio_usd:.4f} val={valor_usd:.2f} pl={rend_pct:.1f}%")
         pos["precio_actual_usd"] = precio_usd
         pos["precio_actual_ars"] = precio_ars
         pos["valor_actual_usd"]  = valor_usd
