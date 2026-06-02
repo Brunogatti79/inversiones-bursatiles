@@ -107,6 +107,9 @@ SP500_TICKERS = {
     "IBB":   "iShares Biotechnology ETF",
     "MELI":  "MercadoLibre",
     "RIO":   "Rio Tinto",
+    "PBR":   "Petrobras ADR",
+    "QCOM":  "Qualcomm",
+    "EWZ":   "iShares MSCI Brazil ETF",
 }
 SP500_INDEX = "^GSPC" 
 MIN_ROWS      = 10
