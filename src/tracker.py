@@ -408,7 +408,7 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
 
 
 
-def update_portfolio_usd(signals: list[dict]) -> None:
+def update_portfolio_usd(signals: list[dict], brl_usd_ext: float = 0.0) -> None:
     """
     Recalcula precio_actual_usd, precio_actual_ars, valor_actual_usd,
     valor_actual_ars y P&L por posición usando precios de los CSVs del sistema.
@@ -456,34 +456,13 @@ def update_portfolio_usd(signals: list[dict]) -> None:
         ccl = 1487.0
         logger.warning(f"CCL no disponible — usando fallback {ccl}")
 
-    # ── BRL/USD desde xlsx (macro_auto actualiza col3 = Valor) ──────
-    # Estructura xlsx: col1=País, col2=Variable, col3=Valor, col4=Score
-    brl_usd = 5.70  # fallback junio 2026
-    try:
-        import openpyxl
-        wb = openpyxl.load_workbook(
-            "data/modelo_macro_micro_señales.xlsx", data_only=True)
-        found = False
-        for ws in wb.worksheets:
-            if found:
-                break
-            for row in ws.iter_rows(values_only=True):
-                if not row or len(row) < 3:
-                    continue
-                # col2 = nombre variable, col3 = valor
-                var_name = str(row[1] or "").strip().upper()
-                if "TIPO DE CAMBIO BRL" in var_name or "BRL/USD" in var_name or "BRL_USD" in var_name:
-                    try:
-                        v = float(str(row[2]).replace(",", "."))
-                        if v > 3:
-                            brl_usd = round(v, 4)
-                            found = True
-                            break
-                    except Exception:
-                        pass
-        logger.info(f"BRL/USD desde xlsx: {brl_usd}")
-    except Exception as e:
-        logger.warning(f"BRL/USD xlsx error: {e} — usando fallback {brl_usd}")
+    # ── BRL/USD: recibido desde pipeline o fallback hardcoded ───────
+    if brl_usd_ext and brl_usd_ext > 3:
+        brl_usd = round(brl_usd_ext, 4)
+        logger.info(f"BRL/USD desde pipeline: {brl_usd}")
+    else:
+        brl_usd = 5.70  # fallback hardcoded junio 2026
+        logger.info(f"BRL/USD fallback hardcoded: {brl_usd}")
 
     # ── Construir mapa de señales (precio en moneda local del CSV) ──
     signal_map = {}
