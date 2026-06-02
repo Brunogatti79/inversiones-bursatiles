@@ -456,42 +456,34 @@ def update_portfolio_usd(signals: list[dict]) -> None:
         ccl = 1487.0
         logger.warning(f"CCL no disponible — usando fallback {ccl}")
 
-    # ── BRL/USD desde macro_auto (xlsx actualizado en cada pipeline) ──
+    # ── BRL/USD desde xlsx (macro_auto actualiza col3 = Valor) ──────
+    # Estructura xlsx: col1=País, col2=Variable, col3=Valor, col4=Score
     brl_usd = 5.70  # fallback junio 2026
     try:
-        from src.macro_loader import cargar_macro
-        macro_data = cargar_macro()
-        val = macro_data.get("BOVESPA", {}).get("brl_usd", 0)
-        if val and float(val) > 3:
-            brl_usd = round(float(val), 4)
-            logger.info(f"BRL/USD desde macro_loader: {brl_usd}")
-        else:
-            raise ValueError("brl_usd no disponible en macro_loader")
-    except Exception:
-        # Leer directo del xlsx — macro_auto lo actualiza antes de llegar aquí
-        try:
-            import openpyxl
-            wb = openpyxl.load_workbook(
-                "data/modelo_macro_micro_señales.xlsx", data_only=True)
-            for ws in wb.worksheets:
-                for row in ws.iter_rows(values_only=True):
-                    if not row or not row[0]:
-                        continue
-                    key = str(row[0]).strip().upper()
-                    if key in ("BRL/USD", "BRLUSD", "BRL_USD", "TIPO CAMBIO BRL"):
-                        val = row[1] if len(row) > 1 else None
-                        if val:
-                            try:
-                                v = float(str(val).replace(",", "."))
-                                if v > 3:
-                                    brl_usd = round(v, 4)
-                                    logger.info(f"BRL/USD desde xlsx: {brl_usd}")
-                                    break
-                            except Exception:
-                                pass
-        except Exception as e:
-            logger.warning(f"BRL/USD xlsx error: {e} — usando fallback {brl_usd}")
-    logger.info(f"BRL/USD final: {brl_usd}")
+        import openpyxl
+        wb = openpyxl.load_workbook(
+            "data/modelo_macro_micro_señales.xlsx", data_only=True)
+        found = False
+        for ws in wb.worksheets:
+            if found:
+                break
+            for row in ws.iter_rows(values_only=True):
+                if not row or len(row) < 3:
+                    continue
+                # col2 = nombre variable, col3 = valor
+                var_name = str(row[1] or "").strip().upper()
+                if "TIPO DE CAMBIO BRL" in var_name or "BRL/USD" in var_name or "BRL_USD" in var_name:
+                    try:
+                        v = float(str(row[2]).replace(",", "."))
+                        if v > 3:
+                            brl_usd = round(v, 4)
+                            found = True
+                            break
+                    except Exception:
+                        pass
+        logger.info(f"BRL/USD desde xlsx: {brl_usd}")
+    except Exception as e:
+        logger.warning(f"BRL/USD xlsx error: {e} — usando fallback {brl_usd}")
 
     # ── Construir mapa de señales (precio en moneda local del CSV) ──
     signal_map = {}
