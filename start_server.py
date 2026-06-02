@@ -383,6 +383,17 @@ class Handler(SimpleHTTPRequestHandler):
                         mercado = mercado_form
                     else:
                         mercado = "MERVAL" if ".BA" in ticker else "BOVESPA" if ".SA" in ticker else "SP500"
+                    # Tipo instrumento y ratio CEDEAR — enviados desde el formulario
+                    precio_fuente = body.get("precio_fuente", "")
+                    ratio_cedear  = float(body.get("ratio_cedear", 1.0) or 1.0)
+                    # Inferir precio_fuente si no viene del formulario (compatibilidad)
+                    if not precio_fuente:
+                        if ticker.endswith(".BA"):
+                            precio_fuente = "MERVAL_CSV"
+                        elif ticker.endswith(".SA"):
+                            precio_fuente = "BOVESPA_CSV"
+                        else:
+                            precio_fuente = "SP500_CSV"
                     new_pos = {
                         "ticker": ticker, "nombre": nombre,
                         "mercado": mercado, "moneda": "USD",
@@ -393,11 +404,14 @@ class Handler(SimpleHTTPRequestHandler):
                         "valor_inicial_usd": round(total_invertido, 2),
                         "valor_actual_usd":  round(total_invertido, 2),
                         "rend_usd": 0,
-                        "fecha_compra": fecha, "stop_loss": None, "target": None,
-                        "notas": f"Compra {fecha} via Dashboard",
+                        "fecha_compra": fecha,
+                        "stop_loss": None, "target": None,
+                        "precio_fuente": precio_fuente,
+                        "ratio_cedear":  ratio_cedear if precio_fuente == "SP500_CSV" else 1.0,
+                        "notas": f"Compra {fecha} via Dashboard — {precio_fuente}",
                     }
                     portfolio.setdefault("positions", []).append(new_pos)
-                    msg = f"Nueva posición: {ticker} {cantidad} nom @ U$D {total_invertido:.0f} total"
+                    msg = f"Nueva posición: {ticker} {cantidad} nom @ U$D {total_invertido:.0f} total [{precio_fuente}]"
             else:
                 existing = None
                 for p in portfolio.get("positions", []):
