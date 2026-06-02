@@ -456,31 +456,42 @@ def update_portfolio_usd(signals: list[dict]) -> None:
         ccl = 1487.0
         logger.warning(f"CCL no disponible — usando fallback {ccl}")
 
-    # ── BRL/USD desde macro_auto o Yahoo Finance ────────────────
-    brl_usd = 5.70  # fallback actualizado junio 2026
+    # ── BRL/USD desde macro_auto (xlsx actualizado en cada pipeline) ──
+    brl_usd = 5.70  # fallback junio 2026
     try:
-        import yfinance as yf
-        brl_ticker = yf.Ticker("BRL=X")
-        hist = brl_ticker.history(period="2d")
-        if not hist.empty:
-            brl_usd = round(float(hist["Close"].iloc[-1]), 4)
-            logger.info(f"BRL/USD desde Yahoo: {brl_usd}")
+        from src.macro_loader import cargar_macro
+        macro_data = cargar_macro()
+        val = macro_data.get("BOVESPA", {}).get("brl_usd", 0)
+        if val and float(val) > 3:
+            brl_usd = round(float(val), 4)
+            logger.info(f"BRL/USD desde macro_loader: {brl_usd}")
+        else:
+            raise ValueError("brl_usd no disponible en macro_loader")
     except Exception:
-        # Intentar desde macro_auto cache en xlsx
+        # Leer directo del xlsx — macro_auto lo actualiza antes de llegar aquí
         try:
             import openpyxl
-            wb = openpyxl.load_workbook("data/modelo_macro_micro_señales.xlsx", data_only=True)
-            ws = wb.active
-            for row in ws.iter_rows(values_only=True):
-                if row and str(row[0]).strip().upper() in ("BRL/USD", "BRLUSD", "BRL_USD"):
-                    val = row[1] if len(row) > 1 else None
-                    if val and float(val) > 3:
-                        brl_usd = round(float(val), 4)
-                        logger.info(f"BRL/USD desde xlsx: {brl_usd}")
-                        break
-        except Exception:
-            pass
-        logger.info(f"BRL/USD fallback: {brl_usd}")
+            wb = openpyxl.load_workbook(
+                "data/modelo_macro_micro_señales.xlsx", data_only=True)
+            for ws in wb.worksheets:
+                for row in ws.iter_rows(values_only=True):
+                    if not row or not row[0]:
+                        continue
+                    key = str(row[0]).strip().upper()
+                    if key in ("BRL/USD", "BRLUSD", "BRL_USD", "TIPO CAMBIO BRL"):
+                        val = row[1] if len(row) > 1 else None
+                        if val:
+                            try:
+                                v = float(str(val).replace(",", "."))
+                                if v > 3:
+                                    brl_usd = round(v, 4)
+                                    logger.info(f"BRL/USD desde xlsx: {brl_usd}")
+                                    break
+                            except Exception:
+                                pass
+        except Exception as e:
+            logger.warning(f"BRL/USD xlsx error: {e} — usando fallback {brl_usd}")
+    logger.info(f"BRL/USD final: {brl_usd}")
 
     # ── Construir mapa de señales (precio en moneda local del CSV) ──
     signal_map = {}
