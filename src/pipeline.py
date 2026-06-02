@@ -400,7 +400,12 @@ def run_pipeline():
         portfolio_alerts = check_portfolio_alerts(all_signals)
         # Actualizar precios USD del portfolio con precios vigentes + CCL
         try:
-            update_portfolio_usd(all_signals)
+            # Obtener BRL/USD desde macro_auto que ya lo calculó
+            _brl_usd = macro_auto_data.get("detalles", {}).get("BOVESPA", {}).get("brl_usd", {}).get("valor", 0) if isinstance(macro_auto_data, dict) else 0
+            if not _brl_usd or float(_brl_usd) < 3:
+                _brl_usd = float(macro_scores_auto.get("BRL_USD", 0) or 0)
+            logger.info(f"BRL/USD pasado a portfolio: {_brl_usd}")
+            update_portfolio_usd(all_signals, brl_usd_ext=float(_brl_usd) if _brl_usd else 0.0)
             logger.info("Portfolio USD actualizado correctamente")
         except Exception as e:
             import traceback
