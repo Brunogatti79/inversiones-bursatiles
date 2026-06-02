@@ -407,10 +407,20 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
     return alerts
 
 
+
 def update_portfolio_usd(signals: list[dict]) -> None:
     """
-    Recalcula precio_actual_usd, valor_actual_usd y rend_usd por posición
-    usando precios del pipeline + CCL actual. Guarda y pushea portfolio.json.
+    Recalcula precio_actual_usd, precio_actual_ars, valor_actual_usd,
+    valor_actual_ars y P&L por posición usando precios de los CSVs del sistema.
+
+    Lógica por tipo de ticker:
+    - MERVAL (.BA):    precio_ars / CCL = precio_usd
+    - BOVESPA (.SA):   precio_brl / BRL_USD = precio_usd; precio_usd * CCL = precio_ars
+    - SP500 CEDEARs:   precio_csv_usd * ratio_cedear = precio_usd_cedear; precio_usd * CCL = precio_ars
+
+    El ratio_cedear de cada posición está guardado en portfolio.json
+    y representa la equivalencia entre el precio del ADR/ETF en NYSE
+    y el precio del CEDEAR en BYMA expresado en USD.
     """
     if not os.path.exists(PORTFOLIO_PATH):
         return
@@ -418,10 +428,10 @@ def update_portfolio_usd(signals: list[dict]) -> None:
         with open(PORTFOLIO_PATH) as f:
             portfolio = json.load(f)
     except Exception as e:
-        logger.warning(f"Error leyendo portfolio para update USD: {e}")
+        logger.warning(f"Error leyendo portfolio: {e}")
         return
 
-    # Leer CCL actual
+    # ── Leer CCL actual ──────────────────────────────────────────
     ccl = 0.0
     try:
         ccl_path = "data/ccl_cache.json"
@@ -431,9 +441,7 @@ def update_portfolio_usd(signals: list[dict]) -> None:
                 ccl = float(ccl_data.get("compra", 0) or 0)
     except Exception:
         pass
-
     if ccl <= 0:
-        # Fallback: calcular CCL desde señales GGAL.BA vs GGAL si disponibles
         try:
             ggal_ba = next((s for s in signals if s.get("ticker") == "GGAL.BA"), None)
             ggal_us = next((s for s in signals if s.get("ticker") == "GGAL"), None)
@@ -441,16 +449,30 @@ def update_portfolio_usd(signals: list[dict]) -> None:
                 p_ba = ggal_ba.get("precio_actual", 0)
                 p_us = ggal_us.get("precio_actual", 0)
                 if p_ba > 0 and p_us > 0:
-                    ccl = round(p_ba / p_us * 10, 2)  # ratio x10 por paridad CEDEAR
-                    logger.info(f"CCL calculado desde GGAL: {ccl:.1f}")
+                    ccl = round(p_ba / p_us * 10, 2)
         except Exception:
             pass
-    CCL_HARDCODED_FALLBACK = 1150.0   # fallback conservador para MERVAL
     if ccl <= 0:
-        logger.warning(f"CCL no disponible — usando fallback {CCL_HARDCODED_FALLBACK} para MERVAL. SP500/BOVESPA se actualiza igual.")
-        ccl = CCL_HARDCODED_FALLBACK
+        ccl = 1150.0
+        logger.warning(f"CCL no disponible — usando fallback {ccl}")
 
-    # Construir mapa de señales
+    # ── Leer BRL/USD desde señales BOVESPA ──────────────────────
+    brl_usd = 5.70  # fallback
+    try:
+        # Usar PETR4.SA: precio en BRL desde CSV / precio ADR PBR en USD
+        petr4 = next((s for s in signals if s.get("ticker") == "PETR4.SA"), None)
+        pbr   = next((s for s in signals if s.get("ticker") == "PBR"), None)
+        if petr4 and pbr:
+            p_brl = petr4.get("precio_actual", 0)
+            p_usd = pbr.get("precio_actual", 0)
+            # PBR ADR = PETR4 / (ratio_adr * BRL_USD)  →  ratio_adr PBR = 2 acciones por ADR
+            if p_brl > 0 and p_usd > 0:
+                brl_usd = round(p_brl / (p_usd * 2), 2)
+                logger.info(f"BRL/USD calculado desde PETR4/PBR: {brl_usd}")
+    except Exception:
+        pass
+
+    # ── Construir mapa de señales (precio en moneda local del CSV) ──
     signal_map = {}
     for s in signals:
         t = s.get("ticker", "")
@@ -459,64 +481,81 @@ def update_portfolio_usd(signals: list[dict]) -> None:
 
     updated = 0
     for pos in portfolio.get("positions", []):
-        ticker   = pos.get("ticker", "")
-        cantidad = pos.get("cantidad", 0)
-        ini_usd  = pos.get("valor_inicial_usd", 0)
+        ticker    = pos.get("ticker", "")
+        cantidad  = pos.get("cantidad", 0)
+        ini_usd   = pos.get("valor_inicial_usd", 0)
+        fuente    = pos.get("precio_fuente", "")
         if not ticker or not cantidad or not ini_usd:
             continue
+
+        precio_usd = 0.0
+        precio_ars = 0.0
+
         sig = signal_map.get(ticker) or signal_map.get(ticker.replace(".BA","").replace(".SA",""))
-        if not sig:
-            continue
-        ticker_pos  = pos.get("ticker", "")
-        mercado_pos = pos.get("mercado", "") or sig.get("mercado", "MERVAL")
 
-        # ── REGLA SIMPLE Y ROBUSTA ──────────────────────────────────────────────
-        # Solo actualizar precio para MERVAL (.BA): precio en ARS / CCL = USD
-        # Para SP500/BOVESPA: los CEDEARs tienen ratio propio vs precio USA.
-        #   El CSV de SP500 tiene precio USA (USD), NO el precio del CEDEAR.
-        #   Actualizar precio_actual_usd con el precio USA destruiría los valores.
-        #   → Para estos mercados, solo recalcular P&L con el precio_actual_usd ya guardado.
-        # ───────────────────────────────────────────────────────────────────────
+        if fuente == "MERVAL_CSV" and sig:
+            # Precio del CSV en ARS
+            p_ars = sig.get("precio_actual", 0)
+            if p_ars > 0 and ccl > 0:
+                precio_ars = round(p_ars, 2)
+                precio_usd = round(p_ars / ccl, 4)
 
-        if ticker_pos.endswith(".BA"):
-            # MERVAL: actualizar precio desde señal (precio en ARS / CCL)
-            precio_ars = sig.get("precio_actual", 0)
-            if precio_ars > 0 and ccl > 0:
-                precio_usd = round(precio_ars / ccl, 4)
-                pos["precio_actual_usd"] = precio_usd
-                valor_act = round(precio_usd * cantidad, 2)
-                pos["valor_actual_usd"] = valor_act
-            else:
-                valor_act = round(pos.get("precio_actual_usd", 0) * cantidad, 2)
-                pos["valor_actual_usd"] = valor_act
+        elif fuente == "BOVESPA_CSV" and sig:
+            # Precio del CSV en BRL
+            p_brl = sig.get("precio_actual", 0)
+            if p_brl > 0 and brl_usd > 0:
+                precio_usd = round(p_brl / brl_usd, 4)
+                precio_ars = round(precio_usd * ccl, 2)
+
+        elif fuente == "SP500_CSV" and sig:
+            # Precio del CSV en USD (NYSE) × ratio_cedear = precio CEDEAR en USD
+            ratio = pos.get("ratio_cedear", 1.0)
+            p_nyse = sig.get("precio_actual", 0)
+            if p_nyse > 0 and ratio > 0:
+                precio_usd = round(p_nyse * ratio, 4)
+                precio_ars = round(precio_usd * ccl, 2)
+
         else:
-            # SP500 / BOVESPA: usar precio_actual_usd ya guardado, solo recalcular totales
+            # Fallback: usar precio guardado
             precio_usd = pos.get("precio_actual_usd", 0)
-            valor_act  = round(precio_usd * cantidad, 2)
-            pos["valor_actual_usd"] = valor_act
+            precio_ars = round(precio_usd * ccl, 2) if precio_usd > 0 and ccl > 0 else 0
 
-        # Recalcular P&L siempre
-        rend     = round(valor_act - ini_usd, 2)
-        rend_pct = round((valor_act / ini_usd - 1) * 100, 2) if ini_usd > 0 else 0.0
-        pos["rend_usd"]  = rend
-        pos["rend_pct"]  = rend_pct
+        if precio_usd <= 0:
+            continue
+
+        valor_usd = round(precio_usd * cantidad, 2)
+        valor_ars = round(precio_ars * cantidad, 2)
+        rend_usd  = round(valor_usd - ini_usd, 2)
+        rend_pct  = round((valor_usd / ini_usd - 1) * 100, 2) if ini_usd > 0 else 0.0
+
+        pos["precio_actual_usd"] = precio_usd
+        pos["precio_actual_ars"] = precio_ars
+        pos["valor_actual_usd"]  = valor_usd
+        pos["valor_actual_ars"]  = valor_ars
+        pos["rend_usd"]          = rend_usd
+        pos["rend_pct"]          = rend_pct
         updated += 1
 
-    portfolio["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
-    portfolio["capital_usd"]  = round(
-        sum(p.get("valor_actual_usd", p.get("valor_inicial_usd", 0))
-            for p in portfolio.get("positions", [])), 2)
+    # ── Totales del portfolio ────────────────────────────────────
+    total_usd = round(sum(p.get("valor_actual_usd", p.get("valor_inicial_usd", 0))
+                         for p in portfolio.get("positions", [])), 2)
+    total_ars = round(sum(p.get("valor_actual_ars", 0)
+                         for p in portfolio.get("positions", [])), 2)
+    capital_ref = portfolio.get("capital_usd_ref", 0)
+
+    portfolio["capital_usd"]      = total_usd
+    portfolio["capital_ars"]      = total_ars
+    portfolio["pl_total_usd"]     = round(total_usd - capital_ref, 2)
+    portfolio["pl_total_pct"]     = round((total_usd / capital_ref - 1) * 100, 2) if capital_ref > 0 else 0.0
+    portfolio["ccl_usado"]        = ccl
+    portfolio["brl_usd_usado"]    = brl_usd
+    portfolio["last_updated"]     = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     with open(PORTFOLIO_PATH, "w") as f:
         json.dump(portfolio, f, ensure_ascii=False, indent=2)
 
-    logger.info(f"Portfolio USD actualizado: {updated} posiciones, CCL={ccl:.1f}")
-
-    # Push a GitHub
+    logger.info(f"Portfolio actualizado: {updated} posiciones | Total USD={total_usd:,.2f} | CCL={ccl:.1f} | BRL/USD={brl_usd:.2f}")
     _push_portfolio_to_github()
-
-
-
 
 def _push_portfolio_to_github():
     """Pushea portfolio.json actualizado a GitHub."""
