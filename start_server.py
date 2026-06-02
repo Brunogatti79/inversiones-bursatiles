@@ -210,7 +210,14 @@ class Handler(SimpleHTTPRequestHandler):
         return json.loads(body) if body else {}
  
     def _handle_get_portfolio(self):
-        """GET /api/portfolio — devuelve portfolio.json + CCL."""
+        """GET /api/portfolio — devuelve portfolio.json enriquecido con precios en tiempo real.
+
+        Lógica de precio por fuente (campo precio_fuente en cada posición):
+          MERVAL_CSV  (.BA):  precio_ars (CSV) / CCL = precio_usd
+          BOVESPA_CSV (.SA):  precio_brl (CSV) / BRL_USD = precio_usd
+          SP500_CSV:          precio_usd_nyse (CSV) × ratio_cedear = precio_usd_cedear
+        Todos los tickers también devuelven precio_actual_ars = precio_usd × CCL.
+        """
         try:
             portfolio_path = "data/portfolio.json"
             if os.path.exists(portfolio_path):
@@ -218,51 +225,85 @@ class Handler(SimpleHTTPRequestHandler):
                     portfolio = json.load(f)
             else:
                 portfolio = {"positions": [], "last_updated": ""}
+
+            # CCL actual
+            ccl_val = 0.0
             ccl_path = "data/ccl_cache.json"
-            if os.path.exists(ccl_path):
-                with open(ccl_path) as f:
-                    portfolio["ccl"] = json.load(f)
-            # Enriquecer posiciones con precios actuales desde CSVs del sistema
+            try:
+                if os.path.exists(ccl_path):
+                    with open(ccl_path) as fc:
+                        ccl_data = json.load(fc)
+                        ccl_val = float(ccl_data.get("compra", 0) or 0)
+                    portfolio["ccl"] = ccl_data
+            except Exception:
+                pass
+            if ccl_val <= 0:
+                ccl_val = 1150.0
+
+            # BRL/USD fallback
+            brl_usd = 5.70
+
             if portfolio.get("positions"):
                 try:
-                    prices_cache = _get_latest_prices()
-                    # Obtener CCL para conversión ARS→USD
-                    ccl_val = 0.0
-                    try:
-                        ccl_path = "data/ccl_cache.json"
-                        if os.path.exists(ccl_path):
-                            with open(ccl_path) as fc:
-                                ccl_data = json.load(fc)
-                                ccl_val = float(ccl_data.get("compra", 0) or 0)
-                    except Exception:
-                        pass
+                    prices_cache = _get_latest_prices()  # {ticker: precio_en_moneda_local}
+
                     for p in portfolio["positions"]:
                         t       = p.get("ticker", "")
                         cant    = p.get("cantidad", 1)
-                        # Solo actualizar en tiempo real MERVAL (.BA) via CCL
-                        # SP500/BOVESPA: el pipeline ya los convirtió correctamente
-                        # en update_portfolio_usd — usar esos valores directamente
-                        if t.endswith(".BA") and t in prices_cache and prices_cache[t] > 0 and ccl_val > 0:
-                            precio_ars = prices_cache[t]
-                            precio_usd = round(precio_ars / ccl_val, 4)
-                            p["precio_actual"]     = precio_ars
+                        ini_usd = p.get("valor_inicial_usd", 0)
+                        fuente  = p.get("precio_fuente", "")
+                        ratio   = p.get("ratio_cedear", 1.0)
+
+                        precio_usd = 0.0
+                        precio_ars = 0.0
+
+                        if fuente == "MERVAL_CSV":
+                            p_ars = prices_cache.get(t, 0)
+                            if p_ars > 0 and ccl_val > 0:
+                                precio_ars = round(p_ars, 2)
+                                precio_usd = round(p_ars / ccl_val, 4)
+
+                        elif fuente == "BOVESPA_CSV":
+                            p_brl = prices_cache.get(t, 0)
+                            if p_brl > 0 and brl_usd > 0:
+                                precio_usd = round(p_brl / brl_usd, 4)
+                                precio_ars = round(precio_usd * ccl_val, 2)
+
+                        elif fuente == "SP500_CSV":
+                            p_nyse = prices_cache.get(t, 0)
+                            if p_nyse > 0 and ratio > 0:
+                                precio_usd = round(p_nyse * ratio, 4)
+                                precio_ars = round(precio_usd * ccl_val, 2)
+
+                        if precio_usd <= 0:
+                            # Usar valor guardado como fallback
+                            precio_usd = p.get("precio_actual_usd", 0)
+                            precio_ars = round(precio_usd * ccl_val, 2) if precio_usd > 0 else 0
+
+                        if precio_usd > 0:
+                            val_usd = round(precio_usd * cant, 2)
+                            val_ars = round(precio_ars * cant, 2)
                             p["precio_actual_usd"] = precio_usd
-                            p["valor_actual_usd"]  = round(precio_usd * cant, 2)
-                            ini = p.get("valor_inicial_usd", 0) or (p.get("precio_compra_usd", 0) * cant)
-                            if ini > 0:
-                                p["rend_usd"] = round(precio_usd * cant - ini, 2)
-                                p["rend_pct"] = round((precio_usd * cant / ini - 1) * 100, 2)
-                        # Para todos: recalcular P&L con precio_actual_usd guardado
-                        elif p.get("precio_actual_usd") and p.get("valor_inicial_usd"):
-                            val_act = round(float(p["precio_actual_usd"]) * cant, 2)
-                            p["valor_actual_usd"] = val_act
-                            ini = float(p["valor_inicial_usd"])
-                            if ini > 0:
-                                p["rend_usd"] = round(val_act - ini, 2)
-                                p["rend_pct"] = round((val_act / ini - 1) * 100, 2)
+                            p["precio_actual_ars"] = precio_ars
+                            p["valor_actual_usd"]  = val_usd
+                            p["valor_actual_ars"]  = val_ars
+                            if ini_usd > 0:
+                                p["rend_usd"] = round(val_usd - ini_usd, 2)
+                                p["rend_pct"] = round((val_usd / ini_usd - 1) * 100, 2)
+
+                    # Totales
+                    total_usd  = round(sum(p.get("valor_actual_usd", p.get("valor_inicial_usd", 0)) for p in portfolio["positions"]), 2)
+                    total_ars  = round(sum(p.get("valor_actual_ars", 0) for p in portfolio["positions"]), 2)
+                    capital_ref = portfolio.get("capital_usd_ref", 0)
+                    portfolio["capital_usd"]  = total_usd
+                    portfolio["capital_ars"]  = total_ars
+                    portfolio["pl_total_usd"] = round(total_usd - capital_ref, 2)
+                    portfolio["pl_total_pct"] = round((total_usd / capital_ref - 1) * 100, 2) if capital_ref > 0 else 0.0
+                    portfolio["ccl_usado"]    = ccl_val
+
                 except Exception as e:
-                    logger.warning(f"No se pudieron obtener precios de CSVs: {e}")
-            # CORS para acceso desde GitHub Pages
+                    logger.warning(f"Error enriqueciendo portfolio: {e}")
+
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
