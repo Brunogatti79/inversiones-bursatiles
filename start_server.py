@@ -15,6 +15,11 @@ import pandas as pd
 from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
 
 logger = logging.getLogger(__name__)
+
+# ── Versión del código — para verificar qué está corriendo en Railway ──
+import hashlib as _hashlib
+_CODE_VERSION = _hashlib.md5(open(__file__, "rb").read()).hexdigest()[:8]
+logger.info(f"[START] start_server.py version={_CODE_VERSION}")
  
 # ── Actualizar código desde GitHub en cada arranque ──────────────
 try:
