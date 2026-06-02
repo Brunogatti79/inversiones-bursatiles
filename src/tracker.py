@@ -456,21 +456,31 @@ def update_portfolio_usd(signals: list[dict]) -> None:
         ccl = 1487.0
         logger.warning(f"CCL no disponible — usando fallback {ccl}")
 
-    # ── Leer BRL/USD desde señales BOVESPA ──────────────────────
-    brl_usd = 5.70  # fallback
+    # ── BRL/USD desde macro_auto o Yahoo Finance ────────────────
+    brl_usd = 5.70  # fallback actualizado junio 2026
     try:
-        # Usar PETR4.SA: precio en BRL desde CSV / precio ADR PBR en USD
-        petr4 = next((s for s in signals if s.get("ticker") == "PETR4.SA"), None)
-        pbr   = next((s for s in signals if s.get("ticker") == "PBR"), None)
-        if petr4 and pbr:
-            p_brl = petr4.get("precio_actual", 0)
-            p_usd = pbr.get("precio_actual", 0)
-            # PBR ADR = PETR4 / (ratio_adr * BRL_USD)  →  ratio_adr PBR = 2 acciones por ADR
-            if p_brl > 0 and p_usd > 0:
-                brl_usd = round(p_brl / (p_usd * 2), 2)
-                logger.info(f"BRL/USD calculado desde PETR4/PBR: {brl_usd}")
+        import yfinance as yf
+        brl_ticker = yf.Ticker("BRL=X")
+        hist = brl_ticker.history(period="2d")
+        if not hist.empty:
+            brl_usd = round(float(hist["Close"].iloc[-1]), 4)
+            logger.info(f"BRL/USD desde Yahoo: {brl_usd}")
     except Exception:
-        pass
+        # Intentar desde macro_auto cache en xlsx
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook("data/modelo_macro_micro_señales.xlsx", data_only=True)
+            ws = wb.active
+            for row in ws.iter_rows(values_only=True):
+                if row and str(row[0]).strip().upper() in ("BRL/USD", "BRLUSD", "BRL_USD"):
+                    val = row[1] if len(row) > 1 else None
+                    if val and float(val) > 3:
+                        brl_usd = round(float(val), 4)
+                        logger.info(f"BRL/USD desde xlsx: {brl_usd}")
+                        break
+        except Exception:
+            pass
+        logger.info(f"BRL/USD fallback: {brl_usd}")
 
     # ── Construir mapa de señales (precio en moneda local del CSV) ──
     signal_map = {}
