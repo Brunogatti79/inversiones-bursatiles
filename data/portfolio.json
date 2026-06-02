@@ -18,7 +18,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 1.5324,
-      "rend_pct": 33.7
+      "rend_pct": 33.7,
+      "nombre_csv": "Central Puerto",
+      "precio_fuente": "MERVAL_CSV"
     },
     {
       "ticker": "COME.BA",
@@ -35,7 +37,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 0.0307,
-      "rend_pct": 39.85
+      "rend_pct": 39.85,
+      "nombre_csv": "Soc. Comercial del Plata",
+      "precio_fuente": "MERVAL_CSV"
     },
     {
       "ticker": "IRSA.BA",
@@ -52,7 +56,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 1.5152,
-      "rend_pct": 31.71
+      "rend_pct": 31.71,
+      "nombre_csv": "IRSA",
+      "precio_fuente": "MERVAL_CSV"
     },
     {
       "ticker": "TRAN.BA",
@@ -69,7 +75,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 2.5879,
-      "rend_pct": 34.41
+      "rend_pct": 34.41,
+      "nombre_csv": "Transener",
+      "precio_fuente": "MERVAL_CSV"
     },
     {
       "ticker": "COPX",
@@ -86,7 +94,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 6.5839,
-      "rend_pct": 1238.72
+      "rend_pct": 1238.72,
+      "ratio_cedear": 11.2481,
+      "precio_fuente": "SP500_CSV"
     },
     {
       "ticker": "EWZ",
@@ -102,7 +112,9 @@
       "fecha_compra": "2026-05-16",
       "stop_loss": null,
       "target": null,
-      "precio_compra": 18.5455
+      "precio_compra": 18.5455,
+      "ratio_cedear": 5.6911,
+      "precio_fuente": "SP500_CSV"
     },
     {
       "ticker": "GLOB",
@@ -119,7 +131,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 9.3429,
-      "rend_pct": 331.99
+      "rend_pct": 331.99,
+      "ratio_cedear": 1.9577,
+      "precio_fuente": "SP500_CSV"
     },
     {
       "ticker": "HAPV3.SA",
@@ -136,7 +150,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 2.6194,
-      "rend_pct": 303.34
+      "rend_pct": 303.34,
+      "nombre_csv": "Hapvida",
+      "precio_fuente": "BOVESPA_CSV"
     },
     {
       "ticker": "IBB",
@@ -153,7 +169,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 6.7379,
-      "rend_pct": 2455.38
+      "rend_pct": 2455.38,
+      "ratio_cedear": 5.5205,
+      "precio_fuente": "SP500_CSV"
     },
     {
       "ticker": "MELI",
@@ -170,7 +188,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 14.3158,
-      "rend_pct": 11744.61
+      "rend_pct": 11744.61,
+      "ratio_cedear": 0.3177,
+      "precio_fuente": "SP500_CSV"
     },
     {
       "ticker": "MSFT",
@@ -187,7 +207,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 16.1667,
-      "rend_pct": 2684.99
+      "rend_pct": 2684.99,
+      "ratio_cedear": 1.1943,
+      "precio_fuente": "SP500_CSV"
     },
     {
       "ticker": "PBR",
@@ -203,7 +225,9 @@
       "fecha_compra": "2026-05-16",
       "stop_loss": null,
       "target": null,
-      "precio_compra": 20.4545
+      "precio_compra": 20.4545,
+      "ratio_cedear": 22.6935,
+      "precio_fuente": "SP500_CSV"
     },
     {
       "ticker": "QCOM",
@@ -219,7 +243,9 @@
       "fecha_compra": "2026-05-16",
       "stop_loss": null,
       "target": null,
-      "precio_compra": 19.25
+      "precio_compra": 19.25,
+      "ratio_cedear": 1.9127,
+      "precio_fuente": "SP500_CSV"
     },
     {
       "ticker": "RIO",
@@ -236,7 +262,9 @@
       "stop_loss": null,
       "target": null,
       "precio_compra": 12.7692,
-      "rend_pct": 733.17
+      "rend_pct": 733.17,
+      "ratio_cedear": 7.0393,
+      "precio_fuente": "SP500_CSV"
     }
   ],
   "reglas": {
@@ -244,5 +272,16 @@
     "max_por_sector_pct": 30,
     "max_por_pais_pct": 50,
     "riesgo_por_trade_pct": 1
+  },
+  "cedear_ratios": {
+    "COPX": 11.2481,
+    "EWZ": 5.6911,
+    "GLOB": 1.9577,
+    "IBB": 5.5205,
+    "MELI": 0.3177,
+    "MSFT": 1.1943,
+    "PBR": 22.6935,
+    "QCOM": 1.9127,
+    "RIO": 7.0393
   }
 }
