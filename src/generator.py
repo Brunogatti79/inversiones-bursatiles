@@ -748,41 +748,73 @@ def generate_dashboard(
   <!-- ── FORMULARIO DE OPERACIONES ── -->
   <div class="section-title" style="margin-top:8px;color:#5ba3ff">📝 Registrar Operación</div>
   <div style="background:#16161e;border:1px solid #222230;border-radius:10px;padding:20px;margin-bottom:20px">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:12px;align-items:end;flex-wrap:wrap" id="op-form-grid">
+    <!-- Fila 1: Ticker + Operación + Instrumento -->
+    <div style="display:grid;grid-template-columns:1.4fr 0.8fr 1.2fr;gap:12px;align-items:end;margin-bottom:12px">
       <!-- Ticker con autocomplete -->
       <div>
-        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Ticker (modelo)</label>
+        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Ticker</label>
         <div style="position:relative">
-          <input id="op-ticker-input" type="text" placeholder="Ej: CEPU.BA, MELI…" autocomplete="off"
+          <input id="op-ticker-input" type="text" placeholder="Ej: CEPU.BA, MELI, HAPV3.SA…" autocomplete="off"
             style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px;font-family:monospace"
             oninput="tickerAutocomplete(this.value)" onblur="setTimeout(function(){{document.getElementById('op-ticker-drop').style.display='none';}},150)">
           <div id="op-ticker-drop" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1a1a2a;border:1px solid #333;border-radius:6px;z-index:200;max-height:180px;overflow-y:auto"></div>
         </div>
         <div id="op-ticker-status" style="font-size:10px;margin-top:3px;color:#555">Ingresá un ticker del modelo</div>
       </div>
-      <!-- Tipo -->
+      <!-- Tipo operación -->
       <div>
-        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Tipo</label>
+        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Operación</label>
         <select id="op-tipo" style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px">
           <option value="COMPRA">🟢 COMPRA</option>
           <option value="VENTA">🔴 VENTA</option>
         </select>
       </div>
-      <!-- Precio total USD -->
+      <!-- Tipo instrumento -->
       <div>
-        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Precio USD/acción <span id="op-precio-hint" style="color:#4ade80;font-size:9px"></span></label>
-        <input id="op-precio" type="number" step="0.0001" min="0" placeholder="Auto desde pipeline"
+        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">
+          Instrumento
+          <span style="color:#f59e0b;font-size:9px;margin-left:4px">⚠️ define el cálculo de P&L</span>
+        </label>
+        <select id="op-instrumento" onchange="onInstrumentoChange()"
+          style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px">
+          <option value="MERVAL_CSV">🇦🇷 Acción local MERVAL (.BA)</option>
+          <option value="BOVESPA_CSV">🇧🇷 Acción local BOVESPA (.SA)</option>
+          <option value="SP500_CSV">🇺🇸 CEDEAR / ETF / ADR (BYMA)</option>
+        </select>
+      </div>
+    </div>
+    <!-- Fila 2: Precio + Cantidad + Ratio CEDEAR (condicional) + Botón -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end">
+      <!-- Precio USD/acción -->
+      <div>
+        <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">
+          Precio USD/acción <span id="op-precio-hint" style="color:#4ade80;font-size:9px"></span>
+        </label>
+        <input id="op-precio" type="number" step="0.0001" min="0" placeholder="Precio de compra en USD"
           style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px">
       </div>
-      <!-- Valores nominales -->
+      <!-- Cantidad nominal -->
       <div>
         <label style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">Cantidad (VN)</label>
-        <input id="op-cantidad" type="number" step="1" min="1" placeholder="Unidades / láminas"
+        <input id="op-cantidad" type="number" step="1" min="1" placeholder="Unidades"
           style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px">
       </div>
+      <!-- Ratio CEDEAR — solo visible para SP500_CSV -->
+      <div id="op-ratio-wrap" style="display:none">
+        <label style="font-size:10px;color:#f59e0b;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">
+          Ratio CEDEAR
+          <span style="color:#666;font-size:9px;font-weight:400"> (precio BYMA ÷ precio NYSE)</span>
+        </label>
+        <input id="op-ratio" type="number" step="0.0001" min="0.0001" placeholder="Ej: 11.25"
+          style="width:100%;background:#0d0d0f;border:1px solid #f59e0b55;border-radius:6px;padding:8px 10px;color:#f59e0b;font-size:13px">
+        <div style="font-size:9px;color:#555;margin-top:3px">Ratio actual: precio BYMA del CEDEAR ÷ precio NYSE del subyacente</div>
+      </div>
+      <!-- Placeholder cuando ratio está oculto -->
+      <div id="op-ratio-placeholder"></div>
       <!-- Botón -->
       <div>
-        <button id="op-submit-btn" onclick="registrarOperacion()" disabled style="opacity:0.4;cursor:not-allowed;background:#1e3a5f;border:1px solid #5ba3ff;color:#5ba3ff;padding:9px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap">
+        <button id="op-submit-btn" onclick="registrarOperacion()" disabled
+          style="opacity:0.4;cursor:not-allowed;background:#1e3a5f;border:1px solid #5ba3ff;color:#5ba3ff;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap">
           + Registrar
         </button>
       </div>
@@ -1779,6 +1811,17 @@ function registrarOperacion(){{
     signal: d.signal,
   }};
   // ── POST al servidor Railway ──
+  var instrumento = document.getElementById('op-instrumento').value;
+  var ratioCedear = 1.0;
+  if(instrumento === 'SP500_CSV'){{
+    var ratioInput = parseFloat(document.getElementById('op-ratio').value);
+    if(!ratioInput || ratioInput <= 0){{
+      msg.textContent='⚠️ Ingresá el ratio CEDEAR (precio BYMA ÷ precio NYSE)';
+      msg.style.color='#f87171'; msg.style.display='block';
+      return;
+    }}
+    ratioCedear = ratioInput;
+  }}
   var endpoint = tipo === 'COMPRA' ? '/api/compra' : '/api/venta';
   msg.textContent='⏳ Enviando al servidor…'; msg.style.color='#fbbf24';
   document.getElementById('op-submit-btn').disabled=true;
@@ -1789,10 +1832,12 @@ function registrarOperacion(){{
       ticker: op.ticker,
       nombre: op.empresa,
       mercado: op.mercado,
-      precio: op.precio,         // USD por acción
+      precio: op.precio,
       cantidad: op.cantidad,
-      total_usd: op.total,       // total en USD
-      signal: op.signal
+      total_usd: op.total,
+      signal: op.signal,
+      precio_fuente: instrumento,
+      ratio_cedear: ratioCedear
     }})
   }})
   .then(function(r){{ return r.json(); }})
@@ -1828,6 +1873,18 @@ function registrarOperacion(){{
     document.getElementById('op-submit-btn').style.opacity='1';
     renderHistorial();
   }});
+}}
+
+function onInstrumentoChange(){{
+  var v = document.getElementById('op-instrumento').value;
+  var wrap  = document.getElementById('op-ratio-wrap');
+  var ph    = document.getElementById('op-ratio-placeholder');
+  if(v === 'SP500_CSV'){{
+    wrap.style.display=''; ph.style.display='none';
+  }} else {{
+    wrap.style.display='none'; ph.style.display='';
+    document.getElementById('op-ratio').value='';
+  }}
 }}
 
 function cargarOperaciones(){{
