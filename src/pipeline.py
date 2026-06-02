@@ -401,8 +401,10 @@ def run_pipeline():
         # Actualizar precios USD del portfolio con precios vigentes + CCL
         try:
             update_portfolio_usd(all_signals)
+            logger.info("Portfolio USD actualizado correctamente")
         except Exception as e:
-            logger.warning(f"update_portfolio_usd falló: {e}")
+            import traceback
+            logger.error(f"update_portfolio_usd falló: {e}\n{traceback.format_exc()}")
         # ── TRAILING STOPS (Fase 6) ───────────────────────────────────────────
         try:
             trail_events = apply_trailing_stops(all_signals)
