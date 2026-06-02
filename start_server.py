@@ -238,7 +238,7 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception:
                 pass
             if ccl_val <= 0:
-                ccl_val = 1150.0
+                ccl_val = 1487.0
 
             # BRL/USD fallback
             brl_usd = 5.70
