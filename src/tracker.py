@@ -453,7 +453,7 @@ def update_portfolio_usd(signals: list[dict]) -> None:
         except Exception:
             pass
     if ccl <= 0:
-        ccl = 1150.0
+        ccl = 1487.0
         logger.warning(f"CCL no disponible — usando fallback {ccl}")
 
     # ── Leer BRL/USD desde señales BOVESPA ──────────────────────
