@@ -240,8 +240,15 @@ class Handler(SimpleHTTPRequestHandler):
             if ccl_val <= 0:
                 ccl_val = 1487.0
 
-            # BRL/USD fallback
+            # BRL/USD desde Yahoo Finance
             brl_usd = 5.70
+            try:
+                import yfinance as yf
+                brl_hist = yf.Ticker("BRL=X").history(period="2d")
+                if not brl_hist.empty:
+                    brl_usd = round(float(brl_hist["Close"].iloc[-1]), 4)
+            except Exception:
+                pass
 
             if portfolio.get("positions"):
                 try:
