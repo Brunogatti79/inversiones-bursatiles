@@ -756,7 +756,7 @@ def generate_dashboard(
         <div style="position:relative">
           <input id="op-ticker-input" type="text" placeholder="Ej: CEPU.BA, MELI, HAPV3.SA…" autocomplete="off"
             style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px;font-family:monospace"
-            oninput="tickerAutocomplete(this.value)" onblur="setTimeout(function(){{document.getElementById('op-ticker-drop').style.display='none';}},150)">
+            oninput="tickerAutocomplete(this.value)" onblur="setTimeout(function(){{document.getElementById('op-ticker-drop').style.display='none';}},400)">
           <div id="op-ticker-drop" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1a1a2a;border:1px solid #333;border-radius:6px;z-index:200;max-height:180px;overflow-y:auto"></div>
         </div>
         <div id="op-ticker-status" style="font-size:10px;margin-top:3px;color:#555">Ingresá un ticker del modelo</div>
@@ -1751,11 +1751,22 @@ function tickerAutocomplete(val){{
     document.getElementById('op-submit-btn').disabled=false;
     document.getElementById('op-submit-btn').style.opacity='1';
   }} else{{
-    opTickerValido=null;
-    status.textContent='⚠️ Seleccioná un ticker válido del modelo (solo tickers de MERVAL, BOVESPA o S&P 500)';
-    status.style.color='#fbbf24';
-    document.getElementById('op-submit-btn').disabled=true;
-    document.getElementById('op-submit-btn').style.opacity='0.4';
+    // También habilitar si el valor escrito coincide exactamente (mayúsculas)
+    var valUpper = val.toUpperCase();
+    var exactMatch = null;
+    Object.keys(tickersModelo).forEach(function(tk){{
+      if(tk.toUpperCase() === valUpper) exactMatch = tk;
+    }});
+    if(exactMatch){{
+      seleccionarTicker(exactMatch);
+      drop.style.display='none';
+    }} else {{
+      opTickerValido=null;
+      status.textContent='⚠️ Seleccioná un ticker válido del modelo';
+      status.style.color='#fbbf24';
+      document.getElementById('op-submit-btn').disabled=true;
+      document.getElementById('op-submit-btn').style.opacity='0.4';
+    }}
   }}
 }}
 
