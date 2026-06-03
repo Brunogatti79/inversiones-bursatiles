@@ -722,7 +722,12 @@ def generate_dashboard(
   <div class="section-title" style="color:#fb923c;margin-top:32px;margin-bottom:6px">🔴 Señales de Reducción de Portfolio</div>
   <div class="concl-subtitle">Activos con señal de venta o venta parcial · Ordenados por urgencia de reducción</div>
   <div id="ventas-block"></div>
- 
+
+  <!-- ── ASIGNACIÓN DE CAPITAL NUEVO ── -->
+  <div class="section-title" style="color:#fbbf24;margin-top:32px;margin-bottom:6px">💵 ¿Dónde poner el próximo dólar?</div>
+  <div class="concl-subtitle" style="margin-bottom:16px">Asignación óptima de capital nuevo · Criterio: mayor retorno esperado (Score V2 × R/R) · Primero posiciones existentes con señal positiva, luego nuevas</div>
+  <div id="capital-block"></div>
+
 </div>
  
 <!-- PORTFOLIO -->
