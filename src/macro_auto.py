@@ -249,6 +249,36 @@ def fetch_argentina_macro():
  
  
 # ─────────────────────────────────────────────
+# datos.gob.ar (Argentina) — API pública sin key
+# ─────────────────────────────────────────────
+
+DATOS_GOB_SERIES = {
+    "ipc":       "148.3_INIVELNAL_DICI_M_26",
+    "desempleo": "41.1_DESO_TOTAL_D_L_29",
+    "balanza":   "185.1_EXPOIM_TOTAL_D_M_26",
+    "fiscal":    "28.3_RFPFSPN_D_0_M_36",
+}
+
+
+def _datos_gob_latest(series_id, n=3):
+    """Obtiene el ultimo valor de una serie de datos.gob.ar (INDEC/Mecon)."""
+    try:
+        url = (
+            "https://apis.datos.gob.ar/series/api/series/"
+            "?ids=" + series_id + "&last=" + str(n) + "&format=json"
+        )
+        r = requests.get(url, timeout=15, headers={"User-Agent": "InversionesBursatiles/1.0"})
+        r.raise_for_status()
+        pts = r.json().get("data", [])
+        if pts:
+            return float(pts[-1][1]), str(pts[-1][0])
+        return None, None
+    except Exception as e:
+        logger.warning("datos.gob.ar error [" + series_id + "]: " + str(e))
+        return None, None
+
+
+# ─────────────────────────────────────────────
 # BCB/SGS (Brasil) — API pública
 # ─────────────────────────────────────────────
  
@@ -257,7 +287,8 @@ BCB_SERIES = {
     "ipca":         433,    # IPCA acumulado 12m
     "desempleo":    24369,  # Taxa de desocupação
     "reservas":     13621,  # Reservas internacionales
-    "brl_usd":      1,      # Dólar comercial (venda)
+    "brl_usd":    1,      # Dólar comercial (venda)
+    "deuda_pib":  4503,   # Divida Liquida Setor Publico % PIB
 }
  
  
@@ -304,6 +335,28 @@ def fetch_brasil_macro():
         logger.warning(f"Riesgo país BRA error: {e}")
         data["riesgo_pais"] = {"valor": None, "fecha": ""}
  
+    # PMI Manufacturero Brasil — FRED (BRAPMIMANMISMEI)
+    try:
+        fred_key = os.environ.get("FRED_API_KEY", "")
+        if fred_key:
+            url_pmi = (
+                "https://api.stlouisfed.org/fred/series/observations"
+                "?series_id=BRAPMIMANMISMEI&api_key=" + fred_key +
+                "&file_type=json&limit=3&sort_order=desc"
+            )
+            r_pmi = requests.get(url_pmi, timeout=15, headers={"User-Agent": "InversionesBursatiles/1.0"})
+            r_pmi.raise_for_status()
+            obs = [o for o in r_pmi.json().get("observations", []) if o.get("value", ".") != "."]
+            if obs:
+                data["pmi"] = {"valor": float(obs[0]["value"]), "fecha": obs[0]["date"]}
+            else:
+                data["pmi"] = {"valor": None, "fecha": ""}
+        else:
+            data["pmi"] = {"valor": None, "fecha": "sin_fred_key"}
+    except Exception as e:
+        logger.warning("PMI BRA FRED error: " + str(e))
+        data["pmi"] = {"valor": None, "fecha": ""}
+
     logger.info(f"BRA macro: {sum(1 for v in data.values() if v['valor'] is not None)}/{len(data)} variables obtenidas")
     return data
  
@@ -327,8 +380,16 @@ RANGES = {
     "bra_desempleo":(15.0,   3.0),
     "bra_reservas": (100000, 500000),
     "bra_brl":      (7.0,    4.0),
+    # Argentina — ahora auto via datos.gob.ar
+    "arg_ipc":       (6.0,    0.3),   # var% mensual
+    "arg_desempleo": (15.0,   4.0),   # % desocupacion
+    "arg_balanza":   (-2000,  4000),  # M USD
+    "arg_fiscal":    (-3.0,   2.0),   # % PBI
+    # Brasil — ahora auto via BCB/FRED
+    "bra_deuda_pib": (100.0,  30.0),  # % PIB
+    "bra_pmi":       (40.0,   58.0),  # PMI < 50 contraccion
     # USA
-    "usa_fed":      (8.0,    0.5),
+    "usa_fed":       (8.0,    0.5),
     "usa_cpi":      (9.0,    0.0),
     "usa_unemp":    (10.0,   2.0),
     "usa_gdp":      (-3.0,   5.0),
@@ -362,7 +423,11 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         ("riesgo_pais", "arg_riesgo",   True),
         ("reservas",    "arg_reservas", False),  # mayor es mejor
         ("tipo_cambio", "arg_tc",       True),
-        ("brecha",      "arg_brecha",   True),
+        ("brecha",           "arg_brecha",    True),
+        ("ipc",              "arg_ipc",       True),
+        ("desempleo",        "arg_desempleo", True),
+        ("balanza_comercial","arg_balanza",   False),
+        ("resultado_fiscal", "arg_fiscal",    False),
     ]
     for var_name, range_key, invert in vars_arg:
         val = arg_data.get(var_name, {}).get("valor")
@@ -384,7 +449,9 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         ("ipca",        "bra_ipca",      True),
         ("desempleo",   "bra_desempleo", True),
         ("reservas",    "bra_reservas",  False),
-        ("brl_usd",     "bra_brl",       True),
+        ("brl_usd",    "bra_brl",      True),
+        ("deuda_pib",  "bra_deuda_pib", True),
+        ("pmi",        "bra_pmi",       False),
     ]
     for var_name, range_key, invert in vars_bra:
         val = bra_data.get(var_name, {}).get("valor")
