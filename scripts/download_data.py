@@ -119,6 +119,20 @@ SP500_TICKERS = {
     "ORCL": "Oracle",
 }
 SP500_INDEX = "^GSPC"
+
+# CEDEARs del portfolio — precios en ARS desde BYMA via Yahoo Finance
+CEDEAR_TICKERS = {
+    "MELI.BA":  "MercadoLibre",
+    "MSFT.BA":  "Microsoft",
+    "COPX.BA":  "Global X Copper Miners ETF",
+    "IBB.BA":   "iShares Biotechnology ETF",
+    "GLOB.BA":  "Globant",
+    "PBR.BA":   "Petrobras ADR",
+    "QCOM.BA":  "Qualcomm",
+    "RIO.BA":   "Rio Tinto",
+    "EWZ.BA":   "iShares MSCI Brazil ETF",
+    "HAPV3.BA": "Hapvida",
+}
  
 MIN_ROWS         = 10
 MIN_SUCCESS_RATE = 0.5
@@ -196,6 +210,33 @@ def download_market(tickers, index_ticker, market_name):
     return df
  
  
+def download_market_no_index(tickers, market_name):
+    """Descarga tickers sin índice (CEDEARs)."""
+    start, end  = get_period()
+    series_list = []
+    ok = 0
+    total = len(tickers)
+    logger.info(f"[{market_name}] Descargando {total} tickers...")
+    for i, (ticker, name) in enumerate(tickers.items()):
+        serie = download_single(ticker, start, end, market_name)
+        if serie is not None:
+            serie.name = name
+            series_list.append(serie)
+            ok += 1
+            logger.info(f"[{market_name}] ✓ {ticker} ({ok}/{total})")
+        else:
+            logger.warning(f"[{market_name}] ✗ {ticker} sin datos")
+        if i < total - 1:
+            time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
+    if not series_list:
+        raise RuntimeError(f"[{market_name}] Sin datos")
+    df = pd.concat(series_list, axis=1)
+    df.index.name = "Fecha"
+    df = df.sort_index().dropna(how="all")
+    logger.info(f"[{market_name}] DataFrame: {len(df)} días, {len(df.columns)} columnas")
+    return df
+
+
 def save_csv(df, market_name):
     os.makedirs(DATA_DIR, exist_ok=True)
     path = f"{DATA_DIR}/{market_name.lower()}_cierres.csv"
@@ -217,9 +258,14 @@ def main():
         ("MERVAL",  MERVAL_TICKERS,  MERVAL_INDEX),
         ("BOVESPA", BOVESPA_TICKERS, BOVESPA_INDEX),
         ("SP500",   SP500_TICKERS,   SP500_INDEX),
+        ("CEDEAR",  CEDEAR_TICKERS,  None),
     ]:
         try:
-            df = download_market(tickers, index, market)
+            if index is None:
+                # CEDEARs: sin índice separado
+                df = download_market_no_index(tickers, market)
+            else:
+                df = download_market(tickers, index, market)
             save_csv(df, market)
             status["markets"][market] = {
                 "rows":      len(df),
