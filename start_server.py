@@ -282,10 +282,34 @@ class Handler(SimpleHTTPRequestHandler):
                                 precio_ars = round(precio_usd * ccl_val, 2)
 
                         elif fuente == "SP500_CSV":
-                            p_nyse = prices_cache.get(t, 0)
-                            if p_nyse > 0 and ratio > 0:
-                                precio_usd = round(p_nyse * ratio, 4)
-                                precio_ars = round(precio_usd * ccl_val, 2)
+                            # Los CEDEARs cotizan en BYMA con precio propio (distinto del NYSE).
+                            # No se puede calcular el precio CEDEAR desde NYSE × ratio_cedear.
+                            # Usamos el precio guardado del broker (fallback a continuación).
+                            # Cuando exista cedear_cierres.csv, leer de ahí directamente.
+                            cedear_csv = "data/cedear_cierres.csv"
+                            if os.path.exists(cedear_csv):
+                                try:
+                                    import io as _io
+                                    with open(cedear_csv, encoding="utf-8-sig") as _fc:
+                                        _cc = _fc.read()
+                                    _dfc = pd.read_csv(_io.StringIO(_cc), sep=";", decimal=",", thousands=" ")
+                                    from src.downloader import SP500_TICKERS as _sp_map
+                                    _n2t = {v: k for k, v in _sp_map.items()}
+                                    for _col in _dfc.columns:
+                                        if _col == "Fecha":
+                                            continue
+                                        _tk = _n2t.get(_col)
+                                        if _tk and _tk == t:
+                                            _vals = pd.to_numeric(
+                                                _dfc[_col].astype(str).str.replace(" ","").str.replace(",","."),
+                                                errors="coerce"
+                                            ).dropna()
+                                            if not _vals.empty and _vals.iloc[-1] > 0:
+                                                p_ars_cedear = round(float(_vals.iloc[-1]), 2)
+                                                precio_ars = p_ars_cedear
+                                                precio_usd = round(p_ars_cedear / ccl_val, 4) if ccl_val > 0 else 0
+                                except Exception as _e_ced:
+                                    logger.warning(f"[portfolio] cedear_cierres.csv error para {t}: {_e_ced}")
 
                         if precio_usd <= 0:
                             # Usar valor guardado como fallback
