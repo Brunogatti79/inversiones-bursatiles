@@ -410,52 +410,12 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
 
 def update_portfolio_usd(signals: list[dict] = None, brl_usd_ext: float = 0.0) -> None:
     """
-    Recalcula P&L del portfolio usando precio_actual_usd YA GUARDADO en portfolio.json.
-    NO modifica precio_actual_usd — ese valor solo lo actualiza el usuario via Balanz.
-    Solo recalcula: valor_actual_usd, rend_usd, rend_pct y totales.
+    DESACTIVADO hasta implementar cedear_cierres.csv con precios ARS de BYMA.
+    El portfolio.json se actualiza solo via /api/compra y /api/venta.
+    Los precios actuales se calculan en _handle_get_portfolio desde CSVs.
     """
-    if not os.path.exists(PORTFOLIO_PATH):
-        return
-    try:
-        with open(PORTFOLIO_PATH) as f:
-            portfolio = json.load(f)
-    except Exception as e:
-        logger.warning(f"Error leyendo portfolio: {e}")
-        return
-
-    updated = 0
-    for pos in portfolio.get("positions", []):
-        ticker   = pos.get("ticker", "")
-        cantidad = pos.get("cantidad", 0)
-        ini_usd  = pos.get("valor_inicial_usd", 0)
-        pa_usd   = pos.get("precio_actual_usd", 0)
-
-        if not ticker or not cantidad or not ini_usd or not pa_usd:
-            continue
-
-        valor_usd = round(pa_usd * cantidad, 2)
-        rend_usd  = round(valor_usd - ini_usd, 2)
-        rend_pct  = round((valor_usd / ini_usd - 1) * 100, 2) if ini_usd > 0 else 0.0
-
-        pos["valor_actual_usd"] = valor_usd
-        pos["rend_usd"]         = rend_usd
-        pos["rend_pct"]         = rend_pct
-        updated += 1
-
-    total_usd   = round(sum(p.get("valor_actual_usd", p.get("valor_inicial_usd", 0))
-                           for p in portfolio.get("positions", [])), 2)
-    capital_ref = portfolio.get("capital_usd_ref", 0)
-
-    portfolio["capital_usd"]  = total_usd
-    portfolio["pl_total_usd"] = round(total_usd - capital_ref, 2)
-    portfolio["pl_total_pct"] = round((total_usd / capital_ref - 1) * 100, 2) if capital_ref > 0 else 0.0
-    portfolio["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-    with open(PORTFOLIO_PATH, "w") as f:
-        json.dump(portfolio, f, ensure_ascii=False, indent=2)
-
-    logger.info(f"Portfolio recalculado: {updated} posiciones | Total USD={total_usd:,.2f} | P&L={portfolio['pl_total_pct']:.1f}%")
-    _push_portfolio_to_github()
+    logger.info("update_portfolio_usd: desactivado — portfolio no modificado por pipeline")
+    return
 
 
 def _push_portfolio_to_github():
