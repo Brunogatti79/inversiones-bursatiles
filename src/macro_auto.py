@@ -244,6 +244,36 @@ def fetch_argentina_macro():
         logger.warning(f"Brecha error: {e}")
         data["brecha"] = {"valor": None, "fecha": ""}
  
+    # IPC mensual — datos.gob.ar (INDEC)
+    try:
+        url_ipc = (
+            "https://apis.datos.gob.ar/series/api/series/"
+            "?ids=" + DATOS_GOB_SERIES["ipc"] + "&last=3&format=json"
+        )
+        r_ipc = requests.get(url_ipc, timeout=15, headers={"User-Agent": "InversionesBursatiles/1.0"})
+        r_ipc.raise_for_status()
+        pts = r_ipc.json().get("data", [])
+        if len(pts) >= 2:
+            ipc_var = round((float(pts[-1][1]) / float(pts[-2][1]) - 1) * 100, 2)
+            data["ipc"] = {"valor": ipc_var, "fecha": str(pts[-1][0])}
+        else:
+            data["ipc"] = {"valor": None, "fecha": ""}
+    except Exception as e:
+        logger.warning("IPC ARG error: " + str(e))
+        data["ipc"] = {"valor": None, "fecha": ""}
+ 
+    # Desempleo — datos.gob.ar (INDEC/EPH)
+    val, dt = _datos_gob_latest(DATOS_GOB_SERIES["desempleo"])
+    data["desempleo"] = {"valor": val, "fecha": dt or ""}
+ 
+    # Balanza comercial — datos.gob.ar (INDEC)
+    val, dt = _datos_gob_latest(DATOS_GOB_SERIES["balanza"])
+    data["balanza_comercial"] = {"valor": val, "fecha": dt or ""}
+ 
+    # Resultado fiscal primario — datos.gob.ar (Mecon)
+    val, dt = _datos_gob_latest(DATOS_GOB_SERIES["fiscal"])
+    data["resultado_fiscal"] = {"valor": val, "fecha": dt or ""}
+ 
     logger.info(f"ARG macro: {sum(1 for v in data.values() if v['valor'] is not None)}/{len(data)} variables obtenidas")
     return data
  
