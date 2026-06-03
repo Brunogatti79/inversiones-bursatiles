@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-06-02 21:50",
-  "capital_usd_ref": 8583,
+  "last_updated": "2026-06-03 20:10",
+  "capital_usd_ref": 9263.04,
   "capital_usd": 8612,
   "positions": [
     {
@@ -301,6 +301,44 @@
       "precio_fuente": "SP500_CSV",
       "precio_actual_ars": 1140532.12,
       "valor_actual_ars": 59307670.24
+    },
+    {
+      "ticker": "GGAL.BA",
+      "nombre": "Grupo Financiero Galicia",
+      "mercado": "MERVAL",
+      "moneda": "USD",
+      "precio_compra": 5.1,
+      "precio_compra_usd": 5.1,
+      "precio_actual_usd": 5.1,
+      "cantidad": 66,
+      "valor_inicial_usd": 336.6,
+      "valor_actual_usd": 336.6,
+      "rend_usd": 0,
+      "fecha_compra": "2026-06-03",
+      "stop_loss": null,
+      "target": null,
+      "precio_fuente": "MERVAL_CSV",
+      "ratio_cedear": 1.0,
+      "notas": "Compra 2026-06-03 via Dashboard — MERVAL_CSV"
+    },
+    {
+      "ticker": "GOOGL",
+      "nombre": "Alphabet (Google)",
+      "mercado": "SP500",
+      "moneda": "USD",
+      "precio_compra": 6.48,
+      "precio_compra_usd": 6.48,
+      "precio_actual_usd": 6.48,
+      "cantidad": 53,
+      "valor_inicial_usd": 343.44,
+      "valor_actual_usd": 343.44,
+      "rend_usd": 0,
+      "fecha_compra": "2026-06-03",
+      "stop_loss": null,
+      "target": null,
+      "precio_fuente": "SP500_CSV",
+      "ratio_cedear": 1.0,
+      "notas": "Compra 2026-06-03 via Dashboard — SP500_CSV"
     }
   ],
   "reglas": {
