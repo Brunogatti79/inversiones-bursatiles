@@ -1636,9 +1636,26 @@ function showOpFicha(ticker){{
     +'<div class="card"><div class="card-title">📈 Valor actual (USD)</div><div class="card-value" style="color:#e2e8f0">USD '+totalActualUsd.toLocaleString('es-AR')+'</div><div class="card-sub">'+new Date().toLocaleDateString(\'es-AR\')+' — datos broker</div></div>'
     +'<div class="card"><div class="card-title">💰 P&L Total (USD)</div><div class="card-value" style="color:'+(totalRendUsd>=0?\'#4ade80\':\'#f87171\')+'">\'+(totalRendUsd>=0?\'+\':\'\')+totalRendUsd.toLocaleString(\'es-AR\')+' (\'+(totalRendUsd>=0?\'+\':\'\')+pnlUsdPct+\'%)</div></div>'
     +'<div class="card"><div class="card-title">📋 Posiciones</div><div class="card-value">'+positions.length+'</div><div class="card-sub">'+(totalRendUsd>=0?'✅ Cartera positiva':'⚠️ Cartera negativa')+'</div></div>';
+  // ── Ordenar posiciones por prioridad: VENDER → STOP → REDUCIR → AGREGAR → HOLD ──
+  var _acOrd = {'🔴 VENDER':0,'🔴 STOP (señal positiva, evaluar recompra)':1,'🟡 REDUCIR':2,'⭐ AGREGAR':3,'🟢 HOLD':4,'⚠️ Sin precio':5,'⏰ TIME STOP':4};
+  var _sgOrd = {'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🟡 NEUTRAL/ESPERAR':2,'🟠 VENTA PARCIAL':3,'🔴 VENTA':4};
+  var posSorted = positions.slice().sort(function(a,b){{
+    var pnlA=pnlItems.find(function(x){{return x.ticker===a.ticker;}}), pnlB=pnlItems.find(function(x){{return x.ticker===b.ticker;}});
+    var accA=pnlA?(pnlA.accion||'🟢 HOLD'):'🟢 HOLD', accB=pnlB?(pnlB.accion||'🟢 HOLD'):'🟢 HOLD';
+    var oA=_acOrd[accA]!=null?_acOrd[accA]:4, oB=_acOrd[accB]!=null?_acOrd[accB]:4;
+    if(oA!==oB) return oA-oB;
+    var sdA=SIGNALS.find(function(s){{return s.ticker===a.ticker||s.ticker===a.ticker.replace('.BA','').replace('.SA','');}}),
+        sdB=SIGNALS.find(function(s){{return s.ticker===b.ticker||s.ticker===b.ticker.replace('.BA','').replace('.SA','');}});
+    var sig2A=sdA?(sdA.signal_v2||sdA.signal||''):'', sig2B=sdB?(sdB.signal_v2||sdB.signal||''):'';
+    var sA=_sgOrd[sig2A]!=null?_sgOrd[sig2A]:3, sB=_sgOrd[sig2B]!=null?_sgOrd[sig2B]:3;
+    if(sA!==sB) return sA-sB;
+    var pctA=(a.precio_compra_usd>0&&a.precio_actual_usd>0)?((a.precio_actual_usd/a.precio_compra_usd-1)*100):0;
+    var pctB=(b.precio_compra_usd>0&&b.precio_actual_usd>0)?((b.precio_actual_usd/b.precio_compra_usd-1)*100):0;
+    return pctB-pctA;
+  }});
   var tb = document.getElementById('portfolio-table');
   if(tb) tb.innerHTML = '<tr><th>Ticker</th><th>Mercado</th><th>Compra</th><th>Actual USD</th><th>Cant</th><th>P&L%</th><th>P&L USD</th><th>Señal V2</th><th>R/R</th><th>Acción</th></tr>'
-    + positions.map(function(p){{
+    + posSorted.map(function(p){{
       var pnl = pnlItems.find(function(a){{return a.ticker===p.ticker;}});
       var sigData = SIGNALS.find(function(s){{return s.ticker===p.ticker || s.ticker===p.ticker.replace('.BA','').replace('.SA','') || s.ticker===p.ticker+'.SA';}});
       var sinDatos = !sigData;
