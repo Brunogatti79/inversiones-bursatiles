@@ -1642,8 +1642,8 @@ function showOpFicha(ticker){{
     +'<div class="card"><div class="card-title">💰 P&L Total (USD)</div><div class="card-value" style="color:'+(totalRendUsd>=0?\'#4ade80\':\'#f87171\')+'">\'+(totalRendUsd>=0?\'+\':\'\')+totalRendUsd.toLocaleString(\'es-AR\')+' (\'+(totalRendUsd>=0?\'+\':\'\')+pnlUsdPct+\'%)</div></div>'
     +'<div class="card"><div class="card-title">📋 Posiciones</div><div class="card-value">'+positions.length+'</div><div class="card-sub">'+(totalRendUsd>=0?'✅ Cartera positiva':'⚠️ Cartera negativa')+'</div></div>';
   // ── Ordenar posiciones por prioridad: VENDER → STOP → REDUCIR → AGREGAR → HOLD ──
-  var _acOrd = {'🔴 VENDER':0,'🔴 STOP (señal positiva, evaluar recompra)':1,'🟡 REDUCIR':2,'⭐ AGREGAR':3,'🟢 HOLD':4,'⚠️ Sin precio':5,'⏰ TIME STOP':4};
-  var _sgOrd = {'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🟡 NEUTRAL/ESPERAR':2,'🟠 VENTA PARCIAL':3,'🔴 VENTA':4};
+  var _acOrd = {{'🔴 VENDER':0,'🔴 STOP (señal positiva, evaluar recompra)':1,'🟡 REDUCIR':2,'⭐ AGREGAR':3,'🟢 HOLD':4,'⚠️ Sin precio':5,'⏰ TIME STOP':4}};
+  var _sgOrd = {{'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🟡 NEUTRAL/ESPERAR':2,'🟠 VENTA PARCIAL':3,'🔴 VENTA':4}};
   var posSorted = positions.slice().sort(function(a,b){{
     var pnlA=pnlItems.find(function(x){{return x.ticker===a.ticker;}}), pnlB=pnlItems.find(function(x){{return x.ticker===b.ticker;}});
     var accA=pnlA?(pnlA.accion||'🟢 HOLD'):'🟢 HOLD', accB=pnlB?(pnlB.accion||'🟢 HOLD'):'🟢 HOLD';
