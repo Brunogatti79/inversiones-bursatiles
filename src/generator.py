@@ -1803,8 +1803,11 @@ function registrarOperacion(){{
     signal: d.signal,
   }};
   // ── POST al servidor Railway ──
-  var instrumento = document.getElementById('op-instrumento').value;
-  var ratioCedear = 1.0;  // precio ingresado ya es USD broker — ratio no necesario
+  // Inferir precio_fuente desde el ticker (no depender del select op-instrumento)
+  var instrumento = opTickerValido.endsWith('.BA') ? 'MERVAL_CSV'
+                  : opTickerValido.endsWith('.SA') ? 'BOVESPA_CSV'
+                  : 'SP500_CSV';
+  var ratioCedear = 1.0;  // precio ingresado ya es USD broker
   var endpoint = tipo === 'COMPRA' ? '/api/compra' : '/api/venta';
   msg.textContent='⏳ Enviando al servidor…'; msg.style.color='#fbbf24';
   document.getElementById('op-submit-btn').disabled=true;
@@ -1859,15 +1862,7 @@ function registrarOperacion(){{
 }}
 
 function onInstrumentoChange(){{
-  var v = document.getElementById('op-instrumento').value;
-  var wrap  = document.getElementById('op-ratio-wrap');
-  var ph    = document.getElementById('op-ratio-placeholder');
-  if(v === 'SP500_CSV'){{
-    wrap.style.display=''; ph.style.display='none';
-  }} else {{
-    wrap.style.display='none'; ph.style.display='';
-    document.getElementById('op-ratio').value='';
-  }}
+  // No-op: ratio CEDEAR eliminado del formulario
 }}
 
 function cargarOperaciones(){{
