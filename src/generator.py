@@ -799,17 +799,9 @@ def generate_dashboard(
         <input id="op-cantidad" type="number" step="1" min="1" placeholder="Unidades"
           style="width:100%;background:#0d0d0f;border:1px solid #333;border-radius:6px;padding:8px 10px;color:#e8e8ea;font-size:13px">
       </div>
-      <!-- Ratio CEDEAR — solo visible para SP500_CSV -->
-      <div id="op-ratio-wrap" style="display:none">
-        <label style="font-size:10px;color:#f59e0b;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px">
-          Ratio CEDEAR
-          <span style="color:#666;font-size:9px;font-weight:400"> (precio BYMA ÷ precio NYSE)</span>
-        </label>
-        <input id="op-ratio" type="number" step="0.0001" min="0.0001" placeholder="Ej: 11.25"
-          style="width:100%;background:#0d0d0f;border:1px solid #f59e0b55;border-radius:6px;padding:8px 10px;color:#f59e0b;font-size:13px">
-        <div style="font-size:9px;color:#555;margin-top:3px">Ratio actual: precio BYMA del CEDEAR ÷ precio NYSE del subyacente</div>
-      </div>
-      <!-- Placeholder cuando ratio está oculto -->
+      <!-- Ratio CEDEAR — oculto, se usa 1.0 siempre (precio ingresado ya es USD broker) -->
+      <input type="hidden" id="op-ratio" value="1.0">
+      <div id="op-ratio-wrap" style="display:none"></div>
       <div id="op-ratio-placeholder"></div>
       <!-- Botón -->
       <div>
@@ -1812,16 +1804,7 @@ function registrarOperacion(){{
   }};
   // ── POST al servidor Railway ──
   var instrumento = document.getElementById('op-instrumento').value;
-  var ratioCedear = 1.0;
-  if(instrumento === 'SP500_CSV'){{
-    var ratioInput = parseFloat(document.getElementById('op-ratio').value);
-    if(!ratioInput || ratioInput <= 0){{
-      msg.textContent='⚠️ Ingresá el ratio CEDEAR (precio BYMA ÷ precio NYSE)';
-      msg.style.color='#f87171'; msg.style.display='block';
-      return;
-    }}
-    ratioCedear = ratioInput;
-  }}
+  var ratioCedear = 1.0;  // precio ingresado ya es USD broker — ratio no necesario
   var endpoint = tipo === 'COMPRA' ? '/api/compra' : '/api/venta';
   msg.textContent='⏳ Enviando al servidor…'; msg.style.color='#fbbf24';
   document.getElementById('op-submit-btn').disabled=true;
