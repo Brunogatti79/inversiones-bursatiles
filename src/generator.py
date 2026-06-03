@@ -1669,12 +1669,13 @@ function showOpFicha(ticker){{
         '<td style="color:#fbbf24">'+rr+'</td>'+
         '<td style="color:'+accColor+';font-weight:700">'+acc+'</td></tr>';
     }}).join('');
-  // Mostrar timestamp de última actualización
+  // Mostrar siempre la hora real del último refresh (no el timestamp del JSON guardado)
   var tsEl = document.getElementById('port-update-ts');
   if(tsEl){{
-    var lu = portfolio.last_updated || '';
     var now2 = new Date();
-    tsEl.textContent = lu ? 'Actualizado: '+lu : 'Precios al '+now2.toLocaleTimeString('es-AR',{{hour:'2-digit',minute:'2-digit'}});
+    var fechaHoy = now2.toLocaleDateString('es-AR',{{day:'2-digit',month:'2-digit',year:'numeric'}});
+    var horaAhora = now2.toLocaleTimeString('es-AR',{{hour:'2-digit',minute:'2-digit'}});
+    tsEl.textContent = fechaHoy+' — precios actualizados '+horaAhora;
     tsEl.style.color = '#4ade80';
   }}
 
