@@ -1820,7 +1820,7 @@ function registrarOperacion(){{
                   : opTickerValido.endsWith('.SA') ? 'BOVESPA_CSV'
                   : 'SP500_CSV';
   var ratioCedear = 1.0;  // precio ingresado ya es USD broker
-  var endpoint = tipo === 'COMPRA' ? '/api/compra' : '/api/venta';
+  var endpoint = RAILWAY_API_URL + (tipo === 'COMPRA' ? '/api/compra' : '/api/venta');
   msg.textContent='⏳ Enviando al servidor…'; msg.style.color='#fbbf24';
   document.getElementById('op-submit-btn').disabled=true;
   fetch(endpoint, {{
