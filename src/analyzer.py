@@ -717,62 +717,38 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         if xlsx_signals and xlsx_signals.get("ticker_scores"):
             xlsx_ticker = xlsx_signals["ticker_scores"].get(ticker)
  
+        # Del xlsx solo tomamos score_macro (variables manuales: IPC, desempleo, brecha, etc.)
+        # score_tecnico y score_sector SIEMPRE calculados fresh desde los CSVs — nunca del xlsx
+        macro_xlsx = macro_score
         if xlsx_ticker:
-            s_tec_xlsx = xlsx_ticker.get("score_tecnico", s_tec)
-            s_sect_xlsx = xlsx_ticker.get("score_sector", s_sect)
             macro_xlsx = xlsx_ticker.get("score_macro", macro_score)
-            score_final = round(
-                macro_xlsx  * W["macro"] +
-                s_tec       * W["tecnico"] +
-                s_sect_xlsx * W["sector"] +
-                s_fund      * W["fundamental"],
-                1
-            )
-            # Penalización multi-timeframe escalonada al score final
-            if wt["weekly_trend"] == "BAJISTA" and wt["weekly_rsi"] < 40:
-                score_final = round(score_final * 0.80, 1)
-            elif wt["weekly_trend"] == "BAJISTA":
-                score_final = round(score_final * 0.90, 1)
-            # Penalización mensual adicional
-            if mt["monthly_trend"] == "BAJISTA":
-                score_final = round(score_final * 0.93, 1)
-            signal = _score_to_signal(score_final)
-            # Alignment score
-            align = _timeframe_alignment(signal, wt, mt)
-            score_final = round(min(100, max(0,
-                score_final + align["alignment_bonus"] - align["alignment_penalty"]
-            )), 1)
-            signal = _score_to_signal(score_final)
-            rsi_final = xlsx_ticker.get("rsi", rsi)
-            mom_final = mom
-            ma_cr_final = xlsx_ticker.get("ma_cross", ma_cr)
-            logger.debug(f"[{market}] {ticker}: macro={macro_xlsx} tec={s_tec:.1f} sect={s_sect_xlsx} fund={s_fund} → {score_final}")
-        else:
-            score_final = round(
-                macro_score * W["macro"] +
-                s_tec       * W["tecnico"] +
-                s_sect      * W["sector"] +
-                s_fund      * W["fundamental"],
-                1
-            )
-            # Penalización multi-timeframe escalonada al score final
-            if wt["weekly_trend"] == "BAJISTA" and wt["weekly_rsi"] < 40:
-                score_final = round(score_final * 0.80, 1)
-            elif wt["weekly_trend"] == "BAJISTA":
-                score_final = round(score_final * 0.90, 1)
-            # Penalización mensual adicional
-            if mt["monthly_trend"] == "BAJISTA":
-                score_final = round(score_final * 0.93, 1)
-            signal = _score_to_signal(score_final)
-            # Alignment score
-            align = _timeframe_alignment(signal, wt, mt)
-            score_final = round(min(100, max(0,
-                score_final + align["alignment_bonus"] - align["alignment_penalty"]
-            )), 1)
-            signal = _score_to_signal(score_final)
-            rsi_final = rsi
-            mom_final = mom
-            ma_cr_final = ma_cr
+            logger.debug(f"[{market}] {ticker}: macro_xlsx={macro_xlsx:.1f} tec_fresh={s_tec:.1f} sect_fresh={s_sect:.1f}")
+
+        score_final = round(
+            macro_xlsx  * W["macro"] +
+            s_tec       * W["tecnico"] +
+            s_sect      * W["sector"] +
+            s_fund      * W["fundamental"],
+            1
+        )
+        # Penalización multi-timeframe escalonada al score final
+        if wt["weekly_trend"] == "BAJISTA" and wt["weekly_rsi"] < 40:
+            score_final = round(score_final * 0.80, 1)
+        elif wt["weekly_trend"] == "BAJISTA":
+            score_final = round(score_final * 0.90, 1)
+        # Penalización mensual adicional
+        if mt["monthly_trend"] == "BAJISTA":
+            score_final = round(score_final * 0.93, 1)
+        signal = _score_to_signal(score_final)
+        # Alignment score
+        align = _timeframe_alignment(signal, wt, mt)
+        score_final = round(min(100, max(0,
+            score_final + align["alignment_bonus"] - align["alignment_penalty"]
+        )), 1)
+        signal = _score_to_signal(score_final)
+        rsi_final = rsi
+        mom_final = mom
+        ma_cr_final = ma_cr
  
         max_val  = float(serie.max())
         min_val  = float(serie.min())
