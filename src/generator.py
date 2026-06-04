@@ -693,6 +693,11 @@ def generate_dashboard(
 <!-- CONCLUSIONES -->
 <div id="conclusiones" class="page">
 
+  <!-- ── 0) PRÓXIMO DÓLAR — PRIMERO ── -->
+  <div class="section-title" style="color:#fbbf24;margin-bottom:6px">💵 ¿Dónde poner el próximo dólar?</div>
+  <div class="concl-subtitle" style="margin-bottom:16px">Asignación óptima de capital nuevo · Criterio: mayor retorno esperado (Score V2 × R/R) · Primero posiciones existentes con señal positiva, luego nuevas</div>
+  <div id="capital-block"></div>
+
   <!-- ── A) SCATTER Score V2 vs Predicción 21d ── -->
   <div class="section-title" style="color:#a78bfa;margin-bottom:4px">📊 Mapa de Señales — Score V2 vs Predicción 21d</div>
   <div style="font-size:12px;color:#555;margin-bottom:10px">Cuadrante superior derecho = consenso modelo + predictor. Cada punto es un ticker. Hover para detalles.</div>
@@ -723,10 +728,6 @@ def generate_dashboard(
   <div class="concl-subtitle">Activos con señal de venta o venta parcial · Ordenados por urgencia de reducción</div>
   <div id="ventas-block"></div>
 
-  <!-- ── ASIGNACIÓN DE CAPITAL NUEVO ── -->
-  <div class="section-title" style="color:#fbbf24;margin-top:32px;margin-bottom:6px">💵 ¿Dónde poner el próximo dólar?</div>
-  <div class="concl-subtitle" style="margin-bottom:16px">Asignación óptima de capital nuevo · Criterio: mayor retorno esperado (Score V2 × R/R) · Primero posiciones existentes con señal positiva, luego nuevas</div>
-  <div id="capital-block"></div>
 
 </div>
  
@@ -1376,8 +1377,160 @@ ventas.forEach(function(s,i){{
     '</div></div></div>';
 }});
 document.getElementById('ventas-block').innerHTML=ventasHtml||'<div style="color:#666;padding:16px">Sin señales de venta activas.</div>';
- 
-  
+
+// ── CONCLUSIONES: ¿Dónde poner el próximo dólar? ─────────────────────────
+(function(){{
+  var cb = document.getElementById('capital-block');
+  if(!cb) return;
+
+  // Tickers en cartera actual
+  var portTickers = {{}};
+  if(PORTFOLIO && PORTFOLIO.positions) {{
+    PORTFOLIO.positions.forEach(function(p) {{ portTickers[p.ticker] = true; }});
+  }}
+
+  // Candidatos: señales de COMPRA con V2 o score final + R/R
+  var candidatos = SIGNALS.filter(function(s) {{
+    var sig = s.signal_v2 || s.signal;
+    return sig && sig.indexOf('COMPRA') >= 0;
+  }}).map(function(s) {{
+    var sv2  = s.score_final_v2 || s.score_final || 0;
+    var rr   = s.rr_ratio || 0;
+    var pred = s.pred_21d || 0;
+    // Score compuesto: V2 × R/R (+ bonus predictor si positivo)
+    var ev = sv2 * Math.max(0.1, rr) + (pred > 0 ? pred * 2 : 0);
+    return {{
+      ticker:    s.ticker,
+      empresa:   s.empresa || s.ticker,
+      mercado:   s.mercado,
+      signal:    s.signal_v2 || s.signal,
+      sv2:       sv2,
+      rr:        rr,
+      pred_21d:  s.pred_21d,
+      pred_conf: s.pred_confidence,
+      score_mac: s.score_macro,
+      score_tec: s.score_tecnico,
+      ranking:   s.ranking_accionable || sv2,
+      ev:        ev,
+      precio:    s.precio_actual,
+      ret_sem:   s.ret_sem,
+      ret_mes:   s.ret_mes,
+      atr_stop:  s.atr_stop,
+      atr_target:s.atr_target,
+      en_cartera: !!portTickers[s.ticker]
+    }};
+  }});
+
+  // Ordenar: primero los que ya están en cartera con señal positiva, luego nuevos
+  // Dentro de cada grupo, por ev descendente
+  candidatos.sort(function(a, b) {{
+    if(a.en_cartera !== b.en_cartera) return a.en_cartera ? -1 : 1;
+    return b.ev - a.ev;
+  }});
+
+  if(candidatos.length === 0) {{
+    cb.innerHTML = '<div style="color:#666;padding:20px">Sin candidatos de compra disponibles.</div>';
+    return;
+  }}
+
+  // Etiquetas de prioridad
+  var maxEV = candidatos[0].ev || 1;
+  var html = '';
+  var lastEnCartera = null;
+
+  candidatos.forEach(function(c, i) {{
+    // Separador de grupo
+    if(lastEnCartera !== c.en_cartera) {{
+      lastEnCartera = c.en_cartera;
+      if(c.en_cartera) {{
+        html += '<div style="padding:8px 0 6px;font-weight:700;color:#fbbf24;font-size:13px;border-bottom:1px solid #3a3a1a;margin-bottom:8px">'+
+                '📂 Posiciones existentes con señal positiva — Agregar</div>';
+      }} else {{
+        html += '<div style="padding:8px 0 6px;font-weight:700;color:#e2c96a;font-size:13px;border-bottom:1px solid #3a3a1a;margin-bottom:8px">'+
+                '🆕 Nuevas posiciones sugeridas</div>';
+      }}
+    }}
+
+    var isFuerte = c.signal.indexOf('FUERTE') >= 0;
+    var barColor  = i === 0 ? '#f59e0b' : i <= 2 ? '#fbbf24' : '#a3825c';
+    var barPct    = Math.min(100, Math.round((c.ev / maxEV) * 100));
+    var predColor = c.pred_21d >= 0 ? '#4ade80' : '#f87171';
+    var confLabel = c.pred_conf ? Math.round(c.pred_conf*100)+'%' : '—';
+    var fl        = flagOf(c.mercado);
+
+    html +=
+      '<div style="background:#16161e;border:1px solid #2a2a1a;border-radius:10px;padding:14px 16px;margin-bottom:10px">'+
+        // Fila 1: rank + ticker + empresa + señal
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+
+          '<div style="font-size:24px;font-weight:900;color:'+barColor+';min-width:32px;text-align:center">#'+(i+1)+'</div>'+
+          '<div style="flex:1">'+
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+              '<span style="font-size:15px;font-weight:700;color:#fff">'+fl+' '+c.ticker+'</span>'+
+              '<span style="font-size:12px;color:#888">'+c.empresa.substring(0,30)+'</span>'+
+              (isFuerte
+                ? '<span style="background:#14532d;color:#4ade80;font-size:10px;padding:1px 7px;border-radius:12px;font-weight:700">⭐ COMPRA FUERTE</span>'
+                : '<span style="background:#052e16;color:#86efac;font-size:10px;padding:1px 7px;border-radius:12px">🟢 COMPRA</span>')+
+              (c.en_cartera
+                ? '<span style="background:#1c1a07;color:#fbbf24;font-size:10px;padding:1px 7px;border-radius:12px">📂 En cartera</span>'
+                : '<span style="background:#1a1a1a;color:#6b7280;font-size:10px;padding:1px 7px;border-radius:12px">🆕 Nueva</span>')+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        // Barra de potencial
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
+          '<span style="font-size:10px;color:#6b7280;min-width:60px">Potencial</span>'+
+          '<div style="flex:1;background:#1a1a1a;border-radius:4px;height:6px">'+
+            '<div style="width:'+barPct+'%;background:'+barColor+';border-radius:4px;height:6px"></div>'+
+          '</div>'+
+          '<span style="font-size:11px;color:'+barColor+';font-weight:700;min-width:40px;text-align:right">'+barPct+'%</span>'+
+        '</div>'+
+        // Métricas en grid
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px">'+
+          '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
+            '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Score V2</div>'+
+            '<div style="font-size:14px;font-weight:700;color:#fbbf24">'+c.sv2.toFixed(0)+'</div>'+
+          '</div>'+
+          '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
+            '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">R/R</div>'+
+            '<div style="font-size:14px;font-weight:700;color:#bc8cff">'+c.rr.toFixed(2)+'x</div>'+
+          '</div>'+
+          (c.pred_21d!=null
+            ? '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
+                '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Pred. 21d</div>'+
+                '<div style="font-size:14px;font-weight:700;color:'+predColor+'">'+(c.pred_21d>=0?'+':'')+c.pred_21d.toFixed(1)+'%</div>'+
+              '</div>'
+            : '')+
+          '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
+            '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Confianza</div>'+
+            '<div style="font-size:14px;font-weight:700;color:#a78bfa">'+confLabel+'</div>'+
+          '</div>'+
+          '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
+            '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Macro</div>'+
+            '<div style="font-size:14px;font-weight:700;color:#5ba3ff">'+(c.score_mac!=null?c.score_mac.toFixed(0):'—')+'</div>'+
+          '</div>'+
+          '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
+            '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Técnico</div>'+
+            '<div style="font-size:14px;font-weight:700;color:#22d3ee">'+(c.score_tec!=null?c.score_tec.toFixed(0):'—')+'</div>'+
+          '</div>'+
+          (c.atr_stop!=null
+            ? '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
+                '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Stop</div>'+
+                '<div style="font-size:12px;font-weight:700;color:#fb923c">'+c.atr_stop.toLocaleString('es-AR')+'</div>'+
+              '</div>'
+            : '')+
+          (c.atr_target!=null
+            ? '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
+                '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Target</div>'+
+                '<div style="font-size:12px;font-weight:700;color:#4ade80">'+c.atr_target.toLocaleString('es-AR')+'</div>'+
+              '</div>'
+            : '')+
+        '</div>'+
+      '</div>';
+  }});
+
+  cb.innerHTML = html;
+}})();
+
 // ── OPORTUNIDADES DE COMPRA ────────────────────────────────────────────────
 function showOpRank(){{
   document.getElementById('op-rank-page').style.display='block';
