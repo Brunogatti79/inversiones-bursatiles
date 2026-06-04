@@ -2161,18 +2161,13 @@ function registrarOperacion(){{
       var ops=cargarOperaciones();
       ops.unshift(op);
       localStorage.setItem(OP_KEY, JSON.stringify(ops));
-      msg.textContent='✅ '+res.message+' — actualizando…'; msg.style.color='#4ade80';
-      // Forzar recarga fresca desde Railway (no del HTML estático)
+      var okMsg = res.msg || res.message || 'Operación registrada';
+      msg.textContent='✅ '+okMsg; msg.style.color='#4ade80';
+      // Forzar recarga fresca desde Railway
       setTimeout(function(){{
         msg.style.display='none';
-        fetch(RAILWAY_API_URL+'/api/portfolio',{{method:'GET'}})
-          .then(function(r){{return r.ok?r.json():null;}})
-          .then(function(d){{
-            if(d&&d.positions) renderPortfolio(d, PORTFOLIO_ALERTS);
-            else loadPortfolioTab();
-          }})
-          .catch(function(){{ loadPortfolioTab(); }});
-      }}, 1500);
+        if(typeof portRefreshNow==='function') portRefreshNow();
+      }}, 1200);
     }}
   }})
   .catch(function(err){{
