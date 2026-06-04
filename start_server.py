@@ -482,47 +482,110 @@ class Handler(SimpleHTTPRequestHandler):
             portfolio["last_updated"] = dt.now().strftime("%Y-%m-%d %H:%M")
             with open(portfolio_path, "w") as f:
                 json.dump(portfolio, f, ensure_ascii=False, indent=2)
-            # Push a GitHub
-            pushed = False
+
+            # ── Push a GitHub con reintento y alerta explícita si falla ──
+            pushed, push_error = self._push_portfolio_to_github(
+                portfolio_path, f"api: {op_type} {ticker} {fecha}"
+            )
+
+            # ── Notificar por Telegram (operación + estado del push) ──
             try:
-                import requests as req
-                import base64
-                gh_token = os.environ.get("GH_TOKEN", "")
-                if gh_token:
-                    repo = "Brunogatti79/inversiones-bursatiles"
-                    path = "data/portfolio.json"
-                    url = f"https://api.github.com/repos/{repo}/contents/{path}"
-                    headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
-                    r = req.get(url, headers=headers)
-                    sha = r.json().get("sha", "") if r.status_code == 200 else ""
-                    with open(portfolio_path) as f:
-                        content = f.read()
-                    encoded = base64.b64encode(content.encode()).decode()
-                    data_gh = {"message": f"api: {op_type} {ticker} {fecha}", "content": encoded}
-                    if sha:
-                        data_gh["sha"] = sha
-                    r = req.put(url, headers=headers, json=data_gh)
-                    pushed = r.status_code in (200, 201)
-            except Exception as e:
-                print(f"[api] GitHub push error: {e}", flush=True)
-            # Notificar por Telegram
-            try:
+                import requests as _req_tg
                 bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-                chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
-                if bot_token and chat_id:
+                chat_ids  = [c.strip() for c in os.environ.get("CHAT_IDS", os.environ.get("TELEGRAM_CHAT_ID","")).split(",") if c.strip()]
+                if bot_token and chat_ids:
                     icon = "\U0001f7e2" if op_type == "compra" else "\U0001f534"
-                    text = f"{icon} <b>{op_type.upper()} via Dashboard</b>\n{ticker} \u2014 {cantidad} @ ${precio:,.2f}"
-                    import requests as req2
-                    req2.post(f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                        json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"}, timeout=10)
-            except Exception:
-                pass
-            self._send_json(200, {"status": "ok", "msg": msg, "pushed": pushed})
-            print(f"[api] {op_type}: {ticker} {cantidad} @ {precio} | pushed={pushed}", flush=True)
+                    push_status = "✅ Sincronizado con GitHub" if pushed else f"⚠️ <b>Push falló</b>: {push_error}"
+                    text = (
+                        f"{icon} <b>{op_type.upper()} registrada</b>\n"
+                        f"Ticker: <b>{ticker}</b> — {cantidad} @ USD {precio_unitario:.4f}\n"
+                        f"Total: USD {total_invertido:.2f}\n"
+                        f"{push_status}"
+                    )
+                    for cid in chat_ids:
+                        try:
+                            _req_tg.post(
+                                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                                json={"chat_id": cid, "text": text, "parse_mode": "HTML"},
+                                timeout=10
+                            )
+                        except Exception:
+                            pass
+            except Exception as _e:
+                print(f"[api] Telegram notify error: {_e}", flush=True)
+
+            # ── Respuesta al frontend ──
+            response_payload = {"status": "ok", "msg": msg, "pushed": pushed}
+            if not pushed:
+                # Informar al dashboard para que muestre advertencia visible
+                response_payload["push_warning"] = push_error or "GitHub no disponible — portfolio guardado localmente en Railway"
+            self._send_json(200, response_payload)
+            print(f"[api] {op_type}: {ticker} {cantidad} @ {precio_unitario:.4f} | pushed={pushed}" +
+                  (f" | push_error={push_error}" if not pushed else ""), flush=True)
         except Exception as e:
             self._send_json(500, {"error": str(e)})
             print(f"[api] Error: {e}", flush=True)
  
+
+    def _push_portfolio_to_github(self, portfolio_path: str, commit_msg: str, max_retries: int = 3):
+        """
+        Push portfolio.json a GitHub con reintento automático.
+        Devuelve (pushed: bool, error_msg: str | None).
+        """
+        import base64 as _b64
+        try:
+            import requests as _req
+        except ImportError:
+            return False, "requests no disponible en el entorno"
+
+        gh_token = os.environ.get("GH_TOKEN", "")
+        if not gh_token:
+            return False, "GH_TOKEN no configurado en Railway"
+
+        repo    = "Brunogatti79/inversiones-bursatiles"
+        path    = "data/portfolio.json"
+        url     = f"https://api.github.com/repos/{repo}/contents/{path}"
+        headers = {
+            "Authorization": f"token {gh_token}",
+            "Accept":        "application/vnd.github.v3+json",
+        }
+
+        last_error = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                # 1. Obtener SHA actual
+                r_get = _req.get(url, headers=headers, timeout=10)
+                if r_get.status_code not in (200, 404):
+                    last_error = f"GET SHA status {r_get.status_code}: {r_get.text[:120]}"
+                    print(f"[push] intento {attempt}/{max_retries} — {last_error}", flush=True)
+                    continue
+                sha = r_get.json().get("sha", "") if r_get.status_code == 200 else ""
+
+                # 2. Leer archivo local
+                with open(portfolio_path, "r", encoding="utf-8") as f:
+                    raw = f.read()
+                encoded = _b64.b64encode(raw.encode("utf-8")).decode()
+
+                # 3. PUT
+                payload = {"message": commit_msg, "content": encoded}
+                if sha:
+                    payload["sha"] = sha
+                r_put = _req.put(url, headers=headers, json=payload, timeout=15)
+
+                if r_put.status_code in (200, 201):
+                    print(f"[push] ✅ portfolio.json pushed (intento {attempt})", flush=True)
+                    return True, None
+                else:
+                    last_error = f"PUT status {r_put.status_code}: {r_put.text[:120]}"
+                    print(f"[push] intento {attempt}/{max_retries} — {last_error}", flush=True)
+
+            except Exception as e:
+                last_error = str(e)
+                print(f"[push] intento {attempt}/{max_retries} — excepción: {last_error}", flush=True)
+
+        # Todos los intentos fallaron
+        print(f"[push] ❌ push falló después de {max_retries} intentos: {last_error}", flush=True)
+        return False, last_error
 
     def _handle_health(self):
         """GET /api/health — devuelve métricas de salud del sistema."""
