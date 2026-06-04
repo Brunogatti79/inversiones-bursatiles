@@ -377,20 +377,25 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             body = self._read_body()
             ticker = body.get("ticker", "").upper()
-            total_invertido = float(body.get("precio", 0))  # campo "precio" = total invertido en USD
+            precio_raw     = float(body.get("precio", 0))   # precio unitario USD (frontend)
+            total_usd_raw  = float(body.get("total_usd", 0))# total USD (frontend)
             cantidad = int(body.get("cantidad", 0))
             nombre = body.get("nombre", ticker)
-            if not ticker or total_invertido <= 0 or cantidad <= 0:
-                self._send_json(400, {"error": "ticker, total invertido y nominales requeridos"})
+            op_type_pre = "compra" if self.path == "/api/compra" else "venta"
+            if not ticker or precio_raw <= 0 or cantidad <= 0:
+                self._send_json(400, {"error": "ticker, precio y nominales requeridos"})
                 return
-            precio_unitario = round(total_invertido / cantidad, 6)
+            # Para COMPRA: total_invertido = precio_unitario * cantidad (precio ya es unitario)
+            # Para VENTA:  precio_unitario = precio_raw directamente
+            precio_unitario  = round(precio_raw, 6)
+            total_invertido  = round(precio_unitario * cantidad, 2) if total_usd_raw <= 0 else round(total_usd_raw, 2)
             portfolio_path = "data/portfolio.json"
             if os.path.exists(portfolio_path):
                 with open(portfolio_path) as f:
                     portfolio = json.load(f)
             else:
                 portfolio = {"positions": [], "reglas": {}}
-            op_type = "compra" if self.path == "/api/compra" else "venta"
+            op_type = op_type_pre  # ya calculado arriba
             from datetime import datetime as dt
             fecha = dt.now().strftime("%Y-%m-%d")
             if op_type == "compra":
