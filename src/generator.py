@@ -2087,12 +2087,15 @@ function registrarOperacion(){{
       ops.unshift(op);
       localStorage.setItem(OP_KEY, JSON.stringify(ops));
       var okMsg = res.msg || res.message || 'Operación registrada';
-      msg.textContent='✅ '+okMsg; msg.style.color='#4ade80';
-      // Forzar recarga fresca desde Railway
-      setTimeout(function(){{
-        msg.style.display='none';
-        if(typeof portRefreshNow==='function') portRefreshNow();
-      }}, 1200);
+      if(res.push_warning){{
+        // Push a GitHub falló — mostrar advertencia clara
+        msg.innerHTML = '✅ '+okMsg+'<br><span style="color:#fbbf24;font-size:11px">⚠️ No se sincronizó con GitHub: '+res.push_warning+'<br>Los datos están guardados en Railway pero pueden perderse en un redeploy. Ejecutá /run desde Telegram para forzar sincronización.</span>';
+        msg.style.color='#e2e8f0';
+        setTimeout(function(){{ msg.style.display='none'; if(typeof portRefreshNow==='function') portRefreshNow(); }}, 8000);
+      }} else {{
+        msg.textContent='✅ '+okMsg+' — sincronizado ✓'; msg.style.color='#4ade80';
+        setTimeout(function(){{ msg.style.display='none'; if(typeof portRefreshNow==='function') portRefreshNow(); }}, 1200);
+      }}
     }}
   }})
   .catch(function(err){{
