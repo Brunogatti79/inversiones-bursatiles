@@ -373,7 +373,6 @@ def generate_dashboard(
   .hm-grid{{display:grid;gap:3px;margin-top:8px}}
   .hm-cell{{display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;font-weight:700;cursor:default;transition:transform .15s}}
   .hm-cell:hover{{transform:scale(1.08);z-index:2;position:relative}}
-  .chart-bubble{{height:360px;background:#0a0a0f;border-radius:10px;padding:4px;margin-bottom:24px}}
   .tbl{{width:100%;border-collapse:collapse;margin-bottom:24px}}
   .tbl th{{text-align:left;padding:9px 12px;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #222230}}
   .tbl td{{padding:10px 12px;border-bottom:1px solid #1a1a22;font-size:13px}}
@@ -751,10 +750,7 @@ def generate_dashboard(
   <!-- ── KPI cards ── -->
   <div id="portfolio-summary" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px"></div>
 
-  <!-- ── Mapa de posiciones (bubble) ── -->
-  <div class="section-title" style="color:#5ba3ff;margin-bottom:4px;margin-top:4px;font-size:13px">📊 Mapa de Posiciones</div>
-  <div style="font-size:11px;color:#444;margin-bottom:6px">Eje X = días en posición · Eje Y = P&amp;L % · Tamaño = capital · Color = señal</div>
-  <div class="chart-bubble"><canvas id="chartBubble"></canvas></div>
+
 
   <!-- ── Tabla de posiciones ── -->
   <div class="section-title" style="color:#e2e8f0;margin-top:18px;margin-bottom:6px;font-size:13px">📋 Detalle de Posiciones</div>
@@ -1094,77 +1090,6 @@ if(sL.length) new Chart(document.getElementById('chartSP500'),{{type:'line',data
 }})();
 
 // ══════════════════════════════════════════════════════════════════════════
-// C) BUBBLE CHART: Portfolio positions
-// ══════════════════════════════════════════════════════════════════════════
-(function(){{
-  var el=document.getElementById('chartBubble'); if(!el) return;
-  var pos=PORTFOLIO&&PORTFOLIO.positions?PORTFOLIO.positions:[];
-  if(!pos.length){{
-    el.parentElement.style.display='none';
-    el.parentElement.previousElementSibling&&(el.parentElement.previousElementSibling.style.display='none');
-    return;
-  }}
-  var sigMap={{}};
-  SIGNALS.forEach(function(s){{sigMap[s.ticker]=s;}});
-  var bubbles=[];
-  var now=Date.now();
-  pos.forEach(function(p){{
-    // Días en posición desde fecha_compra
-    var dias=0;
-    if(p.fecha_compra){{ try{{dias=Math.round((now-new Date(p.fecha_compra))/86400000);}}catch(e){{}} }}
-    // P&L% desde valor_actual vs valor_inicial
-    var valIni=p.valor_inicial_usd||((p.precio_compra_usd||0)*p.cantidad)||1;
-    var valAct=p.valor_actual_usd||valIni;
-    var pnl=valIni>0?((valAct/valIni)-1)*100:0;
-    // Capital = valor invertido inicial
-    var capital=valIni;
-    var sig=sigMap[p.ticker]||{{}};
-    var sigLabel=sig.signal_v2||sig.signal||'—';
-    // Color por señal actual del modelo
-    var color='rgba(91,163,255,0.80)';
-    if(sigLabel.indexOf('COMPRA FUERTE')>=0) color='rgba(74,222,128,0.90)';
-    else if(sigLabel.indexOf('COMPRA')>=0)   color='rgba(45,212,191,0.85)';
-    else if(sigLabel.indexOf('VENTA')>=0)    color='rgba(248,113,113,0.85)';
-    else if(sigLabel.indexOf('PARCIAL')>=0)  color='rgba(251,146,60,0.85)';
-    // También usar el color del P&L si no hay señal
-    if(sigLabel==='—') color=pnl>=0?'rgba(74,222,128,0.75)':'rgba(248,113,113,0.75)';
-    var r=Math.max(8,Math.min(42,Math.sqrt(Math.max(1,capital))*1.8));
-    bubbles.push({{x:dias,y:parseFloat(pnl.toFixed(2)),r:r,ticker:p.ticker,signal:sigLabel,capital:capital,color:color,pnlUsd:p.rend_usd||0}});
-  }});
-  if(!bubbles.length) return;
-  new Chart(el,{{
-    type:'bubble',
-    data:{{datasets:[{{
-      data:bubbles,
-      backgroundColor:bubbles.map(function(b){{return b.color;}}),
-      borderColor:'rgba(255,255,255,0.2)',
-      borderWidth:1
-    }}]}},
-    options:{{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{{
-        legend:{{display:false}},
-        tooltip:{{callbacks:{{
-          label:function(ctx){{
-            var d=ctx.raw;
-            return [d.ticker,'Señal: '+d.signal,'P&L: '+(d.y>=0?'+':'')+d.y.toFixed(1)+'%','Capital: U$D '+d.capital.toFixed(0),'Días: '+d.x];
-          }}
-        }}}}
-      }},
-      scales:{{
-        x:{{title:{{display:true,text:'Días en posición',color:'#888',font:{{size:12}}}},ticks:{{color:'#666'}},grid:{{color:'rgba(255,255,255,.05)'}}}},
-        y:{{title:{{display:true,text:'Retorno USD%',color:'#888',font:{{size:12}}}},ticks:{{color:'#666',callback:function(v){{return(v>=0?'+':'')+v.toFixed(1)+'%';}}}},grid:{{color:'rgba(255,255,255,.05)'}},
-          afterDraw:function(ax){{
-            var ctx2=ax.chart.ctx,y0=ax.getPixelForValue(0);
-            ctx2.save();ctx2.strokeStyle='rgba(255,255,255,0.15)';ctx2.lineWidth=1;ctx2.setLineDash([4,4]);
-            ctx2.beginPath();ctx2.moveTo(ax.chart.chartArea.left,y0);ctx2.lineTo(ax.chart.chartArea.right,y0);ctx2.stroke();
-            ctx2.restore();
-          }}
-        }}
-      }}
-    }}
-  }});
-}})();
 
 // ── RESTORE: hide pages, show only Panorama, then force resize ──
 allPages.forEach(function(p){{p.style.display='';p.style.visibility='';p.style.position='';}});
