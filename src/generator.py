@@ -733,23 +733,42 @@ def generate_dashboard(
  
 <!-- PORTFOLIO -->
 <div id="portfolio" class="page">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+
+  <!-- ── Header con refresh real ── -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div class="section-title" style="margin-bottom:0;border-bottom:none">💼 Mi Portfolio — Posiciones Activas</div>
     <div style="display:flex;align-items:center;gap:10px">
+      <div id="port-refresh-indicator" style="display:none;width:8px;height:8px;border-radius:50%;background:#fbbf24;animation:pulse 1s infinite"></div>
       <span id="port-update-ts" style="font-size:11px;color:#555">Cargando precios...</span>
-      <button onclick="_loadPortfolioFresh()" style="background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:4px 12px;color:#5ba3ff;font-size:12px;cursor:pointer;font-family:inherit">↻ Actualizar</button>
+      <button id="btn-refresh-port" onclick="portRefreshNow()"
+        style="background:#0d1f3c;border:1px solid #1e3a5f;border-radius:6px;padding:5px 14px;color:#5ba3ff;font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:background .2s">
+        <span id="refresh-icon">↻</span> Actualizar
+      </button>
+      <span style="font-size:10px;color:#333" id="port-countdown">Auto en 60s</span>
     </div>
   </div>
-  <div id="portfolio-summary" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
 
-  <!-- Bubble chart de posiciones -->
-  <div class="section-title" style="color:#5ba3ff;margin-bottom:4px;margin-top:8px">📈 Mapa de Posiciones</div>
-  <div style="font-size:12px;color:#555;margin-bottom:8px">Eje X = días en posición · Eje Y = retorno USD% · Tamaño = capital invertido · Color = señal actual</div>
+  <!-- ── KPI cards ── -->
+  <div id="portfolio-summary" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px"></div>
+
+  <!-- ── Mapa de posiciones (bubble) ── -->
+  <div class="section-title" style="color:#5ba3ff;margin-bottom:4px;margin-top:4px;font-size:13px">📊 Mapa de Posiciones</div>
+  <div style="font-size:11px;color:#444;margin-bottom:6px">Eje X = días en posición · Eje Y = P&amp;L % · Tamaño = capital · Color = señal</div>
   <div class="chart-bubble"><canvas id="chartBubble"></canvas></div>
 
-  <table class="tbl" id="portfolio-table"></table>
-  <div class="section-title" style="margin-top:20px">⚠️ Alertas Activas</div>
-  <div id="portfolio-alerts" style="font-size:13px;margin-bottom:32px"></div>
+  <!-- ── Tabla de posiciones ── -->
+  <div class="section-title" style="color:#e2e8f0;margin-top:18px;margin-bottom:6px;font-size:13px">📋 Detalle de Posiciones</div>
+  <div style="overflow-x:auto">
+    <table class="tbl" id="portfolio-table" style="min-width:750px"></table>
+  </div>
+
+  <!-- ── Mini chart de evolución P&L ── -->
+  <div class="section-title" style="color:#5ba3ff;margin-top:18px;margin-bottom:4px;font-size:13px">📈 Distribución P&amp;L por Posición</div>
+  <div style="position:relative;height:180px;margin-bottom:16px"><canvas id="chartPortBar"></canvas></div>
+
+  <!-- ── Alertas ── -->
+  <div class="section-title" style="margin-top:8px;color:#fbbf24;font-size:13px">⚠️ Alertas Activas</div>
+  <div id="portfolio-alerts" style="font-size:13px;margin-bottom:24px"></div>
 
   <!-- ── FORMULARIO DE OPERACIONES ── -->
   <div class="section-title" style="margin-top:8px;color:#5ba3ff">📝 Registrar Operación</div>
@@ -1380,155 +1399,181 @@ document.getElementById('ventas-block').innerHTML=ventasHtml||'<div style="color
 
 // ── CONCLUSIONES: ¿Dónde poner el próximo dólar? ─────────────────────────
 (function(){{
-  var cb = document.getElementById('capital-block');
+  var cb=document.getElementById('capital-block');
   if(!cb) return;
 
-  // Tickers en cartera actual
-  var portTickers = {{}};
-  if(PORTFOLIO && PORTFOLIO.positions) {{
-    PORTFOLIO.positions.forEach(function(p) {{ portTickers[p.ticker] = true; }});
+  // Tickers ya en cartera
+  var portMap={{}};
+  if(PORTFOLIO&&PORTFOLIO.positions){{
+    PORTFOLIO.positions.forEach(function(p){{
+      portMap[p.ticker]={{
+        pnl_pct: p.precio_compra_usd>0&&p.precio_actual_usd>0
+                  ? ((p.precio_actual_usd/p.precio_compra_usd-1)*100) : null,
+        pnl_usd: p.rend_usd||null,
+        cantidad: p.cantidad
+      }};
+    }});
   }}
 
-  // Candidatos: señales de COMPRA con V2 o score final + R/R
-  var candidatos = SIGNALS.filter(function(s) {{
-    var sig = s.signal_v2 || s.signal;
-    return sig && sig.indexOf('COMPRA') >= 0;
-  }}).map(function(s) {{
-    var sv2  = s.score_final_v2 || s.score_final || 0;
-    var rr   = s.rr_ratio || 0;
-    var pred = s.pred_21d || 0;
-    // Score compuesto: V2 × R/R (+ bonus predictor si positivo)
-    var ev = sv2 * Math.max(0.1, rr) + (pred > 0 ? pred * 2 : 0);
+  // Candidatos: señales de COMPRA
+  var cands=SIGNALS.filter(function(s){{
+    var sig=s.signal_v2||s.signal||'';
+    return sig.indexOf('COMPRA')>=0;
+  }}).map(function(s){{
+    var sv2  = s.score_final_v2||s.score_final||0;
+    var rr   = s.rr_ratio||0;
+    var pred = s.pred_21d||0;
+    var aq   = s.asset_quality||0;
+    var es   = s.entry_score||0;
+    var rank = s.ranking_accionable||sv2;
+    // Retorno esperado = V2 × max(R/R,0.5) + predictor_bonus
+    var ev   = sv2 * Math.max(0.5, rr) + (pred>0? pred*3 : pred*1);
+    var enC  = !!portMap[s.ticker];
     return {{
       ticker:    s.ticker,
-      empresa:   s.empresa || s.ticker,
+      empresa:   (s.empresa||s.ticker).substring(0,32),
       mercado:   s.mercado,
-      signal:    s.signal_v2 || s.signal,
-      sv2:       sv2,
-      rr:        rr,
-      pred_21d:  s.pred_21d,
-      pred_conf: s.pred_confidence,
-      score_mac: s.score_macro,
-      score_tec: s.score_tecnico,
-      ranking:   s.ranking_accionable || sv2,
-      ev:        ev,
+      signal:    s.signal_v2||s.signal||'',
+      sv2:sv2, rr:rr, pred_5d:s.pred_5d, pred_10d:s.pred_10d,
+      pred_21d:s.pred_21d, pred_conf:s.pred_confidence,
+      pred_signal:s.pred_signal||'',
+      pred_agree:s.pred_direction_agree,
+      aq:aq, es:es, rank:rank,
+      score_mac: s.score_macro, score_tec: s.score_tecnico,
+      score_fund:s.score_fund||s.score_fundamental,
+      score_sect:s.score_sectorial,
+      atr_stop:  s.atr_stop,  atr_target: s.atr_target,
+      horizonte: s.horizonte||'—',
+      upside_g:  s.upside_graham,
+      score_cuant: s.score_cuant,
+      ret_sem:   s.ret_sem, ret_mes: s.ret_mes, ret_anual: s.ret_anual,
       precio:    s.precio_actual,
-      ret_sem:   s.ret_sem,
-      ret_mes:   s.ret_mes,
-      atr_stop:  s.atr_stop,
-      atr_target:s.atr_target,
-      en_cartera: !!portTickers[s.ticker]
+      rs:        s.relative_strength,
+      weekly:    s.weekly_trend||'',
+      adx:       s.adx,
+      ev: ev, enC: enC,
+      portData: enC?portMap[s.ticker]:null
     }};
   }});
 
-  // Ordenar: primero los que ya están en cartera con señal positiva, luego nuevos
-  // Dentro de cada grupo, por ev descendente
-  candidatos.sort(function(a, b) {{
-    if(a.en_cartera !== b.en_cartera) return a.en_cartera ? -1 : 1;
-    return b.ev - a.ev;
+  // Ordenar: en-cartera primero, luego por ev desc
+  cands.sort(function(a,b){{
+    if(a.enC!==b.enC) return a.enC?-1:1;
+    return b.ev-a.ev;
   }});
 
-  if(candidatos.length === 0) {{
-    cb.innerHTML = '<div style="color:#666;padding:20px">Sin candidatos de compra disponibles.</div>';
+  if(!cands.length){{
+    cb.innerHTML='<div style="color:#666;padding:20px;text-align:center">Sin señales de compra activas.</div>';
     return;
   }}
 
-  // Etiquetas de prioridad
-  var maxEV = candidatos[0].ev || 1;
-  var html = '';
-  var lastEnCartera = null;
+  var maxEV=Math.max.apply(null,cands.map(function(c){{return c.ev;}}));
+  var lastGrp=null;
+  var html='';
 
-  candidatos.forEach(function(c, i) {{
+  cands.forEach(function(c,i){{
     // Separador de grupo
-    if(lastEnCartera !== c.en_cartera) {{
-      lastEnCartera = c.en_cartera;
-      if(c.en_cartera) {{
-        html += '<div style="padding:8px 0 6px;font-weight:700;color:#fbbf24;font-size:13px;border-bottom:1px solid #3a3a1a;margin-bottom:8px">'+
-                '📂 Posiciones existentes con señal positiva — Agregar</div>';
-      }} else {{
-        html += '<div style="padding:8px 0 6px;font-weight:700;color:#e2c96a;font-size:13px;border-bottom:1px solid #3a3a1a;margin-bottom:8px">'+
-                '🆕 Nuevas posiciones sugeridas</div>';
-      }}
+    var grp=c.enC?'cartera':'nueva';
+    if(grp!==lastGrp){{
+      lastGrp=grp;
+      html+='<div style="display:flex;align-items:center;gap:10px;margin:16px 0 10px">'+
+        '<div style="flex:1;height:1px;background:rgba(251,191,36,.25)"></div>'+
+        '<span style="font-size:11px;font-weight:700;color:#fbbf24;white-space:nowrap;padding:2px 10px;background:rgba(251,191,36,.1);border-radius:12px">'+
+          (c.enC?'📂 POSICIONES EN CARTERA — Agregar':'🆕 NUEVAS POSICIONES SUGERIDAS')+
+        '</span>'+
+        '<div style="flex:1;height:1px;background:rgba(251,191,36,.25)"></div>'+
+      '</div>';
     }}
 
-    var isFuerte = c.signal.indexOf('FUERTE') >= 0;
-    var barColor  = i === 0 ? '#f59e0b' : i <= 2 ? '#fbbf24' : '#a3825c';
-    var barPct    = Math.min(100, Math.round((c.ev / maxEV) * 100));
-    var predColor = c.pred_21d >= 0 ? '#4ade80' : '#f87171';
-    var confLabel = c.pred_conf ? Math.round(c.pred_conf*100)+'%' : '—';
-    var fl        = flagOf(c.mercado);
+    var isFuerte=c.signal.indexOf('FUERTE')>=0;
+    var barPct  =Math.round(Math.min(100,(c.ev/maxEV)*100));
+    var barCol  =i===0?'#f59e0b':i<=2?'#fbbf24':'#a38540';
+    var fl      =c.mercado==='MERVAL'?'🇦🇷':c.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';
+    var predCol =c.pred_21d!=null?(c.pred_21d>=0?'#4ade80':'#f87171'):'#666';
+    var rrCol   =c.rr>=2.5?'#4ade80':c.rr>=1.5?'#fbbf24':'#f87171';
+    var weekBadge=c.weekly&&c.weekly.indexOf('ALCISTA')>=0
+      ? '<span style="background:rgba(74,222,128,.15);color:#4ade80;font-size:9px;padding:1px 6px;border-radius:10px">📈 Semanal Alcista</span>'
+      : c.weekly&&c.weekly.indexOf('BAJISTA')>=0
+      ? '<span style="background:rgba(248,113,113,.15);color:#f87171;font-size:9px;padding:1px 6px;border-radius:10px">📉 Semanal Bajista</span>'
+      : '';
+    var agreeBadge=c.pred_agree===true
+      ? '<span style="background:rgba(74,222,128,.15);color:#4ade80;font-size:9px;padding:1px 6px;border-radius:10px">✅ Predictor confirma</span>'
+      : c.pred_agree===false
+      ? '<span style="background:rgba(251,191,36,.15);color:#fbbf24;font-size:9px;padding:1px 6px;border-radius:10px">⚠️ Predictor diverge</span>'
+      : '';
 
-    html +=
-      '<div style="background:#16161e;border:1px solid #2a2a1a;border-radius:10px;padding:14px 16px;margin-bottom:10px">'+
-        // Fila 1: rank + ticker + empresa + señal
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+
-          '<div style="font-size:24px;font-weight:900;color:'+barColor+';min-width:32px;text-align:center">#'+(i+1)+'</div>'+
+    html+=
+      '<div style="background:#16161e;border:1px solid #2a2a1a;border-left:3px solid '+barCol+';border-radius:10px;padding:14px 16px;margin-bottom:10px">'+
+
+        // ── fila 1: rank + ticker + badges
+        '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">'+
+          '<div style="font-size:28px;font-weight:900;color:'+barCol+';min-width:36px;text-align:center;line-height:1">#'+(i+1)+'</div>'+
           '<div style="flex:1">'+
-            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+            '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">'+
               '<span style="font-size:15px;font-weight:700;color:#fff">'+fl+' '+c.ticker+'</span>'+
-              '<span style="font-size:12px;color:#888">'+c.empresa.substring(0,30)+'</span>'+
+              '<span style="font-size:11px;color:#777">'+c.empresa+'</span>'+
               (isFuerte
-                ? '<span style="background:#14532d;color:#4ade80;font-size:10px;padding:1px 7px;border-radius:12px;font-weight:700">⭐ COMPRA FUERTE</span>'
-                : '<span style="background:#052e16;color:#86efac;font-size:10px;padding:1px 7px;border-radius:12px">🟢 COMPRA</span>')+
-              (c.en_cartera
-                ? '<span style="background:#1c1a07;color:#fbbf24;font-size:10px;padding:1px 7px;border-radius:12px">📂 En cartera</span>'
-                : '<span style="background:#1a1a1a;color:#6b7280;font-size:10px;padding:1px 7px;border-radius:12px">🆕 Nueva</span>')+
+                ?'<span style="background:#14532d;color:#4ade80;font-size:9px;padding:1px 7px;border-radius:12px;font-weight:700">⭐ COMPRA FUERTE</span>'
+                :'<span style="background:#052e16;color:#86efac;font-size:9px;padding:1px 7px;border-radius:12px">🟢 COMPRA</span>')+
+              (c.enC?'<span style="background:rgba(251,191,36,.15);color:#fbbf24;font-size:9px;padding:1px 7px;border-radius:12px">📂 En cartera</span>':'')+
+              weekBadge+agreeBadge+
+            '</div>'+
+            // barra de potencial
+            '<div style="display:flex;align-items:center;gap:6px">'+
+              '<span style="font-size:9px;color:#555;width:54px">Potencial</span>'+
+              '<div style="flex:1;background:#1a1a1a;border-radius:3px;height:5px">'+
+                '<div style="width:'+barPct+'%;background:'+barCol+';border-radius:3px;height:5px;transition:width .4s"></div>'+
+              '</div>'+
+              '<span style="font-size:10px;color:'+barCol+';font-weight:700;width:34px;text-align:right">'+barPct+'%</span>'+
             '</div>'+
           '</div>'+
         '</div>'+
-        // Barra de potencial
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
-          '<span style="font-size:10px;color:#6b7280;min-width:60px">Potencial</span>'+
-          '<div style="flex:1;background:#1a1a1a;border-radius:4px;height:6px">'+
-            '<div style="width:'+barPct+'%;background:'+barColor+';border-radius:4px;height:6px"></div>'+
-          '</div>'+
-          '<span style="font-size:11px;color:'+barColor+';font-weight:700;min-width:40px;text-align:right">'+barPct+'%</span>'+
+
+        // ── fila 2: métricas en grid
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;margin-bottom:10px">'+
+          _cap_metric('Score V2',   c.sv2!=null?c.sv2.toFixed(0):'—',       '#fbbf24')+
+          _cap_metric('R/R',        c.rr>0?c.rr.toFixed(2)+'x':'—',         rrCol)+
+          (c.pred_21d!=null?_cap_metric('Pred.21d',(c.pred_21d>=0?'+':'')+c.pred_21d.toFixed(1)+'%', predCol):'')+
+          (c.pred_5d!=null?_cap_metric('Pred.5d',(c.pred_5d>=0?'+':'')+c.pred_5d.toFixed(1)+'%',c.pred_5d>=0?'#4ade80':'#f87171'):'')+
+          (c.pred_conf!=null?_cap_metric('Confianza',Math.round(c.pred_conf*100)+'%','#a78bfa'):'')+
+          _cap_metric('Score Macro',c.score_mac!=null?c.score_mac.toFixed(0):'—','#5ba3ff')+
+          _cap_metric('Score Téc.',c.score_tec!=null?c.score_tec.toFixed(0):'—','#22d3ee')+
+          (c.score_fund!=null?_cap_metric('Fundamental',c.score_fund.toFixed(0),'#fb923c'):'')+
+          (c.aq>0?_cap_metric('Asset Q.',c.aq.toFixed(0),'#e879f9'):'')+
+          (c.es>0?_cap_metric('Entry Sc.',c.es.toFixed(0),'#34d399'):'')+
+          (c.adx!=null?_cap_metric('ADX',c.adx.toFixed(1),c.adx>25?'#4ade80':'#888'):'')+
+          (c.upside_g!=null?_cap_metric('Graham',(c.upside_g>=0?'+':'')+c.upside_g.toFixed(1)+'%',c.upside_g>0?'#4ade80':'#f87171'):'')+
         '</div>'+
-        // Métricas en grid
-        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px">'+
-          '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
-            '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Score V2</div>'+
-            '<div style="font-size:14px;font-weight:700;color:#fbbf24">'+c.sv2.toFixed(0)+'</div>'+
-          '</div>'+
-          '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
-            '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">R/R</div>'+
-            '<div style="font-size:14px;font-weight:700;color:#bc8cff">'+c.rr.toFixed(2)+'x</div>'+
-          '</div>'+
-          (c.pred_21d!=null
-            ? '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
-                '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Pred. 21d</div>'+
-                '<div style="font-size:14px;font-weight:700;color:'+predColor+'">'+(c.pred_21d>=0?'+':'')+c.pred_21d.toFixed(1)+'%</div>'+
-              '</div>'
-            : '')+
-          '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
-            '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Confianza</div>'+
-            '<div style="font-size:14px;font-weight:700;color:#a78bfa">'+confLabel+'</div>'+
-          '</div>'+
-          '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
-            '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Macro</div>'+
-            '<div style="font-size:14px;font-weight:700;color:#5ba3ff">'+(c.score_mac!=null?c.score_mac.toFixed(0):'—')+'</div>'+
-          '</div>'+
-          '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
-            '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Técnico</div>'+
-            '<div style="font-size:14px;font-weight:700;color:#22d3ee">'+(c.score_tec!=null?c.score_tec.toFixed(0):'—')+'</div>'+
-          '</div>'+
-          (c.atr_stop!=null
-            ? '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
-                '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Stop</div>'+
-                '<div style="font-size:12px;font-weight:700;color:#fb923c">'+c.atr_stop.toLocaleString('es-AR')+'</div>'+
-              '</div>'
-            : '')+
-          (c.atr_target!=null
-            ? '<div style="background:#0d0d0f;border-radius:6px;padding:6px 8px">'+
-                '<div style="font-size:9px;color:#6b7280;text-transform:uppercase">Target</div>'+
-                '<div style="font-size:12px;font-weight:700;color:#4ade80">'+c.atr_target.toLocaleString('es-AR')+'</div>'+
-              '</div>'
-            : '')+
+
+        // ── fila 3: stop/target + horizonte
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px">'+
+          (c.atr_stop!=null?'<span style="background:rgba(251,146,60,.12);color:#fb923c;padding:2px 8px;border-radius:6px">🛡 Stop '+c.atr_stop.toLocaleString('es-AR')+'</span>':'')+
+          (c.atr_target!=null?'<span style="background:rgba(74,222,128,.12);color:#4ade80;padding:2px 8px;border-radius:6px">🎯 Target '+c.atr_target.toLocaleString('es-AR')+'</span>':'')+
+          (c.horizonte!=='—'?'<span style="background:rgba(91,163,255,.12);color:#5ba3ff;padding:2px 8px;border-radius:6px">⏱ '+c.horizonte+'</span>':'')+
+          (c.pred_signal?'<span style="background:rgba(167,139,250,.12);color:#a78bfa;padding:2px 8px;border-radius:6px">'+c.pred_signal+'</span>':'')+
         '</div>'+
+
+        // ── fila 4 (si en cartera): P&L actual
+        (c.enC&&c.portData?
+          '<div style="margin-top:8px;padding:8px 10px;background:rgba(251,191,36,.07);border-radius:6px;font-size:11px;display:flex;gap:14px;flex-wrap:wrap">'+
+            '<span style="color:#888">📂 Posición actual:</span>'+
+            '<span style="color:#e2e8f0">Cant: <b>'+c.portData.cantidad+'</b></span>'+
+            (c.portData.pnl_pct!=null?'<span style="color:'+(c.portData.pnl_pct>=0?'#4ade80':'#f87171')+'">P&L: <b>'+(c.portData.pnl_pct>=0?'+':'')+c.portData.pnl_pct.toFixed(1)+'%</b></span>':'')+
+            (c.portData.pnl_usd!=null?'<span style="color:'+(c.portData.pnl_usd>=0?'#4ade80':'#f87171')+'">→ <b>'+(c.portData.pnl_usd>=0?'+':'')+c.portData.pnl_usd.toFixed(0)+' USD</b></span>':'')+
+          '</div>'
+        :'')+
+
       '</div>';
   }});
 
-  cb.innerHTML = html;
+  cb.innerHTML=html;
+
+  function _cap_metric(lbl,val,col){{
+    return '<div style="background:#0d0d0f;border-radius:6px;padding:5px 8px">'+
+      '<div style="font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.4px">'+lbl+'</div>'+
+      '<div style="font-size:13px;font-weight:700;color:'+col+'">'+val+'</div>'+
+    '</div>';
+  }}
 }})();
 
 // ── OPORTUNIDADES DE COMPRA ────────────────────────────────────────────────
@@ -1771,112 +1816,206 @@ function showOpFicha(ticker){{
 }}
 // ── PORTFOLIO TAB ──
 (function(){{
-  // Intentar fetch en tiempo real desde Railway (CORS habilitado)
-  function renderPortfolio(portfolio, pAlerts){{
-    if(!portfolio || !portfolio.positions) return;
-    pAlerts = pAlerts || {{}};
+// ─── estado local ───────────────────────────────────────────────
+var _portBarInst = null;
+var _countdownVal = 60;
+var _countdownTimer = null;
+
+// ─── helpers ────────────────────────────────────────────────────
+function _setTs(ok){{
+  var el=document.getElementById('port-update-ts');
+  if(!el) return;
+  var now=new Date();
+  var s=now.toLocaleDateString('es-AR',{{day:'2-digit',month:'2-digit',year:'numeric'}})+
+        ' '+now.toLocaleTimeString('es-AR',{{hour:'2-digit',minute:'2-digit',second:'2-digit'}});
+  el.textContent=s+(ok?' ✅':' ⚠️ fallback');
+  el.style.color=ok?'#4ade80':'#fbbf24';
+}}
+function _setRefreshing(on){{
+  var ind=document.getElementById('port-refresh-indicator');
+  var btn=document.getElementById('btn-refresh-port');
+  var ico=document.getElementById('refresh-icon');
+  if(ind) ind.style.display=on?'block':'none';
+  if(ico) ico.textContent=on?'⟳':'↻';
+  if(btn) btn.style.background=on?'#0d2b1a':'#0d1f3c';
+}}
+function _resetCountdown(){{
+  _countdownVal=60;
+  var el=document.getElementById('port-countdown');
+  if(el) el.textContent='Auto en 60s';
+}}
+function _tickCountdown(){{
+  _countdownVal--;
+  var el=document.getElementById('port-countdown');
+  if(el) el.textContent=_countdownVal>0?'Auto en '+_countdownVal+'s':'Actualizando...';
+}}
+
+// ─── renderPortfolio ────────────────────────────────────────────
+function renderPortfolio(portfolio, pAlerts, fromApi){{
+  if(!portfolio || !portfolio.positions) return;
+  pAlerts = pAlerts||{{}};
   var positions = portfolio.positions;
-  var alertsList = (pAlerts && pAlerts.alerts) ? pAlerts.alerts : [];
-  var pnlItems = alertsList.filter(function(a){{return a.tipo==='📊 P&L';}});
-  // ── Totales USD exactos desde broker ──
-  var totalActualUsd  = 0;
-  var totalInicialUsd = 0;
-  var totalRendUsd    = 0;
+  var alertsList=(pAlerts&&pAlerts.alerts)?pAlerts.alerts:[];
+  var pnlItems=alertsList.filter(function(a){{return a.tipo==='📊 P&L';}});
+
+  // ── Totales ──
+  var totalActualUsd=0, totalInicialUsd=0, totalRendUsd=0;
   positions.forEach(function(p){{
-    totalActualUsd  += (p.valor_actual_usd  || 0);
-    totalInicialUsd += (p.valor_inicial_usd || 0);
-    totalRendUsd    += (p.rend_usd          || 0);
+    totalActualUsd +=(p.valor_actual_usd||0);
+    totalInicialUsd+=(p.valor_inicial_usd||0);
+    totalRendUsd   +=(p.rend_usd||0);
   }});
-  var pnlUsdPct = totalInicialUsd > 0 ? ((totalRendUsd / totalInicialUsd) * 100).toFixed(2) : '0';
-  var sm = document.getElementById('portfolio-summary');
-  if(sm) sm.innerHTML =
-    '<div class="card"><div class="card-title">💵 Invertido</div><div class="card-value" style="color:#5ba3ff">USD '+totalInicialUsd.toLocaleString('es-AR')+'</div><div class="card-sub">Valor de compra (broker)</div></div>'
-    +'<div class="card"><div class="card-title">📈 Valor actual (USD)</div><div class="card-value" style="color:#e2e8f0">USD '+totalActualUsd.toLocaleString('es-AR')+'</div><div class="card-sub">'+new Date().toLocaleDateString(\'es-AR\')+' — datos broker</div></div>'
-    +'<div class="card"><div class="card-title">💰 P&L Total (USD)</div><div class="card-value" style="color:'+(totalRendUsd>=0?\'#4ade80\':\'#f87171\')+'">\'+(totalRendUsd>=0?\'+\':\'\')+totalRendUsd.toLocaleString(\'es-AR\')+' (\'+(totalRendUsd>=0?\'+\':\'\')+pnlUsdPct+\'%)</div></div>'
-    +'<div class="card"><div class="card-title">📋 Posiciones</div><div class="card-value">'+positions.length+'</div><div class="card-sub">'+(totalRendUsd>=0?'✅ Cartera positiva':'⚠️ Cartera negativa')+'</div></div>';
-  // ── Ordenar posiciones por prioridad: VENDER → STOP → REDUCIR → AGREGAR → HOLD ──
-  var _acOrd = {{'🔴 VENDER':0,'🔴 STOP (señal positiva, evaluar recompra)':1,'🟡 REDUCIR':2,'⭐ AGREGAR':3,'🟢 HOLD':4,'⚠️ Sin precio':5,'⏰ TIME STOP':4}};
-  var _sgOrd = {{'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🟡 NEUTRAL/ESPERAR':2,'🟠 VENTA PARCIAL':3,'🔴 VENTA':4}};
-  var posSorted = positions.slice().sort(function(a,b){{
-    var pnlA=pnlItems.find(function(x){{return x.ticker===a.ticker;}}), pnlB=pnlItems.find(function(x){{return x.ticker===b.ticker;}});
-    var accA=pnlA?(pnlA.accion||'🟢 HOLD'):'🟢 HOLD', accB=pnlB?(pnlB.accion||'🟢 HOLD'):'🟢 HOLD';
-    var oA=_acOrd[accA]!=null?_acOrd[accA]:4, oB=_acOrd[accB]!=null?_acOrd[accB]:4;
+  var pnlPct=totalInicialUsd>0?((totalRendUsd/totalInicialUsd)*100):0;
+  var bestPos=positions.reduce(function(mx,p){{return(p.rend_usd||0)>(mx.rend_usd||0)?p:mx;}},positions[0]||{{}});
+  var worstPos=positions.reduce(function(mn,p){{return(p.rend_usd||0)<(mn.rend_usd||0)?p:mn;}},positions[0]||{{}});
+  var comprasAct=positions.filter(function(p){{
+    var sd=SIGNALS.find(function(s){{return s.ticker===p.ticker||s.ticker===p.ticker.replace('.BA','').replace('.SA','');}});
+    return sd&&(sd.signal_v2||sd.signal||'').indexOf('COMPRA')>=0;
+  }}).length;
+
+  // ── KPI Cards ──
+  var sm=document.getElementById('portfolio-summary');
+  if(sm) sm.innerHTML=
+    _kpi('💵 Invertido','USD '+_fmt(totalInicialUsd,0),'Costo de compra','#5ba3ff')+
+    _kpi('📈 Valor actual','USD '+_fmt(totalActualUsd,0),'Precio de mercado','#e2e8f0')+
+    _kpi('💰 P&L Total',(totalRendUsd>=0?'+':'')+_fmt(totalRendUsd,0)+' USD','('+(pnlPct>=0?'+':'')+pnlPct.toFixed(1)+'%)',totalRendUsd>=0?'#4ade80':'#f87171')+
+    _kpi('📋 Posiciones',positions.length,''+comprasAct+' con señal compra','#e2e8f0')+
+    _kpi('🏆 Mejor pos.',bestPos.ticker||'—',(bestPos.rend_usd>=0?'+':'')+_fmt(bestPos.rend_usd||0,0)+' USD','#4ade80')+
+    _kpi('⚠️ Revisar',worstPos.ticker||'—',(worstPos.rend_usd>=0?'+':'')+_fmt(worstPos.rend_usd||0,0)+' USD','#f87171');
+
+  // ── Ordenar ──
+  var _acOrd={{'🔴 VENDER':0,'🔴 STOP (señal positiva, evaluar recompra)':1,'🟡 REDUCIR':2,'⭐ AGREGAR':3,'🟢 HOLD':4,'⚠️ Sin precio':5,'⏰ TIME STOP':4}};
+  var _sgOrd={{'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🟡 NEUTRAL/ESPERAR':2,'🟠 VENTA PARCIAL':3,'🔴 VENTA':4}};
+  var posSorted=positions.slice().sort(function(a,b){{
+    var pnlA=pnlItems.find(function(x){{return x.ticker===a.ticker;}}),pnlB=pnlItems.find(function(x){{return x.ticker===b.ticker;}});
+    var accA=pnlA?(pnlA.accion||'🟢 HOLD'):'🟢 HOLD',accB=pnlB?(pnlB.accion||'🟢 HOLD'):'🟢 HOLD';
+    var oA=_acOrd[accA]!=null?_acOrd[accA]:4,oB=_acOrd[accB]!=null?_acOrd[accB]:4;
     if(oA!==oB) return oA-oB;
     var sdA=SIGNALS.find(function(s){{return s.ticker===a.ticker||s.ticker===a.ticker.replace('.BA','').replace('.SA','');}}),
         sdB=SIGNALS.find(function(s){{return s.ticker===b.ticker||s.ticker===b.ticker.replace('.BA','').replace('.SA','');}});
-    var sig2A=sdA?(sdA.signal_v2||sdA.signal||''):'', sig2B=sdB?(sdB.signal_v2||sdB.signal||''):'';
-    var sA=_sgOrd[sig2A]!=null?_sgOrd[sig2A]:3, sB=_sgOrd[sig2B]!=null?_sgOrd[sig2B]:3;
+    var sig2A=sdA?(sdA.signal_v2||sdA.signal||''):'',sig2B=sdB?(sdB.signal_v2||sdB.signal||''):'';
+    var sA=_sgOrd[sig2A]!=null?_sgOrd[sig2A]:3,sB=_sgOrd[sig2B]!=null?_sgOrd[sig2B]:3;
     if(sA!==sB) return sA-sB;
-    var pctA=(a.precio_compra_usd>0&&a.precio_actual_usd>0)?((a.precio_actual_usd/a.precio_compra_usd-1)*100):0;
-    var pctB=(b.precio_compra_usd>0&&b.precio_actual_usd>0)?((b.precio_actual_usd/b.precio_compra_usd-1)*100):0;
-    return pctB-pctA;
+    return (b.rend_usd||0)-(a.rend_usd||0);
   }});
-  var tb = document.getElementById('portfolio-table');
-  if(tb) tb.innerHTML = '<tr><th>Ticker</th><th>Mercado</th><th>Compra</th><th>Actual USD</th><th>Cant</th><th>P&L%</th><th>P&L USD</th><th>Señal V2</th><th>R/R</th><th>Acción</th></tr>'
-    + posSorted.map(function(p){{
-      var pnl = pnlItems.find(function(a){{return a.ticker===p.ticker;}});
-      var sigData = SIGNALS.find(function(s){{return s.ticker===p.ticker || s.ticker===p.ticker.replace('.BA','').replace('.SA','') || s.ticker===p.ticker+'.SA';}});
-      var sinDatos = !sigData;
-      var usdActual = p.valor_actual_usd || 0;
-      // P&L% — desde señal si disponible, sino desde valor_actual_usd vs precio compra relativo
-      // Usar precio_compra_usd / precio_actual_usd del broker
-      var pCompUsd = p.precio_compra_usd || 0;
-      var pActUsd  = p.precio_actual_usd || 0;
-      var pnlPct = pCompUsd > 0 && pActUsd > 0 ? ((pActUsd/pCompUsd-1)*100).toFixed(1) : '—';
-      // P&L USD exacto = rend_usd del broker (más confiable que cualquier cálculo)
-      var pnlUsdPos = (p.rend_usd != null) ? p.rend_usd : 0;
-      var pnlUsdPosStr = (p.rend_usd != null) ? (pnlUsdPos>=0?'+':'')+pnlUsdPos.toFixed(0)+' USD' : '—';
-      var sig2 = pnl ? (pnl.signal_v2||'—') : (sigData ? (sigData.signal_v2||sigData.signal||'—') : (sinDatos?'⚠️ Sin datos':'—'));
-      var rr = pnl ? (pnl.rr_ratio||0).toFixed(1)+'x' : (sigData ? (sigData.rr_ratio||0).toFixed(1)+'x' : '—');
-      var acc = pnl ? (pnl.accion||'🟢 HOLD') : (sinDatos ? '⚠️ Sin precio' : '🟢 HOLD');
-      var accColor = acc.indexOf('VENDER')>=0?'#f87171':acc.indexOf('REDUCIR')>=0?'#fbbf24':acc.indexOf('PARCIAL')>=0?'#c084fc':acc.indexOf('AGREGAR')>=0?'#4ade80':acc.indexOf('Sin')>=0?'#555':'#aaa';
-      var mercFlag = p.mercado==='MERVAL'?'🇦🇷':p.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';
-      var usdColor = usdActual>0?'#e2e8f0':'#555';
-      return '<tr>'+
-        '<td class="ticker">'+p.ticker+(p.notas&&p.notas.indexOf('Verificar')>=0?' <span style="color:#fbbf24;font-size:10px">⚠️</span>':'')+' </td>'+
-        '<td style="color:#888;font-size:11px">'+mercFlag+' '+p.mercado+'</td>'+
-        '<td>'+p.precio_compra.toLocaleString('es-AR')+'</td>'+
-        '<td style="color:'+usdColor+';font-weight:600">'+(pActUsd>0?'$'+pActUsd.toFixed(4)+'<span style="font-size:10px;color:#666"> /acc</span>':'—')+'</td>'+
-        '<td>'+p.cantidad+'</td>'+
-        '<td style="color:'+(pnlPct==='—'?'#555':parseFloat(pnlPct)>=0?'#4ade80':'#f87171')+';font-weight:600">'+(pnlPct!=='—'?(parseFloat(pnlPct)>=0?'+':'')+pnlPct+'%':pnlPct)+'</td>'+
-        '<td style="color:'+(pnlUsdPos>=0?'#4ade80':'#f87171')+'">'+pnlUsdPosStr+'</td>'+
-        '<td style="color:'+sigColor(sig2)+'">'+sig2+'</td>'+
-        '<td style="color:#fbbf24">'+rr+'</td>'+
-        '<td style="color:'+accColor+';font-weight:700">'+acc+'</td></tr>';
-    }}).join('');
-  // Mostrar siempre la hora real del último refresh (no el timestamp del JSON guardado)
-  var tsEl = document.getElementById('port-update-ts');
-  if(tsEl){{
-    var now2 = new Date();
-    var fechaHoy = now2.toLocaleDateString('es-AR',{{day:'2-digit',month:'2-digit',year:'numeric'}});
-    var horaAhora = now2.toLocaleTimeString('es-AR',{{hour:'2-digit',minute:'2-digit'}});
-    tsEl.textContent = fechaHoy+' — precios actualizados '+horaAhora;
-    tsEl.style.color = '#4ade80';
+
+  // ── Tabla ──
+  var tb=document.getElementById('portfolio-table');
+  if(tb){{
+    tb.innerHTML=
+      '<tr>'+
+        '<th>Ticker</th><th>Mercado</th>'+
+        '<th>Compra USD</th><th>Actual USD</th>'+
+        '<th>Cant</th>'+
+        '<th>P&L %</th><th>P&L USD</th>'+
+        '<th>Señal V2</th><th>Pred.21d</th><th>R/R</th><th>Acción</th>'+
+      '</tr>'+
+      posSorted.map(function(p){{
+        var pnl=pnlItems.find(function(a){{return a.ticker===p.ticker;}});
+        var sd=SIGNALS.find(function(s){{return s.ticker===p.ticker||s.ticker===p.ticker.replace('.BA','').replace('.SA','')||s.ticker===p.ticker+'.SA';}});
+        var pCompUsd=p.precio_compra_usd||0,pActUsd=p.precio_actual_usd||0;
+        var pnlPctPos=pCompUsd>0&&pActUsd>0?((pActUsd/pCompUsd-1)*100):null;
+        var pnlUsdPos=p.rend_usd!=null?p.rend_usd:null;
+        var sig2=pnl?(pnl.signal_v2||'—'):(sd?(sd.signal_v2||sd.signal||'—'):'⚠️ Sin datos');
+        var pred21=sd&&sd.pred_21d!=null?sd.pred_21d:null;
+        var rr=pnl?(pnl.rr_ratio||0):(sd?(sd.rr_ratio||0):0);
+        var acc=pnl?(pnl.accion||'🟢 HOLD'):(sd?'🟢 HOLD':'⚠️ Sin precio');
+        var accColor=acc.indexOf('VENDER')>=0?'#f87171':acc.indexOf('REDUCIR')>=0?'#fbbf24':acc.indexOf('PARCIAL')>=0?'#c084fc':acc.indexOf('AGREGAR')>=0||acc.indexOf('HOLD')>=0?'#4ade80':'#aaa';
+        var fl=p.mercado==='MERVAL'?'🇦🇷':p.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';
+        var rowBg=acc.indexOf('VENDER')>=0?'background:rgba(248,113,113,.05);':'';
+        return '<tr style="'+rowBg+'">'+
+          '<td class="ticker" style="font-weight:700">'+p.ticker+'</td>'+
+          '<td style="color:#888;font-size:11px">'+fl+' '+p.mercado+'</td>'+
+          '<td style="color:#888">'+( pCompUsd>0?'$'+pCompUsd.toFixed(4):'—')+'</td>'+
+          '<td style="color:'+(pActUsd>0?'#e2e8f0':'#555')+';font-weight:600">'+(pActUsd>0?'$'+pActUsd.toFixed(4):'—')+'</td>'+
+          '<td>'+p.cantidad+'</td>'+
+          '<td style="color:'+(pnlPctPos===null?'#555':pnlPctPos>=0?'#4ade80':'#f87171')+';font-weight:600">'+(pnlPctPos!==null?(pnlPctPos>=0?'+':'')+pnlPctPos.toFixed(1)+'%':'—')+'</td>'+
+          '<td style="color:'+(pnlUsdPos===null?'#555':pnlUsdPos>=0?'#4ade80':'#f87171')+';font-weight:700">'+(pnlUsdPos!==null?(pnlUsdPos>=0?'+':'')+pnlUsdPos.toFixed(0)+' USD':'—')+'</td>'+
+          '<td style="color:'+sigColor(sig2)+';font-size:11px">'+sig2+'</td>'+
+          '<td style="color:'+(pred21===null?'#555':pred21>=0?'#4ade80':'#f87171')+';font-weight:600">'+(pred21!==null?(pred21>=0?'+':'')+pred21.toFixed(1)+'%':'—')+'</td>'+
+          '<td style="color:#bc8cff;font-weight:600">'+(rr>0?rr.toFixed(2)+'x':'—')+'</td>'+
+          '<td style="color:'+accColor+';font-weight:700;font-size:11px">'+acc+'</td>'+
+        '</tr>';
+      }}).join('');
   }}
 
-  var al = document.getElementById('portfolio-alerts');
-  var criticas = alertsList.filter(function(a){{return a.tipo!=='📊 P&L';}});
+  // ── Bar chart P&L por posición ──
+  var barCtx=document.getElementById('chartPortBar');
+  if(barCtx){{
+    if(_portBarInst){{try{{_portBarInst.destroy();}}catch(e){{}}}}
+    var labelsBar=posSorted.map(function(p){{return p.ticker;}});
+    var dataBar  =posSorted.map(function(p){{return p.rend_usd!=null?parseFloat(p.rend_usd.toFixed(0)):0;}});
+    var colorsBar=dataBar.map(function(v){{return v>=0?'rgba(74,222,128,.7)':'rgba(248,113,113,.7)';}});
+    _portBarInst=new Chart(barCtx,{{
+      type:'bar',
+      data:{{labels:labelsBar,datasets:[{{label:'P&L USD',data:dataBar,backgroundColor:colorsBar,borderRadius:4}}]}},
+      options:{{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:function(ctx){{return(ctx.raw>=0?'+':'')+ctx.raw.toFixed(0)+' USD';}}}}}}}},
+        scales:{{
+          x:{{ticks:{{color:'#888',font:{{size:10}}}},grid:{{color:'rgba(255,255,255,.04)'}}}},
+          y:{{ticks:{{color:'#888',font:{{size:10}},callback:function(v){{return(v>=0?'+':'')+v+' USD';}}}},grid:{{color:'rgba(255,255,255,.06)'}}}}
+        }}
+      }}
+    }});
+  }}
+
+  // ── Timestamp ──
+  _setTs(fromApi!==false);
+
+  // ── Alertas ──
+  var criticas=alertsList.filter(function(a){{return a.tipo!=='📊 P&L';}});
+  var al=document.getElementById('portfolio-alerts');
   if(al){{
-    if(criticas.length===0){{ al.innerHTML='<div style="color:#4ade80;padding:8px">✅ Sin alertas activas</div>'; }}
-    else{{ al.innerHTML = criticas.map(function(a){{return '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)"><b>'+a.tipo+'</b> '+a.mensaje+'</div>';}}).join(''); }}
+    if(criticas.length===0) al.innerHTML='<div style="color:#4ade80;padding:8px">✅ Sin alertas activas</div>';
+    else al.innerHTML=criticas.map(function(a){{
+      return '<div style="padding:6px 12px;border-left:3px solid #fbbf24;margin-bottom:4px;background:rgba(251,191,36,.05);border-radius:0 6px 6px 0">'+
+             '<b>'+a.tipo+'</b> '+a.mensaje+'</div>';
+    }}).join('');
   }}
-  }}  // end renderPortfolio
-  // ── Auto-refresh cada 60s desde Railway (CORS habilitado) ──
-  function _loadPortfolioFresh(){{
-    if(!RAILWAY_API_URL){{ renderPortfolio(PORTFOLIO, PORTFOLIO_ALERTS); return; }}
-    fetch(RAILWAY_API_URL+'/api/portfolio',{{method:'GET'}})
-      .then(function(r){{return r.ok?r.json():null;}})
-      .then(function(d){{
-        if(d&&d.positions) renderPortfolio(d, PORTFOLIO_ALERTS);
-        else renderPortfolio(PORTFOLIO, PORTFOLIO_ALERTS);
-      }})
-      .catch(function(){{renderPortfolio(PORTFOLIO, PORTFOLIO_ALERTS);}});
-  }}
-  _loadPortfolioFresh();
-  setInterval(function(){{
-    var pg=document.getElementById('portfolio');
-    if(pg&&pg.classList.contains('on')) _loadPortfolioFresh();
-  }},60000);
+}}  // end renderPortfolio
+
+// ─── helper KPI card ────────────────────────────────────────────
+function _kpi(title, value, sub, color){{
+  return '<div class="card" style="min-width:0">'+
+    '<div class="card-title" style="font-size:10px">'+title+'</div>'+
+    '<div class="card-value" style="color:'+color+';font-size:16px;font-weight:800">'+value+'</div>'+
+    (sub?'<div class="card-sub" style="font-size:10px">'+sub+'</div>':'')+
+  '</div>';
+}}
+function _fmt(v,d){{ return Number(v).toLocaleString('es-AR',{{minimumFractionDigits:d,maximumFractionDigits:d}}); }}
+
+// ─── fetch + render ─────────────────────────────────────────────
+function _doFetch(){{
+  _setRefreshing(true);
+  if(!RAILWAY_API_URL){{ renderPortfolio(PORTFOLIO,PORTFOLIO_ALERTS,false); _setRefreshing(false); return; }}
+  fetch(RAILWAY_API_URL+'/api/portfolio',{{method:'GET',cache:'no-store'}})
+    .then(function(r){{return r.ok?r.json():null;}})
+    .then(function(d){{
+      _setRefreshing(false);
+      if(d&&d.positions) renderPortfolio(d,PORTFOLIO_ALERTS,true);
+      else renderPortfolio(PORTFOLIO,PORTFOLIO_ALERTS,false);
+    }})
+    .catch(function(){{
+      _setRefreshing(false);
+      renderPortfolio(PORTFOLIO,PORTFOLIO_ALERTS,false);
+    }});
+}}
+
+// ─── exponer globalmente (botón HTML la llama) ───────────────────
+window.portRefreshNow = function(){{
+  _resetCountdown();
+  _doFetch();
+}};
+
+// ─── arranque + contador regresivo ──────────────────────────────
+_doFetch();
+_countdownTimer=setInterval(function(){{
+  var pg=document.getElementById('portfolio');
+  if(!pg||!pg.classList.contains('on')) return;
+  _tickCountdown();
+  if(_countdownVal<=0){{ _resetCountdown(); _doFetch(); }}
+}},1000);
 }})();
 // ── SISTEMA DE OPERACIONES ────────────────────────────────────────────────────
 var OP_KEY = 'inv_operaciones_v1';
