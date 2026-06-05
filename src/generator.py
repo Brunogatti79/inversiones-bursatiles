@@ -148,6 +148,15 @@ def _build_oportunidades(signals, price_data):
             momentum  = round(s.get('momentum_21d', 0), 1)
             sin_grafico = True
 
+        # ── Opportunity Score: 40% pred_21d + 35% R/R + 25% confianza ──
+        _pred21    = s.get('pred_21d') or 0
+        _conf      = s.get('pred_confidence') or 0
+        _rr_val    = s.get('rr_ratio') or rr or 0
+        _pred_norm = min(100, max(0, (_pred21 + 15) / 30 * 100))  # -15%..+15% → 0..100
+        _rr_norm   = min(100, _rr_val / 5 * 100)                   # 0..5x     → 0..100
+        _conf_norm = _conf * 100                                    # 0..1      → 0..100
+        opp_score  = round(_pred_norm * 0.40 + _rr_norm * 0.35 + _conf_norm * 0.25, 1)
+
         fichas.append({
             'ticker': ticker, 'empresa': empresa, 'market': market,
             'flag': flag, 'moneda': moneda,
@@ -173,6 +182,7 @@ def _build_oportunidades(signals, price_data):
             'score_fund':  round(s.get('score_fundamental',50),1),
             'score_final': round(s.get('score_final',0),1),
             'signal': s.get('signal',''),
+            'signal_v2': s.get('signal_v2', s.get('signal','')),
             'closes60': closes60, 'dates60': dates60,
             'ma20_line': ma20_line, 'ma50_line': ma50_line,
             'sin_grafico': sin_grafico,
@@ -184,9 +194,11 @@ def _build_oportunidades(signals, price_data):
             'pred_confidence':  s.get('pred_confidence'),
             'pred_signal':      s.get('pred_signal', ''),
             'pred_direction_agree': s.get('pred_direction_agree', False),
+            # ── Opportunity Score (40% pred_21d + 35% R/R + 25% confianza) ──
+            'opportunity_score': opp_score,
         })
-    # Ranking: Score desc, desempate por R/R cuando scores similares (banda 1 pto)
-    fichas.sort(key=lambda f: (-int(f['score_final']), -f['rr']))
+    # Ranking por opportunity_score descendente
+    fichas.sort(key=lambda f: -f['opportunity_score'])
     return fichas
  
  
@@ -510,8 +522,7 @@ def generate_dashboard(
   <div class="tab"    onclick="sw('merval',this)">MERVAL</div>
   <div class="tab"    onclick="sw('bovespa',this)">BOVESPA</div>
   <div class="tab"    onclick="sw('sp500',this)">S&amp;P 500</div>
-  <div class="tab"    onclick="sw('oportunidades',this)">🟢 Oportunidades</div>
-  <div class="tab"    onclick="sw('conclusiones',this)">Conclusiones</div>
+  <div class="tab"    onclick="sw('oportunidades',this)">🎯 Oportunidades</div>
   <div class="tab"    onclick="sw('portfolio',this)">💼 Portfolio</div>
 </div>
  
@@ -658,16 +669,16 @@ def generate_dashboard(
  
 <!-- OPORTUNIDADES DE COMPRA -->
 <div id="oportunidades" class="page">
-  <div class="section-title" style="color:#4ade80">🟢 Oportunidades de Compra — Análisis Técnico Fase 2</div>
+  <div class="section-title" style="color:#4ade80">🎯 Oportunidades — Ranking por Convicción</div>
   <div style="font-size:12px;color:#666;margin-bottom:16px;background:#111115;border:1px solid #1a1a2e;border-radius:8px;padding:10px 14px;display:flex;gap:20px;flex-wrap:wrap">
-    <span>📊 <b style="color:#aaa">35% Macro</b> · condiciones país</span>
-    <span>📈 <b style="color:#aaa">35% Técnico</b> · RSI, momentum, MA</span>
-    <span>🏭 <b style="color:#aaa">10% Sectorial</b> · ciclo industria</span>
-    <span>📋 <b style="color:#aaa">20% Fundamental</b> · ratios financieros</span>
+    <span>📈 <b style="color:#4ade80">40% Predicción 21d</b> · retorno esperado ensemble</span>
+    <span>⚖️ <b style="color:#fbbf24">35% R/R Ratio</b> · recompensa por unidad de riesgo</span>
+    <span>🎯 <b style="color:#a78bfa">25% Confianza</b> · certeza del predictor</span>
+    <span style="border-left:1px solid #333;padding-left:16px">Filtro: señal COMPRA · score ≥ 60 · top 25% universo</span>
   </div>
   <div id="op-rank-page">
     <div style="font-size:13px;font-weight:600;color:#aaa;margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid #222230">
-      Acciones con señal de compra — Score Final descendente
+      Oportunidades activas — ordenadas por Opportunity Score descendente
     </div>
     <div style="display:flex;align-items:center;gap:12px;padding:4px 16px 8px;flex-wrap:wrap">
       <div style="flex:1;min-width:140px"></div>
@@ -712,13 +723,14 @@ def generate_dashboard(
   <div class="concl-subtitle">Señales activas del modelo macro × técnico × sectorial × fundamental · Ordenadas por ranking accionable</div>
   <div id="compras-block"></div>
  
-  <!-- 2) RADAR OPORTUNIDADES TEMPRANAS — SEGUNDO -->
-  <div class="section-title" style="color:#86efac;margin-top:32px;margin-bottom:6px">🔭 Radar de Oportunidades Tempranas</div>
-  <div class="concl-subtitle">Activos cercanos a zona de compra que aún no cumplen todos los criterios · Ordenados por score radar</div>
+  <!-- 2) OPORTUNIDADES RANKEADAS — SEGUNDO -->
+  <div class="section-title" style="color:#86efac;margin-top:32px;margin-bottom:6px">🎯 Oportunidades Rankeadas por Convicción</div>
+  <div class="concl-subtitle">Solo las que cumplen los tres criterios simultáneamente · Click en cualquier card para ir directamente a la ficha completa</div>
   <div class="radar-criteria">
-    <span>📊 <b style="color:#aaa">Score técnico</b> — RSI, momentum, cruces MA</span>
-    <span>📈 <b style="color:#aaa">Soporte/Resistencia</b> — proximidad a zonas clave</span>
-    <span>⚙️ <b style="color:#aaa">Score modelo</b> — macro × técnico × sectorial × fundamental</span>
+    <span>📈 <b style="color:#4ade80">40% Predicción 21d</b> — retorno esperado ensemble</span>
+    <span>⚖️ <b style="color:#fbbf24">35% R/R Ratio</b> — recompensa por unidad de riesgo</span>
+    <span>🎯 <b style="color:#a78bfa">25% Confianza</b> — certeza del predictor</span>
+    <span style="color:#555">Filtro: señal COMPRA · score ≥ 60 · top 25% universo</span>
   </div>
   <div id="radar-block"></div>
  
@@ -1103,26 +1115,42 @@ buildTable('tbl-pano-merval','MERVAL'); buildTable('tbl-pano-bovespa','BOVESPA')
 buildTable('tbl-merval','MERVAL'); buildTable('tbl-bovespa','BOVESPA'); buildTable('tbl-sp500','SP500');
 buildStats('merval-stats','merval'); buildStats('bovespa-stats','bovespa'); buildStats('sp500-stats','sp500');
  
-// ── RADAR ──────────────────────────────────────────────────────────────────
-function computeRadarScore(s){{
-  var score=0;
-  score+=Math.min(s.score_final/100,1)*35;
-  var rsi=s.rsi||50;
-  if(rsi>=28&&rsi<=45) score+=20; else if(rsi>45&&rsi<=55) score+=12; else if(rsi>55&&rsi<=65) score+=6;
-  var rs=s.ret_sem||0,rm=s.ret_mes||0;
-  if(rs>0&&rm<5) score+=20; else if(rs>0&&rm>=5&&rm<15) score+=12; else if(rs>0) score+=6;
-  if(s.ma_cross) score+=15;
-  if(s.precio_actual&&s.max_12m&&s.max_12m>0){{
-    var p=(s.max_12m-s.precio_actual)/s.max_12m;
-    if(p>0.35) score+=10; else if(p>0.20) score+=7; else if(p>0.10) score+=4;
-  }}
-  return Math.min(Math.round(score),100);
+// ── OPPORTUNITY SCORE ──────────────────────────────────────────────────────
+// Fórmula institucional: 40% pred_21d + 35% R/R + 25% confianza
+function computeOpportunityScore(s){{
+  var pred21   = s.pred_21d!=null ? s.pred_21d : 0;
+  var conf     = s.pred_confidence!=null ? s.pred_confidence*100 : 0;
+  var rr       = s.rr_ratio!=null ? s.rr_ratio : 0;
+  var predNorm = Math.min(100, Math.max(0, (pred21+15)/30*100));
+  var rrNorm   = Math.min(100, rr/5*100);
+  return Math.round(predNorm*0.40 + rrNorm*0.35 + conf*0.25);
 }}
 function flagOf(m){{ return m==='MERVAL'?'🇦🇷':m==='BOVESPA'?'🇧🇷':'🇺🇸'; }}
-var ranked=SIGNALS.filter(function(s){{return s.signal.indexOf('VENTA')<0;}})
-  .map(function(s){{return Object.assign({{}},s,{{radar_score:computeRadarScore(s)}});}})
-  .sort(function(a,b){{return b.radar_score-a.radar_score;}}).slice(0,10);
-var radarHtml=ranked.map(function(s,i){{
+
+// ── FILTRO TRIPLE ────────────────────────────────────────────────────────────
+// 1) señal V2 = COMPRA o COMPRA FUERTE
+// 2) opportunity_score >= 60
+// 3) top 25% del universo (score >= p75)
+var universe = SIGNALS.map(function(s){{
+  return Object.assign({{}},s,{{opp_score:computeOpportunityScore(s)}});
+}});
+var buyUniverse = universe.filter(function(s){{
+  var sig = s.signal_v2||s.signal||'';
+  return sig.indexOf('COMPRA')>=0 && sig.indexOf('VENTA')<0;
+}});
+var allScores = universe.map(function(s){{return s.opp_score;}}).sort(function(a,b){{return a-b;}});
+var p75idx = Math.floor(allScores.length*0.75);
+var p75 = allScores[p75idx]||0;
+var ranked = buyUniverse
+  .filter(function(s){{ return s.opp_score>=60 && s.opp_score>=p75; }})
+  .sort(function(a,b){{return b.opp_score-a.opp_score;}});
+var radarHtml=ranked.length===0
+  ? '<div style="text-align:center;padding:48px 20px;color:#555;font-size:14px">'+
+    '<div style="font-size:36px;margin-bottom:12px">🔍</div>'+
+    '<div style="font-weight:700;color:#777;margin-bottom:8px">No hay oportunidades con convicción suficiente en este momento</div>'+
+    '<div style="font-size:12px;color:#444">El modelo requiere: señal COMPRA + Opportunity Score ≥ 60 + top 25% del universo</div>'+
+    '<div style="font-size:11px;color:#333;margin-top:8px">Umbral p75 del universo actual: '+p75+'</div></div>'
+  : ranked.map(function(s,i){{
   var pfm=s.max_12m>0?((s.max_12m-s.precio_actual)/s.max_12m*100).toFixed(1):'—';
   var tags=[];
   if(s.rsi>=28&&s.rsi<=45) tags.push('<span class="radar-tag tag-green">RSI sobreventa</span>');
@@ -1131,27 +1159,40 @@ var radarHtml=ranked.map(function(s,i){{
   if(s.ret_sem>0&&s.ret_mes>=5) tags.push('<span class="radar-tag tag-blue">Momentum activo</span>');
   if(s.ma_cross) tags.push('<span class="radar-tag tag-yellow">Cruce MA</span>');
   if(parseFloat(pfm)>30) tags.push('<span class="radar-tag tag-orange">-'+pfm+'% vs máx</span>');
-  if(s.signal.indexOf('COMPRA FUERTE')>=0) tags.push('<span class="radar-tag tag-green">⭐ Compra Fuerte</span>');
-  else if(s.signal.indexOf('COMPRA')>=0) tags.push('<span class="radar-tag tag-green">🟢 Compra</span>');
-  else tags.push('<span class="radar-tag tag-yellow">🟡 Monitorear</span>');
-  var sc=s.radar_score>=70?'#22c55e':s.radar_score>=50?'#86efac':s.radar_score>=35?'#fbbf24':'#fb923c';
-  return '<div class="radar-card"><div class="radar-rank" style="font-size:'+(i<3?'32px':'24px')+'">#'+(i+1)+'</div>'+
+  var sig=s.signal_v2||s.signal||'';
+  if(sig.indexOf('COMPRA FUERTE')>=0) tags.push('<span class="radar-tag tag-green">⭐ Compra Fuerte</span>');
+  else tags.push('<span class="radar-tag tag-green">🟢 Compra</span>');
+  var sc=s.opp_score>=80?'#22c55e':s.opp_score>=65?'#86efac':'#fbbf24';
+  // Desglose del opportunity score
+  var pred21=s.pred_21d!=null?s.pred_21d:0;
+  var predNorm=Math.min(100,Math.max(0,(pred21+15)/30*100));
+  var rrNorm=Math.min(100,(s.rr_ratio||0)/5*100);
+  var confNorm=(s.pred_confidence||0)*100;
+  var desglose='pred:'+(predNorm*0.40).toFixed(0)+' rr:'+(rrNorm*0.35).toFixed(0)+' conf:'+(confNorm*0.25).toFixed(0);
+  return '<div class="radar-card" style="cursor:pointer" onclick="sw('oportunidades',document.querySelector('.tab[onclick*=oportunidades]'));showOpFicha(''+s.ticker+'')">'+
+    '<div class="radar-rank" style="font-size:'+(i<3?'32px':'24px')+'">#'+(i+1)+'</div>'+
     '<div class="radar-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">'+
     '<span class="radar-ticker">'+flagOf(s.mercado)+' '+s.ticker+'</span>'+
     '<span style="font-size:12px;color:#666">'+s.empresa.substring(0,28)+'</span></div>'+
-    '<div class="radar-metrics"><span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+
+    '<div class="radar-metrics">'+
+    '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+
     '<span style="color:'+rc(s.ret_sem)+'">Sem: '+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</span>'+
     '<span style="color:'+rc(s.ret_mes)+'">Mes: '+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</span>'+
-    '<span>RSI: '+s.rsi.toFixed(0)+'</span><span style="color:#fb923c">-'+pfm+'% vs máx</span>'+
-    (s.pred_21d!=null?'<span style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-weight:700">21d:'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</span>':'')+ 
+    '<span>RSI: '+s.rsi.toFixed(0)+'</span>'+
+    (s.rr_ratio!=null?'<span style="color:#fbbf24">R/R: '+s.rr_ratio.toFixed(1)+'x</span>':'')+
+    (s.pred_21d!=null?'<span style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-weight:700">21d:'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</span>':'')+
     (s.pred_confidence?'<span style="color:#a78bfa">🎯'+Math.round(s.pred_confidence*100)+'%</span>':'')+'</div>'+
     '<div class="radar-signals">'+tags.join('')+'</div>'+
-    '<div class="radar-bar-wrap"><div class="radar-bar" style="width:'+s.radar_score+'%;background:'+sc+'"></div></div></div>'+
-    '<div class="radar-score-wrap"><div class="radar-score" style="color:'+sc+'">'+s.radar_score+'</div>'+
-    '<div class="radar-score-label">Score<br>Radar</div></div></div>';
+    '<div class="radar-bar-wrap"><div class="radar-bar" style="width:'+s.opp_score+'%;background:'+sc+'"></div></div>'+
+    '<div style="font-size:9px;color:#444;margin-top:2px">'+desglose+'</div></div>'+
+    '<div class="radar-score-wrap">'+
+    '<div class="radar-score" style="color:'+sc+'">'+s.opp_score+'</div>'+
+    '<div class="radar-score-label">Opp<br>Score</div>'+
+    '<div style="font-size:10px;color:#4ade80;margin-top:6px;font-weight:700">📈 Ver ficha →</div>'+
+    '</div></div>';
 }}).join('');
 var rb=document.getElementById('radar-block');
-if(rb) rb.innerHTML=radarHtml||'<div style="color:#666;padding:20px">Sin datos.</div>';
+if(rb) rb.innerHTML=radarHtml;
  
 // ── CONCLUSIONES: Compras confirmadas (PRIMERO) ──────────────────
 var compras=SIGNALS.filter(function(s){{var sig=s.signal_v2||s.signal;return sig.indexOf('COMPRA')>=0;}}).sort(function(a,b){{var mo={{'MERVAL':0,'BOVESPA':1,'SP500':2}};var ma=mo[a.mercado]||9,mb=mo[b.mercado]||9;if(ma!==mb)return ma-mb;var aF=(a.signal_v2||a.signal).indexOf('FUERTE')>=0?0:1,bF=(b.signal_v2||b.signal).indexOf('FUERTE')>=0?0:1;if(aF!==bF)return aF-bF;return(b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);}});
@@ -1224,7 +1265,8 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
 }}).join(''):'<div style="color:#666;padding:16px">Sin señales de compra activas.</div>';
  
 // ── CONCLUSIONES: Radar de Oportunidades Tempranas (SEGUNDO) ─────
-var radarItems=SIGNALS.filter(function(s){{return s.radar_score!=null && s.radar_score>0;}}).sort(function(a,b){{var mo={{"MERVAL":0,"BOVESPA":1,"SP500":2}};var ma=mo[a.mercado]||9,mb=mo[b.mercado]||9;if(ma!==mb)return ma-mb;return b.radar_score-a.radar_score;}});
+// radarItems ahora usa ranked (ya calculado con filtro triple y opportunity_score)
+var radarItems=ranked.slice();
 var radarHtml='';var lastRMkt='';
 radarItems.forEach(function(s,i){{
   var pfm=s.max_12m?((1-s.precio_actual/s.max_12m)*100).toFixed(1):'?';
@@ -1232,7 +1274,8 @@ radarItems.forEach(function(s,i){{
   if(s.signal.indexOf('COMPRA FUERTE')>=0) tags.push('<span class="radar-tag tag-green">⭐ Compra Fuerte</span>');
   else if(s.signal.indexOf('COMPRA')>=0) tags.push('<span class="radar-tag tag-green">🟢 Compra</span>');
   else tags.push('<span class="radar-tag tag-yellow">🟡 Monitorear</span>');
-  var sc=s.radar_score>=70?'#22c55e':s.radar_score>=50?'#86efac':s.radar_score>=35?'#fbbf24':'#fb923c';
+  var oppSc2=s.opp_score!=null?s.opp_score:computeOpportunityScore(s);
+  var sc=oppSc2>=80?'#22c55e':oppSc2>=65?'#86efac':'#fbbf24';
   if(s.mercado!==lastRMkt){{lastRMkt=s.mercado;radarHtml+='<div style="padding:10px 0 6px;font-weight:700;color:#5ba3ff;font-size:14px;border-bottom:2px solid #5ba3ff;margin-bottom:8px">'+flagOf(s.mercado)+' '+s.mercado+'</div>';}}
   radarHtml+='<div class="concl-card-exp radar" onclick="this.classList.toggle(&#39;open&#39;)">'+
     '<div class="concl-header">'+
@@ -1242,7 +1285,7 @@ radarItems.forEach(function(s,i){{
     '<span class="radar-ticker">'+flagOf(s.mercado)+' '+s.ticker+'</span>'+
     '<span style="font-size:12px;color:#888">'+s.empresa.substring(0,28)+'</span>'+
     tags.join('')+
-    '<span style="font-size:13px;font-weight:700;color:'+sc+'">Score: '+s.radar_score+'</span></div>'+
+    '<span style="font-size:13px;font-weight:700;color:'+sc+'">Opp: '+oppSc2+'</span></div>'+
     '<div class="concl-metrics-row">'+
     '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+(s.signal_override?'<span style="background:#92400e;color:#fef3c7;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px">⚡ '+s.signal_override+'</span>':'')+
     '<span style="color:'+rc(s.ret_sem)+'">Sem: <b>'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
@@ -1252,7 +1295,7 @@ radarItems.forEach(function(s,i){{
     '</div></div>'+
     '<div class="concl-arrow">▼</div></div>'+
     '<div class="concl-detail"><div class="concl-detail-inner">'+
-    '<div class="dl">Score radar <b style="color:'+sc+'">'+s.radar_score+'</b></div>'+
+    '<div class="dl">Score radar <b style="color:'+sc+'">'+oppSc2+'</b></div>'+
     '<div class="dl">Score final modelo <b>'+s.score_final.toFixed(0)+'</b></div>'+
     '<div class="dl">Score macro <b>'+(s.score_macro!=null?s.score_macro.toFixed(0):'—')+'</b></div>'+
     '<div class="dl">Score técnico <b>'+(s.score_tecnico!=null?s.score_tecnico.toFixed(0):'—')+'</b></div>'+
@@ -1268,7 +1311,7 @@ radarItems.forEach(function(s,i){{
     (s.rr_ratio!=null?'<div class="dl">R/R Ratio <b style="color:#fbbf24">'+s.rr_ratio.toFixed(2)+'x</b></div>':'')+
     (s.atr_stop!=null?'<div class="dl">ATR Stop <b style="color:#fb923c">'+s.atr_stop.toLocaleString(\'es-AR\')+'</b></div>':'')+
     (s.atr_target!=null?'<div class="dl">ATR Target <b style="color:#bc8cff">'+s.atr_target.toLocaleString(\'es-AR\')+'</b></div>':'')+
-    '<div class="radar-bar-wrap" style="grid-column:1/-1"><div class="radar-bar" style="width:'+s.radar_score+'%;background:'+sc+'"></div></div>'+
+    '<div class="radar-bar-wrap" style="grid-column:1/-1"><div class="radar-bar" style="width:'+oppSc2+'%;background:'+sc+'"></div></div>'+
     '</div></div></div>';
 }});
 var rb=document.getElementById('radar-block');
@@ -1508,13 +1551,31 @@ function showOpRank(){{
   if(opChartInst){{try{{opChartInst.destroy();}}catch(e){{}} opChartInst=null;}}
 }}
  
+// Aplicar filtro triple sobre FICHAS usando opportunity_score
+var fichasScored=FICHAS.map(function(f){{
+  var opp=f.opportunity_score!=null?f.opportunity_score:computeOpportunityScore(f);
+  return Object.assign({{}},f,{{opp_score:opp}});
+}});
+var allFichaScores=fichasScored.map(function(f){{return f.opp_score;}}).sort(function(a,b){{return a-b;}});
+var fp75idx=Math.floor(allFichaScores.length*0.75);
+var fp75=allFichaScores[fp75idx]||0;
+var fichasFiltradas=fichasScored
+  .filter(function(f){{
+    var sig=f.signal_v2||f.signal||'';
+    return sig.indexOf('COMPRA')>=0 && sig.indexOf('VENTA')<0 && f.opp_score>=60 && f.opp_score>=fp75;
+  }})
+  .sort(function(a,b){{return b.opp_score-a.opp_score;}});
 var opRg=document.getElementById('op-rg');
-if(FICHAS.length===0){{
-  opRg.innerHTML='<div style="color:#666;padding:24px;text-align:center">Sin señales de compra activas en este período.</div>';
+if(fichasFiltradas.length===0){{
+  opRg.innerHTML='<div style="text-align:center;padding:48px 20px;color:#555;font-size:14px">'+
+    '<div style="font-size:36px;margin-bottom:12px">🔍</div>'+
+    '<div style="font-weight:700;color:#777;margin-bottom:8px">No hay oportunidades con convicción suficiente en este momento</div>'+
+    '<div style="font-size:12px;color:#444">El mercado no presenta señales que cumplan los tres criterios simultáneamente</div></div>';
 }} else {{
-  for(var i=0;i<FICHAS.length;i++){{
+  for(var i=0;i<fichasFiltradas.length;i++){{
     (function(f,idx){{
-      var sc2=f.score_final>=65?'#d29922':'#4ade80';
+      var oppSc=f.opp_score||0;
+      var sc2=oppSc>=80?'#22c55e':oppSc>=65?'#86efac':'#fbbf24';
       var row=document.createElement('div');
       row.className='op-rank-row';
       var num=document.createElement('div');
@@ -1525,7 +1586,10 @@ if(FICHAS.length===0){{
       main.className='op-main';
       main.innerHTML='<div class="op-ticker">'+f.flag+' '+f.ticker+'</div>'+
         '<div class="op-emp">'+f.empresa+' · '+f.market+'</div>'+
-        '<div class="op-sbar"><div class="op-sbarf" style="width:'+f.score_final+'%;background:'+sc2+'"></div></div>';
+        '<div style="display:flex;align-items:center;gap:8px;margin-top:3px">'+
+        '<div class="op-sbar" style="flex:1"><div class="op-sbarf" style="width:'+oppSc+'%;background:'+sc2+'"></div></div>'+
+        '<span style="font-size:11px;font-weight:700;color:'+sc2+'">'+oppSc+'</span>'+
+        '<span style="font-size:9px;color:#555">Opp.Score</span></div>';
       row.appendChild(main);
       var mets=document.createElement('div');
       mets.className='op-mets';
@@ -1534,19 +1598,16 @@ if(FICHAS.length===0){{
         '<div class="op-m"><span class="op-mv" style="color:'+rc(f.ret_anual)+'">'+fp(f.ret_anual)+'</span><span class="op-ml">12m</span></div>'+
         '<div class="op-m"><span class="op-mv" style="color:'+(f.rsi<40?'#4ade80':f.rsi>65?'#f87171':'#fbbf24')+'">'+fn(f.rsi,1)+'</span><span class="op-ml">RSI</span></div>'+
         '<div class="op-m"><span class="op-mv" style="color:#f87171">-'+fn(f.dist_max,1)+'%</span><span class="op-ml">vs Máx</span></div>'+
-        '<div class="op-m"><span class="op-mv" style="color:'+sc2+'">'+fn(f.score_final,1)+'</span><span class="op-ml">Score</span></div>'+
         '<div class="op-m"><span class="op-mv" style="color:#bc8cff">'+fn(f.rr,1)+'x</span><span class="op-ml">R/R</span></div>'+
-        (f.pred_5d!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.pred_5d>=0?'#4ade80':'#f87171')+'">'+(f.pred_5d>=0?'+':'')+fn(f.pred_5d,1)+'%</span><span class="op-ml">5d</span></div>':'')+
-        (f.pred_10d!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.pred_10d>=0?'#4ade80':'#f87171')+'">'+(f.pred_10d>=0?'+':'')+fn(f.pred_10d,1)+'%</span><span class="op-ml">10d</span></div>':'')+
-        (f.pred_21d!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.pred_21d>=0?'#4ade80':'#f87171')+'">'+(f.pred_21d>=0?'+':'')+fn(f.pred_21d,1)+'%</span><span class="op-ml">21d</span></div>':'')+
+        (f.pred_21d!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.pred_21d>=0?'#4ade80':'#f87171')+';font-weight:700">'+(f.pred_21d>=0?'+':'')+fn(f.pred_21d,1)+'%</span><span class="op-ml">📈 21d</span></div>':'')+
         (f.pred_confidence?'<div class="op-m"><span class="op-mv" style="color:#a78bfa">'+Math.round(f.pred_confidence*100)+'%</span><span class="op-ml">🎯 conf.</span></div>':'')+
         (f.suggested_pct!=null&&f.suggested_pct>0?'<div class="op-m"><span class="op-mv" style="color:#fbbf24;font-weight:800">'+f.suggested_pct.toFixed(1)+'%</span><span class="op-ml">💰 alloc.</span></div>':'')+
         (f.exit_score!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.exit_score>=56?'#f87171':f.exit_score>=31?'#fbbf24':'#4ade80')+'">'+f.exit_score.toFixed(0)+'</span><span class="op-ml">exit⚡</span></div>':'')+
-        '<span class="op-sig '+(f.signal.indexOf('FUERTE')>=0?'op-sig-f':'op-sig-c')+'">'+f.signal+'</span>';
+        '<span class="op-sig '+(f.signal.indexOf('FUERTE')>=0?'op-sig-f':'op-sig-c')+'">'+(f.signal_v2||f.signal)+'</span>';
       row.appendChild(mets);
       row.onclick=function(){{showOpFicha(f.ticker);}};
       opRg.appendChild(row);
-    }})(FICHAS[i],i);
+    }})(fichasFiltradas[i],i);
   }}
 }}
  
