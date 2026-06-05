@@ -105,7 +105,7 @@ def _build_oportunidades(signals, price_data):
             target  = round(s.get('atr_target') or (res[0]*0.995 if res else precio*1.12), 2)
             riesgo  = round((entrada-stop)/entrada*100, 1) if entrada > 0 else 0
             reward  = round((target-entrada)/entrada*100, 1) if entrada > 0 else 0
-            rr      = round(s.get('rr_ratio') or (reward/riesgo if riesgo > 0 else 0), 2)
+            rr      = round(min(5.0, s.get('rr_ratio') or (reward/riesgo if riesgo > 0 else 0)), 2)
 
             tail60    = serie.tail(60)
             closes60  = [round(float(v), 2) for v in tail60.values]
@@ -139,7 +139,7 @@ def _build_oportunidades(signals, price_data):
             target  = float(s.get('atr_target') or precio * 1.12)
             riesgo  = round((entrada-stop)/entrada*100, 1) if entrada > 0 else 0
             reward  = round((target-entrada)/entrada*100, 1) if entrada > 0 else 0
-            rr      = round(float(s.get('rr_ratio') or (reward/riesgo if riesgo > 0 else 0)), 2)
+            rr      = round(min(5.0, float(s.get('rr_ratio') or (reward/riesgo if riesgo > 0 else 0))), 2)
 
             closes60 = []
             dates60  = []
@@ -151,7 +151,7 @@ def _build_oportunidades(signals, price_data):
         # ── Opportunity Score: 40% pred_21d + 35% R/R + 25% confianza ──
         _pred21    = s.get('pred_21d') or 0
         _conf      = s.get('pred_confidence') or 0
-        _rr_val    = s.get('rr_ratio') or rr or 0
+        _rr_val    = min(5.0, s.get('rr_ratio') or rr or 0)
         _pred_norm = min(100, max(0, (_pred21 + 15) / 30 * 100))  # -15%..+15% → 0..100
         _rr_norm   = min(100, _rr_val / 5 * 100)                   # 0..5x     → 0..100
         _conf_norm = _conf * 100                                    # 0..1      → 0..100
