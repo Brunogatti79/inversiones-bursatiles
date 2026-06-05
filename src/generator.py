@@ -693,6 +693,14 @@ def generate_dashboard(
       </div>
     </div>
     <div id="op-rg"></div>
+    <!-- CANDIDATOS CON PREDICCIÓN ALTA -->
+    <div id="op-candidatos-wrap" style="margin-top:32px;display:none">
+      <div style="font-size:13px;font-weight:600;color:#f59e0b;margin-bottom:6px;padding-bottom:7px;border-top:1px solid #2a2a1a;padding-top:16px;display:flex;align-items:center;gap:8px">
+        <span>⚡ Candidatos con Predicción Alta</span>
+        <span style="font-size:11px;font-weight:400;color:#666">pred &gt; 5% en al menos un horizonte — no cumplen todos los criterios del ranking principal</span>
+      </div>
+      <div id="op-candidatos"></div>
+    </div>
   </div>
   <div id="op-ficha-page" style="display:none">
     <button onclick="showOpRank()" style="background:#16161e;border:1px solid #222230;color:#5ba3ff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:16px">← Volver al ranking</button>
@@ -1566,6 +1574,8 @@ var fichasFiltradas=fichasScored
   }})
   .sort(function(a,b){{return b.opp_score-a.opp_score;}});
 var opRg=document.getElementById('op-rg');
+// ── Tickers en fichasFiltradas (ya excluidos del ranking principal)
+var tickersEnRanking=fichasFiltradas.map(function(f){{return f.ticker;}});
 if(fichasFiltradas.length===0){{
   opRg.innerHTML='<div style="text-align:center;padding:48px 20px;color:#555;font-size:14px">'+
     '<div style="font-size:36px;margin-bottom:12px">🔍</div>'+
@@ -1611,6 +1621,78 @@ if(fichasFiltradas.length===0){{
   }}
 }}
  
+// ── CANDIDATOS CON PREDICCIÓN ALTA (pred > 5% en al menos un horizonte) ────
+(function(){{
+  var PRED_UMBRAL = 5.0;
+  // Tomar todos los signals con pred alta, excluyendo los ya en ranking
+  var candidatos = SIGNALS.filter(function(s){{
+    if(tickersEnRanking.indexOf(s.ticker)>=0) return false; // ya está arriba
+    var p5  = s.pred_5d  != null ? Math.abs(s.pred_5d)  : 0;
+    var p10 = s.pred_10d != null ? Math.abs(s.pred_10d) : 0;
+    var p21 = s.pred_21d != null ? Math.abs(s.pred_21d) : 0;
+    // Solo predicciones positivas (subida), no bajadas
+    var up5  = s.pred_5d  != null && s.pred_5d  > PRED_UMBRAL;
+    var up10 = s.pred_10d != null && s.pred_10d > PRED_UMBRAL;
+    var up21 = s.pred_21d != null && s.pred_21d > PRED_UMBRAL;
+    return up5 || up10 || up21;
+  }}).sort(function(a,b){{
+    // Ordenar por máxima predicción positiva descendente
+    var maxA = Math.max(a.pred_5d||0, a.pred_10d||0, a.pred_21d||0);
+    var maxB = Math.max(b.pred_5d||0, b.pred_10d||0, b.pred_21d||0);
+    return maxB - maxA;
+  }});
+
+  var wrap = document.getElementById('op-candidatos-wrap');
+  var cont = document.getElementById('op-candidatos');
+  if(!wrap || !cont) return;
+  if(candidatos.length === 0){{ wrap.style.display='none'; return; }}
+  wrap.style.display='block';
+
+  // Para cada candidato — identificar qué criterios NO cumple
+  var html = candidatos.map(function(s,idx){{
+    var sig    = s.signal_v2||s.signal||'';
+    var oppSc  = computeOpportunityScore(s);
+    var rr     = s.rr_ratio||0;
+    // Calcular p75 del universo completo (ya calculado arriba como p75)
+    var fallos = [];
+    if(sig.indexOf('COMPRA')<0 || sig.indexOf('VENTA')>=0)
+      fallos.push('<span style="background:#3b1a1a;color:#f87171;font-size:10px;padding:2px 7px;border-radius:4px">❌ Señal: '+sig+'</span>');
+    if(oppSc < 50)
+      fallos.push('<span style="background:#2a1f0a;color:#fbbf24;font-size:10px;padding:2px 7px;border-radius:4px">❌ Opp.Score bajo: '+oppSc+'</span>');
+    if(rr < 1.0)
+      fallos.push('<span style="background:#2a1a2a;color:#c084fc;font-size:10px;padding:2px 7px;border-radius:4px">❌ R/R bajo: '+rr.toFixed(2)+'x</span>');
+    if(s.pred_confidence && s.pred_confidence < 0.50)
+      fallos.push('<span style="background:#1a1a2a;color:#818cf8;font-size:10px;padding:2px 7px;border-radius:4px">⚠️ Confianza: '+Math.round(s.pred_confidence*100)+'%</span>');
+
+    var maxPred = Math.max(s.pred_5d||0, s.pred_10d||0, s.pred_21d||0);
+    var predColor = '#4ade80';
+
+    return '<div style="background:#0f1a0f;border:1px solid #1a2e1a;border-radius:8px;padding:12px 14px;margin-bottom:8px">'+
+      '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">'+
+      '<span style="font-size:14px;font-weight:700;color:#f59e0b">#'+(idx+1)+'</span>'+
+      '<span style="font-size:14px;font-weight:700;color:#fff">'+(s.mercado==='MERVAL'?'🇦🇷':s.mercado==='BOVESPA'?'🇧🇷':'🇺🇸')+' '+s.ticker+'</span>'+
+      '<span style="font-size:12px;color:#666">'+s.empresa.substring(0,28)+'</span>'+
+      '<span style="margin-left:auto;font-size:11px;font-weight:700;color:'+predColor+'">▲ max pred: +'+(maxPred).toFixed(1)+'%</span>'+
+      '</div>'+
+      // Predicciones
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">'+
+      (s.pred_5d!=null&&s.pred_5d>0?'<div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:6px;padding:5px 10px;text-align:center"><div style="font-size:13px;font-weight:700;color:'+(s.pred_5d>PRED_UMBRAL?'#4ade80':'#86efac')+'">+'+(s.pred_5d).toFixed(1)+'%</div><div style="font-size:9px;color:#555">5 días</div></div>':'')+
+      (s.pred_10d!=null&&s.pred_10d>0?'<div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:6px;padding:5px 10px;text-align:center"><div style="font-size:13px;font-weight:700;color:'+(s.pred_10d>PRED_UMBRAL?'#4ade80':'#86efac')+'">+'+(s.pred_10d).toFixed(1)+'%</div><div style="font-size:9px;color:#555">10 días</div></div>':'')+
+      (s.pred_21d!=null&&s.pred_21d>0?'<div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:6px;padding:5px 10px;text-align:center"><div style="font-size:13px;font-weight:700;color:'+(s.pred_21d>PRED_UMBRAL?'#4ade80':'#86efac')+'">+'+(s.pred_21d).toFixed(1)+'%</div><div style="font-size:9px;color:#555">21 días</div></div>':'')+
+      (s.pred_confidence?'<div style="background:#0a0a1a;border:1px solid #1a1a3a;border-radius:6px;padding:5px 10px;text-align:center"><div style="font-size:13px;font-weight:700;color:#a78bfa">'+Math.round(s.pred_confidence*100)+'%</div><div style="font-size:9px;color:#555">confianza</div></div>':'')+
+      '<div style="background:#1a1400;border:1px solid #2a2200;border-radius:6px;padding:5px 10px;text-align:center"><div style="font-size:13px;font-weight:700;color:#fbbf24">'+(rr>0?rr.toFixed(1)+'x':'—')+'</div><div style="font-size:9px;color:#555">R/R</div></div>'+
+      '<div style="background:#111;border:1px solid #222;border-radius:6px;padding:5px 10px;text-align:center"><div style="font-size:13px;font-weight:700;color:#888">'+oppSc+'</div><div style="font-size:9px;color:#555">Opp.Score</div></div>'+
+      '</div>'+
+      // Qué le falta
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+
+      '<span style="font-size:10px;color:#555;margin-right:2px">Por qué no está arriba:</span>'+
+      (fallos.length>0 ? fallos.join(' ') : '<span style="color:#4ade80;font-size:10px">Cumple criterios — revisar manualmente</span>')+
+      '</div>'+
+      '</div>';
+  }}).join('');
+  cont.innerHTML = html;
+}})();
+
 function showOpFicha(ticker){{
   var f=null;
   for(var i=0;i<FICHAS.length;i++){{if(FICHAS[i].ticker===ticker){{f=FICHAS[i];break;}}}}
