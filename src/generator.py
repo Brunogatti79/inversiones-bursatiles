@@ -54,7 +54,7 @@ def _build_oportunidades(signals, price_data):
     con los datos de SIGNALS (sin gráfico de velas).
     price_data: dict {'merval': df, 'bovespa': df, 'sp500': df}
     """
-    compras = [s for s in signals if 'COMPRA' in s.get('signal','')]
+    compras = [s for s in signals if 'COMPRA' in (s.get('signal_v2') or s.get('signal','')) and 'VENTA' not in (s.get('signal_v2') or s.get('signal',''))]
 
     fichas = []
     for s in compras:
@@ -181,7 +181,7 @@ def _build_oportunidades(signals, price_data):
             'score_tec':   round(s.get('score_tecnico',0),1),
             'score_fund':  round(s.get('score_fundamental',50),1),
             'score_final': round(s.get('score_final',0),1),
-            'signal': s.get('signal',''),
+            'signal': s.get('signal_v2') or s.get('signal',''),
             'signal_v2': s.get('signal_v2', s.get('signal','')),
             'closes60': closes60, 'dates60': dates60,
             'ma20_line': ma20_line, 'ma50_line': ma50_line,
@@ -674,7 +674,7 @@ def generate_dashboard(
     <span>📈 <b style="color:#4ade80">40% Predicción 21d</b> · retorno esperado ensemble</span>
     <span>⚖️ <b style="color:#fbbf24">35% R/R Ratio</b> · recompensa por unidad de riesgo</span>
     <span>🎯 <b style="color:#a78bfa">25% Confianza</b> · certeza del predictor</span>
-    <span style="border-left:1px solid #333;padding-left:16px">Filtro: señal COMPRA · score ≥ 60 · top 25% universo</span>
+    <span style="border-left:1px solid #333;padding-left:16px">Filtro: señal COMPRA · score ≥ 50 · top 25% universo</span>
   </div>
   <div id="op-rank-page">
     <div style="font-size:13px;font-weight:600;color:#aaa;margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid #222230">
@@ -730,7 +730,7 @@ def generate_dashboard(
     <span>📈 <b style="color:#4ade80">40% Predicción 21d</b> — retorno esperado ensemble</span>
     <span>⚖️ <b style="color:#fbbf24">35% R/R Ratio</b> — recompensa por unidad de riesgo</span>
     <span>🎯 <b style="color:#a78bfa">25% Confianza</b> — certeza del predictor</span>
-    <span style="color:#555">Filtro: señal COMPRA · score ≥ 60 · top 25% universo</span>
+    <span style="color:#555">Filtro: señal COMPRA · score ≥ 50 · top 25% universo</span>
   </div>
   <div id="radar-block"></div>
  
@@ -1142,14 +1142,14 @@ var allScores = universe.map(function(s){{return s.opp_score;}}).sort(function(a
 var p75idx = Math.floor(allScores.length*0.75);
 var p75 = allScores[p75idx]||0;
 var ranked = buyUniverse
-  .filter(function(s){{ return s.opp_score>=60 && s.opp_score>=p75; }})
+  .filter(function(s){{ return s.opp_score>=50 && s.opp_score>=p75; }})
   .sort(function(a,b){{return b.opp_score-a.opp_score;}});
 var radarHtml=ranked.length===0
   ? '<div style="text-align:center;padding:48px 20px;color:#555;font-size:14px">'+
     '<div style="font-size:36px;margin-bottom:12px">🔍</div>'+
     '<div style="font-weight:700;color:#777;margin-bottom:8px">No hay oportunidades con convicción suficiente en este momento</div>'+
     '<div style="font-size:12px;color:#444">El modelo requiere: señal COMPRA + Opportunity Score ≥ 60 + top 25% del universo</div>'+
-    '<div style="font-size:11px;color:#333;margin-top:8px">Umbral p75 del universo actual: '+p75+'</div></div>'
+    '<div style="font-size:11px;color:#333;margin-top:8px">Umbral activo: score ≥ 50 y ≥ p75 ('+p75+')</div></div>'
   : ranked.map(function(s,i){{
   var pfm=s.max_12m>0?((s.max_12m-s.precio_actual)/s.max_12m*100).toFixed(1):'—';
   var tags=[];
@@ -1562,7 +1562,7 @@ var fp75=allFichaScores[fp75idx]||0;
 var fichasFiltradas=fichasScored
   .filter(function(f){{
     var sig=f.signal_v2||f.signal||'';
-    return sig.indexOf('COMPRA')>=0 && sig.indexOf('VENTA')<0 && f.opp_score>=60 && f.opp_score>=fp75;
+    return sig.indexOf('COMPRA')>=0 && sig.indexOf('VENTA')<0 && f.opp_score>=50 && f.opp_score>=fp75;
   }})
   .sort(function(a,b){{return b.opp_score-a.opp_score;}});
 var opRg=document.getElementById('op-rg');
