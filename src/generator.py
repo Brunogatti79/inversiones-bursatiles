@@ -1169,7 +1169,7 @@ var radarHtml=ranked.length===0
   var rrNorm=Math.min(100,(s.rr_ratio||0)/5*100);
   var confNorm=(s.pred_confidence||0)*100;
   var desglose='pred:'+(predNorm*0.40).toFixed(0)+' rr:'+(rrNorm*0.35).toFixed(0)+' conf:'+(confNorm*0.25).toFixed(0);
-  return '<div class="radar-card" style="cursor:pointer" onclick="sw('oportunidades',document.querySelector('.tab[onclick*=oportunidades]'));showOpFicha(''+s.ticker+'')">'+
+  return '<div class="radar-card" style="cursor:pointer" onclick="sw(&apos;oportunidades&apos;,document.querySelector(&apos;.tab[onclick*=oportunidades]&apos;));showOpFicha(&apos;'+s.ticker+'&apos;)">'+
     '<div class="radar-rank" style="font-size:'+(i<3?'32px':'24px')+'">#'+(i+1)+'</div>'+
     '<div class="radar-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">'+
     '<span class="radar-ticker">'+flagOf(s.mercado)+' '+s.ticker+'</span>'+
