@@ -433,7 +433,7 @@ def _normalize(valor, peor, mejor):
 
 
 RAW_HISTORY_PATH = "data/macro_raw_history.json"
-MIN_OBS_FOR_PERCENTILE = 60  # ~2 meses de runs diarios antes de confiar en percentil real sobre rango fijo
+MIN_OBS_FOR_PERCENTILE = 24  # ~2 años de observaciones REALES (no duplicadas) — ver nota abajo
 
 
 def _normalize_adaptive(range_key, valor, peor, mejor, raw_history):
@@ -473,15 +473,24 @@ def _load_raw_history() -> dict:
 
 def _update_raw_history(raw_today: dict):
     """Agrega el valor crudo de hoy de cada variable macro al historial, para
-    que _normalize_adaptive tenga con qué calcular percentiles reales."""
+    que _normalize_adaptive tenga con qué calcular percentiles reales.
+
+    Deduplica valores consecutivos repetidos: variables mensuales/trimestrales
+    (CPI, desempleo, GDP, etc.) reportan el MISMO valor en las 4 corridas
+    diarias del pipeline hasta que sale el próximo dato real — sin esto, el
+    historial se llena de copias idénticas (ej. ~120 copias del mismo CPI
+    mensual) en vez de observaciones distintas, sesgando el percentil hacia
+    cualquier valor que haya persistido más tiempo entre publicaciones."""
     from src.github_persistence import load_json, save_json
     if not raw_today:
         return
     history = load_json(RAW_HISTORY_PATH, default={})
     for range_key, val in raw_today.items():
         history.setdefault(range_key, [])
+        if history[range_key] and history[range_key][-1] == val:
+            continue  # mismo valor que la última observación — no es un dato nuevo
         history[range_key].append(val)
-        history[range_key] = history[range_key][-1100:]  # ~3 años de runs diarios, cap generoso
+        history[range_key] = history[range_key][-1500:]  # cap generoso — con dedupe, esto ya no se llena de copias
     save_json(RAW_HISTORY_PATH, history, message=f"auto: macro_raw_history {datetime.now().strftime('%Y-%m-%d')}")
 
 
