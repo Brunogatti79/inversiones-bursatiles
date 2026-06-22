@@ -126,6 +126,7 @@ def update_health_metrics(run_context: dict) -> dict:
     health["sla_hours_since_success"] = sla["hours_since_success"]
 
     _save_health(health)
+    _push_health_to_github()
     logger.info(
         f"[monitor] SLA={sla['status']} | Runs hoy={health['pipeline_runs_today']} | "
         f"Buy={health.get('buy_signals',0)} | Dur={health.get('duration_last_sec',0)}s"
@@ -280,3 +281,27 @@ def _save_health(health: dict):
     os.makedirs("data", exist_ok=True)
     with open(HEALTH_PATH, "w") as f:
         json.dump(health, f, ensure_ascii=False, indent=2)
+
+
+def _push_health_to_github():
+    """Pushea health_metrics.json a GitHub (el filesystem de Railway es efímero)."""
+    try:
+        import requests as _req, base64 as _b64
+        gh_token = os.environ.get("GH_TOKEN", "")
+        if not gh_token:
+            return
+        with open(HEALTH_PATH) as f:
+            content = f.read()
+        b64_content = _b64.b64encode(content.encode()).decode()
+        repo = "Brunogatti79/inversiones-bursatiles"
+        url  = f"https://api.github.com/repos/{repo}/contents/{HEALTH_PATH}"
+        headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
+        r = _req.get(url, headers=headers, timeout=10)
+        sha = r.json().get("sha", "") if r.ok else ""
+        payload = {"message": f"auto: health_metrics {datetime.now().strftime('%Y-%m-%d %H:%M')}", "content": b64_content}
+        if sha:
+            payload["sha"] = sha
+        _req.put(url, json=payload, headers=headers, timeout=15)
+        logger.info("health_metrics.json pusheado a GitHub")
+    except Exception as e:
+        logger.warning(f"No se pudo pushear health_metrics.json: {e}")
