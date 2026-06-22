@@ -674,6 +674,26 @@ def _sync_portfolio_from_github():
         print(f"[start_server] No se pudo sincronizar portfolio.json: {e}", flush=True)
 
 
+def _sync_macro_history_from_github():
+    """Descarga macro_score_history.json fresco de GitHub al arrancar Railway."""
+    gh_token = os.environ.get("GH_TOKEN", "")
+    if not gh_token:
+        return
+    try:
+        import urllib.request as _ur, json as _j, base64 as _b64
+        url = "https://api.github.com/repos/Brunogatti79/inversiones-bursatiles/contents/data/macro_score_history.json"
+        req = _ur.Request(url, headers={"Authorization": f"token {gh_token}"})
+        with _ur.urlopen(req, timeout=10) as r:
+            d = _j.loads(r.read())
+            content = _b64.b64decode(d["content"]).decode("utf-8")
+            os.makedirs("data", exist_ok=True)
+            with open("data/macro_score_history.json", "w") as f:
+                f.write(content)
+        print("[start_server] macro_score_history.json sincronizado desde GitHub", flush=True)
+    except Exception as e:
+        print(f"[start_server] No se pudo sincronizar macro_score_history.json: {e}", flush=True)
+
+
 def launch_main():
     import time
     time.sleep(2)
@@ -684,6 +704,7 @@ t = threading.Thread(target=launch_main, daemon=True)
 t.start()
  
 _sync_portfolio_from_github()
+_sync_macro_history_from_github()
 print(f"[start_server] Servidor HTTP en puerto {PORT}", flush=True)
 print(f"[start_server] Webhook activo en POST /webhook/run", flush=True)
 httpd = HTTPServer(("0.0.0.0", PORT), Handler)
