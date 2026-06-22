@@ -366,6 +366,17 @@ def run_pipeline():
             logger.warning(f"Backtester no crítico — continuando: {e_bt}")
         # ──────────────────────────────────────────────────────────────────────
 
+        # ── EFECTIVIDAD DE OPORTUNIDADES MOSTRADAS (registro + evaluación) ─────
+        try:
+            from src.opportunities_log import evaluate_opportunities
+            evaluate_opportunities(
+                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                ticker_cols=ticker_cols,
+            )
+        except Exception as e_opl:
+            logger.warning(f"Evaluación de opportunities_log no crítica — continuando: {e_opl}")
+        # ──────────────────────────────────────────────────────────────────────
+
         # ── HISTORICAL REPLAY (Fase 5) ── alimenta weight optimizer ─────────
         try:
             run_historical_replay(
