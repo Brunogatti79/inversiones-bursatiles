@@ -307,6 +307,67 @@ def generate_dashboard(
     b_day  = index_stats.get("bovespa", {}).get("ret_dia", None)
     s_day  = index_stats.get("sp500",   {}).get("ret_dia", None)
 
+    # ── Score Macro por mercado + delta semanal (Panorama) ───────────────
+    def _macro_score_for(_mercado):
+        _vals = [s.get("score_macro") for s in signals
+                  if s.get("mercado") == _mercado and s.get("score_macro") is not None]
+        return round(sum(_vals) / len(_vals), 1) if _vals else None
+
+    macro_now = {
+        "MERVAL":  _macro_score_for("MERVAL"),
+        "BOVESPA": _macro_score_for("BOVESPA"),
+        "SP500":   _macro_score_for("SP500"),
+    }
+
+    macro_delta = {"MERVAL": None, "BOVESPA": None, "SP500": None}
+    try:
+        import json as _json_md, os as _os_md
+        from datetime import datetime as _dt_md, timedelta as _td_md
+        _hist_path = "data/macro_score_history.json"
+        if _os_md.path.exists(_hist_path):
+            with open(_hist_path, encoding="utf-8") as _hf_md:
+                _hist = _json_md.load(_hf_md)
+            _target = (_dt_md.now() - _td_md(days=7)).date()
+            _ref = None
+            for _entry in sorted(_hist, key=lambda h: h.get("date", "")):
+                try:
+                    _ed = _dt_md.strptime(_entry["date"], "%Y-%m-%d").date()
+                except Exception:
+                    continue
+                if _ed <= _target:
+                    _ref = _entry  # se queda con el más cercano (sin pasarse) a 7 días atrás
+            if _ref:
+                for _mkt in ("MERVAL", "BOVESPA", "SP500"):
+                    if macro_now.get(_mkt) is not None and _ref.get(_mkt) is not None:
+                        macro_delta[_mkt] = round(macro_now[_mkt] - _ref[_mkt], 1)
+    except Exception as _e_md:
+        logger.warning(f"No se pudo calcular delta macro semanal: {_e_md}")
+
+    def _macro_mini_card(flag, label, score, delta):
+        if score is None:
+            return (f'<div class="macro-mini-card"><span class="macro-mini-flag">{flag}</span>'
+                     f'<span class="macro-mini-label">{label}</span>'
+                     f'<span class="macro-mini-val" style="color:#666">—</span></div>')
+        color = "#4ade80" if score >= 58 else "#fbbf24" if score >= 45 else "#f87171"
+        if delta is None:
+            delta_html = '<span class="macro-mini-delta" style="color:#555">Δ7d —</span>'
+        else:
+            dcolor = "#4ade80" if delta > 0 else "#f87171" if delta < 0 else "#888"
+            dsign  = "+" if delta > 0 else ""
+            delta_html = f'<span class="macro-mini-delta" style="color:{dcolor}">Δ7d {dsign}{delta:.1f}</span>'
+        return (f'<div class="macro-mini-card"><span class="macro-mini-flag">{flag}</span>'
+                 f'<span class="macro-mini-label">{label}</span>'
+                 f'<span class="macro-mini-val" style="color:{color}">{score:.0f}</span>'
+                 f'{delta_html}</div>')
+
+    macro_panel_html = (
+        '<div class="macro-mini-row">'
+        + _macro_mini_card("🇦🇷", "Macro MERVAL",  macro_now["MERVAL"],  macro_delta["MERVAL"])
+        + _macro_mini_card("🇧🇷", "Macro BOVESPA", macro_now["BOVESPA"], macro_delta["BOVESPA"])
+        + _macro_mini_card("🇺🇸", "Macro S&amp;P 500", macro_now["SP500"], macro_delta["SP500"])
+        + '</div>'
+    )
+
     # ── Cross-market (Fase 1/4) ──────────────────────────────────────────
     _cm         = index_stats.get("cross_market", {})
     cm_regime   = _cm.get("regime", "NEUTRAL")
@@ -394,6 +455,12 @@ def generate_dashboard(
   .sig-buy{{color:#4ade80}}.sig-neu{{color:#fbbf24}}.sig-sell{{color:#fb923c}}
   .pano-header{{display:flex;flex-direction:column;gap:12px;margin-bottom:24px}}
   .pano-card{{width:100%;background:#16161e;border:1px solid #222230;border-radius:12px;padding:20px 24px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:0 20px}}
+  .macro-mini-row{{display:flex;gap:10px;flex-wrap:wrap;margin:-6px 0 18px}}
+  .macro-mini-card{{background:#16161e;border:1px solid #222230;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:12px}}
+  .macro-mini-flag{{font-size:14px}}
+  .macro-mini-label{{color:#888;font-weight:600}}
+  .macro-mini-val{{font-weight:800;font-size:14px}}
+  .macro-mini-delta{{font-size:11px;font-weight:600}}
   .pano-flag{{font-size:36px;grid-row:1/4}}
   .pano-label{{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1.5px;font-weight:600}}
   .pano-value{{font-size:clamp(28px,7vw,48px);font-weight:900;color:#fff;line-height:1;letter-spacing:-1px}}
@@ -587,6 +654,7 @@ def generate_dashboard(
       </div>
     </div>
   </div>
+  {macro_panel_html}
   <!-- ── Health & Backtest metrics ── -->
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 18px;align-items:center">
     <div style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:8px 14px;display:flex;gap:8px;align-items:center">
