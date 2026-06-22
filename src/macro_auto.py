@@ -29,22 +29,6 @@ CACHE_PATH = "data/macro_auto_cache.json"
 # FRED (USA) — Federal Reserve Economic Data
 # ─────────────────────────────────────────────
  
-FRED_SERIES = {
-    "fed_funds":    "FEDFUNDS",       # Federal Funds Rate
-    "cpi":          "CPIAUCSL",       # CPI (YoY se calcula)
-    "unemployment": "UNRATE",         # Unemployment Rate
-    "gdp_growth":   "A191RL1Q225SBEA",# Real GDP Growth (quarterly)
-    "consumer_conf":"UMCSENT",        # U. Michigan Consumer Sentiment
-    "pce_core":     "PCEPILFE",       # PCE Core (YoY se calcula)
-    "ism_mfg":      "MANEMP",         # ISM Manufacturing (proxy via NAPM)
-}
- 
-# Series adicionales de FRED para DXY y HY spread
-FRED_EXTRA = {
-    "dxy":          "DTWEXBGS",       # Trade Weighted USD Index
-    "hy_spread":    "BAMLH0A0HYM2",  # ICE BofA HY Spread
-}
- 
  
 def _fred_latest(series_id, api_key=None):
     """Obtiene el último valor de una serie FRED."""
