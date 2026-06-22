@@ -112,10 +112,9 @@ def run_weight_optimization(price_data: dict, ticker_cols: dict) -> dict:
                 f"WR={best.get('win_rate_21d','—')} n={best.get('samples','—')}"
             )
 
-    # Guardar
-    os.makedirs("data", exist_ok=True)
-    with open(WEIGHTS_PATH, "w") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+    # Guardar (vía github_persistence — sobrevive a redeploys de Railway)
+    from src.github_persistence import save_json
+    save_json(WEIGHTS_PATH, result, message=f"auto: optimized_weights {result['generated'][:16]} (modo {mode})")
 
     logger.info(f"Weight optimizer: pesos guardados en {WEIGHTS_PATH}")
     return result
@@ -391,3 +390,32 @@ def load_optimized_weights() -> dict:
     except Exception as e:
         logger.warning(f"Error cargando pesos optimizados: {e}")
         return {}
+
+
+def apply_optimized_weights(weights: dict):
+    """
+    Aplica los pesos optimizados al módulo analyzer (muta W_POR_MERCADO en runtime).
+    Llamar desde pipeline ANTES de analyze_market.
+
+    NOTA (consolidación 1.3, junio 2026): esta función vivía antes en
+    src/optimizer.py junto a un load_optimized_weights() roto (buscaba
+    data["weights"], una clave que run_weight_optimization() nunca escribió —
+    apply_optimized_weights({}) por el `if not weights: return` hacía que los
+    pesos optimizados jamás se aplicaran realmente, aunque sí se calculaban y
+    guardaban bien). src/optimizer.py se eliminó del repo.
+    """
+    if not weights:
+        return
+    try:
+        import src.analyzer as _ana
+        for market, w in weights.items():
+            if market not in _ana.W_POR_MERCADO:
+                continue
+            clean_w = {k: w[k] for k in ("macro", "tecnico", "sector", "fundamental") if k in w}
+            if not clean_w:
+                continue
+            old = _ana.W_POR_MERCADO[market].copy()
+            _ana.W_POR_MERCADO[market].update(clean_w)
+            logger.info(f"[weight_optimizer] Pesos {market}: {old} → {clean_w}")
+    except Exception as e:
+        logger.warning(f"[weight_optimizer] Error aplicando pesos: {e}")
