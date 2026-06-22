@@ -14,6 +14,7 @@ Retorna dict compatible con macro_loader.py y analyzer.py
 import os
 import logging
 import json
+import base64
 import requests
 import numpy as np
 import pandas as pd
@@ -128,10 +129,11 @@ def fetch_usa_macro():
     pce_yoy = _fred_yoy("PCEPILFE")
     data["pce_core"] = {"valor": pce_yoy, "fecha": ""}
  
-    # ISM Manufacturing
+    # ISM Manufacturing — si NAPMPI no está disponible se deja en None.
+    # (Se eliminó el fallback a MANEMP: es nivel de empleo manufacturero en
+    # miles de personas, unidad incompatible con el rango de normalización
+    # 40-62 calibrado para un índice PMI 0-100; usarlo distorsionaba el score.)
     val, dt = _fred_latest("NAPMPI")
-    if val is None:
-        val, dt = _fred_latest("MANEMP")
     data["ism_mfg"] = {"valor": val, "fecha": dt}
  
     # DXY
@@ -193,8 +195,16 @@ def fetch_argentina_macro():
         logger.warning(f"Yahoo ARS error: {e}")
         data["tipo_cambio"] = {"valor": None, "fecha": ""}
  
-    # Tasa plazo fijo — fallback a último conocido (se actualiza mensualmente)
-    data["tasa_tamar"] = {"valor": 29.0, "fecha": "2026-05-01"}
+    # Tasa plazo fijo — BCRA estadisticasbcra.com en vivo, fallback a último conocido
+    try:
+        val, dt = _bcra_latest(BCRA_ENDPOINTS["tasa_plazo_fijo"])
+        if val is not None:
+            data["tasa_tamar"] = {"valor": val, "fecha": dt or datetime.now().strftime("%Y-%m-%d")}
+        else:
+            data["tasa_tamar"] = {"valor": 29.0, "fecha": "2026-05-01"}  # fallback último conocido
+    except Exception as e:
+        logger.warning(f"TAMAR error: {e}")
+        data["tasa_tamar"] = {"valor": 29.0, "fecha": "2026-05-01"}
  
     # Reservas — intentar BCRA, fallback
     try:
@@ -548,6 +558,91 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
  
  
 # ─────────────────────────────────────────────
+# Historial de scores macro — para delta semanal en el dashboard
+# (persiste a GitHub porque el filesystem de Railway es efímero)
+# ─────────────────────────────────────────────
+
+HISTORY_PATH = "data/macro_score_history.json"
+GH_REPO_FULL = "Brunogatti79/inversiones-bursatiles"
+
+
+def _push_file_to_github(path, message):
+    """Pushea un archivo de texto/JSON a GitHub via Contents API (GET sha + PUT)."""
+    try:
+        gh_token = os.getenv("GH_TOKEN", "")
+        if not gh_token:
+            return False
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        b64_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+        url = f"https://api.github.com/repos/{GH_REPO_FULL}/contents/{path}"
+        headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
+        r = requests.get(url, headers=headers, timeout=10)
+        sha = r.json().get("sha") if r.status_code == 200 else None
+        payload = {"message": message, "content": b64_content}
+        if sha:
+            payload["sha"] = sha
+        r2 = requests.put(url, headers=headers, json=payload, timeout=15)
+        if r2.status_code in (200, 201):
+            logger.info(f"{path} pusheado a GitHub")
+            return True
+        logger.warning(f"Push {path} falló: {r2.status_code} {r2.text[:200]}")
+        return False
+    except Exception as e:
+        logger.warning(f"No se pudo pushear {path} a GitHub: {e}")
+        return False
+
+
+def sync_macro_history_from_github():
+    """Descarga macro_score_history.json fresco de GitHub. Llamar al arrancar Railway."""
+    gh_token = os.getenv("GH_TOKEN", "")
+    if not gh_token:
+        return
+    try:
+        url = f"https://api.github.com/repos/{GH_REPO_FULL}/contents/{HISTORY_PATH}"
+        headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            content = base64.b64decode(r.json()["content"]).decode("utf-8")
+            os.makedirs(os.path.dirname(HISTORY_PATH), exist_ok=True)
+            with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+                f.write(content)
+            logger.info("macro_score_history.json sincronizado desde GitHub")
+    except Exception as e:
+        logger.warning(f"No se pudo sincronizar macro_score_history.json: {e}")
+
+
+def _update_macro_history(macro_scores):
+    """Agrega el score macro de hoy al historial (dedupe por fecha) y lo pushea a GitHub."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    history = []
+    try:
+        if os.path.exists(HISTORY_PATH):
+            with open(HISTORY_PATH, "r", encoding="utf-8") as f:
+                history = json.load(f)
+    except Exception:
+        history = []
+
+    history = [h for h in history if h.get("date") != today]
+    history.append({
+        "date": today,
+        "MERVAL": macro_scores.get("MERVAL"),
+        "BOVESPA": macro_scores.get("BOVESPA"),
+        "SP500": macro_scores.get("SP500"),
+    })
+    history.sort(key=lambda h: h.get("date", ""))
+    history = history[-90:]  # ~3 meses de historial
+
+    try:
+        os.makedirs(os.path.dirname(HISTORY_PATH), exist_ok=True)
+        with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
+        _push_file_to_github(HISTORY_PATH, f"auto: macro_score_history {today}")
+    except Exception as e:
+        logger.warning(f"No se pudo guardar macro_score_history.json: {e}")
+
+
+# ─────────────────────────────────────────────
 # Función principal — llamada desde pipeline
 # ─────────────────────────────────────────────
  
@@ -655,6 +750,12 @@ def fetch_all_macro():
             update_xlsx_macro(result.get("detalles", {}))
         except Exception as e:
             logger.warning(f"[macro_auto] No se pudo actualizar xlsx: {e}")
+
+    # Acumular historial de scores macro (para delta semanal en el dashboard)
+    try:
+        _update_macro_history(result["macro_scores"])
+    except Exception as e:
+        logger.warning(f"[macro_auto] No se pudo actualizar macro_score_history: {e}")
  
     # Formato compatible con lo que espera pipeline/analyzer
     return {
