@@ -995,36 +995,79 @@ function sigColor(s){{
   return '#f87171';
 }}
  
+var tableSort={{}}; // tbId -> {{key, dir}} — estado de orden por tabla, persiste entre re-renders
+
+var TBL_COLS=[
+  {{key:'ticker',  label:'Ticker',   type:'str', get:function(s){{return s.ticker||'';}}}},
+  {{key:'empresa', label:'Empresa',  type:'str', get:function(s){{return s.empresa||'';}}}},
+  {{key:'precio',  label:'Precio',   type:'num', get:function(s){{return s.precio_actual;}}}},
+  {{key:'sem',     label:'Sem%',     type:'num', tip:'Retorno últimos 7 días hábiles', get:function(s){{return s.ret_sem;}}}},
+  {{key:'mes',     label:'Mes%',     type:'num', tip:'Retorno últimos 30 días hábiles', get:function(s){{return s.ret_mes;}}}},
+  {{key:'rsi',     label:'RSI',      type:'num', tip:'RSI(14): mide sobrecompra/sobreventa. <30=sobrevendido (oportunidad), >70=sobrecomprado (precaución). El modelo lo usa INVERSO: RSI bajo = score alto.', get:function(s){{return s.rsi;}}}},
+  {{key:'aq',      label:'AQ',       type:'num', tip:'Asset Quality (0-100): calidad estructural del activo. Macro×0.45 + Fundamental×0.35 + Sectorial×0.20. No considera timing.', get:function(s){{return s.asset_quality||0;}}}},
+  {{key:'es',      label:'ES',       type:'num', tip:'Entry Score (0-100): calidad del timing de entrada. Técnico×0.55 + dist.máximo×0.25 + dist.soporte×0.20. Boosters por divergencia RSI (+10) y squeeze (+15).', get:function(s){{return s.entry_score||0;}}}},
+  {{key:'rr',      label:'R/R',      type:'num', tip:'Risk/Reward: (target-precio)/(precio-stop). >2x es favorable. Target = primera resistencia ≥3% del precio. Stop = ATR dinámico por volatilidad y régimen.', get:function(s){{return s.rr_ratio||0;}}}},
+  {{key:'sv2',     label:'Score V2', type:'num', tip:'Score final V2 (0-100): blend de AQ y ES ponderado por mercado. Incluye penalizaciones por tendencia semanal y mensual bajista.', get:function(s){{return s.score_final_v2||s.score_final;}}}},
+  {{key:'rank',    label:'Rank',     type:'num', tip:'Ranking accionable: Score V2×0.50 + AQ×0.30 + vol_score×0.20. Ordena la tabla. Es la prioridad real de acción entre los 68 tickers.', get:function(s){{return s.ranking_accionable||(s.score_final_v2||s.score_final);}}}},
+  {{key:'sig',     label:'Señal V2', type:'num', tip:'Señal final: ⭐≥70 / 🟢58-69 / 🟡45-57 / 🟠35-44 / 🔴<35', get:function(s){{var o=signalOrder[s.signal_v2||s.signal];return o==null?-2:-o;}}}},
+  {{key:'pred21',  label:'📈21d',    type:'num', color:'#a78bfa', tip:'Predicción GBR Ensemble a 21 días (%). Si negativo + señal COMPRA → override automático degrada la señal.', get:function(s){{return s.pred_21d;}}}},
+  {{key:'conf',    label:'🎯',       type:'num', color:'#a78bfa', tip:'Confianza del predictor (0-100%). Cross-validation del GBR. <50% = predicción poco confiable.', get:function(s){{return s.pred_confidence;}}}},
+  {{key:'align',   label:'Align',    type:'num', color:'#c084fc', tip:'Alineación de 3 timeframes: 3✓=Triple confirmación (+5pts) / 2✓=Doble (+2pts) / 1✗=Conflicto parcial (-5pts) / 2✗=Conflicto total (-8pts)', get:function(s){{return s.alignment_score;}}}},
+  {{key:'monthly', label:'📅M',      type:'num', tip:'Tendencia Mensual: MA6M vs MA12M + momentum 6m. ▲=alcista / ▼=bajista(×0.93 al score) / ●=lateral', get:function(s){{var m=s.monthly_trend;return m==='ALCISTA'?1:m==='BAJISTA'?-1:m==='LATERAL'?0:null;}}}}
+];
+
+function _sortByCol(rows,key){{
+  var col=TBL_COLS.find(function(c){{return c.key===key;}}); if(!col) return rows;
+  rows=rows.slice().sort(function(a,b){{
+    var va=col.get(a), vb=col.get(b);
+    var na=(va==null||(typeof va==='number'&&isNaN(va))), nb=(vb==null||(typeof vb==='number'&&isNaN(vb)));
+    if(na&&nb) return 0; if(na) return 1; if(nb) return -1;
+    if(col.type==='str') return String(va).localeCompare(String(vb));
+    return va-vb;
+  }});
+  return rows;
+}}
+
+function onSortClick(tbId,market,key){{
+  var cur=tableSort[tbId];
+  if(cur&&cur.key===key){{ cur.dir=-cur.dir; }}
+  else {{
+    var col=TBL_COLS.find(function(c){{return c.key===key;}});
+    tableSort[tbId]={{key:key, dir:(col&&col.type==='str')?1:-1}};
+  }}
+  buildTable(tbId,market||'');
+}}
+
 function buildTable(tbId,market){{
 var signalOrder={{'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🟡 NEUTRAL/ESPERAR':2,'🟠 VENTA PARCIAL':3,'🔴 VENTA':4}};
 var mktOrder={{'MERVAL':1,'BOVESPA':2,'SP500':3}};
 var rows=market?SIGNALS.filter(function(s){{return s.mercado===market;}}):SIGNALS.slice();
-rows.sort(function(a,b){{
-  if(!market){{var ma=mktOrder[a.mercado]||9,mb=mktOrder[b.mercado]||9;if(ma!==mb) return ma-mb;}}
-  var sa=signalOrder[a.signal_v2||a.signal],sb=signalOrder[b.signal_v2||b.signal];
-  if(sa==null)sa=2;if(sb==null)sb=2;if(sa!==sb)return sa-sb;
-  return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);
-}});
+var st=tableSort[tbId];
+if(st){{
+  rows=_sortByCol(rows,st.key);
+  if(st.dir<0) rows.reverse();
+}} else {{
+  rows.sort(function(a,b){{
+    if(!market){{var ma=mktOrder[a.mercado]||9,mb=mktOrder[b.mercado]||9;if(ma!==mb) return ma-mb;}}
+    var sa=signalOrder[a.signal_v2||a.signal],sb=signalOrder[b.signal_v2||b.signal];
+    if(sa==null)sa=2;if(sb==null)sb=2;if(sa!==sb)return sa-sb;
+    return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);
+  }});
+}}
 if(!market) rows=rows.slice(0,50);
 var tb=document.getElementById(tbId); if(!tb) return;
 var lastMkt='';
 tb.innerHTML='<tr>'+
-'<th>Ticker</th>'+
-'<th>Empresa</th>'+
-'<th>Precio</th>'+
-'<th data-tip=\"Retorno últimos 7 días hábiles\">Sem%</th>'+
-'<th data-tip=\"Retorno últimos 30 días hábiles\">Mes%</th>'+
-'<th data-tip=\"RSI(14): mide sobrecompra/sobreventa. <30=sobrevendido (oportunidad), >70=sobrecomprado (precaución). El modelo lo usa INVERSO: RSI bajo = score alto.\">RSI</th>'+
-'<th data-tip=\"Asset Quality (0-100): calidad estructural del activo. Macro×0.45 + Fundamental×0.35 + Sectorial×0.20. No considera timing.\">AQ</th>'+
-'<th data-tip=\"Entry Score (0-100): calidad del timing de entrada. Técnico×0.55 + dist.máximo×0.25 + dist.soporte×0.20. Boosters por divergencia RSI (+10) y squeeze (+15).\">ES</th>'+
-'<th data-tip=\"Risk/Reward: (target-precio)/(precio-stop). >2x es favorable. Target = primera resistencia ≥3% del precio. Stop = ATR dinámico por volatilidad y régimen.\">R/R</th>'+
-'<th data-tip=\"Score final V2 (0-100): blend de AQ y ES ponderado por mercado. Incluye penalizaciones por tendencia semanal y mensual bajista.\">Score V2</th>'+
-'<th data-tip=\"Ranking accionable: Score V2×0.50 + AQ×0.30 + vol_score×0.20. Ordena la tabla. Es la prioridad real de acción entre los 68 tickers.\">Rank</th>'+
-'<th data-tip=\"Señal final: ⭐≥70 / 🟢58-69 / 🟡45-57 / 🟠35-44 / 🔴<35\">Señal V2</th>'+
-'<th style=\"color:#a78bfa\" data-tip=\"Predicción GBR Ensemble a 21 días (%). Si negativo + señal COMPRA → override automático degrada la señal.\">📈21d</th>'+
-'<th style=\"color:#a78bfa\" data-tip=\"Confianza del predictor (0-100%). Cross-validation del GBR. <50% = predicción poco confiable.\">🎯</th>'+
-'<th style=\"color:#c084fc\" data-tip=\"Alineación de 3 timeframes: 3✓=Triple confirmación (+5pts) / 2✓=Doble (+2pts) / 1✗=Conflicto parcial (-5pts) / 2✗=Conflicto total (-8pts)\">Align</th>'+
-'<th data-tip=\"Tendencia Mensual: MA6M vs MA12M + momentum 6m. ▲=alcista / ▼=bajista(×0.93 al score) / ●=lateral\">📅M</th>'+
+TBL_COLS.map(function(c){{
+  var active=st&&st.key===c.key;
+  var arrow=active?(st.dir>0?' ▲':' ▼'):'';
+  var tipAttr=c.tip?' data-tip="'+c.tip.replace(/"/g,'&quot;')+'"':'';
+  var styleParts=['cursor:pointer','user-select:none'];
+  if(c.color) styleParts.unshift('color:'+c.color);
+  if(active) styleParts.push('background:#1c1c28');
+  var styleAttr=' style="'+styleParts.join(';')+'"';
+  return '<th'+tipAttr+styleAttr+' onclick="onSortClick(\\''+tbId+'\\',\\''+(market||'')+'\\',\\''+c.key+'\\')">'+c.label+arrow+'</th>';
+}}).join('')+
 '</tr>'+
 rows.map(function(s){{
 var aq=s.asset_quality||0, es=s.entry_score||0, rr=s.rr_ratio||0, sv2=s.score_final_v2||s.score_final, ra=s.ranking_accionable||sv2, sig2=s.signal_v2||s.signal;
@@ -2022,29 +2065,83 @@ function renderPortfolio(portfolio, pAlerts, fromApi){{
   // ── Ordenar ──
   var _acOrd={{'🔴 VENDER':0,'🔴 STOP (señal positiva, evaluar recompra)':1,'🟡 REDUCIR':2,'⭐ AGREGAR':3,'🟢 HOLD':4,'⚠️ Sin precio':5,'⏰ TIME STOP':4}};
   var _sgOrd={{'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🟡 NEUTRAL/ESPERAR':2,'🟠 VENTA PARCIAL':3,'🔴 VENTA':4}};
-  var posSorted=positions.slice().sort(function(a,b){{
-    var pnlA=pnlItems.find(function(x){{return x.ticker===a.ticker;}}),pnlB=pnlItems.find(function(x){{return x.ticker===b.ticker;}});
-    var accA=pnlA?(pnlA.accion||'🟢 HOLD'):'🟢 HOLD',accB=pnlB?(pnlB.accion||'🟢 HOLD'):'🟢 HOLD';
-    var oA=_acOrd[accA]!=null?_acOrd[accA]:4,oB=_acOrd[accB]!=null?_acOrd[accB]:4;
-    if(oA!==oB) return oA-oB;
-    var sdA=SIGNALS.find(function(s){{return s.ticker===a.ticker||s.ticker===a.ticker.replace('.BA','').replace('.SA','');}}),
-        sdB=SIGNALS.find(function(s){{return s.ticker===b.ticker||s.ticker===b.ticker.replace('.BA','').replace('.SA','');}});
-    var sig2A=sdA?(sdA.signal_v2||sdA.signal||''):'',sig2B=sdB?(sdB.signal_v2||sdB.signal||''):'';
-    var sA=_sgOrd[sig2A]!=null?_sgOrd[sig2A]:3,sB=_sgOrd[sig2B]!=null?_sgOrd[sig2B]:3;
-    if(sA!==sB) return sA-sB;
-    return (b.rend_usd||0)-(a.rend_usd||0);
-  }});
+
+  // Helper para extraer los mismos campos derivados (pnl, señal, pred21, rr, acción) usados en el render,
+  // necesario para poder ordenar por ellos igual que se muestran en la tabla.
+  function _portDerived(p){{
+    var pnl=pnlItems.find(function(a){{return a.ticker===p.ticker;}});
+    var sd=SIGNALS.find(function(s){{return s.ticker===p.ticker||s.ticker===p.ticker.replace('.BA','').replace('.SA','')||s.ticker===p.ticker+'.SA';}});
+    var pCompUsd=p.precio_compra_usd||0, pActUsd=p.precio_actual_usd||0;
+    var pnlPctPos=pCompUsd>0&&pActUsd>0?((pActUsd/pCompUsd-1)*100):null;
+    var sig2=pnl?(pnl.signal_v2||'—'):(sd?(sd.signal_v2||sd.signal||'—'):'⚠️ Sin datos');
+    var pred21=sd&&sd.pred_21d!=null?sd.pred_21d:null;
+    var rr=pnl?(pnl.rr_ratio||0):(sd?(sd.rr_ratio||0):0);
+    var acc=pnl?(pnl.accion||'🟢 HOLD'):(sd?'🟢 HOLD':'⚠️ Sin precio');
+    return {{pCompUsd:pCompUsd,pActUsd:pActUsd,pnlPctPos:pnlPctPos,sig2:sig2,pred21:pred21,rr:rr,acc:acc}};
+  }}
+
+  var PORT_COLS=[
+    {{key:'ticker',  label:'Ticker',     type:'str', get:function(p){{return p.ticker||'';}}}},
+    {{key:'mercado', label:'Mercado',    type:'str', get:function(p){{return p.mercado||'';}}}},
+    {{key:'compra',  label:'Compra USD', type:'num', get:function(p){{return _portDerived(p).pCompUsd;}}}},
+    {{key:'actual',  label:'Actual USD', type:'num', get:function(p){{return _portDerived(p).pActUsd;}}}},
+    {{key:'cant',    label:'Cant',       type:'num', get:function(p){{return p.cantidad;}}}},
+    {{key:'pnlpct',  label:'P&L %',      type:'num', get:function(p){{return _portDerived(p).pnlPctPos;}}}},
+    {{key:'pnlusd',  label:'P&L USD',    type:'num', get:function(p){{return p.rend_usd;}}}},
+    {{key:'sig',     label:'Señal V2',   type:'num', get:function(p){{var o=_sgOrd[_portDerived(p).sig2];return o==null?-3:-o;}}}},
+    {{key:'pred21',  label:'Pred.21d',   type:'num', get:function(p){{return _portDerived(p).pred21;}}}},
+    {{key:'rr',      label:'R/R',        type:'num', get:function(p){{return _portDerived(p).rr;}}}},
+    {{key:'accion',  label:'Acción',     type:'num', get:function(p){{var o=_acOrd[_portDerived(p).acc];return o==null?-4:-o;}}}}
+  ];
+
+  var portSt=tableSort['portfolio-table'];
+  var posSorted;
+  if(portSt){{
+    var pCol=PORT_COLS.find(function(c){{return c.key===portSt.key;}});
+    posSorted=positions.slice().sort(function(a,b){{
+      var va=pCol.get(a), vb=pCol.get(b);
+      var na=(va==null||(typeof va==='number'&&isNaN(va))), nb=(vb==null||(typeof vb==='number'&&isNaN(vb)));
+      if(na&&nb) return 0; if(na) return 1; if(nb) return -1;
+      if(pCol.type==='str') return String(va).localeCompare(String(vb));
+      return va-vb;
+    }});
+    if(portSt.dir<0) posSorted.reverse();
+  }} else {{
+    posSorted=positions.slice().sort(function(a,b){{
+      var pnlA=pnlItems.find(function(x){{return x.ticker===a.ticker;}}),pnlB=pnlItems.find(function(x){{return x.ticker===b.ticker;}});
+      var accA=pnlA?(pnlA.accion||'🟢 HOLD'):'🟢 HOLD',accB=pnlB?(pnlB.accion||'🟢 HOLD'):'🟢 HOLD';
+      var oA=_acOrd[accA]!=null?_acOrd[accA]:4,oB=_acOrd[accB]!=null?_acOrd[accB]:4;
+      if(oA!==oB) return oA-oB;
+      var sdA=SIGNALS.find(function(s){{return s.ticker===a.ticker||s.ticker===a.ticker.replace('.BA','').replace('.SA','');}}),
+          sdB=SIGNALS.find(function(s){{return s.ticker===b.ticker||s.ticker===b.ticker.replace('.BA','').replace('.SA','');}});
+      var sig2A=sdA?(sdA.signal_v2||sdA.signal||''):'',sig2B=sdB?(sdB.signal_v2||sdB.signal||''):'';
+      var sA=_sgOrd[sig2A]!=null?_sgOrd[sig2A]:3,sB=_sgOrd[sig2B]!=null?_sgOrd[sig2B]:3;
+      if(sA!==sB) return sA-sB;
+      return (b.rend_usd||0)-(a.rend_usd||0);
+    }});
+  }}
+
+  function onPortSortClick(key){{
+    var cur=tableSort['portfolio-table'];
+    if(cur&&cur.key===key){{ cur.dir=-cur.dir; }}
+    else {{
+      var col=PORT_COLS.find(function(c){{return c.key===key;}});
+      tableSort['portfolio-table']={{key:key, dir:(col&&col.type==='str')?1:-1}};
+    }}
+    renderPortfolio(portfolio, pAlerts, fromApi);
+  }}
 
   // ── Tabla ──
   var tb=document.getElementById('portfolio-table');
   if(tb){{
     tb.innerHTML=
       '<tr>'+
-        '<th>Ticker</th><th>Mercado</th>'+
-        '<th>Compra USD</th><th>Actual USD</th>'+
-        '<th>Cant</th>'+
-        '<th>P&L %</th><th>P&L USD</th>'+
-        '<th>Señal V2</th><th>Pred.21d</th><th>R/R</th><th>Acción</th>'+
+        PORT_COLS.map(function(c){{
+          var active=portSt&&portSt.key===c.key;
+          var arrow=active?(portSt.dir>0?' ▲':' ▼'):'';
+          var bg=active?';background:#1c1c28':'';
+          return '<th style="cursor:pointer;user-select:none'+bg+'" onclick="onPortSortClick(\\''+c.key+'\\')">'+c.label+arrow+'</th>';
+        }}).join('')+
       '</tr>'+
       posSorted.map(function(p){{
         var pnl=pnlItems.find(function(a){{return a.ticker===p.ticker;}});
