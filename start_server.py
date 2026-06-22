@@ -694,6 +694,30 @@ def _sync_macro_history_from_github():
         print(f"[start_server] No se pudo sincronizar macro_score_history.json: {e}", flush=True)
 
 
+def _sync_data_file_from_github(filename):
+    """Descarga data/<filename> fresco de GitHub al arrancar Railway.
+    Usado para signals_history.json, health_metrics.json y backtest_results.json —
+    sin esto, cada redeploy de Railway (que ocurre en cada push, incluso los
+    automáticos del dashboard) los resetea a cero y el panel Health & Backtest
+    nunca acumula historia."""
+    gh_token = os.environ.get("GH_TOKEN", "")
+    if not gh_token:
+        return
+    try:
+        import urllib.request as _ur, json as _j, base64 as _b64
+        url = f"https://api.github.com/repos/Brunogatti79/inversiones-bursatiles/contents/data/{filename}"
+        req = _ur.Request(url, headers={"Authorization": f"token {gh_token}"})
+        with _ur.urlopen(req, timeout=10) as r:
+            d = _j.loads(r.read())
+            content = _b64.b64decode(d["content"]).decode("utf-8")
+            os.makedirs("data", exist_ok=True)
+            with open(f"data/{filename}", "w") as f:
+                f.write(content)
+        print(f"[start_server] {filename} sincronizado desde GitHub", flush=True)
+    except Exception as e:
+        print(f"[start_server] No se pudo sincronizar {filename}: {e}", flush=True)
+
+
 def launch_main():
     import time
     time.sleep(2)
@@ -705,6 +729,9 @@ t.start()
  
 _sync_portfolio_from_github()
 _sync_macro_history_from_github()
+_sync_data_file_from_github("signals_history.json")
+_sync_data_file_from_github("health_metrics.json")
+_sync_data_file_from_github("backtest_results.json")
 print(f"[start_server] Servidor HTTP en puerto {PORT}", flush=True)
 print(f"[start_server] Webhook activo en POST /webhook/run", flush=True)
 httpd = HTTPServer(("0.0.0.0", PORT), Handler)
