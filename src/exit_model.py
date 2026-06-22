@@ -44,6 +44,10 @@ DEFAULT_MULT = {"stop": 2.0, "target": 3.0}
 VOL_STOP_SCALE   = {(0, 25): 0.80, (25, 50): 1.00, (50, 75): 1.25, (75, 101): 1.50}
 VOL_TARGET_SCALE = {(0, 25): 1.20, (25, 50): 1.00, (50, 75): 0.90, (75, 101): 0.80}
 
+# Mejora 4.2: stop dinámico por fuerza de señal V2 — más convicción (score alto)
+# tolera más ruido sin saltar el stop; señal débil corta pérdidas más rápido.
+SIGNAL_STRENGTH_STOP_SCALE = {(0, 35): 0.75, (35, 45): 0.85, (45, 58): 1.00, (58, 70): 1.10, (70, 101): 1.20}
+
 # Factor por régimen de mercado
 REGIME_FACTOR = {
     "RISK_ON":  1.00,   # sin cambio
@@ -84,6 +88,7 @@ def enrich_exit_levels(
             precio       = float(sig.get("precio_actual", 0) or 0)
             atr_val      = float(sig.get("atr", 0) or 0)
             vol_score    = float(sig.get("volatility_score", 50) or 50)
+            score_v2     = float(sig.get("score_final_v2", sig.get("score_final", 50)) or 50)
 
             if precio <= 0 or atr_val <= 0:
                 continue
@@ -92,7 +97,7 @@ def enrich_exit_levels(
             serie = price_series.get(ticker)
 
             # Multiplicadores dinámicos
-            mult = _dynamic_multipliers(market, vol_score, regime_factor)
+            mult = _dynamic_multipliers(market, vol_score, regime_factor, score_v2)
 
             # Nuevos stop / target
             new_stop   = round(precio - atr_val * mult["stop"], 2)
@@ -131,17 +136,20 @@ def enrich_exit_levels(
 
 # ── Multiplicadores dinámicos ──────────────────────────────────────────────
 
-def _dynamic_multipliers(market: str, vol_score: float, regime_factor: float) -> dict:
+def _dynamic_multipliers(market: str, vol_score: float, regime_factor: float, score_v2: float = 50.0) -> dict:
     """
-    Calcula multiplicadores de stop y target ajustados por volatilidad y régimen.
+    Calcula multiplicadores de stop y target ajustados por volatilidad, régimen
+    y fuerza de la señal V2 (mejora 4.2: señal fuerte → stop más holgado,
+    señal débil → stop más ajustado).
     """
     base = BASE_MULT.get(market, DEFAULT_MULT).copy()
 
     # Ajuste por volatilidad
     stop_scale   = _lookup_scale(VOL_STOP_SCALE, vol_score)
     target_scale = _lookup_scale(VOL_TARGET_SCALE, vol_score)
+    strength_scale = _lookup_scale(SIGNAL_STRENGTH_STOP_SCALE, score_v2)
 
-    stop_mult   = base["stop"]   * stop_scale   * regime_factor
+    stop_mult   = base["stop"]   * stop_scale   * regime_factor * strength_scale
     target_mult = base["target"] * target_scale
 
     # Bounds razonables: stop 1.0–3.5 ATR, target 1.5–6.0 ATR
