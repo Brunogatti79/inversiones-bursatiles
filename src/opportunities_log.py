@@ -129,69 +129,21 @@ def log_opportunities(fichas, signals, index_snapshot=None, cross_market_snapsho
             },
         })
 
-    log = _load_log()
-    log[today] = records  # overwrite si ya corrió hoy (dedupe por fecha, igual que tracker.py)
-    cutoff = (datetime.now() - timedelta(days=MAX_DAYS)).strftime("%Y-%m-%d")
-    log = {d: v for d, v in log.items() if d >= cutoff}
-
-    os.makedirs("data", exist_ok=True)
-    with open(LOG_PATH, "w", encoding="utf-8") as f:
-        json.dump(log, f, ensure_ascii=False, indent=1)
-
-    logger.info(f"[opportunities_log] {len(records)} oportunidades registradas para {today} ({len(log)} días en historial)")
-    _push_to_github(LOG_PATH, f"auto: opportunities_log {today} ({len(records)} oportunidades)")
+    from src.github_persistence import append_by_date, load_json
+    append_by_date(LOG_PATH, today, records, max_days=MAX_DAYS,
+                   message=f"auto: opportunities_log {today} ({len(records)} oportunidades)")
+    logger.info(f"[opportunities_log] {len(records)} oportunidades registradas para {today}")
 
 
 def _load_log():
-    if os.path.exists(LOG_PATH):
-        try:
-            with open(LOG_PATH, encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
-
-
-def _push_to_github(path, message):
-    """Mismo patrón GET-sha/PUT que el resto del proyecto (ver §3 de la arquitectura)."""
-    try:
-        gh_token = os.environ.get("GH_TOKEN", "")
-        if not gh_token:
-            return
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-        b64_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
-        url = f"https://api.github.com/repos/{GH_REPO_FULL}/contents/{path}"
-        headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
-        r = requests.get(url, headers=headers, timeout=10)
-        sha = r.json().get("sha") if r.status_code == 200 else None
-        payload = {"message": message, "content": b64_content}
-        if sha:
-            payload["sha"] = sha
-        r2 = requests.put(url, headers=headers, json=payload, timeout=20)
-        if r2.status_code not in (200, 201):
-            logger.warning(f"Push {path} falló: {r2.status_code} {r2.text[:200]}")
-    except Exception as e:
-        logger.warning(f"No se pudo pushear {path} a GitHub: {e}")
+    from src.github_persistence import load_json
+    return load_json(LOG_PATH, default={})
 
 
 def sync_from_github():
     """Descarga opportunities_log.json fresco de GitHub. Llamar al arrancar Railway."""
-    gh_token = os.environ.get("GH_TOKEN", "")
-    if not gh_token:
-        return
-    try:
-        url = f"https://api.github.com/repos/{GH_REPO_FULL}/contents/{LOG_PATH}"
-        headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            content = base64.b64decode(r.json()["content"]).decode("utf-8")
-            os.makedirs("data", exist_ok=True)
-            with open(LOG_PATH, "w", encoding="utf-8") as f:
-                f.write(content)
-            logger.info("opportunities_log.json sincronizado desde GitHub")
-    except Exception as e:
-        logger.warning(f"No se pudo sincronizar opportunities_log.json: {e}")
+    from src.github_persistence import pull_file
+    pull_file(LOG_PATH)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -279,13 +231,9 @@ def evaluate_opportunities(price_data: dict, ticker_cols: dict = None, horizons=
             "by_signal": by_signal,
         }
 
-    try:
-        os.makedirs("data", exist_ok=True)
-        with open(EFFECTIVENESS_PATH, "w", encoding="utf-8") as f:
-            json.dump(result, f, ensure_ascii=False, indent=2, default=str)
-        _push_to_github(EFFECTIVENESS_PATH, f"auto: opportunities_effectiveness {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-    except Exception as e:
-        logger.warning(f"No se pudo guardar opportunities_effectiveness.json: {e}")
+    from src.github_persistence import save_json
+    save_json(EFFECTIVENESS_PATH, result,
+              message=f"auto: opportunities_effectiveness {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
     logger.info(f"[opportunities_log] Evaluación: {result.get('status')} — {result.get('total_evaluadas', 0)} oportunidades evaluadas de {total_registradas} registradas")
     return result
