@@ -103,6 +103,60 @@ def _holt_winters(serie: np.ndarray, horizon: int) -> tuple[float, float]:
     return _safe_float(pred_pct, 0.0), 0.45
 
 
+def _build_features(serie: np.ndarray, context: dict = None):
+    """
+    Feature engineering compartido (10 features técnicas + 4 de contexto).
+    Factorizado de _gradient_boosting para reusar en _random_forest y
+    _linear_baseline (mejora 2.4) sin duplicar la lógica.
+    Retorna (X, s) o (None, None) si la serie es muy corta.
+    """
+    s = pd.Series(serie)
+    if len(s) < 25:
+        return None, None
+
+    r3  = s.pct_change(3).fillna(0)
+    r5  = s.pct_change(5).fillna(0)
+    r10 = s.pct_change(10).fillna(0)
+    r21 = s.pct_change(21).fillna(0)
+
+    vol10 = s.pct_change().rolling(10).std().fillna(0)
+    vol21 = s.pct_change().rolling(21).std().fillna(0)
+
+    ma20  = s.rolling(20).mean().fillna(s)
+    ma50  = s.rolling(50).mean().fillna(s)
+    dist_ma20 = ((s - ma20) / ma20.replace(0, 1)).fillna(0)
+    dist_ma50 = ((s - ma50) / ma50.replace(0, 1)).fillna(0)
+
+    delta     = s.diff().fillna(0)
+    gain      = delta.clip(lower=0).rolling(14).mean().fillna(0)
+    loss      = (-delta.clip(upper=0)).rolling(14).mean().fillna(0)
+    rs        = gain / (loss.replace(0, 1e-9))
+    rsi_proxy = (100 - 100 / (1 + rs)).fillna(50)
+
+    high_52w   = s.rolling(min(252, len(s))).max().fillna(s)
+    dist_high  = ((s - high_52w) / high_52w.replace(0, 1)).fillna(0)
+
+    ctx = context or {}
+    sp500_trend  = np.full(len(s), float(ctx.get("sp500_trend_score", 50)) / 100)
+    macro_local  = np.full(len(s), float(ctx.get("macro_score", 50)) / 100)
+    vol_regime_f = {"LOW": 0.25, "NORMAL": 0.50, "HIGH": 0.75}.get(
+                      ctx.get("vol_regime", "NORMAL"), 0.50)
+    vol_regime_v = np.full(len(s), vol_regime_f)
+    regime_enc   = {"RISK_ON": 0.75, "NEUTRAL": 0.50, "RISK_OFF": 0.25}.get(
+                      ctx.get("cross_market_regime", "NEUTRAL"), 0.50)
+    regime_v     = np.full(len(s), regime_enc)
+
+    X = np.column_stack([
+        r3, r5, r10, r21,
+        vol10, vol21,
+        dist_ma20, dist_ma50,
+        rsi_proxy / 100,
+        dist_high,
+        sp500_trend, macro_local, vol_regime_v, regime_v,
+    ])
+    return X, s
+
+
 def _gradient_boosting(serie: np.ndarray, horizon: int, context: dict = None) -> tuple[float, float]:
     """
     Gradient Boosting Regressor con features de rolling.
@@ -116,61 +170,9 @@ def _gradient_boosting(serie: np.ndarray, horizon: int, context: dict = None) ->
         from sklearn.ensemble import GradientBoostingRegressor
         from sklearn.model_selection import cross_val_score
 
-        s = pd.Series(serie)
-
-        # ── Features extendidas (10 total) ───────────────────────────────────
-        # Retornos rolling múltiples timeframes
-        r3  = s.pct_change(3).fillna(0)
-        r5  = s.pct_change(5).fillna(0)
-        r10 = s.pct_change(10).fillna(0)
-        r21 = s.pct_change(21).fillna(0)
-
-        # Volatilidad rolling (riesgo implícito)
-        vol10 = s.pct_change().rolling(10).std().fillna(0)
-        vol21 = s.pct_change().rolling(21).std().fillna(0)
-
-        # Distancias a medias móviles (posición relativa)
-        ma5   = s.rolling(5).mean().fillna(s)
-        ma20  = s.rolling(20).mean().fillna(s)
-        ma50  = s.rolling(50).mean().fillna(s)
-        dist_ma20 = ((s - ma20) / ma20.replace(0, 1)).fillna(0)
-        dist_ma50 = ((s - ma50) / ma50.replace(0, 1)).fillna(0)
-
-        # RSI proxy: ratio ganancias/pérdidas rolling 14d
-        delta     = s.diff().fillna(0)
-        gain      = delta.clip(lower=0).rolling(14).mean().fillna(0)
-        loss      = (-delta.clip(upper=0)).rolling(14).mean().fillna(0)
-        rs        = gain / (loss.replace(0, 1e-9))
-        rsi_proxy = (100 - 100 / (1 + rs)).fillna(50)
-
-        # Distancia al máximo 52-week (momentum de largo plazo)
-        high_52w   = s.rolling(min(252, len(s))).max().fillna(s)
-        dist_high  = ((s - high_52w) / high_52w.replace(0, 1)).fillna(0)
-
-        # ── Features macro/contexto (Fase 5) ─────────────────────────────────
-        ctx = context or {}
-        sp500_trend  = np.full(len(s), float(ctx.get("sp500_trend_score", 50)) / 100)
-        macro_local  = np.full(len(s), float(ctx.get("macro_score", 50)) / 100)
-        vol_regime_f = {"LOW": 0.25, "NORMAL": 0.50, "HIGH": 0.75}.get(
-                          ctx.get("vol_regime", "NORMAL"), 0.50)
-        vol_regime_v = np.full(len(s), vol_regime_f)
-        regime_enc   = {"RISK_ON": 0.75, "NEUTRAL": 0.50, "RISK_OFF": 0.25}.get(
-                          ctx.get("cross_market_regime", "NEUTRAL"), 0.50)
-        regime_v     = np.full(len(s), regime_enc)
-        # ─────────────────────────────────────────────────────────────────────
-
-        X = np.column_stack([
-            r3, r5, r10, r21,          # retornos multi-timeframe
-            vol10, vol21,               # volatilidad
-            dist_ma20, dist_ma50,       # posición vs medias
-            rsi_proxy / 100,            # RSI normalizado 0-1
-            dist_high,                  # distancia al máximo
-            sp500_trend,                # tendencia SP500 (0-1)
-            macro_local,                # score macro mercado local (0-1)
-            vol_regime_v,               # régimen de vol (0.25/0.50/0.75)
-            regime_v,                   # régimen cross-market (0.25/0.50/0.75)
-        ])
-        # ─────────────────────────────────────────────────────────────────────
+        X, s = _build_features(serie, context)
+        if X is None:
+            return 0.0, 0.3
 
         y_raw = s.pct_change(horizon).shift(-horizon).fillna(0)
 
@@ -218,6 +220,124 @@ def _gradient_boosting(serie: np.ndarray, horizon: int, context: dict = None) ->
         return 0.0, 0.30
 
 
+def _random_forest(serie: np.ndarray, horizon: int, context: dict = None) -> tuple[float, float]:
+    """
+    Mejora 2.4: Random Forest Regressor — mismo feature set que el GBR pero
+    vía bagging en vez de boosting. Aporta diversidad real al ensemble: GBR
+    y RF cometen errores correlacionados con menos frecuencia que dos
+    variantes del mismo método, lo que reduce el riesgo de que el ensemble
+    entero se equivoque junto en el mismo escenario.
+    Retorna (forecast_pct_change, confidence 0-1).
+    """
+    n = len(serie)
+    if n < 40:
+        return 0.0, 0.3
+
+    try:
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.model_selection import cross_val_score
+
+        X, s = _build_features(serie, context)
+        if X is None:
+            return 0.0, 0.3
+
+        y_raw = s.pct_change(horizon).shift(-horizon).fillna(0)
+
+        min_train = 60
+        if n < min_train + horizon + 10:
+            return 0.0, 0.35
+
+        X_train = X[:-horizon]
+        y_train = y_raw.values[:-horizon]
+        mask = np.isfinite(X_train).all(axis=1) & np.isfinite(y_train)
+        X_train, y_train = X_train[mask], y_train[mask]
+
+        if len(X_train) < 30:
+            return 0.0, 0.35
+
+        rf = RandomForestRegressor(
+            n_estimators=100, max_depth=4, min_samples_leaf=5,
+            random_state=42, n_jobs=1,
+        )
+        rf.fit(X_train, y_train)
+
+        x_last = X[-1:].copy()
+        pred_pct = float(rf.predict(x_last)[0]) * 100
+
+        try:
+            scores = cross_val_score(rf, X_train, y_train, cv=3,
+                                     scoring="neg_mean_absolute_error")
+            mae = -float(scores.mean())
+            conf = max(0.4, min(0.85, 0.82 - mae * 8))
+        except Exception:
+            conf = 0.48
+
+        return _safe_float(pred_pct, 0.0), conf
+
+    except ImportError:
+        return 0.0, 0.30
+    except Exception as e:
+        logger.debug(f"RF error: {e}")
+        return 0.0, 0.30
+
+
+def _linear_baseline(serie: np.ndarray, horizon: int, context: dict = None) -> tuple[float, float]:
+    """
+    Mejora 2.4: baseline lineal (Ridge regularizado) sobre el mismo feature
+    set. Sirve como control de cordura del ensemble: si GBR/RF predicen un
+    movimiento fuerte que el modelo lineal no detecta en absoluto, suele ser
+    señal de overfitting a ruido de corto plazo más que de una relación real
+    — por eso pesa menos en la confianza, pero participa en el voto de
+    dirección. Confianza deliberadamente conservadora (no captura no
+    linealidades), nunca por encima de los modelos no lineales.
+    Retorna (forecast_pct_change, confidence 0-1).
+    """
+    n = len(serie)
+    if n < 30:
+        return 0.0, 0.25
+
+    try:
+        from sklearn.linear_model import Ridge
+
+        X, s = _build_features(serie, context)
+        if X is None:
+            return 0.0, 0.25
+
+        y_raw = s.pct_change(horizon).shift(-horizon).fillna(0)
+        if n < 40 + horizon:
+            return 0.0, 0.25
+
+        X_train = X[:-horizon]
+        y_train = y_raw.values[:-horizon]
+        mask = np.isfinite(X_train).all(axis=1) & np.isfinite(y_train)
+        X_train, y_train = X_train[mask], y_train[mask]
+
+        if len(X_train) < 25:
+            return 0.0, 0.25
+
+        model = Ridge(alpha=1.0, random_state=42)
+        model.fit(X_train, y_train)
+
+        x_last = X[-1:].copy()
+        pred_pct = float(model.predict(x_last)[0]) * 100
+
+        # R² in-sample como proxy de confianza (capeado bajo — es un modelo
+        # simple a propósito, no debería dominar el ensemble)
+        try:
+            r2 = max(0.0, min(1.0, model.score(X_train, y_train)))
+            conf = max(0.25, min(0.55, 0.30 + r2 * 0.25))
+        except Exception:
+            conf = 0.30
+
+        return _safe_float(pred_pct, 0.0), conf
+
+    except ImportError:
+        return 0.0, 0.25
+    except Exception as e:
+        logger.debug(f"Linear baseline error: {e}")
+        return 0.0, 0.25
+
+
 # ── Predicción por ticker ──────────────────────────────────────────────────────
 
 def predict_ticker(ticker: str, serie: pd.Series, context: dict = None) -> dict:
@@ -253,25 +373,40 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None) -> dict:
         gb5,  conf_gb5  = _gradient_boosting(arr, 5,  context=context)
         gb21, conf_gb21 = _gradient_boosting(arr, 21, context=context)
 
-        # ── Ensemble ponderado por confianza
-        def ensemble(hw, c_hw, gb, c_gb):
-            total = c_hw + c_gb
-            if total < 1e-6:
-                return (hw + gb) / 2, max(c_hw, c_gb)
-            val = (hw * c_hw + gb * c_gb) / total
-            conf = (c_hw + c_gb) / 2
-            # Bonus si coinciden en dirección
-            if (hw >= 0) == (gb >= 0):
+        # ── Modelo 3: Random Forest (mejora 2.4 — diversidad real vs GBR)
+        rf5,  conf_rf5  = _random_forest(arr, 5,  context=context)
+        rf21, conf_rf21 = _random_forest(arr, 21, context=context)
+
+        # ── Modelo 4: Baseline lineal (mejora 2.4 — control de cordura/overfitting)
+        ln5,  conf_ln5  = _linear_baseline(arr, 5,  context=context)
+        ln21, conf_ln21 = _linear_baseline(arr, 21, context=context)
+
+        # ── Ensemble ponderado por confianza (generalizado a N modelos)
+        def ensemble(*pairs):
+            """pairs: lista de (valor, confianza). Promedio ponderado por
+            confianza + bonus si la mayoría coincide en dirección."""
+            total_c = sum(c for _, c in pairs)
+            if total_c < 1e-6:
+                vals = [v for v, _ in pairs]
+                return sum(vals) / len(vals), max(c for _, c in pairs)
+            val = sum(v * c for v, c in pairs) / total_c
+            conf = total_c / len(pairs)
+            n_pos = sum(1 for v, _ in pairs if v >= 0)
+            n_neg = len(pairs) - n_pos
+            # Bonus si la mayoría (no necesariamente todos) coincide en dirección
+            if max(n_pos, n_neg) >= len(pairs) - 1 and len(pairs) > 1:
                 conf = min(0.95, conf * 1.10)
             return val, conf
 
-        p5,  c5  = ensemble(hw5,  conf_hw5,  gb5,  conf_gb5)
-        p21, c21 = ensemble(hw21, conf_hw21, gb21, conf_gb21)
+        p5,  c5  = ensemble((hw5, conf_hw5), (gb5, conf_gb5), (rf5, conf_rf5), (ln5, conf_ln5))
+        p21, c21 = ensemble((hw21, conf_hw21), (gb21, conf_gb21), (rf21, conf_rf21), (ln21, conf_ln21))
 
         # pred_10d: predicción real a 10d (no interpolación)
         gb10, conf_gb10 = _gradient_boosting(arr, 10, context=context)
         hw10, conf_hw10 = _holt_winters(arr, 10)
-        p10, c10 = ensemble(hw10, conf_hw10, gb10, conf_gb10)
+        rf10, conf_rf10 = _random_forest(arr, 10, context=context)
+        ln10, conf_ln10 = _linear_baseline(arr, 10, context=context)
+        p10, c10 = ensemble((hw10, conf_hw10), (gb10, conf_gb10), (rf10, conf_rf10), (ln10, conf_ln10))
 
         # Target precio a 21d
         target = round(price_last * (1 + p21 / 100), 2)
