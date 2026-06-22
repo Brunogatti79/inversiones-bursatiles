@@ -409,7 +409,22 @@ def generate_dashboard(
     bt_acc = _pred.get("directional_accuracy")
     bt_ev_str  = f"{bt_ev:+.1f}%" if bt_ev is not None else "—"
     bt_acc_str = f"{bt_acc:.0%}"  if bt_acc is not None else "—"
- 
+
+    # ── Registro de Oportunidades (para medir efectividad real del proyecto) ──
+    try:
+        from src.opportunities_log import log_opportunities
+        _index_snapshot = {
+            "MERVAL":  {"actual": m_act, "ret_dia": m_day, "ret_anual": m_ret},
+            "BOVESPA": {"actual": b_act, "ret_dia": b_day, "ret_anual": b_ret},
+            "SP500":   {"actual": s_act, "ret_dia": s_day, "ret_anual": s_ret},
+        }
+        _cross_market_snapshot = {
+            "regime": cm_regime, "sp500_trend": cm_sp_trend, "sp500_trend_score": cm_sp_score,
+        }
+        log_opportunities(fichas, signals, _index_snapshot, _cross_market_snapshot)
+    except Exception as _e_oplog:
+        logger.warning(f"No se pudo registrar opportunities_log: {_e_oplog}")
+
     html = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
