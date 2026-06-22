@@ -430,6 +430,123 @@ def _normalize(valor, peor, mejor):
     if mejor == peor or valor is None:
         return 50.0
     return max(0.0, min(100.0, (valor - peor) / (mejor - peor) * 100.0))
+
+
+RAW_HISTORY_PATH = "data/macro_raw_history.json"
+MIN_OBS_FOR_PERCENTILE = 60  # ~2 meses de runs diarios antes de confiar en percentil real sobre rango fijo
+
+
+def _normalize_adaptive(range_key, valor, peor, mejor, raw_history):
+    """
+    Mejora 2.1: normalización macro con percentil rolling sobre historia real,
+    en vez de depender solo de rangos fijos hardcodeados en RANGES (que quedan
+    ciegos a regímenes nuevos — ej. si el EMBI supera el techo calibrado, hoy
+    se clampea a 0/100 en vez de seguir reflejando que está empeorando/mejorando).
+
+    Fallback automático a _normalize() (rango fijo) si hay menos de
+    MIN_OBS_FOR_PERCENTILE observaciones históricas para esta variable — el
+    historial (data/macro_raw_history.json) recién arranca a acumularse desde
+    que se shippeó esto, así que en la práctica usa el fallback por ~2 meses.
+
+    Preserva la MISMA direccionalidad que _normalize(): si mejor >= peor
+    (orden "normal" de la tupla), percentil ascendente; si mejor < peor
+    (orden "invertido"), percentil descendente — para no pisar la lógica de
+    `invert` que cada variable aplica después en compute_macro_scores().
+    """
+    values = [v for v in raw_history.get(range_key, []) if v is not None]
+    if len(values) < MIN_OBS_FOR_PERCENTILE:
+        return _normalize(valor, peor, mejor)
+
+    all_values = values + [valor]
+    n = len(all_values)
+    if mejor >= peor:
+        rank = sum(1 for v in all_values if v <= valor)
+    else:
+        rank = sum(1 for v in all_values if v >= valor)
+    return max(0.0, min(100.0, (rank / n) * 100.0))
+
+
+def _load_raw_history() -> dict:
+    from src.github_persistence import load_json
+    return load_json(RAW_HISTORY_PATH, default={})
+
+
+def _update_raw_history(raw_today: dict):
+    """Agrega el valor crudo de hoy de cada variable macro al historial, para
+    que _normalize_adaptive tenga con qué calcular percentiles reales."""
+    from src.github_persistence import load_json, save_json
+    if not raw_today:
+        return
+    history = load_json(RAW_HISTORY_PATH, default={})
+    for range_key, val in raw_today.items():
+        history.setdefault(range_key, [])
+        history[range_key].append(val)
+        history[range_key] = history[range_key][-1100:]  # ~3 años de runs diarios, cap generoso
+    save_json(RAW_HISTORY_PATH, history, message=f"auto: macro_raw_history {datetime.now().strftime('%Y-%m-%d')}")
+
+
+def bootstrap_fred_history(years: int = 3, api_key: str = None):
+    """
+    Mejora 2.1 (bootstrap): pre-carga `data/macro_raw_history.json` con `years`
+    años de historia real de FRED para las 9 variables de USA (las únicas
+    100% vía API con historia larga disponible — ARG depende de scraping de
+    Ámbito y BRA es mayormente manual, sin backfill histórico fácil acá).
+
+    Sin esto, _normalize_adaptive() recién empieza a usar percentil real
+    después de MIN_OBS_FOR_PERCENTILE (60) corridas diarias — con esto, las
+    9 variables de USA arrancan con percentil real desde el día 1.
+
+    NO se llama automáticamente desde el pipeline — es un comando manual de
+    una sola vez (correr una vez en Railway, o localmente con FRED_API_KEY).
+    Usa observaciones de FRED como están publicadas (mensuales para la
+    mayoría de estas series — no hace falta resolución diaria para un
+    percentil sobre 3 años).
+    """
+    import requests
+    from src.github_persistence import load_json, save_json
+
+    api_key = api_key or os.getenv("FRED_API_KEY", "")
+    if not api_key:
+        logger.warning("[bootstrap_fred_history] Sin FRED_API_KEY, no se puede bootstrapear")
+        return {}
+
+    fred_series_usa = {
+        "usa_fed":  "FEDFUNDS",
+        "usa_cpi":  "CPIAUCSL",
+        "usa_unemp": "UNRATE",
+        "usa_gdp":  "A191RL1Q225SBEA",
+        "usa_conf": "UMCSENT",
+        "usa_pce":  "PCEPILFE",
+        "usa_hy":   "BAMLH0A0HYM2",
+        "usa_dxy":  "DTWEXBGS",
+        # usa_ism (NAPMPI) deliberadamente excluido: su disponibilidad histórica
+        # en FRED es irregular (ver §8.4 de la arquitectura) — mejor no asumir.
+    }
+
+    history = load_json(RAW_HISTORY_PATH, default={})
+    start_date = (datetime.now() - timedelta(days=365 * years)).strftime("%Y-%m-%d")
+
+    for range_key, series_id in fred_series_usa.items():
+        try:
+            url = "https://api.stlouisfed.org/fred/series/observations"
+            params = {
+                "series_id": series_id, "api_key": api_key, "file_type": "json",
+                "observation_start": start_date, "sort_order": "asc",
+            }
+            r = requests.get(url, params=params, timeout=15)
+            if r.status_code != 200:
+                logger.warning(f"[bootstrap_fred_history] {series_id}: HTTP {r.status_code}")
+                continue
+            obs = r.json().get("observations", [])
+            values = [float(o["value"]) for o in obs if o.get("value") not in (None, ".", "")]
+            if values:
+                history[range_key] = values[-1100:]
+                logger.info(f"[bootstrap_fred_history] {range_key} ({series_id}): {len(values)} observaciones cargadas")
+        except Exception as e:
+            logger.warning(f"[bootstrap_fred_history] {range_key} falló: {e}")
+
+    save_json(RAW_HISTORY_PATH, history, message=f"bootstrap: macro_raw_history FRED {years}y")
+    return history
  
  
 def compute_macro_scores(arg_data, bra_data, usa_data):
@@ -439,6 +556,8 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
     """
     timestamp = datetime.now().isoformat()
     detalles = {"ARG": {}, "BRA": {}, "USA": {}}
+    raw_history = _load_raw_history()
+    raw_today = {}
  
     # ── Argentina ──
     arg_scores = []
@@ -457,11 +576,12 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         val = arg_data.get(var_name, {}).get("valor")
         if val is not None:
             peor, mejor = RANGES[range_key]
-            s = _normalize(val, peor, mejor)
+            s = _normalize_adaptive(range_key, val, peor, mejor, raw_history)
             if invert:
                 s = 100.0 - s
             arg_scores.append(s)
             detalles["ARG"][var_name] = {"valor": val, "score": round(s, 1)}
+            raw_today[range_key] = val
  
     arg_macro = round(np.mean(arg_scores), 1) if arg_scores else 42.0
  
@@ -481,11 +601,12 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         val = bra_data.get(var_name, {}).get("valor")
         if val is not None:
             peor, mejor = RANGES[range_key]
-            s = _normalize(val, peor, mejor)
+            s = _normalize_adaptive(range_key, val, peor, mejor, raw_history)
             if invert:
                 s = 100.0 - s
             bra_scores.append(s)
             detalles["BRA"][var_name] = {"valor": val, "score": round(s, 1)}
+            raw_today[range_key] = val
  
     bra_macro = round(np.mean(bra_scores), 1) if bra_scores else 52.0
  
@@ -506,11 +627,12 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         val = usa_data.get(var_name, {}).get("valor")
         if val is not None:
             peor, mejor = RANGES[range_key]
-            s = _normalize(val, peor, mejor)
+            s = _normalize_adaptive(range_key, val, peor, mejor, raw_history)
             if invert:
                 s = 100.0 - s
             usa_scores.append(s)
             detalles["USA"][var_name] = {"valor": val, "score": round(s, 1)}
+            raw_today[range_key] = val
  
     usa_macro = round(np.mean(usa_scores), 1) if usa_scores else 45.0
  
@@ -538,6 +660,7 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         pass
  
     logger.info(f"Macro scores auto: ARG={arg_macro} BRA={bra_macro} USA={usa_macro}")
+    _update_raw_history(raw_today)
     return result
  
  
@@ -550,62 +673,17 @@ HISTORY_PATH = "data/macro_score_history.json"
 GH_REPO_FULL = "Brunogatti79/inversiones-bursatiles"
 
 
-def _push_file_to_github(path, message):
-    """Pushea un archivo de texto/JSON a GitHub via Contents API (GET sha + PUT)."""
-    try:
-        gh_token = os.getenv("GH_TOKEN", "")
-        if not gh_token:
-            return False
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-        b64_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
-        url = f"https://api.github.com/repos/{GH_REPO_FULL}/contents/{path}"
-        headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
-        r = requests.get(url, headers=headers, timeout=10)
-        sha = r.json().get("sha") if r.status_code == 200 else None
-        payload = {"message": message, "content": b64_content}
-        if sha:
-            payload["sha"] = sha
-        r2 = requests.put(url, headers=headers, json=payload, timeout=15)
-        if r2.status_code in (200, 201):
-            logger.info(f"{path} pusheado a GitHub")
-            return True
-        logger.warning(f"Push {path} falló: {r2.status_code} {r2.text[:200]}")
-        return False
-    except Exception as e:
-        logger.warning(f"No se pudo pushear {path} a GitHub: {e}")
-        return False
-
-
 def sync_macro_history_from_github():
     """Descarga macro_score_history.json fresco de GitHub. Llamar al arrancar Railway."""
-    gh_token = os.getenv("GH_TOKEN", "")
-    if not gh_token:
-        return
-    try:
-        url = f"https://api.github.com/repos/{GH_REPO_FULL}/contents/{HISTORY_PATH}"
-        headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            content = base64.b64decode(r.json()["content"]).decode("utf-8")
-            os.makedirs(os.path.dirname(HISTORY_PATH), exist_ok=True)
-            with open(HISTORY_PATH, "w", encoding="utf-8") as f:
-                f.write(content)
-            logger.info("macro_score_history.json sincronizado desde GitHub")
-    except Exception as e:
-        logger.warning(f"No se pudo sincronizar macro_score_history.json: {e}")
+    from src.github_persistence import pull_file
+    pull_file(HISTORY_PATH)
 
 
 def _update_macro_history(macro_scores):
     """Agrega el score macro de hoy al historial (dedupe por fecha) y lo pushea a GitHub."""
+    from src.github_persistence import load_json, save_json
     today = datetime.now().strftime("%Y-%m-%d")
-    history = []
-    try:
-        if os.path.exists(HISTORY_PATH):
-            with open(HISTORY_PATH, "r", encoding="utf-8") as f:
-                history = json.load(f)
-    except Exception:
-        history = []
+    history = load_json(HISTORY_PATH, default=[])
 
     history = [h for h in history if h.get("date") != today]
     history.append({
@@ -617,13 +695,7 @@ def _update_macro_history(macro_scores):
     history.sort(key=lambda h: h.get("date", ""))
     history = history[-90:]  # ~3 meses de historial
 
-    try:
-        os.makedirs(os.path.dirname(HISTORY_PATH), exist_ok=True)
-        with open(HISTORY_PATH, "w", encoding="utf-8") as f:
-            json.dump(history, f, ensure_ascii=False, indent=2)
-        _push_file_to_github(HISTORY_PATH, f"auto: macro_score_history {today}")
-    except Exception as e:
-        logger.warning(f"No se pudo guardar macro_score_history.json: {e}")
+    save_json(HISTORY_PATH, history, message=f"auto: macro_score_history {today}")
 
 
 # ─────────────────────────────────────────────
