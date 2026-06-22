@@ -171,6 +171,27 @@ def _rsi(series: pd.Series, period: int = 14) -> float:
     return float(rsi.iloc[-1]) if len(rsi) >= period else 50.0
  
  
+def _drawdown_from_peak(serie: pd.Series, end_date, days: int) -> float:
+    """
+    Drawdown reciente: distancia % entre el precio actual y el máximo de los
+    últimos `days` días calendario (no los 12 meses completos — eso ya lo
+    cubre dist_max_pct). Mejora 2.3: penaliza activos que acaban de colapsar,
+    que de otro modo pueden parecer "gangas" si el resto de los scores es bueno.
+    """
+    try:
+        window_start = end_date - pd.DateOffset(days=days)
+        w = serie[serie.index >= window_start]
+        if len(w) < 3:
+            return 0.0
+        peak = float(w.max())
+        actual = float(w.iloc[-1])
+        if peak <= 0:
+            return 0.0
+        return round((actual - peak) / peak * 100, 1)
+    except Exception:
+        return 0.0
+
+
 def _momentum(series: pd.Series, period: int = 21) -> float:
     if len(series) < period + 1:
         return 0.0
@@ -470,8 +491,38 @@ def _dist_support_norm(precio, soportes):
         return max(10.0, round(30 - (dist_pct - 10) * 2, 1))
  
  
-def _score_final_v2(asset_quality, entry_score, market="SP500"):
+def _adaptive_aq_es_weights(market: str, vol_score: float = 50.0) -> dict:
+    """
+    Mejora 2.2: ajusta dinámicamente AQ_weight/ES_weight según el régimen de
+    volatilidad real del activo (antes eran fijos por mercado, sin importar
+    si ese ticker puntual está calmo o caótico).
+
+    vol_score alto (≥70) = volatilidad real BAJA → más peso a AQ. La calidad
+    estructural (macro/fundamental/sectorial) importa más en mercados calmos
+    o de tendencia sostenida, donde el timing técnico aporta menos señal.
+
+    vol_score bajo (≤30) = volatilidad real ALTA → más peso a ES. El timing
+    de entrada es más crítico cuando el ruido de precio es alto: una entrada
+    mal cronometrada en un activo caótico te saca del trade por el stop antes
+    de que la tesis de calidad tenga tiempo de jugar a favor.
+
+    Ajuste acotado a ±0.08 para no alejarse demasiado de los pesos base
+    calibrados por mercado (MERVAL/BOVESPA/SP500).
+    """
     w = MARKET_WEIGHTS.get(market, {"aq_weight": 0.50, "es_weight": 0.50})
+    if vol_score >= 70:
+        delta = 0.08
+    elif vol_score <= 30:
+        delta = -0.08
+    else:
+        delta = 0.0
+    aq_w = round(max(0.30, min(0.80, w["aq_weight"] + delta)), 2)
+    es_w = round(1.0 - aq_w, 2)
+    return {"aq_weight": aq_w, "es_weight": es_w}
+
+
+def _score_final_v2(asset_quality, entry_score, market="SP500", vol_score=50.0):
+    w = _adaptive_aq_es_weights(market, vol_score)
     return round(w["aq_weight"] * asset_quality + w["es_weight"] * entry_score, 1)
  
  
@@ -664,6 +715,10 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
  
         s1w = df[df.index >= start_1w][col].dropna()
         ret_sem = float((precio_actual / s1w.iloc[0] - 1) * 100) if len(s1w) >= 2 else 0.0
+
+        # Mejora 2.3: drawdown reciente (distancia al máximo de 30d/90d, no 12m)
+        dd_30d = _drawdown_from_peak(serie, end, 30)
+        dd_90d = _drawdown_from_peak(serie, end, 90)
  
         # Indicadores técnicos base
         rsi = _rsi(serie)
@@ -739,6 +794,15 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         # Penalización mensual adicional
         if mt["monthly_trend"] == "BAJISTA":
             score_final = round(score_final * 0.93, 1)
+        # Mejora 2.3: penalizar drawdown reciente severo (evita "falsas gangas" —
+        # activos que parecen atractivos en el resto de los scores pero acaban
+        # de colapsar en el corto plazo)
+        if dd_30d <= -25:
+            score_final = round(score_final * 0.90, 1)
+        elif dd_30d <= -15:
+            score_final = round(score_final * 0.95, 1)
+        if dd_90d <= -40:
+            score_final = round(score_final * 0.95, 1)
         signal = _score_to_signal(score_final)
         # Alignment score
         align = _timeframe_alignment(signal, wt, mt)
@@ -806,9 +870,10 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         except Exception:
             pass
  
-        sf_v2 = _score_final_v2(aq, es, market)
+        sf_v2 = _score_final_v2(aq, es, market, vol_score)
         sig_v2 = _signal_v2(sf_v2)
         rank_acc = _ranking_accionable(sf_v2, aq, rr_norm, vol_score)
+        v2_w = _adaptive_aq_es_weights(market, vol_score)
  
         # ATR para stops dinámicos
         atr_val = 0.0
@@ -852,6 +917,8 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "ret_anual": round(ret_anual, 2),
             "ret_mes": round(ret_mes, 2),
             "ret_sem": round(ret_sem, 2),
+            "dd_30d": dd_30d,
+            "dd_90d": dd_90d,
             "max_12m": round(max_val, 2),
             "max_12m_date": max_date,
             "min_12m": round(min_val, 2),
@@ -878,6 +945,8 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "dist_max_norm": dist_max_norm,
             "asset_quality": aq,
             "entry_score": es,
+            "aq_weight_used": v2_w["aq_weight"],
+            "es_weight_used": v2_w["es_weight"],
             "score_final_v2": sf_v2,
             "signal_v2": sig_v2,
             "ranking_accionable": rank_acc,
