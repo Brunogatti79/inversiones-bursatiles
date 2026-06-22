@@ -86,7 +86,44 @@ def update_history(signals: list[dict], max_days: int = 60):
         json.dump(history, f, ensure_ascii=False, indent=1)
  
     logger.info(f"Histórico actualizado: {len(history)} días guardados")
+    _push_signals_history_to_github()
     return history
+
+
+def _push_signals_history_to_github():
+    """Pushea signals_history.json a GitHub. Sin esto, backtester.py/weight_optimizer.py
+    nunca acumulan mas de un dia de historia porque Railway redeploya (y borra el
+    filesystem efimero) en cada push automatico del dashboard."""
+    try:
+        import requests as req_lib
+        import base64 as b64
+
+        gh_token = os.environ.get("GH_TOKEN", "")
+        if not gh_token:
+            return
+
+        with open(HISTORY_PATH) as f:
+            content = f.read()
+
+        b64_content = b64.b64encode(content.encode()).decode()
+        repo = "Brunogatti79/inversiones-bursatiles"
+        url  = f"https://api.github.com/repos/{repo}/contents/{HISTORY_PATH}"
+        headers = {"Authorization": f"token {gh_token}", "Content-Type": "application/json"}
+
+        r = req_lib.get(url, headers=headers, timeout=10)
+        sha = r.json().get("sha", "") if r.ok else ""
+
+        payload = {
+            "message": f"auto: signals_history {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            "content": b64_content
+        }
+        if sha:
+            payload["sha"] = sha
+
+        req_lib.put(url, json=payload, headers=headers, timeout=20)
+        logger.info("signals_history.json pusheado a GitHub")
+    except Exception as e:
+        logger.warning(f"No se pudo pushear signals_history.json: {e}")
  
  
 def compute_accuracy(history: dict) -> dict:
