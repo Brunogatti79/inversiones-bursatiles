@@ -98,8 +98,33 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
     with open(RESULTS_PATH, "w") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
 
+    _push_backtest_to_github()
     _log_summary(results)
     return results
+
+
+def _push_backtest_to_github():
+    """Pushea backtest_results.json a GitHub (filesystem de Railway es efímero)."""
+    try:
+        import requests as _req, base64 as _b64
+        gh_token = os.environ.get("GH_TOKEN", "")
+        if not gh_token:
+            return
+        with open(RESULTS_PATH) as f:
+            content = f.read()
+        b64_content = _b64.b64encode(content.encode()).decode()
+        repo = "Brunogatti79/inversiones-bursatiles"
+        url  = f"https://api.github.com/repos/{repo}/contents/{RESULTS_PATH}"
+        headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
+        r = _req.get(url, headers=headers, timeout=10)
+        sha = r.json().get("sha", "") if r.ok else ""
+        payload = {"message": f"auto: backtest_results {datetime.now().strftime('%Y-%m-%d %H:%M')}", "content": b64_content}
+        if sha:
+            payload["sha"] = sha
+        _req.put(url, json=payload, headers=headers, timeout=15)
+        logger.info("backtest_results.json pusheado a GitHub")
+    except Exception as e:
+        logger.warning(f"No se pudo pushear backtest_results.json: {e}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
