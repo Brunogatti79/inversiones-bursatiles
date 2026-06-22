@@ -150,6 +150,7 @@ def run_pipeline():
         # 2. CARGAR MODELO MACRO + FUNDAMENTAL
         logger.info("2/8 Cargando modelo macro y fundamental...")
         # Intentar macro automático primero, fallback a xlsx
+        macro_auto = None
         try:
             macro_auto = fetch_all_macro()
             if macro_auto and macro_auto.get("macro_scores"):
@@ -401,9 +402,9 @@ def run_pipeline():
         # Actualizar precios USD del portfolio con precios vigentes + CCL
         try:
             # Obtener BRL/USD desde macro_auto que ya lo calculó
-            _brl_usd = macro_auto_data.get("detalles", {}).get("BOVESPA", {}).get("brl_usd", {}).get("valor", 0) if isinstance(macro_auto_data, dict) else 0
+            _brl_usd = macro_auto.get("detalles", {}).get("BRA", {}).get("brl_usd", {}).get("valor", 0) if isinstance(macro_auto, dict) else 0
             if not _brl_usd or float(_brl_usd) < 3:
-                _brl_usd = float(macro_scores_auto.get("BRL_USD", 0) or 0)
+                _brl_usd = 0
             logger.info(f"BRL/USD pasado a portfolio: {_brl_usd}")
             update_portfolio_usd(all_signals, brl_usd_ext=float(_brl_usd) if _brl_usd else 0.0)
             logger.info("Portfolio USD actualizado correctamente")
