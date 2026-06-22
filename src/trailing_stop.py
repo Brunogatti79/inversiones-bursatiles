@@ -189,22 +189,5 @@ def _get_ccl() -> float:
 
 def _push_to_github():
     """Push portfolio.json a GitHub tras actualizar stops."""
-    try:
-        import requests as req
-        import base64
-        token = os.environ.get("GH_TOKEN", "")
-        if not token:
-            return
-        with open(PORTFOLIO_PATH) as f:
-            content = f.read()
-        b64 = base64.b64encode(content.encode()).decode()
-        url  = "https://api.github.com/repos/Brunogatti79/inversiones-bursatiles/contents/data/portfolio.json"
-        hdrs = {"Authorization": f"token {token}", "Content-Type": "application/json"}
-        r    = req.get(url, headers=hdrs, timeout=10)
-        sha  = r.json().get("sha", "") if r.ok else ""
-        req.put(url, json={
-            "message": f"auto: trailing stops actualizados {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-            "content": b64, "sha": sha
-        }, headers=hdrs, timeout=15)
-    except Exception as e:
-        logger.warning(f"[trailing_stop] Push a GitHub falló: {e}")
+    from src.github_persistence import push_file
+    push_file(PORTFOLIO_PATH, f"auto: trailing stops actualizados {datetime.now().strftime('%Y-%m-%d %H:%M')}")
