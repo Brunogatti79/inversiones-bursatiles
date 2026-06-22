@@ -82,6 +82,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/compra TICKER PRECIO_USD CANTIDAD — Registrar compra (precio en USD/acc)\n"
         "/venta TICKER PRECIO_USD CANTIDAD — Registrar venta (precio en USD/acc)\n"
         "/portfolio — Ver posiciones actuales\n"
+        "/bootstrap_macro — Precarga 3 años de historia FRED (1 sola vez)\n"
         "/help — Esta ayuda\n\n"
         "Ejemplos:\n"
         "<code>/compra GGAL.BA 1.59 100</code>  (precio en USD)\n"
@@ -424,6 +425,39 @@ async def cmd_run(update: Update, context: ContextTypes.DEFAULT_TYPE):
         set_pipeline_running(False)
  
  
+async def cmd_bootstrap_macro(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Precarga data/macro_raw_history.json con ~3 años de historia real de FRED
+    para las 9 variables de USA (mejora 2.1 — normalización macro con
+    percentil rolling). Corre 1 sola vez, no hace falta repetirlo: sin esto,
+    el percentil rolling tarda ~2 meses en acumular suficiente historia por
+    sí solo; con esto arranca con historia real desde el día 1.
+    """
+    await update.message.reply_text(
+        "📊 Bootstrapeando historia macro de FRED (3 años, 9 variables de USA)…\nEsto puede tardar 10-20 segundos.",
+        parse_mode="HTML"
+    )
+
+    import asyncio
+    from src.macro_auto import bootstrap_fred_history
+    try:
+        loop = asyncio.get_event_loop()
+        history = await loop.run_in_executor(None, bootstrap_fred_history)
+        if not history:
+            await update.message.reply_text(
+                "⚠️ No se cargó nada. Verificá que FRED_API_KEY esté configurado en las variables de entorno de Railway."
+            )
+            return
+        resumen = "\n".join(f"  • {k}: {len(v)} obs" for k, v in history.items() if v)
+        await update.message.reply_text(
+            f"✅ Historia macro bootstrapeada y pusheada a GitHub:\n<code>{resumen}</code>",
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.error(f"Error en /bootstrap_macro: {e}")
+        await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
+
+
 # ─────────────────────────────────────────────
 # Inicialización
 # ─────────────────────────────────────────────
@@ -444,6 +478,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("compra",    cmd_compra))
     app.add_handler(CommandHandler("venta",     cmd_venta))
     app.add_handler(CommandHandler("portfolio", cmd_portfolio))
+    app.add_handler(CommandHandler("bootstrap_macro", cmd_bootstrap_macro))
  
     return app
  
