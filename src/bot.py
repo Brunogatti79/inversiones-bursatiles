@@ -65,46 +65,8 @@ def _save_portfolio(portfolio):
  
 def _push_portfolio_to_github():
     """Intenta pushear el portfolio.json actualizado a GitHub."""
-    try:
-        import requests
-        gh_token = os.getenv("GH_TOKEN", "")
-        if not gh_token:
-            logger.warning("GH_TOKEN no disponible, portfolio solo se guardó localmente")
-            return False
- 
-        repo = "Brunogatti79/inversiones-bursatiles"
-        path = "data/portfolio.json"
-        url = f"https://api.github.com/repos/{repo}/contents/{path}"
-        headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
- 
-        # Obtener SHA actual
-        r = requests.get(url, headers=headers)
-        sha = r.json().get("sha", "") if r.status_code == 200 else ""
- 
-        # Leer contenido
-        with open(PORTFOLIO_PATH) as f:
-            content = f.read()
- 
-        import base64
-        encoded = base64.b64encode(content.encode()).decode()
- 
-        data = {
-            "message": f"bot: actualización portfolio {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-            "content": encoded,
-        }
-        if sha:
-            data["sha"] = sha
- 
-        r = requests.put(url, headers=headers, json=data)
-        if r.status_code in (200, 201):
-            logger.info("Portfolio pusheado a GitHub")
-            return True
-        else:
-            logger.warning(f"GitHub push failed: {r.status_code}")
-            return False
-    except Exception as e:
-        logger.warning(f"GitHub push error: {e}")
-        return False
+    from src.github_persistence import push_file
+    return push_file(PORTFOLIO_PATH, f"bot: actualización portfolio {datetime.now().strftime('%Y-%m-%d %H:%M')}")
  
  
 # ─────────────────────────────────────────────
