@@ -264,15 +264,38 @@ def _covariance_adjustment(
 
         R   = np.array(rets_matrix)          # shape: (n_valid, 60)
         cov = np.cov(R)                       # covarianza 60d
+        if cov.ndim == 0:  # caso n_valid==1 ya cubierto arriba, pero por si acaso
+            return [1.0 / n] * n
 
         # Regularización (Ledoit-Wolf simplificado): shrink toward diagonal
         diag   = np.diag(np.diag(cov))
         cov_s  = 0.7 * cov + 0.3 * diag     # shrinkage factor
 
-        # Risk contribution mínimo: w ∝ 1 / (diagonal de cov) → similar a risk parity
-        # pero respeta correlaciones vía shrinkage
-        diag_inv = 1.0 / np.maximum(np.diag(cov_s), 1e-10)
-        w_raw    = diag_inv / diag_inv.sum()
+        # Minimum-variance weights: w ∝ inv(Σ)·1 — a diferencia de usar solo
+        # la diagonal (= inverse-variance puro, ignora correlación por completo),
+        # esto SÍ penaliza pares de activos correlacionados: dos posiciones con
+        # alta correlación positiva reciben menos peso conjunto que si fueran
+        # independientes, porque inv(Σ) captura la covarianza cruzada, no solo
+        # la varianza individual. (Mejora 4.1 — antes esta función calculaba cov_s
+        # con shrinkage pero solo usaba np.diag(cov_s), que es matemáticamente
+        # idéntico a np.diag(cov) sin shrinkage: la correlación se calculaba y
+        # se descartaba sin afectar el resultado.)
+        try:
+            ones = np.ones(len(valid_idx))
+            inv_cov = np.linalg.pinv(cov_s)  # pseudo-inversa: más robusta que inv() si está mal condicionada
+            w_raw = inv_cov @ ones
+            if np.any(w_raw < 0):
+                # Minimum-variance sin restricciones puede dar pesos negativos
+                # (posiciones "short" implícitas) — no aplica para un portfolio
+                # long-only de acciones, así que se clampea a 0 y se renormaliza.
+                w_raw = np.maximum(w_raw, 0)
+            if w_raw.sum() <= 0:
+                raise ValueError("pesos minimum-variance degenerados")
+            w_raw = w_raw / w_raw.sum()
+        except Exception:
+            # Fallback: inverse-variance puro (el comportamiento viejo)
+            diag_inv = 1.0 / np.maximum(np.diag(cov_s), 1e-10)
+            w_raw    = diag_inv / diag_inv.sum()
 
         # Mapear de vuelta a posiciones originales
         weights = [1.0 / n] * n  # fallback para los que no tienen datos
