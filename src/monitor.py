@@ -285,23 +285,5 @@ def _save_health(health: dict):
 
 def _push_health_to_github():
     """Pushea health_metrics.json a GitHub (el filesystem de Railway es efímero)."""
-    try:
-        import requests as _req, base64 as _b64
-        gh_token = os.environ.get("GH_TOKEN", "")
-        if not gh_token:
-            return
-        with open(HEALTH_PATH) as f:
-            content = f.read()
-        b64_content = _b64.b64encode(content.encode()).decode()
-        repo = "Brunogatti79/inversiones-bursatiles"
-        url  = f"https://api.github.com/repos/{repo}/contents/{HEALTH_PATH}"
-        headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
-        r = _req.get(url, headers=headers, timeout=10)
-        sha = r.json().get("sha", "") if r.ok else ""
-        payload = {"message": f"auto: health_metrics {datetime.now().strftime('%Y-%m-%d %H:%M')}", "content": b64_content}
-        if sha:
-            payload["sha"] = sha
-        _req.put(url, json=payload, headers=headers, timeout=15)
-        logger.info("health_metrics.json pusheado a GitHub")
-    except Exception as e:
-        logger.warning(f"No se pudo pushear health_metrics.json: {e}")
+    from src.github_persistence import push_file
+    push_file(HEALTH_PATH, f"auto: health_metrics {datetime.now().strftime('%Y-%m-%d %H:%M')}")
