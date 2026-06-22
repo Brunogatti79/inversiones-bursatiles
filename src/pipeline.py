@@ -27,7 +27,7 @@ from src.tracker        import update_history, compute_accuracy
 from src.backtester     import run_backtest
 from src.cross_market   import compute_cross_market_context
 from src.exit_model     import enrich_exit_levels
-from src.weight_optimizer    import run_weight_optimization
+from src.weight_optimizer    import run_weight_optimization, load_optimized_weights, apply_optimized_weights
 from src.monitor             import update_health_metrics
 from src.historical_replay   import run_historical_replay
 from src.volatility_regime   import compute_volatility_regime
@@ -35,7 +35,6 @@ from src.confidence_score    import enrich_confidence_scores
 from src.trailing_stop       import apply_trailing_stops
 from src.predictor_health    import compute_predictor_health, apply_health_to_signals
 from src.portfolio_optimizer import optimize_portfolio_allocation
-from src.optimizer      import run_optimization, load_optimized_weights, apply_optimized_weights
  
 logger = logging.getLogger(__name__)
  
@@ -358,10 +357,12 @@ def run_pipeline():
 
         # ── BACKTEST (Fase 0) ──────────────────────────────────────────────────
         try:
-            run_backtest(
+            bt_results = run_backtest(
                 price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
                 ticker_cols=ticker_cols,
             )
+            from src.model_version import log_model_run
+            log_model_run(bt_results)
         except Exception as e_bt:
             logger.warning(f"Backtester no crítico — continuando: {e_bt}")
         # ──────────────────────────────────────────────────────────────────────
