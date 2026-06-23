@@ -379,8 +379,18 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None) -> dict:
         gb21, conf_gb21 = _gradient_boosting(arr, 21, context=context)
 
         # ── Modelo 3: Random Forest (mejora 2.4 — diversidad real vs GBR)
-        rf5,  conf_rf5  = _random_forest(arr, 5,  context=context)
-        rf21, conf_rf21 = _random_forest(arr, 21, context=context)
+        # DESACTIVADO TEMPORALMENTE (incidente 23/06/2026): es el modelo más
+        # pesado en CPU/memoria de los 4 — candidato principal a estar
+        # provocando que Railway mate el contenedor a mitad de la corrida
+        # (sin excepción de Python, sin notificación — consistente con OOM).
+        # Reactivar con env var ENABLE_RF_PREDICTOR=true una vez confirmado
+        # que el contenedor soporta la carga (ver Metrics de memoria en Railway).
+        if os.getenv("ENABLE_RF_PREDICTOR", "false").lower() == "true":
+            rf5,  conf_rf5  = _random_forest(arr, 5,  context=context)
+            rf21, conf_rf21 = _random_forest(arr, 21, context=context)
+        else:
+            rf5,  conf_rf5  = 0.0, 0.0
+            rf21, conf_rf21 = 0.0, 0.0
 
         # ── Modelo 4: Baseline lineal (mejora 2.4 — control de cordura/overfitting)
         ln5,  conf_ln5  = _linear_baseline(arr, 5,  context=context)
@@ -388,8 +398,10 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None) -> dict:
 
         # ── Ensemble ponderado por confianza (generalizado a N modelos)
         def ensemble(*pairs):
-            """pairs: lista de (valor, confianza). Promedio ponderado por
-            confianza + bonus si la mayoría coincide en dirección."""
+            """pairs: lista de (valor, confianza). Ignora automáticamente los
+            modelos con confianza 0 (ej. RF desactivado). Promedio ponderado
+            por confianza + bonus si la mayoría coincide en dirección."""
+            pairs = [(v, c) for v, c in pairs if c > 0] or [(0.0, 0.3)]
             total_c = sum(c for _, c in pairs)
             if total_c < 1e-6:
                 vals = [v for v, _ in pairs]
@@ -409,7 +421,10 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None) -> dict:
         # pred_10d: predicción real a 10d (no interpolación)
         gb10, conf_gb10 = _gradient_boosting(arr, 10, context=context)
         hw10, conf_hw10 = _holt_winters(arr, 10)
-        rf10, conf_rf10 = _random_forest(arr, 10, context=context)
+        if os.getenv("ENABLE_RF_PREDICTOR", "false").lower() == "true":
+            rf10, conf_rf10 = _random_forest(arr, 10, context=context)
+        else:
+            rf10, conf_rf10 = 0.0, 0.0
         ln10, conf_ln10 = _linear_baseline(arr, 10, context=context)
         p10, c10 = ensemble((hw10, conf_hw10), (gb10, conf_gb10), (rf10, conf_rf10), (ln10, conf_ln10))
 
