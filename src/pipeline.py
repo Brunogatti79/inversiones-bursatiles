@@ -244,6 +244,7 @@ def run_pipeline():
         # ─────────────────────────────────────────────────────────────────────
 
         # 3. ANÁLISIS
+        logger.info(f"Predictor ensemble: Random Forest {'ACTIVADO' if os.getenv('ENABLE_RF_PREDICTOR','false').lower()=='true' else 'DESACTIVADO'} (ENABLE_RF_PREDICTOR)")
         logger.info("3/8 Calculando señales...")
 
         signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS,
