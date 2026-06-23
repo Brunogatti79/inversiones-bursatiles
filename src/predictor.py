@@ -227,6 +227,12 @@ def _random_forest(serie: np.ndarray, horizon: int, context: dict = None) -> tup
     y RF cometen errores correlacionados con menos frecuencia que dos
     variantes del mismo método, lo que reduce el riesgo de que el ensemble
     entero se equivoque junto en el mismo escenario.
+
+    Nota de performance (incidente 23/06/2026): usa oob_score (nativo de
+    RandomForest, gratis durante el fit) en vez de cross_val_score — evita
+    3 fits adicionales por llamada. Con ~67 tickers × 3 horizontes, eso son
+    ~600 fits de RF menos por corrida del pipeline.
+
     Retorna (forecast_pct_change, confidence 0-1).
     """
     n = len(serie)
@@ -235,7 +241,6 @@ def _random_forest(serie: np.ndarray, horizon: int, context: dict = None) -> tup
 
     try:
         from sklearn.ensemble import RandomForestRegressor
-        from sklearn.model_selection import cross_val_score
 
         X, s = _build_features(serie, context)
         if X is None:
@@ -256,8 +261,8 @@ def _random_forest(serie: np.ndarray, horizon: int, context: dict = None) -> tup
             return 0.0, 0.35
 
         rf = RandomForestRegressor(
-            n_estimators=100, max_depth=4, min_samples_leaf=5,
-            random_state=42, n_jobs=1,
+            n_estimators=50, max_depth=4, min_samples_leaf=5,
+            random_state=42, n_jobs=1, oob_score=True, bootstrap=True,
         )
         rf.fit(X_train, y_train)
 
@@ -265,10 +270,10 @@ def _random_forest(serie: np.ndarray, horizon: int, context: dict = None) -> tup
         pred_pct = float(rf.predict(x_last)[0]) * 100
 
         try:
-            scores = cross_val_score(rf, X_train, y_train, cv=3,
-                                     scoring="neg_mean_absolute_error")
-            mae = -float(scores.mean())
-            conf = max(0.4, min(0.85, 0.82 - mae * 8))
+            # oob_score_ es R² sobre las muestras out-of-bag — gratis, no
+            # requiere fits adicionales (a diferencia de cross_val_score)
+            r2 = max(0.0, min(1.0, rf.oob_score_))
+            conf = max(0.4, min(0.85, 0.45 + r2 * 0.40))
         except Exception:
             conf = 0.48
 
