@@ -158,6 +158,15 @@ def append_by_date(path: str, date_key: str, records, max_days: int = 60, messag
 
 def sync_all_at_startup(filenames: list[str]):
     """Llamar una vez al arrancar Railway (start_server.py) para repoblar
-    data/ con todo lo que sobrevive entre redeploys."""
-    for filename in filenames:
-        pull_file(f"data/{filename}" if not filename.startswith("data/") else filename)
+    data/ con todo lo que sobrevive entre redeploys.
+
+    Paralelizado (incidente 23/06/2026): con 11 archivos y timeout de 10s cada
+    uno, la versión secuencial podía bloquear hasta ~110s antes de levantar
+    el servidor HTTP — alargando la ventana en la que la instancia vieja y la
+    nueva de Railway corren en simultáneo en cada redeploy, lo que agravaba
+    el conflicto de "terminated by other getUpdates request" del bot de
+    Telegram (dos instancias polleando a la vez)."""
+    import concurrent.futures
+    paths = [f"data/{f}" if not f.startswith("data/") else f for f in filenames]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(paths) or 1) as ex:
+        list(ex.map(pull_file, paths))
