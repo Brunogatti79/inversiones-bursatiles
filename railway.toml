@@ -1,6 +1,7 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+watchPatterns = ["src/**", "*.py", "Dockerfile", "requirements.txt", "railway.toml"]
 
 [deploy]
 startCommand = "python start_server.py"
