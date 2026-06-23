@@ -1,0 +1,31 @@
+{
+  "version": "4.2",
+  "changelog": [
+    {
+      "version": "4.2",
+      "date": "2026-06-22",
+      "changes": [
+        "Fix CRÍTICO (1.3): optimizer.py tenía load_optimized_weights() roto (buscaba data['weights'], clave que run_weight_optimization() nunca escribió) — los pesos optimizados se calculaban y guardaban bien pero NUNCA se aplicaban al analyzer. Consolidado en weight_optimizer.py, optimizer.py eliminado.",
+        "Fix (4.1): portfolio_optimizer._covariance_adjustment() calculaba la matriz de covarianza con shrinkage pero solo usaba la diagonal (= inverse-variance puro, ignoraba la correlación por completo). Ahora usa minimum-variance real (w ∝ inv(Σ)·1) — activos correlacionados reciben menos peso conjunto.",
+        "Feat (2.1): normalización macro con percentil rolling sobre historia real (data/macro_raw_history.json), con fallback automático a rangos fijos mientras no haya ≥60 observaciones. Incluye bootstrap manual vía FRED histórico para las 9 variables de USA.",
+        "Feat (2.2): AQ_weight/ES_weight de V2 ahora se ajustan dinámicamente por régimen de volatilidad del activo (antes fijos por mercado).",
+        "Feat (2.3): nuevo feature de drawdown reciente (30d/90d) — penaliza activos que acaban de colapsar en el corto plazo, antes podían parecer 'gangas'.",
+        "Feat (2.4): predictor ensemble pasa de 2 a 4 modelos (Holt-Winters + Gradient Boosting + Random Forest + Ridge linear baseline). Trade-off conocido: ~25-30% más tiempo de cómputo en predictor.py por la adición de Random Forest.",
+        "Feat (4.2): stop dinámico ahora también escala por fuerza de señal V2 (señal fuerte → stop más holgado, señal débil → stop más ajustado), además de mercado/volatilidad/régimen.",
+        "Feat (1.1): persistencia unificada en github_persistence.py — reemplaza 8 implementaciones duplicadas del patrón GET-sha/PUT (tracker, monitor, backtester, macro_auto, opportunities_log, trailing_stop, bot, start_server).",
+        "Feat (1.2): este módulo (model_version.py) — versionado + tracking de performance por versión, para poder atribuir cambios en backtest_results.json a un cambio de código concreto."
+      ]
+    },
+    {
+      "version": "4.1",
+      "date": "2026-06-22",
+      "changes": [
+        "Fix: TAMAR (ARG) en vivo vía BCRA en vez de valor fijo congelado desde mayo.",
+        "Fix: eliminado fallback ISM→MANEMP (unidades incompatibles, distorsionaba el score macro USA).",
+        "Fix: BRL/USD del portfolio usaba dos variables inexistentes (NameError silencioso atrapado por except genérico) — update_portfolio_usd nunca corría con BRL/USD real.",
+        "Fix: signals_history.json no se persistía a GitHub — backtester/weight_optimizer nunca acumulaban más de ~1 día de historia real entre redeploys.",
+        "Nuevo: opportunities_log.py registra y evalúa efectividad real de las Oportunidades mostradas en el dashboard."
+      ]
+    }
+  ]
+}
