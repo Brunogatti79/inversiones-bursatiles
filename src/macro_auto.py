@@ -558,6 +558,54 @@ def bootstrap_fred_history(years: int = 3, api_key: str = None):
     return history
  
  
+def _compute_market_confidence(range_keys_used, raw_history, n_expected=9):
+    """
+    Mejora 2.4: confidence del macro_score por mercado.
+
+    El score macro de ARG/BRA y el de USA no son comparables en confiabilidad:
+    USA tiene bootstrap de 3 años desde FRED (bootstrap_fred_history) y arranca
+    usando percentil real desde el día 1, mientras que ARG depende de scraping
+    de Ámbito y BRA es mayormente manual (xlsx) — sin historia previa cargada,
+    ambos dependen del fallback de rango fijo en _normalize_adaptive hasta
+    acumular MIN_OBS_FOR_PERCENTILE observaciones reales propias.
+
+    Combina dos señales (50/50):
+      - cobertura: variables que devolvieron valor hoy / variables esperadas (9)
+      - calidad de normalización: de las que devolvieron valor, cuántas ya
+        tienen suficiente historia real para usar percentil rolling en vez
+        de rango fijo hardcodeado
+
+    No modifica ningún score macro existente — es un campo adicional de
+    transparencia, pensado para alimentar confidence_score.py (global) y,
+    más adelante, un indicador en el dashboard.
+    """
+    n_obtenidas = len(range_keys_used)
+    coverage = (n_obtenidas / n_expected) if n_expected else 0.0
+
+    n_adaptive = sum(
+        1 for rk in range_keys_used
+        if len([v for v in raw_history.get(rk, []) if v is not None]) >= MIN_OBS_FOR_PERCENTILE
+    )
+    adaptive_ratio = (n_adaptive / n_obtenidas) if n_obtenidas else 0.0
+
+    score = round((coverage * 0.5 + adaptive_ratio * 0.5) * 100, 1)
+    if score >= 75:
+        label = "ALTA"
+    elif score >= 45:
+        label = "MEDIA"
+    else:
+        label = "BAJA"
+
+    return {
+        "score": score,
+        "label": label,
+        "variables_esperadas": n_expected,
+        "variables_obtenidas": n_obtenidas,
+        "variables_con_percentil_real": n_adaptive,
+        "variables_con_rango_fijo": n_obtenidas - n_adaptive,
+    }
+
+
 def compute_macro_scores(arg_data, bra_data, usa_data):
     """
     Calcula scores macro normalizados por país.
@@ -570,6 +618,7 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
  
     # ── Argentina ──
     arg_scores = []
+    arg_range_keys = []
     vars_arg = [
         ("tasa_tamar",  "arg_tasa",     True),   # menor es mejor
         ("riesgo_pais", "arg_riesgo",   True),
@@ -589,6 +638,7 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
             if invert:
                 s = 100.0 - s
             arg_scores.append(s)
+            arg_range_keys.append(range_key)
             detalles["ARG"][var_name] = {"valor": val, "score": round(s, 1)}
             raw_today[range_key] = val
  
@@ -596,6 +646,7 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
  
     # ── Brasil ──
     bra_scores = []
+    bra_range_keys = []
     vars_bra = [
         ("selic",       "bra_selic",     True),
         ("riesgo_pais", "bra_riesgo",    True),
@@ -614,6 +665,7 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
             if invert:
                 s = 100.0 - s
             bra_scores.append(s)
+            bra_range_keys.append(range_key)
             detalles["BRA"][var_name] = {"valor": val, "score": round(s, 1)}
             raw_today[range_key] = val
  
@@ -621,6 +673,7 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
  
     # ── USA ──
     usa_scores = []
+    usa_range_keys = []
     vars_usa = [
         ("fed_funds",    "usa_fed",    True),
         ("cpi",          "usa_cpi",    True),
@@ -640,17 +693,25 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
             if invert:
                 s = 100.0 - s
             usa_scores.append(s)
+            usa_range_keys.append(range_key)
             detalles["USA"][var_name] = {"valor": val, "score": round(s, 1)}
             raw_today[range_key] = val
  
     usa_macro = round(np.mean(usa_scores), 1) if usa_scores else 45.0
- 
+
+    macro_confidence = {
+        "MERVAL": _compute_market_confidence(arg_range_keys, raw_history),
+        "BOVESPA": _compute_market_confidence(bra_range_keys, raw_history),
+        "SP500": _compute_market_confidence(usa_range_keys, raw_history),
+    }
+
     result = {
         "macro_scores": {
             "MERVAL": arg_macro,
             "BOVESPA": bra_macro,
             "SP500": usa_macro,
         },
+        "macro_confidence": macro_confidence,
         "timestamp": timestamp,
         "variables_obtenidas": {
             "ARG": len(arg_scores),
@@ -668,7 +729,11 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
     except Exception:
         pass
  
-    logger.info(f"Macro scores auto: ARG={arg_macro} BRA={bra_macro} USA={usa_macro}")
+    logger.info(
+        f"Macro scores auto: ARG={arg_macro} (conf={macro_confidence['MERVAL']['label']}) "
+        f"BRA={bra_macro} (conf={macro_confidence['BOVESPA']['label']}) "
+        f"USA={usa_macro} (conf={macro_confidence['SP500']['label']})"
+    )
     _update_raw_history(raw_today)
     return result
  
@@ -688,19 +753,29 @@ def sync_macro_history_from_github():
     pull_file(HISTORY_PATH)
 
 
-def _update_macro_history(macro_scores):
-    """Agrega el score macro de hoy al historial (dedupe por fecha) y lo pushea a GitHub."""
+def _update_macro_history(macro_scores, macro_confidence=None):
+    """Agrega el score macro de hoy al historial (dedupe por fecha) y lo pushea a GitHub.
+
+    macro_confidence es opcional (compatibilidad hacia atrás con llamadas viejas)
+    para no romper si algún caller no lo pasa."""
     from src.github_persistence import load_json, save_json
     today = datetime.now().strftime("%Y-%m-%d")
     history = load_json(HISTORY_PATH, default=[])
+    macro_confidence = macro_confidence or {}
 
     history = [h for h in history if h.get("date") != today]
-    history.append({
+    entry = {
         "date": today,
         "MERVAL": macro_scores.get("MERVAL"),
         "BOVESPA": macro_scores.get("BOVESPA"),
         "SP500": macro_scores.get("SP500"),
-    })
+    }
+    if macro_confidence:
+        entry["confidence"] = {
+            mkt: macro_confidence[mkt].get("label")
+            for mkt in ("MERVAL", "BOVESPA", "SP500") if mkt in macro_confidence
+        }
+    history.append(entry)
     history.sort(key=lambda h: h.get("date", ""))
     history = history[-90:]  # ~3 meses de historial
 
@@ -818,13 +893,14 @@ def fetch_all_macro():
 
     # Acumular historial de scores macro (para delta semanal en el dashboard)
     try:
-        _update_macro_history(result["macro_scores"])
+        _update_macro_history(result["macro_scores"], result.get("macro_confidence"))
     except Exception as e:
         logger.warning(f"[macro_auto] No se pudo actualizar macro_score_history: {e}")
  
     # Formato compatible con lo que espera pipeline/analyzer
     return {
         "macro_scores": result["macro_scores"],
+        "macro_confidence": result.get("macro_confidence", {}),
         "macro_timestamp": result["timestamp"],
         "macro_auto": True,
         "detalles": result["detalles"],
@@ -839,6 +915,7 @@ def get_cached_macro():
                 cached = json.load(f)
             return {
                 "macro_scores": cached["macro_scores"],
+                "macro_confidence": cached.get("macro_confidence", {}),
                 "macro_timestamp": cached["timestamp"],
                 "macro_auto": True,
             }

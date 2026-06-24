@@ -155,6 +155,7 @@ def run_pipeline():
             if macro_auto and macro_auto.get("macro_scores"):
                 xlsx_signals = load_xlsx_signals(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")
                 xlsx_signals["macro_scores"] = macro_auto["macro_scores"]
+                xlsx_signals["macro_confidence"] = macro_auto.get("macro_confidence", {})
                 logger.info(f"Macro AUTO: {macro_auto['macro_scores']}")
             else:
                 raise ValueError("Macro auto sin datos")
