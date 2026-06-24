@@ -134,6 +134,46 @@ class TestHardTriggers:
         # tiene que ser porque el score ponderado cayó, no por el trigger duro.
         assert not any("quality_check encontró" in r for r in result["kill_switch_reasons"])
 
+    def test_v1_v2_disagreement_alone_does_not_force_kill_switch(self):
+        """Regresión de un caso real de producción (primera corrida con esto
+        activo, 24/06/2026): 8/67 tickers tuvieron V1=COMPRA vs V2=VENTA
+        PARCIAL (o viceversa). Eso es 'criticas'=8 (>= MIN_CRITICAL_FOR_KILL),
+        pero NINGUNO es un error de datos -- V1 y V2 están diseñados para
+        poder discrepar (ver Consenso V1/V2 en la doc de arquitectura). El
+        kill switch se activó igual ese día porque el trigger duro usaba
+        'criticas' a secas en vez de 'criticas_estructurales'. Este test fija
+        que, con 0 críticas estructurales reales, el desacuerdo V1/V2 por sí
+        solo -- sin importar cuántos tickers lo tengan -- no dispare el
+        trigger duro."""
+        inputs = _healthy_inputs()
+        inputs["quality_resumen"] = {
+            "ok": 59, "criticas": 8, "criticas_estructurales": 0, "advertencias": 0,
+        }
+        result = compute_global_confidence(**inputs)
+        assert not any("quality_check encontró" in r for r in result["kill_switch_reasons"])
+
+    def test_structural_criticas_above_threshold_still_forces_kill_switch(self):
+        """Contraparte del test anterior: si las críticas SÍ son
+        estructurales (precio inválido, índice sin datos), el trigger duro
+        tiene que seguir funcionando."""
+        inputs = _healthy_inputs()
+        inputs["quality_resumen"] = {
+            "ok": 50, "criticas": MIN_CRITICAL_FOR_KILL,
+            "criticas_estructurales": MIN_CRITICAL_FOR_KILL, "advertencias": 0,
+        }
+        result = compute_global_confidence(**inputs)
+        assert result["kill_switch_active"] is True
+        assert any("estructurales" in r for r in result["kill_switch_reasons"])
+
+    def test_missing_criticas_estructurales_field_falls_back_to_criticas(self):
+        """Compatibilidad con resumenes viejos (sin el campo nuevo) o tests
+        que no lo seteen explícitamente: debe caer al comportamiento
+        anterior (más conservador), no romper ni ignorar todo silenciosamente."""
+        inputs = _healthy_inputs()
+        inputs["quality_resumen"] = {"ok": 55, "criticas": MIN_CRITICAL_FOR_KILL, "advertencias": 0}
+        result = compute_global_confidence(**inputs)
+        assert result["kill_switch_active"] is True
+
 
 class TestWeightedThresholdTrigger:
 

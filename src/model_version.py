@@ -44,11 +44,23 @@ CHANGELOG = [
             "es_weight_used (peso dinámico AQ vs ES por mercado, para auditar "
             "weight_optimizer después del hecho) y consenso (si V1/V2 coincidieron) "
             "— estaban en la señal en vivo de analyzer.py pero no en el historial.",
-            "Tests: +7 archivos / +67 tests (de 99 a 166) con foco en watchPatterns, "
-            "github_persistence (retry/sha/backoff), toggle ENABLE_RF_PREDICTOR, "
-            "contrato de sync al arrancar, y todo lo de este changelog. Incluye fix de "
-            "un test preexistente (test_weight_optimizer.py) con timestamp hardcodeado "
-            "que ya había cruzado el umbral de staleness de 7 días.",
+            "Fix CRÍTICO descubierto en la primera corrida real con esto activo "
+            "(24/06, 14:07 UTC): el kill switch se activó en su primer run de "
+            "producción por 8/67 tickers con V1 vs V2 en desacuerdo (ej. V1=COMPRA / "
+            "V2=VENTA PARCIAL en JNJ, KO, GS, GE, UNH, BAC, JPM) — comportamiento "
+            "ESPERADO del modelo (V1 y V2 miden cosas distintas a propósito), no un "
+            "error de datos, y ninguno de los 8 tenía precio inválido ni otro problema "
+            "estructural real. quality_check.py ahora separa "
+            "resumen['criticas_estructurales'] (precio inválido / índice sin datos) de "
+            "'criticas' (que sigue incluyendo V1vsV2 para el score ponderado, más "
+            "permisivo). El trigger DURO del kill switch usa solo el subconjunto "
+            "estructural; el desacuerdo V1/V2 sigue penalizando un poco el score "
+            "ponderado pero ya no puede gatillar el freno de capital por sí solo.",
+            "Tests: +8 archivos / +70 tests en total para la mejora 4.3 completa "
+            "(de 99 a 169), incluyendo 3 específicos de regresión para el fix del "
+            "kill switch arriba. Incluye además el fix de un test preexistente "
+            "(test_weight_optimizer.py) con timestamp hardcodeado que ya había "
+            "cruzado el umbral de staleness de 7 días.",
         ],
     },
     {

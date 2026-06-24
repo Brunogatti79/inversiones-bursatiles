@@ -244,6 +244,11 @@ def compute_global_confidence(
     # como penalización aditiva en vez de como fracción del total.
     n_ok = quality_resumen.get("ok", 0)
     criticas = quality_resumen.get("criticas", 0)
+    # criticas_estructurales excluye "V1 vs V2 contradicción" (comportamiento
+    # esperado del modelo, no error de datos -- ver quality_check.py). Si el
+    # campo no está (resumen viejo o de un test), cae a `criticas` completo
+    # por compatibilidad, aceptando ser algo más conservador en ese caso.
+    criticas_estructurales = quality_resumen.get("criticas_estructurales", criticas)
     advertencias = quality_resumen.get("advertencias", 0)
     if n_signals > 0:
         clean_ratio = n_ok / n_signals
@@ -289,9 +294,11 @@ def compute_global_confidence(
         hard_triggers.append(
             "data_validator marcó ERROR (datos de mercado corruptos o faltantes)"
         )
-    if criticas >= MIN_CRITICAL_FOR_KILL:
+    if criticas_estructurales >= MIN_CRITICAL_FOR_KILL:
         hard_triggers.append(
-            f"quality_check encontró {criticas} alertas 🔴 críticas (umbral={MIN_CRITICAL_FOR_KILL})"
+            f"quality_check encontró {criticas_estructurales} alertas 🔴 críticas "
+            f"estructurales (precio inválido / índice sin datos; excluye desacuerdo "
+            f"V1/V2, que es comportamiento esperado del modelo) — umbral={MIN_CRITICAL_FOR_KILL}"
         )
 
     kill_switch_active = bool(hard_triggers) or global_score < KILL_SWITCH_THRESHOLD

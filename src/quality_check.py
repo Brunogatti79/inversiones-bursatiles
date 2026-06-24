@@ -23,7 +23,14 @@ def validar_señales(signals: list[dict], index_stats: dict = None) -> dict:
     Retorna dict con alertas por ticker y resumen global.
     """
     alertas = {}  # ticker -> list of alertas
-    resumen = {"total_alertas": 0, "criticas": 0, "advertencias": 0, "ok": 0}
+    resumen = {"total_alertas": 0, "criticas": 0, "criticas_estructurales": 0, "advertencias": 0, "ok": 0}
+    # criticas_estructurales: subconjunto de 'criticas' que excluye "V1 vs V2
+    # contradicción" -- esa contradicción es comportamiento ESPERADO del
+    # modelo (V1 y V2 miden cosas distintas a propósito, ver §4.7/Consenso
+    # en la doc de arquitectura), no un error de datos. Mezclarla con
+    # "Precio inválido" / "Índice sin datos" bajo un solo contador hizo que
+    # el kill switch global se activara en la primera corrida real con 8/67
+    # tickers en simple desacuerdo V1/V2 -- ninguno con datos rotos.
 
     for s in signals:
         ticker = s.get("ticker", "???")
@@ -233,6 +240,8 @@ def validar_señales(signals: list[dict], index_stats: dict = None) -> dict:
             for c in checks:
                 if c["nivel"] == "critical":
                     resumen["criticas"] += 1
+                    if c["check"] != "V1 vs V2 contradicción":
+                        resumen["criticas_estructurales"] += 1
                 elif c["nivel"] == "warning":
                     resumen["advertencias"] += 1
             resumen["total_alertas"] += len(checks)
@@ -250,6 +259,7 @@ def validar_señales(signals: list[dict], index_stats: dict = None) -> dict:
                     "nivel": "critical"
                 }]
                 resumen["criticas"] += 1
+                resumen["criticas_estructurales"] += 1
                 resumen["total_alertas"] += 1
 
     resumen["nivel_global"] = (
