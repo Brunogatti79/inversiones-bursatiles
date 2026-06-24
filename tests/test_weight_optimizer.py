@@ -7,6 +7,7 @@ import sys
 import os
 import json
 import tempfile
+from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
@@ -130,7 +131,12 @@ class TestLoadOptimizedWeights:
     def test_loads_valid_file(self):
         """Archivo válido con pesos correctos → los carga."""
         valid_data = {
-            "generated": "2026-05-30T12:00:00",
+            # Timestamp dinámico (no hardcodeado): load_optimized_weights()
+            # rechaza archivos de >7 días como "stale". Un valor fijo se
+            # convierte en una bomba de tiempo -- pasados 7 días desde que
+            # se escribió este test, "MERVAL" in result empieza a fallar
+            # por staleness y no por lo que el test dice testear.
+            "generated": datetime.now().isoformat(),
             "MERVAL": {"macro": 0.30, "tecnico": 0.30, "sector": 0.10, "fundamental": 0.30},
             "BOVESPA": {"macro": 0.25, "tecnico": 0.35, "sector": 0.10, "fundamental": 0.30},
             "SP500":   {"macro": 0.20, "tecnico": 0.30, "sector": 0.10, "fundamental": 0.40},
@@ -153,7 +159,10 @@ class TestLoadOptimizedWeights:
     def test_rejects_invalid_weights_sum(self):
         """Pesos que no suman ~1 → no se cargan."""
         invalid_data = {
-            "generated": "2026-05-30T12:00:00",
+            # Mismo motivo que en test_loads_valid_file: timestamp dinámico
+            # para que el rechazo sea por la suma de pesos inválida (lo que
+            # este test dice testear), no por staleness del 'generated'.
+            "generated": datetime.now().isoformat(),
             "MERVAL": {"macro": 0.50, "tecnico": 0.50, "sector": 0.50, "fundamental": 0.50},
         }
         import src.weight_optimizer as wo
