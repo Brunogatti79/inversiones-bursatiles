@@ -15,9 +15,23 @@ DISEÑO:
     evaluación en el tercio final.
 
 MODOS:
-  • Con ≥ 15 días de historia: walk-forward completo.
-  • Con 6-14 días: sensitivity analysis (sin walk-forward).
-  • Con < 6 días: devuelve pesos actuales sin cambiar.
+  • Con ≥ 15 días de historia real: walk-forward completo, sin aumentar con
+    historical_replay (preferimos pureza cronológica una vez que hay
+    suficiente historia real para hacerla).
+  • Con 6-14 días reales, o con <6 días pero con historical_replay.json
+    disponible: sensitivity analysis, aumentando los entries reales con las
+    observaciones de historical_replay.py (~3.500, sin orden cronológico
+    confiable entre tickers — por eso no participan del walk-forward).
+  • Sin datos reales NI replay: devuelve pesos actuales sin cambiar (igual
+    que antes de este fix).
+
+CONEXIÓN CON historical_replay.py (fix 24/06/2026):
+  Antes de este fix, con pocos días de signals_history.json, esta función
+  simplemente no tenía suficientes entries y devolvía W_CURRENT (los pesos
+  hardcoded) sin intentar nada -- aunque historical_replay.py ya generaba
+  ~3.500 observaciones retroactivas en un formato compatible, nada las leía
+  (load_replay_observations() no tenía consumidor). Ahora _collect_market_entries
+  las suma como complemento cuando el modo no es walk_forward.
 
 OUTPUT: data/optimized_weights.json
   {
@@ -72,29 +86,40 @@ def run_weight_optimization(price_data: dict, ticker_cols: dict) -> dict:
     """
     Ejecuta la optimización de pesos. Guarda y retorna los mejores pesos por mercado.
     """
-    if not os.path.exists(HISTORY_PATH):
-        logger.info("Weight optimizer: no hay historial, saltando")
-        return {}
-
-    try:
-        with open(HISTORY_PATH) as f:
-            history = json.load(f)
-    except Exception as e:
-        logger.warning(f"Weight optimizer: error leyendo history: {e}")
-        return {}
+    history = {}
+    if os.path.exists(HISTORY_PATH):
+        try:
+            with open(HISTORY_PATH) as f:
+                history = json.load(f)
+        except Exception as e:
+            logger.warning(f"Weight optimizer: error leyendo history: {e}")
 
     sorted_dates = sorted(history.keys())
     n_days = len(sorted_dates)
 
-    if n_days < 6:
-        logger.info(f"Weight optimizer: solo {n_days} días (necesita ≥ 6), saltando")
+    # Observaciones de historical_replay.py (fix 24/06/2026) -- complementan
+    # cuando todavía no hay suficiente historia REAL acumulada. Si el archivo
+    # no existe todavía (ej. primera corrida tras el deploy de este fix), esto
+    # devuelve [] y el comportamiento es idéntico al de antes.
+    try:
+        from src.historical_replay import load_replay_observations
+        replay_obs = load_replay_observations()
+    except Exception as e:
+        logger.warning(f"Weight optimizer: no se pudo cargar historical_replay: {e}")
+        replay_obs = []
+
+    if n_days < 6 and not replay_obs:
+        logger.info(f"Weight optimizer: solo {n_days} días y sin historical_replay, saltando")
         return {}
 
     # Construir índice de precios para el backtester interno
     price_index = _build_price_index(price_data, ticker_cols)
 
     mode = "walk_forward" if n_days >= 15 else "sensitivity"
-    logger.info(f"Weight optimizer: {n_days} días de historia → modo {mode}")
+    logger.info(
+        f"Weight optimizer: {n_days} días de historia real + "
+        f"{len(replay_obs)} obs de historical_replay → modo {mode}"
+    )
 
     result = {
         "generated":   datetime.now().isoformat(),
@@ -103,13 +128,14 @@ def run_weight_optimization(price_data: dict, ticker_cols: dict) -> dict:
     }
 
     for market in MARKETS:
-        best = _optimize_market(market, history, sorted_dates, price_index, mode)
+        best = _optimize_market(market, history, sorted_dates, price_index, mode, replay_obs)
         result[market] = best
         if best:
             logger.info(
                 f"  {market}: macro={best['macro']} tec={best['tecnico']} "
                 f"fund={best['fundamental']} | EV={best.get('ev_21d','—')} "
-                f"WR={best.get('win_rate_21d','—')} n={best.get('samples','—')}"
+                f"WR={best.get('win_rate_21d','—')} n={best.get('samples','—')} "
+                f"(real={best.get('n_real_entries','—')}, replay={best.get('n_replay_entries','—')})"
             )
 
     # Guardar (vía github_persistence — sobrevive a redeploys de Railway)
@@ -128,25 +154,42 @@ def _optimize_market(
     sorted_dates: list,
     price_index: dict,
     mode: str,
+    replay_obs: list = None,
 ) -> dict:
     """
     Encuentra los mejores pesos para un mercado dado.
     Retorna dict con los pesos y las métricas.
     """
-    # Filtrar entries del mercado con datos completos
-    entries = _collect_market_entries(market, history, sorted_dates, price_index)
+    # Entries reales de signals_history.json (igual que antes de este fix)
+    real_entries = _collect_market_entries(market, history, sorted_dates, price_index)
+    n_real = len(real_entries)
+
+    # Aumentar con historical_replay SOLO si no estamos en walk_forward puro
+    # (walk_forward asume que hay suficiente historia real como para no
+    # necesitar el replay, y depende de que los entries estén ordenados
+    # cronológicamente -- el replay no garantiza eso entre tickers distintos).
+    replay_entries = []
+    if mode != "walk_forward" and replay_obs:
+        replay_entries = _replay_obs_to_entries(market, replay_obs)
+
+    entries = real_entries + replay_entries
+    n_replay = len(replay_entries)
 
     if len(entries) < 10:
-        logger.info(f"  {market}: solo {len(entries)} entries — usando pesos actuales")
+        logger.info(
+            f"  {market}: solo {len(entries)} entries (real={n_real}, replay={n_replay}) "
+            f"— usando pesos actuales"
+        )
         return W_CURRENT.get(market, W_CURRENT["DEFAULT"]).copy()
 
-    # Walk-forward: train en primeros 2/3, eval en resto
+    # Walk-forward: train en primeros 2/3, eval en resto (solo con datos reales,
+    # nunca llega acá con replay_entries porque mode ya es "walk_forward")
     if mode == "walk_forward" and len(entries) >= 20:
         split = int(len(entries) * 0.66)
         train_entries = entries[:split]
         eval_entries  = entries[split:]
     else:
-        # Sensitivity: usar todo como train y eval (menos datos)
+        # Sensitivity (con o sin aumento de replay): usar todo como train y eval
         train_entries = entries
         eval_entries  = entries
 
@@ -179,7 +222,48 @@ def _optimize_market(
         return W_CURRENT.get(market, W_CURRENT["DEFAULT"]).copy()
 
     best_w.update(best_met)
+    best_w["n_real_entries"]   = n_real
+    best_w["n_replay_entries"] = n_replay
     return best_w
+
+
+def _replay_obs_to_entries(market: str, replay_obs: list) -> list:
+    """
+    Convierte observaciones de historical_replay.py al mismo shape que
+    _collect_market_entries() produce desde signals_history.json --
+    coinciden casi exactamente en nombres de campo (ticker, precio, s_macro,
+    s_tec, s_fund), salvo 'mercado' (ya viene tageado) y la ausencia de un
+    'signal_date' real (se usa un placeholder, no se necesita para
+    _evaluate_weights ni para el modo sensitivity sin split cronológico).
+    """
+    entries = []
+    for obs in replay_obs:
+        if obs.get("mercado") != market:
+            continue
+
+        ticker  = obs.get("ticker", "")
+        precio  = float(obs.get("precio", 0) or 0)
+        s_macro = float(obs.get("s_macro", 0) or 0)
+        s_tec   = float(obs.get("s_tec", 0) or 0)
+        s_fund  = float(obs.get("s_fund", 0) or 0)
+        ret_21d = obs.get("ret_21d")
+
+        if not ticker or precio <= 0 or ret_21d is None:
+            continue
+        if s_macro == 0 and s_tec == 0 and s_fund == 0:
+            continue
+
+        entries.append({
+            "ticker":      ticker,
+            "signal_date": f"replay_{obs.get('date_idx', 0)}",
+            "precio":      precio,
+            "s_macro":     s_macro,
+            "s_tec":       s_tec,
+            "s_fund":      s_fund,
+            "ret_21d":     float(ret_21d),
+        })
+
+    return entries
 
 
 def _collect_market_entries(
