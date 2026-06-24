@@ -162,3 +162,48 @@ class TestEnsembleRobustness:
         assert result["pred_21d"] is None
         assert result["pred_signal"] == ""
         assert result["pred_method"] == "ensemble"
+
+
+class TestIncludeSubmodels:
+    """include_submodels=True (default False) expone el desglose por
+    sub-modelo -- agregado para predictor_validation.py (Prioridad 3
+    ampliada: '¿hay un modelo arrastrando al resto?'). Default False no
+    debe cambiar nada del comportamiento de producción."""
+
+    def test_default_false_does_not_add_submodels_key(self):
+        result = predictor.predict_ticker("TEST_NO_SUBMODELS", _series(seed=10))
+        assert "submodels" not in result
+
+    def test_true_adds_submodels_with_all_four_models(self):
+        result = predictor.predict_ticker("TEST_WITH_SUBMODELS", _series(seed=11), include_submodels=True)
+        assert "submodels" in result
+        for model in ("holt_winters", "gradient_boosting", "random_forest", "linear_baseline"):
+            assert model in result["submodels"]
+            assert set(result["submodels"][model].keys()) == {5, 10, 21}
+
+    def test_random_forest_submodel_reports_zero_when_disabled(self, monkeypatch):
+        monkeypatch.delenv("ENABLE_RF_PREDICTOR", raising=False)
+        result = predictor.predict_ticker("TEST_SUBMODELS_RF_OFF", _series(seed=12), include_submodels=True)
+        assert result["submodels"]["random_forest"] == {5: 0.0, 10: 0.0, 21: 0.0}
+        assert result["submodels"]["rf_enabled"] is False
+
+    def test_random_forest_submodel_populated_when_enabled(self, monkeypatch):
+        monkeypatch.setenv("ENABLE_RF_PREDICTOR", "true")
+        result = predictor.predict_ticker("TEST_SUBMODELS_RF_ON", _series(seed=13), include_submodels=True)
+        assert result["submodels"]["rf_enabled"] is True
+        # No necesariamente != 0 siempre, pero el flag de que corrió debe
+        # quedar explícito y separado del valor en sí.
+
+    def test_submodel_values_feed_the_same_ensemble_output(self):
+        """El ensemble final sigue siendo el promedio ponderado de los
+        submodels -- include_submodels solo expone lo que ya se calculaba,
+        no agrega un cálculo paralelo distinto."""
+        result = predictor.predict_ticker("TEST_SUBMODELS_CONSISTENCY", _series(seed=14), include_submodels=True)
+        sub = result["submodels"]
+        # Con todos los pesos iguales (RF en 0 por desactivado), el promedio
+        # de HW/GBR/Linear con peso similar debe quedar en el mismo rango
+        # general que el pred_21d final -- no una comprobación exacta (los
+        # pesos son por confianza, no iguales), solo que no estén en
+        # universos completamente distintos.
+        non_rf_avg = (sub["holt_winters"][21] + sub["gradient_boosting"][21] + sub["linear_baseline"][21]) / 3
+        assert abs(result["pred_21d"] - non_rf_avg) < 50  # cota laxa, solo control de cordura

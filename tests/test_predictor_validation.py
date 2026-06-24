@@ -76,7 +76,7 @@ class TestCacheIsolation:
             CACHE_PATH = "/tmp/x"
 
             @staticmethod
-            def predict_ticker(ticker_key, serie, context=None):
+            def predict_ticker(ticker_key, serie, context=None, include_submodels=False):
                 calls.append(ticker_key)
                 return {"pred_5d": 1.0, "pred_10d": 2.0, "pred_21d": 3.0}
 
@@ -88,6 +88,35 @@ class TestCacheIsolation:
         assert len(calls) > 0
         assert all(c.startswith("__VALID__GGAL.BA__") for c in calls)
         assert "GGAL.BA" not in calls  # nunca la cache_key real
+
+    def test_repeated_isolation_same_day_does_not_leak_between_runs(self):
+        """Regresión de un bug real encontrado durante el desarrollo: con
+        un CACHE_PATH temporal FIJO, dos entradas al context manager el
+        mismo día calendario (ej. dos llamadas a run_predictor_validation
+        dentro del mismo proceso largo) podían leer el resultado cacheado
+        de la entrada anterior -- predictor._load_cache() solo chequea que
+        la fecha adentro del archivo sea 'hoy', no de qué corrida vino.
+        Cada entrada al context manager debe usar un archivo temporal
+        distinto y no dejarlo para la próxima."""
+        import src.predictor as predictor
+        serie = _trending_series(200)
+
+        with pv._isolated_predictor_cache() as ctx1:
+            path1 = ctx1._tmp_path
+            r1 = predictor.predict_ticker("__VALID__SAME_KEY__0", serie, include_submodels=True)
+        assert not __import__("os").path.exists(path1)  # se limpia solo al salir
+
+        with pv._isolated_predictor_cache() as ctx2:
+            path2 = ctx2._tmp_path
+            assert path2 != path1  # nunca el mismo archivo temporal
+            r2 = predictor.predict_ticker("__VALID__SAME_KEY__0", serie, include_submodels=True)
+
+        # Ambas corridas deben haber calculado de cero (no servido un cache
+        # ajeno) -- con la misma serie y misma cache_key, los resultados
+        # deberían coincidir, pero por haber sido recalculados, no por
+        # haber leído el archivo de la corrida anterior.
+        assert r1.get("submodels") is not None
+        assert r2.get("submodels") is not None
 
 
 # ── Baselines ────────────────────────────────────────────────────────────
@@ -161,6 +190,43 @@ class TestAggregation:
         records = [self._record(1.0, v) for v in [3.0, -2.0, 5.0, -1.0, 4.0]]
         agg = pv._aggregate(records, only_horizon=5)
         assert agg["zero"]["correlation"] is None  # std(zero predictions) == 0
+
+    def test_submodel_keys_present_in_aggregate_output(self):
+        records = [self._record(1.0, v) for v in [3.0, -2.0, 5.0, -1.0, 4.0]]
+        agg = pv._aggregate(records, only_horizon=5)
+        for model in pv.SUBMODEL_METHODS:
+            assert model in agg
+
+    def test_submodel_metrics_computed_from_real_submodel_values(self):
+        """Si holt_winters predice perfecto y linear_baseline predice lo
+        opuesto, sus directional_accuracy deben diferenciarse claramente --
+        confirma que cada sub-modelo se mide con sus propios valores, no
+        con el del ensemble final."""
+        records = []
+        for actual in [3.0, -2.0, 5.0, -1.0, 4.0, -3.0]:
+            r = self._record(pred_5d=actual, actual_5d=actual)  # ensemble "perfecto" como placeholder
+            r["submodels"] = {
+                "holt_winters":      {5: actual, 10: actual, 21: actual},        # siempre acierta
+                "gradient_boosting": {5: 0.0, 10: 0.0, 21: 0.0},
+                "random_forest":     {5: 0.0, 10: 0.0, 21: 0.0},                  # RF desactivado
+                "linear_baseline":   {5: -actual, 10: -actual, 21: -actual},     # siempre opuesto
+            }
+            records.append(r)
+
+        agg = pv._aggregate(records, only_horizon=5)
+        assert agg["holt_winters"]["directional_accuracy"] == 1.0
+        assert agg["linear_baseline"]["directional_accuracy"] == 0.0
+
+    def test_missing_submodels_key_does_not_crash(self):
+        """Records de antes de este fix (sin 'submodels') deben seguir
+        agregándose sin romper -- los métodos de sub-modelo simplemente
+        quedan con n=0 / métricas None."""
+        records = [self._record(1.0, v) for v in [3.0, -2.0, 5.0, -1.0, 4.0]]
+        for r in records:
+            r.pop("submodels", None)
+        agg = pv._aggregate(records, only_horizon=5)
+        assert agg["holt_winters"]["n"] == 0
+        assert agg["holt_winters"]["directional_accuracy"] is None
 
 
 # ── Persistencia (mismo patrón que historical_replay.py) ────────────────

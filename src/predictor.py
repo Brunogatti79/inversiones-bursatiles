@@ -345,11 +345,26 @@ def _linear_baseline(serie: np.ndarray, horizon: int, context: dict = None) -> t
 
 # ── Predicción por ticker ──────────────────────────────────────────────────────
 
-def predict_ticker(ticker: str, serie: pd.Series, context: dict = None) -> dict:
+def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
+                    include_submodels: bool = False) -> dict:
     """
     Genera predicciones ensemble para un ticker dado su serie de precios.
     Retorna dict con pred_5d, pred_10d, pred_21d, pred_target,
     pred_confidence, pred_signal, pred_method, pred_direction_agree.
+
+    include_submodels=True (default False, sin efecto en producción):
+    agrega result["submodels"] con el (valor, confianza) crudo de cada uno
+    de los 4 modelos por horizonte -- pensado para
+    predictor_validation.py, para poder medir si alguno de los 4 está
+    arrastrando al resto en vez de aportar. No se usa en el pipeline
+    normal (run_predictions no lo pasa).
+
+    OJO con el cache si algún día se llama con include_submodels=True
+    usando el MISMO ticker (cache key) que ya se usó sin ese flag en la
+    misma ventana de cache diario: el resultado cacheado se devuelve tal
+    cual estaba, sin el campo "submodels" -- esto no pasa hoy porque el
+    único caller con include_submodels=True (predictor_validation.py)
+    siempre usa cache keys sintéticas y únicas por snapshot.
     """
     _load_cache()
     if ticker in _CACHE:
@@ -446,6 +461,15 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None) -> dict:
             "pred_signal":     sig,
             "pred_method":     "ensemble",
         })
+
+        if include_submodels:
+            result["submodels"] = {
+                "holt_winters":      {5: round(hw5, 2),  10: round(hw10, 2),  21: round(hw21, 2)},
+                "gradient_boosting": {5: round(gb5, 2),  10: round(gb10, 2),  21: round(gb21, 2)},
+                "random_forest":     {5: round(rf5, 2),  10: round(rf10, 2),  21: round(rf21, 2)},
+                "linear_baseline":   {5: round(ln5, 2),  10: round(ln10, 2),  21: round(ln21, 2)},
+                "rf_enabled":        os.getenv("ENABLE_RF_PREDICTOR", "false").lower() == "true",
+            }
 
     except Exception as e:
         logger.warning(f"Predicción fallida para {ticker}: {e}")

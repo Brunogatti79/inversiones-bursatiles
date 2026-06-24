@@ -154,10 +154,12 @@ def _validate_ticker(ticker: str, market: str, serie: pd.Series) -> list[dict]:
 
         try:
             cache_key = f"__VALID__{ticker}__{snap_i}"
-            pred = _predict_ticker_module().predict_ticker(cache_key, slice_serie)
+            pred = _predict_ticker_module().predict_ticker(cache_key, slice_serie, include_submodels=True)
         except Exception as e:
             logger.warning(f"[predictor_validation] {ticker} snapshot {snap_i}: predictor falló ({e})")
             continue
+
+        submodels = pred.get("submodels", {})
 
         baselines = {
             "zero":           _zero_baseline(),
@@ -179,6 +181,7 @@ def _validate_ticker(ticker: str, market: str, serie: pd.Series) -> list[dict]:
         records.append({
             "ticker": ticker, "mercado": market, "snapshot": snap_i,
             "predictor": {5: pred.get("pred_5d"), 10: pred.get("pred_10d"), 21: pred.get("pred_21d")},
+            "submodels": submodels,
             "baselines": baselines,
             "actual":    actuals,
         })
@@ -226,30 +229,48 @@ def _historical_avg_baseline(serie: pd.Series) -> dict:
 
 # ── Agregación de métricas ──────────────────────────────────────────────
 
+# ── Agregación de métricas ──────────────────────────────────────────────
+
+BASELINE_METHODS  = ["momentum", "zero", "historical_avg"]
+SUBMODEL_METHODS  = ["holt_winters", "gradient_boosting", "random_forest", "linear_baseline"]
+
+
 def _aggregate(records: list, only_horizon: int = None) -> dict:
     """
-    Calcula directional_accuracy / MAE / correlación para el predictor y
-    cada baseline, sobre los registros dados (opcionalmente filtrados a un
-    solo horizonte).
+    Calcula directional_accuracy / MAE / correlación para el predictor
+    (ensemble final), cada baseline, y cada sub-modelo individual (Prioridad
+    3 ampliada: "¿hay un modelo arrastrando al resto?"), sobre los registros
+    dados (opcionalmente filtrados a un solo horizonte).
+
+    Nota sobre random_forest: mientras ENABLE_RF_PREDICTOR=false (estado
+    actual de producción), siempre predice 0.0 -- sale en esta agregación
+    con métricas pobres por diseño, no porque el modelo en sí sea malo.
+    Comparar de verdad requiere reactivarlo primero.
     """
-    methods = ["predictor", "momentum", "zero", "historical_avg"]
     horizons = [only_horizon] if only_horizon else HORIZONS
     out = {}
 
-    for method in methods:
+    def _collect(value_lookup):
         preds, actuals = [], []
         for r in records:
             for h in horizons:
                 actual = r["actual"].get(h)
                 if actual is None:
                     continue
-                pred_val = r["predictor"].get(h) if method == "predictor" else r["baselines"][method].get(h)
+                pred_val = value_lookup(r, h)
                 if pred_val is None:
                     continue
                 preds.append(float(pred_val))
                 actuals.append(float(actual))
+        return _metrics(preds, actuals)
 
-        out[method] = _metrics(preds, actuals)
+    out["predictor"] = _collect(lambda r, h: r["predictor"].get(h))
+
+    for method in BASELINE_METHODS:
+        out[method] = _collect(lambda r, h, m=method: r["baselines"].get(m, {}).get(h))
+
+    for model in SUBMODEL_METHODS:
+        out[model] = _collect(lambda r, h, m=model: r.get("submodels", {}).get(m, {}).get(h))
 
     return out
 
@@ -283,16 +304,30 @@ class _isolated_predictor_cache:
     durante la validación retroactiva, y restaura el estado original al
     salir -- sin esto, las ~600+ llamadas a predict_ticker() de este módulo
     (cada una con una cache_key sintética distinta) inflarían
-    data/pred_cache.json sin límite y nunca se limpiarían."""
+    data/pred_cache.json sin límite y nunca se limpiarían.
+
+    CACHE_PATH temporal único por entrada al context manager (PID + tiempo
+    de alta resolución), no una ruta fija -- encontrado durante el
+    desarrollo de este módulo: con una ruta fija, dos corridas de
+    run_predictor_validation() el mismo día calendario dentro del mismo
+    proceso largo (ej. Railway sin reiniciar) podrían leer el cache
+    'aislado' de la corrida anterior en vez de arrancar limpio, porque
+    predictor._load_cache() solo chequea que la fecha adentro del archivo
+    sea 'hoy' -- no le importa de qué corrida vino. En producción esto es
+    improbable (el gate semanal evita llamar a esto dos veces el mismo
+    día), pero la garantía de aislamiento debería sostenerse sin depender
+    de esa coincidencia."""
 
     def __enter__(self):
+        import tempfile
         predictor = _predict_ticker_module()
         self._saved_cache = predictor._CACHE
         self._saved_date  = predictor._CACHE_DATE
         self._saved_path  = predictor.CACHE_PATH
+        self._tmp_path    = tempfile.mktemp(prefix="_predictor_validation_cache_", suffix=".json")
         predictor._CACHE = {}
         predictor._CACHE_DATE = date.today().isoformat()
-        predictor.CACHE_PATH = "/tmp/_predictor_validation_cache_unused.json"
+        predictor.CACHE_PATH = self._tmp_path
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -300,6 +335,11 @@ class _isolated_predictor_cache:
         predictor._CACHE = self._saved_cache
         predictor._CACHE_DATE = self._saved_date
         predictor.CACHE_PATH = self._saved_path
+        try:
+            if os.path.exists(self._tmp_path):
+                os.remove(self._tmp_path)
+        except Exception:
+            pass
         return False
 
 
