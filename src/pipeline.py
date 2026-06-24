@@ -28,10 +28,11 @@ from src.backtester     import run_backtest
 from src.cross_market   import compute_cross_market_context
 from src.exit_model     import enrich_exit_levels
 from src.weight_optimizer    import run_weight_optimization, load_optimized_weights, apply_optimized_weights
-from src.monitor             import update_health_metrics
+from src.monitor             import update_health_metrics, check_sla, persist_global_confidence
 from src.historical_replay   import run_historical_replay
 from src.volatility_regime   import compute_volatility_regime
-from src.confidence_score    import enrich_confidence_scores
+from src.confidence_score    import enrich_confidence_scores, compute_global_confidence, apply_kill_switch
+from src.quality_check       import validar_señales, inyectar_semaforo
 from src.trailing_stop       import apply_trailing_stops
 from src.predictor_health    import compute_predictor_health, apply_health_to_signals
 from src.portfolio_optimizer import optimize_portfolio_allocation
@@ -301,11 +302,59 @@ def run_pipeline():
             predictor_health = {}
         # ─────────────────────────────────────────────────────────────────────
 
+        # ── QUALITY CHECK (Nivel 1+2 — validación cruzada + semáforo) ──────────
+        # NOTA: este módulo existía en el repo pero nunca se llamaba desde
+        # ningún lado (verificado jun/2026) — el campo quality_flag que lee
+        # confidence_score.py por señal siempre caía al default 🟢. Se activa
+        # acá porque el confidence score GLOBAL (más abajo) depende de tener
+        # un quality_resumen real, no del default.
+        quality_resumen = {}
+        try:
+            quality = validar_señales(all_signals)
+            all_signals = inyectar_semaforo(all_signals, quality)
+            quality_resumen = quality.get("resumen", {})
+            logger.info(
+                f"Quality check: {quality_resumen.get('nivel_global','?')} "
+                f"({quality_resumen.get('criticas',0)} críticas, "
+                f"{quality_resumen.get('advertencias',0)} advertencias, "
+                f"{quality_resumen.get('ok',0)} OK)"
+            )
+        except Exception as e_qc:
+            logger.warning(f"Quality check no crítico — continuando: {e_qc}")
+        # ─────────────────────────────────────────────────────────────────────
+
         # ── CONFIDENCE SCORE (Fase 5) ────────────────────────────────────────
         try:
             all_signals = enrich_confidence_scores(all_signals, vol_regime)
         except Exception as e_cs:
             logger.warning(f"Confidence score no crítico — continuando: {e_cs}")
+        # ─────────────────────────────────────────────────────────────────────
+
+        # ── CONFIDENCE SCORE GLOBAL + KILL SWITCH (mejora 3.1 + 3.5) ──────────
+        # Circuit breaker de sistema: si la calidad de datos, la salud del
+        # predictor, la confianza macro o la integridad de los CSVs caen lo
+        # suficiente (o si quality_check encuentra demasiadas contradicciones
+        # críticas), se frena la asignación de capital NUEVO en todas las
+        # señales. No toca posiciones ya abiertas.
+        global_conf = {}
+        try:
+            sla_now = check_sla(send_telegram=False)
+            global_conf = compute_global_confidence(
+                n_signals=len(all_signals),
+                quality_resumen=quality_resumen,
+                predictor_health=predictor_health,
+                macro_confidence=(macro_auto.get("macro_confidence", {}) if isinstance(macro_auto, dict) else {}),
+                validacion_nivel=nivel,
+                sla_status=sla_now.get("status", "OK"),
+            )
+            all_signals = apply_kill_switch(all_signals, global_conf)
+            persist_global_confidence(global_conf)
+            logger.info(
+                f"Confidence global: {global_conf['global_score']} ({global_conf['label']}) | "
+                f"kill_switch={'ACTIVO 🔴' if global_conf['kill_switch_active'] else 'inactivo'}"
+            )
+        except Exception as e_gc:
+            logger.warning(f"Confidence global / kill switch no crítico — continuando: {e_gc}")
         # ─────────────────────────────────────────────────────────────────────
 
         # ── EXIT MODEL (Fase 1) ───────────────────────────────────────────────
@@ -533,6 +582,7 @@ def run_pipeline():
                 "cross_market":     cross_market,
                 "validacion_nivel": nivel,
                 "run_date":         run_date,
+                "global_confidence": global_conf,
             })
         except Exception as e_mon:
             logger.warning(f"Monitor no crítico — continuando: {e_mon}")

@@ -23,6 +23,7 @@ USO desde pipeline.py (post-quality_check, post-exit_model):
 """
 
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -155,3 +156,195 @@ def _confidence_kelly_factor(confidence_score: float) -> float:
         return round((confidence_score / 75) ** 0.75, 3)
     else:
         return 0.30   # mínimo: 30% del Kelly calculado
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CONFIDENCE SCORE GLOBAL + KILL SWITCH (mejora 3.1 + 3.5)
+# ════════════════════════════════════════════════════════════════════════
+#
+# A diferencia del confidence_score por señal (arriba), esto evalúa la
+# confianza del RUN COMPLETO del pipeline -- es un circuit breaker a nivel
+# sistema, no un filtro por ticker.
+#
+# Componentes (100 pts):
+#   1. Calidad de datos (quality_check, % tickers limpios)        30%
+#   2. Salud del predictor (predictor_health.py)                  25%
+#   3. Confianza de datos macro (macro_auto, 3 mercados)           20%
+#   4. Integridad de datos de mercado (data_validator, CSVs)       10%
+#   5. Operación del pipeline / SLA (monitor.py)                   15%
+#
+# INTERPRETACIÓN:
+#   ≥ 70  → 🟢 Confiable      → operar normalmente
+#   50-69 → 🟡 Reducida       → Kelly ya viene recortado por confidence_score
+#                               por-señal, no se frena capital nuevo
+#   35-49 → 🟠 Baja           → alerta, sin frenar capital todavía
+#   < 35  → 🔴 Crítica        → KILL SWITCH: frena asignación de capital NUEVO
+#
+# El kill switch tiene además 2 triggers duros, independientes del score
+# ponderado (cualquiera de los dos lo activa aunque el score global no haya
+# cruzado el umbral):
+#   - data_validator marcó "ERROR" (datos de mercado corruptos o faltantes)
+#   - quality_check encontró >= MIN_CRITICAL_FOR_KILL alertas 🔴 CRÍTICA
+#     (ej. contradicciones V1/V2, precios inválidos) -- estas son señales
+#     de que algo está estructuralmente roto, no solo "bajo" en confianza.
+#
+# Importante: el kill switch frena recomendaciones de capital NUEVO
+# (kelly_half / kelly_half_adj → 0). NO toca posiciones ya abiertas en
+# portfolio.json -- decidir qué hacer con posiciones existentes durante un
+# kill switch es una decisión de Bruno, no automática.
+#
+# USO desde pipeline.py (con todo el contexto del run ya disponible):
+#     from src.confidence_score import compute_global_confidence, apply_kill_switch
+#     global_conf = compute_global_confidence(
+#         n_signals=len(all_signals), quality_resumen=quality_resumen,
+#         predictor_health=predictor_health, macro_confidence=macro_confidence,
+#         validacion_nivel=nivel, sla_status=sla_now["status"],
+#     )
+#     all_signals = apply_kill_switch(all_signals, global_conf)
+#     from src.monitor import persist_global_confidence
+#     persist_global_confidence(global_conf)   # persiste + alerta Telegram en transición
+
+KILL_SWITCH_THRESHOLD = 35      # score global por debajo de esto -> kill switch
+MIN_CRITICAL_FOR_KILL = 5       # alertas 🔴 críticas de quality_check -> kill switch duro
+
+GLOBAL_CONFIDENCE_WEIGHTS = {
+    "calidad_datos":    0.30,
+    "predictor":        0.25,
+    "macro":            0.20,
+    "integridad_datos": 0.10,
+    "sla":              0.15,
+}
+
+
+def compute_global_confidence(
+    n_signals: int = 0,
+    quality_resumen: dict = None,
+    predictor_health: dict = None,
+    macro_confidence: dict = None,
+    validacion_nivel: str = "OK",
+    sla_status: str = "OK",
+) -> dict:
+    """
+    Calcula el confidence score GLOBAL del run (0-100) y decide si
+    corresponde activar el kill switch.
+
+    Función pura (sin I/O) a propósito -- persistencia y alertas Telegram
+    viven en monitor.persist_global_confidence(), así esto es trivial de
+    testear con distintas combinaciones de inputs.
+    """
+    quality_resumen  = quality_resumen or {}
+    predictor_health = predictor_health or {}
+    macro_confidence = macro_confidence or {}
+    components = {}
+
+    # ── 1. Calidad de datos (30%) ───────────────────────────────────────
+    # resumen["ok"] = cantidad de señales sin ningún check disparado.
+    # resumen["criticas"]/["advertencias"] son conteos de ALERTAS (un
+    # ticker puede acumular varias), no de tickers -- por eso se usan
+    # como penalización aditiva en vez de como fracción del total.
+    n_ok = quality_resumen.get("ok", 0)
+    criticas = quality_resumen.get("criticas", 0)
+    advertencias = quality_resumen.get("advertencias", 0)
+    if n_signals > 0:
+        clean_ratio = n_ok / n_signals
+    else:
+        # Sin datos de quality_check todavía (ej. corrida vieja antes de
+        # wirearlo, o n_signals no provisto) -> neutral, no penalizar.
+        clean_ratio = 1.0
+    critical_penalty = min(40.0, criticas * 8.0)
+    warning_penalty  = min(15.0, advertencias * 1.0)
+    data_quality_score = max(0.0, min(100.0, clean_ratio * 100 - critical_penalty - warning_penalty))
+    components["calidad_datos"] = round(data_quality_score, 1)
+
+    # ── 2. Salud del predictor (25%) ────────────────────────────────────
+    ph_status = predictor_health.get("health", "UNKNOWN")
+    ph_map = {"OK": 100.0, "WARNING": 55.0, "DEGRADED": 15.0, "UNKNOWN": 65.0}
+    components["predictor"] = ph_map.get(ph_status, 65.0)
+
+    # ── 3. Confianza de datos macro (20%) — promedio de los 3 mercados ──
+    if macro_confidence:
+        macro_scores = [
+            v.get("score", 50.0) for v in macro_confidence.values()
+            if isinstance(v, dict) and v.get("score") is not None
+        ]
+        components["macro"] = round(sum(macro_scores) / len(macro_scores), 1) if macro_scores else 50.0
+    else:
+        components["macro"] = 50.0  # sin macro_confidence disponible -> neutral
+
+    # ── 4. Integridad de datos de mercado (10%) — data_validator ────────
+    val_map = {"OK": 100.0, "WARNING": 50.0, "ERROR": 0.0}
+    components["integridad_datos"] = val_map.get(validacion_nivel, 50.0)
+
+    # ── 5. Operación del pipeline / SLA (15%) ───────────────────────────
+    sla_map = {"OK": 100.0, "WARNING": 50.0, "CRITICAL": 0.0, "UNKNOWN": 70.0}
+    components["sla"] = sla_map.get(sla_status, 70.0)
+
+    global_score = round(
+        sum(components[k] * w for k, w in GLOBAL_CONFIDENCE_WEIGHTS.items()), 1
+    )
+
+    # ── Triggers duros (independientes del score ponderado) ─────────────
+    hard_triggers = []
+    if validacion_nivel == "ERROR":
+        hard_triggers.append(
+            "data_validator marcó ERROR (datos de mercado corruptos o faltantes)"
+        )
+    if criticas >= MIN_CRITICAL_FOR_KILL:
+        hard_triggers.append(
+            f"quality_check encontró {criticas} alertas 🔴 críticas (umbral={MIN_CRITICAL_FOR_KILL})"
+        )
+
+    kill_switch_active = bool(hard_triggers) or global_score < KILL_SWITCH_THRESHOLD
+    if global_score < KILL_SWITCH_THRESHOLD and not hard_triggers:
+        hard_triggers.append(
+            f"score global={global_score} por debajo del umbral={KILL_SWITCH_THRESHOLD}"
+        )
+
+    if global_score >= 70:
+        label = "🟢 Confiable"
+    elif global_score >= 50:
+        label = "🟡 Reducida"
+    elif global_score >= 35:
+        label = "🟠 Baja"
+    else:
+        label = "🔴 Crítica"
+
+    return {
+        "global_score":         global_score,
+        "label":                label,
+        "components":           components,
+        "weights":              dict(GLOBAL_CONFIDENCE_WEIGHTS),
+        "kill_switch_active":   kill_switch_active,
+        "kill_switch_reasons":  hard_triggers,
+        "n_signals":            n_signals,
+        "generated":            datetime.now().isoformat(),
+    }
+
+
+def apply_kill_switch(signals: list[dict], global_conf: dict) -> list[dict]:
+    """
+    Marca cada señal con el estado del kill switch. Si está activo, frena
+    la asignación de capital NUEVA (kelly_half / kelly_half_adj -> 0) en
+    TODAS las señales, sin distinguir por confianza individual -- es un
+    circuit breaker de sistema, no un filtro por ticker.
+
+    No toca posiciones ya abiertas (eso vive en portfolio.json / tracker.py)
+    ni ningún otro campo de la señal.
+    """
+    if not signals:
+        return signals
+
+    active  = bool(global_conf.get("kill_switch_active", False))
+    reasons = global_conf.get("kill_switch_reasons", [])
+
+    for sig in signals:
+        sig["kill_switch_active"] = active
+        if active:
+            sig["kill_switch_reasons"] = reasons
+            if sig.get("kelly_half") is not None:
+                sig["kelly_half"] = 0.0
+            if sig.get("kelly_half_adj") is not None:
+                sig["kelly_half_adj"] = 0.0
+
+    return signals
+

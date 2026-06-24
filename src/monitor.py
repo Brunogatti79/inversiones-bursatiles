@@ -15,6 +15,9 @@ MÉTRICAS QUE RASTREA (data/health_metrics.json):
   • pipeline_runs_today / pipeline_runs_week
   • sla_status: OK | WARNING | CRITICAL
   • data_freshness: age en horas del CSV más reciente
+  • global_confidence_score / global_confidence_label / kill_switch_active
+    (mejora 3.1 + 3.5 — ver data/system_confidence.json y
+    src/confidence_score.compute_global_confidence)
 
 USO desde pipeline.py:
     from src.monitor import update_health_metrics, check_sla
@@ -104,6 +107,13 @@ def update_health_metrics(run_context: dict) -> dict:
 
     # Validación de datos
     health["validacion_nivel"] = run_context.get("validacion_nivel", "")
+
+    # Confidence global + kill switch (mejora 3.1 + 3.5), si el caller lo pasó
+    global_conf = run_context.get("global_confidence")
+    if global_conf:
+        health["global_confidence_score"] = global_conf.get("global_score")
+        health["global_confidence_label"] = global_conf.get("label")
+        health["kill_switch_active"]      = global_conf.get("kill_switch_active", False)
 
     # Runs hoy / semana
     today = datetime.now().strftime("%Y-%m-%d")
@@ -287,3 +297,102 @@ def _push_health_to_github():
     """Pushea health_metrics.json a GitHub (el filesystem de Railway es efímero)."""
     from src.github_persistence import push_file
     push_file(HEALTH_PATH, f"auto: health_metrics {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+
+
+# ── Confidence score global + kill switch (mejora 3.1 + 3.5) ───────────────
+#
+# El cálculo puro vive en src/confidence_score.compute_global_confidence().
+# Acá solo se persiste el resultado y se decide si corresponde alertar por
+# Telegram -- y la regla es: alertar SOLO en transición de estado (de
+# inactivo a activo, o de activo a recuperado), nunca en cada run. El
+# pipeline corre 4x/día; si el kill switch queda activo varios runs
+# seguidos, un mensaje nuevo cada vez sería puro ruido y entrena a Bruno a
+# ignorar la alerta justo cuando más importa.
+
+GLOBAL_CONFIDENCE_PATH = "data/system_confidence.json"
+
+
+def persist_global_confidence(global_conf: dict, send_telegram: bool = True) -> dict:
+    """
+    Persiste data/system_confidence.json (sobrevive a redeploys vía
+    github_persistence) y envía alerta Telegram únicamente cuando el
+    kill switch cambia de estado respecto a la corrida anterior.
+
+    Llamar desde pipeline.py después de confidence_score.apply_kill_switch().
+    """
+    prev = _load_global_confidence()
+    was_active = bool(prev.get("kill_switch_active", False))
+    is_active  = bool(global_conf.get("kill_switch_active", False))
+
+    _save_global_confidence(global_conf)
+    _push_global_confidence_to_github()
+
+    if send_telegram and is_active and not was_active:
+        _send_kill_switch_alert(global_conf, recovered=False)
+    elif send_telegram and was_active and not is_active:
+        _send_kill_switch_alert(global_conf, recovered=True)
+
+    return global_conf
+
+
+def _load_global_confidence() -> dict:
+    if not os.path.exists(GLOBAL_CONFIDENCE_PATH):
+        return {}
+    try:
+        with open(GLOBAL_CONFIDENCE_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_global_confidence(global_conf: dict):
+    os.makedirs("data", exist_ok=True)
+    with open(GLOBAL_CONFIDENCE_PATH, "w") as f:
+        json.dump(global_conf, f, ensure_ascii=False, indent=2)
+
+
+def _push_global_confidence_to_github():
+    from src.github_persistence import push_file
+    push_file(
+        GLOBAL_CONFIDENCE_PATH,
+        f"auto: system_confidence {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+    )
+
+
+def _send_kill_switch_alert(global_conf: dict, recovered: bool):
+    """Alerta Telegram en transición de estado del kill switch (no en cada run)."""
+    try:
+        import requests
+        bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+        chat_id   = os.environ.get("TELEGRAM_CHAT_ID", "")
+        if not bot_token or not chat_id:
+            return
+
+        score = global_conf.get("global_score", "?")
+        label = global_conf.get("label", "?")
+
+        if recovered:
+            text = (
+                "✅ <b>KILL SWITCH DESACTIVADO — INVERSIONES BURSÁTILES</b>\n\n"
+                f"Confidence global recuperado a <b>{score}</b> ({label}).\n"
+                "Asignación de capital nueva reanudada."
+            )
+        else:
+            reasons = "\n".join(f"• {r}" for r in global_conf.get("kill_switch_reasons", []))
+            text = (
+                "🔴 <b>KILL SWITCH ACTIVADO — INVERSIONES BURSÁTILES</b>\n\n"
+                f"Confidence global: <b>{score}</b> ({label})\n\n"
+                f"Motivo(s):\n{reasons}\n\n"
+                "⛔ Asignación de capital nueva frenada (posiciones existentes no afectadas).\n"
+                "Verificar dashboard / logs de Railway."
+            )
+
+        requests.post(
+            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+            json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
+            timeout=10,
+        )
+        logger.warning(f"[monitor] Alerta kill switch enviada (activo={not recovered})")
+
+    except Exception as e:
+        logger.warning(f"[monitor] No se pudo enviar alerta de kill switch: {e}")
