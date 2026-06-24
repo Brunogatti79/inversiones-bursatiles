@@ -227,5 +227,97 @@
         "sp500_trend_score": 48.0
       }
     }
+  ],
+  "2026-06-24": [
+    {
+      "ticker": "BBDC4.SA",
+      "empresa": "Bradesco",
+      "mercado": "BOVESPA",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 17.68,
+      "entrada": 17.44,
+      "stop": 17.11,
+      "target": 17.92,
+      "riesgo_pct": 1.9,
+      "reward_pct": 2.8,
+      "rr_ratio": 3.16,
+      "score_macro": 39.6,
+      "score_tecnico": 47.5,
+      "score_fundamental": 78.0,
+      "score_final_v1": 51.4,
+      "asset_quality": 53.0,
+      "entry_score": 71.9,
+      "score_final_v2": 61.5,
+      "ranking_accionable": 58.6,
+      "volatility_score": 60.0,
+      "adx": 0.0,
+      "alignment_score": 50,
+      "alignment_label": "NEUTRAL",
+      "weekly_trend": "BAJISTA",
+      "monthly_trend": "ALCISTA",
+      "rsi": 53.9,
+      "momentum_21d": 0.5,
+      "pred_5d": 0.85,
+      "pred_10d": 1.35,
+      "pred_21d": 3.68,
+      "pred_confidence": 0.631,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 62.8,
+      "index_snapshot": {
+        "actual": 170370.0,
+        "ret_dia": 1.06,
+        "ret_anual": 24.77
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 48.0
+      }
+    },
+    {
+      "ticker": "RENT3.SA",
+      "empresa": "Localiza",
+      "mercado": "BOVESPA",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 40.82,
+      "entrada": 40.41,
+      "stop": 38.53,
+      "target": 42.63,
+      "riesgo_pct": 4.7,
+      "reward_pct": 5.5,
+      "rr_ratio": 2.14,
+      "score_macro": 39.6,
+      "score_tecnico": 42.2,
+      "score_fundamental": 74.0,
+      "score_final_v1": 48.9,
+      "asset_quality": 52.2,
+      "entry_score": 71.9,
+      "score_final_v2": 61.1,
+      "ranking_accionable": 53.4,
+      "volatility_score": 36.2,
+      "adx": 0.0,
+      "alignment_score": 50,
+      "alignment_label": "NEUTRAL",
+      "weekly_trend": "BAJISTA",
+      "monthly_trend": "LATERAL",
+      "rsi": 47.0,
+      "momentum_21d": -5.8,
+      "pred_5d": 0.88,
+      "pred_10d": 1.86,
+      "pred_21d": 2.46,
+      "pred_confidence": 0.639,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 54.2,
+      "index_snapshot": {
+        "actual": 170370.0,
+        "ret_dia": 1.06,
+        "ret_anual": 24.77
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 48.0
+      }
+    }
   ]
 }
