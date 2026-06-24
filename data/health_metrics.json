@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-06-24T17:33:38.715482",
-  "last_run_utc": "2026-06-24T20:33:38.715513",
-  "last_success": "2026-06-24T17:33:38.715482",
+  "last_run": "2026-06-24T17:38:43.241936",
+  "last_run_utc": "2026-06-24T20:38:43.241973",
+  "last_success": "2026-06-24T17:38:43.241936",
   "consecutive_failures": 0,
   "duration_history": [
-    61.3,
     123.1,
     135.3,
     32.9,
@@ -13,11 +12,12 @@
     155.8,
     368.5,
     60.0,
-    44.4
+    44.4,
+    72.0
   ],
-  "duration_avg_sec": 110.8,
+  "duration_avg_sec": 111.4,
   "duration_p95_sec": 262.1,
-  "duration_last_sec": 44.4,
+  "duration_last_sec": 72.0,
   "signals_count": 67,
   "buy_signals": 21,
   "sell_signals": 9,
@@ -86,11 +86,16 @@
       "ts": "2026-06-24",
       "success": true,
       "duration": 44.4
+    },
+    {
+      "ts": "2026-06-24",
+      "success": true,
+      "duration": 72.0
     }
   ],
-  "pipeline_runs_today": 6,
-  "pipeline_runs_week": 12,
-  "optimized_weights_age_h": 0.4,
+  "pipeline_runs_today": 7,
+  "pipeline_runs_week": 13,
+  "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
