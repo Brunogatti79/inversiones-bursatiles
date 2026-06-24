@@ -17,9 +17,40 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.2"
+MODEL_VERSION = "4.3"
 
 CHANGELOG = [
+    {
+        "version": "4.3",
+        "date": "2026-06-24",
+        "changes": [
+            "Fix: quality_check.py (13 checks cruzados, semáforo por señal) estaba "
+            "documentado como activo desde v2 pero nunca se llamaba desde ningún lado "
+            "— confirmado con grep en todo el repo. Activado en pipeline.py justo antes "
+            "del confidence score por señal. Efecto en señales: el campo quality_flag "
+            "que confidence_score.py lee para el componente 'Quality checks (20%)' del "
+            "Kelly ajustado por confianza pasa de ser siempre 🟢 (default no-op) a "
+            "reflejar datos reales.",
+            "Feat: confidence score GLOBAL del run + kill switch (confidence_score.py + "
+            "monitor.py). Circuit breaker de sistema (no por ticker): si la confianza "
+            "ponderada del run (calidad de datos 30% / predictor 25% / macro 20% / "
+            "integridad de CSVs 10% / SLA 15%) cae por debajo de 35, o si "
+            "data_validator marca ERROR, o si hay ≥5 alertas críticas de quality_check, "
+            "se frena kelly_half/kelly_half_adj a 0 en TODAS las señales (no toca "
+            "posiciones ya abiertas). Persistido en data/system_confidence.json. "
+            "Alerta Telegram solo en transición de estado, no en cada run. Sin validar "
+            "todavía contra una corrida real con el kill switch activo.",
+            "Feat: tracker.update_history() ahora persiste también aq_weight_used/ "
+            "es_weight_used (peso dinámico AQ vs ES por mercado, para auditar "
+            "weight_optimizer después del hecho) y consenso (si V1/V2 coincidieron) "
+            "— estaban en la señal en vivo de analyzer.py pero no en el historial.",
+            "Tests: +7 archivos / +67 tests (de 99 a 166) con foco en watchPatterns, "
+            "github_persistence (retry/sha/backoff), toggle ENABLE_RF_PREDICTOR, "
+            "contrato de sync al arrancar, y todo lo de este changelog. Incluye fix de "
+            "un test preexistente (test_weight_optimizer.py) con timestamp hardcodeado "
+            "que ya había cruzado el umbral de staleness de 7 días.",
+        ],
+    },
     {
         "version": "4.2",
         "date": "2026-06-22",
