@@ -670,6 +670,8 @@ def _sync_all_data_from_github():
             "opportunities_effectiveness.json",
             "model_performance_history.json",
             "optimized_weights.json",
+            "historical_replay.json",     # fix 24/06: antes se perdía en cada redeploy
+            "system_confidence.json",     # mejora 4.3: confidence global + kill switch
         ])
         print("[start_server] data/ sincronizado desde GitHub", flush=True)
     except Exception as e:

@@ -99,3 +99,16 @@ class TestStartupSyncContract:
             f"{prefixed} ya incluyen el prefijo data/ en la lista de "
             f"start_server.py -- pasar solo el nombre de archivo."
         )
+
+    def test_historical_replay_and_system_confidence_in_startup_sync(self):
+        """Regresión del fix de hoy (24/06/2026): historical_replay.json se
+        escribía solo localmente y se perdía en cada redeploy -- el chequeo
+        de '1x/semana' del módulo nunca tenía efecto real porque el archivo
+        nunca sobrevivía para que ese chequeo encontrara algo. system_confidence.json
+        (mejora 4.3, kill switch) tenía el mismo gap del lado del pull. No son
+        tan críticos como CRITICAL_FILES (ambos son recalculables desde cero
+        sin pérdida de información irrecuperable), pero perderlos en cada
+        redeploy desperdicia el trabajo de la corrida anterior sin necesidad."""
+        filenames = set(_extract_sync_filenames() or [])
+        assert "historical_replay.json" in filenames
+        assert "system_confidence.json" in filenames

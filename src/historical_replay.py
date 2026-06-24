@@ -18,7 +18,20 @@ DISEÑO:
 
 OUTPUT:
   data/historical_replay.json — 3.500 observaciones por señal/mercado/sector
-  Formato compatible con weight_optimizer._evaluate_weights()
+  Formato compatible con weight_optimizer._evaluate_weights() — aunque, a
+  fecha 24/06/2026, weight_optimizer.py todavía NO lo consume (pendiente,
+  punto aparte de este fix de persistencia).
+
+PERSISTENCIA (fix 24/06/2026):
+  Hasta esta fecha, el resultado se escribía SOLO en el filesystem local
+  de Railway (efímero) y nunca se pusheaba a GitHub -- cada redeploy lo
+  borraba, y como el chequeo de "1x/semana" comparaba contra el mtime del
+  archivo local (inexistente tras el redeploy), terminaba regenerándose
+  desde cero en cada corrida sin que ese límite tuviera efecto real. Mismo
+  patrón que ya rompió signals_history.json hasta junio 2026 (ver
+  arquitectura v4/v7 §3). Ahora: push_file() al generar + pull_file() en
+  el sync de arranque (start_server.py) + staleness chequeada contra el
+  campo 'generated' DEL CONTENIDO, no del mtime local.
 
 USO desde pipeline.py (1x/semana):
     from src.historical_replay import run_historical_replay
@@ -56,12 +69,24 @@ def run_historical_replay(
         macro_scores: {"MERVAL": float, "BOVESPA": float, "SP500": float}
         fund_scores:  {ticker: float}  ← score fundamental 0-100
     """
-    # Solo corre 1x/semana para no desperdiciar tiempo de pipeline
-    if os.path.exists(REPLAY_PATH):
-        age_days = (datetime.now() - datetime.fromtimestamp(os.path.getmtime(REPLAY_PATH))).days
-        if age_days < 6:
-            logger.info(f"[historical_replay] Archivo reciente ({age_days}d), saltando")
-            return _load_replay()
+    # Solo corre 1x/semana para no desperdiciar tiempo de pipeline.
+    # IMPORTANTE: se chequea contra el timestamp 'generated' DENTRO del JSON,
+    # no contra os.path.getmtime() del archivo local -- una vez que esto se
+    # sincroniza al arrancar Railway (pull_file en start_server.py), el mtime
+    # local refleja cuándo se bajó el archivo, no cuándo se generó, y haría
+    # que esta corrida pensara "está fresco" recién pulleado aunque el
+    # contenido tenga semanas. Mismo criterio que weight_optimizer.py usa
+    # para data/optimized_weights.json.
+    existing = _load_replay()
+    generated_str = existing.get("generated")
+    if generated_str:
+        try:
+            age_days = (datetime.now() - datetime.fromisoformat(generated_str)).days
+            if age_days < 6:
+                logger.info(f"[historical_replay] Datos recientes ({age_days}d), saltando regeneración")
+                return existing
+        except Exception:
+            pass  # 'generated' mal formado -> regenerar por las dudas
 
     logger.info("[historical_replay] Iniciando backtest histórico (12 meses)...")
 
@@ -110,6 +135,19 @@ def run_historical_replay(
     os.makedirs("data", exist_ok=True)
     with open(REPLAY_PATH, "w") as f:
         json.dump(result, f, ensure_ascii=False, indent=None)  # compact para ahorrar espacio
+
+    # FIX: antes solo se escribía localmente y se perdía en el siguiente
+    # redeploy de Railway (mismo patrón que ya rompió signals_history.json
+    # hasta junio 2026) -- y como nada lo recuperaba al arrancar, terminaba
+    # regenerándose desde cero cada vez, sin que el "1x/semana" de arriba
+    # tuviera ningún efecto real. Push explícito acá + pull_file en el sync
+    # de arranque (start_server.py) cierran el ciclo.
+    from src.github_persistence import push_file
+    push_file(
+        REPLAY_PATH,
+        f"auto: historical_replay {datetime.now().strftime('%Y-%m-%d %H:%M')} "
+        f"({len(all_observations)} obs, {total_tickers} tickers)",
+    )
 
     logger.info(
         f"[historical_replay] ✅ {len(all_observations)} observaciones | "
@@ -278,14 +316,11 @@ def _build_macro_history(market: str, macro_current: float) -> dict:
 
 
 def _load_replay() -> dict:
-    """Carga el replay existente."""
-    if not os.path.exists(REPLAY_PATH):
-        return {}
-    try:
-        with open(REPLAY_PATH) as f:
-            return json.load(f)
-    except Exception:
-        return {}
+    """Carga el replay existente. Resiliente a JSON corrupto/truncado (ej.
+    redeploy a mitad de escritura) -- usa el mismo loader que el resto del
+    repo en vez de un try/except propio."""
+    from src.github_persistence import load_json
+    return load_json(REPLAY_PATH, default={})
 
 
 def load_replay_observations() -> list[dict]:
