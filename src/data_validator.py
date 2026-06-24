@@ -126,7 +126,7 @@ def validar_consistencia(df: pd.DataFrame, market: str, index_col: str) -> dict:
         return resultado
 
     # Calcular variaciones diarias últimas 5 sesiones
-    variaciones = serie.pct_change().dropna().tail(5) * 100
+    variaciones = serie.pct_change(fill_method=None).dropna().tail(5) * 100
 
     # Control: variación > ±15%
     extremas = variaciones[variaciones.abs() > 15]

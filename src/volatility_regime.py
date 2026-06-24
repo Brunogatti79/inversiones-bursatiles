@@ -136,7 +136,7 @@ def compute_volatility_regime(price_data: dict, index_cols: dict) -> dict:
 
 def _calc_regime(serie: pd.Series) -> dict:
     """Calcula régimen de volatilidad para una serie de índice."""
-    returns  = serie.pct_change().dropna()
+    returns  = serie.pct_change(fill_method=None).dropna()
 
     # Volatilidad actual (ventana 20d)
     vol_20d  = float(returns.tail(VOL_WINDOW).std()) * np.sqrt(252) * 100  # anualizada %

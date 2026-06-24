@@ -114,13 +114,13 @@ def _build_features(serie: np.ndarray, context: dict = None):
     if len(s) < 25:
         return None, None
 
-    r3  = s.pct_change(3).fillna(0)
-    r5  = s.pct_change(5).fillna(0)
-    r10 = s.pct_change(10).fillna(0)
-    r21 = s.pct_change(21).fillna(0)
+    r3  = s.pct_change(3, fill_method=None).fillna(0)
+    r5  = s.pct_change(5, fill_method=None).fillna(0)
+    r10 = s.pct_change(10, fill_method=None).fillna(0)
+    r21 = s.pct_change(21, fill_method=None).fillna(0)
 
-    vol10 = s.pct_change().rolling(10).std().fillna(0)
-    vol21 = s.pct_change().rolling(21).std().fillna(0)
+    vol10 = s.pct_change(fill_method=None).rolling(10).std().fillna(0)
+    vol21 = s.pct_change(fill_method=None).rolling(21).std().fillna(0)
 
     ma20  = s.rolling(20).mean().fillna(s)
     ma50  = s.rolling(50).mean().fillna(s)
@@ -174,7 +174,7 @@ def _gradient_boosting(serie: np.ndarray, horizon: int, context: dict = None) ->
         if X is None:
             return 0.0, 0.3
 
-        y_raw = s.pct_change(horizon).shift(-horizon).fillna(0)
+        y_raw = s.pct_change(horizon, fill_method=None).shift(-horizon).fillna(0)
 
         # Ventana mínima de entrenamiento: 60 muestras
         min_train = 60
@@ -246,7 +246,7 @@ def _random_forest(serie: np.ndarray, horizon: int, context: dict = None) -> tup
         if X is None:
             return 0.0, 0.3
 
-        y_raw = s.pct_change(horizon).shift(-horizon).fillna(0)
+        y_raw = s.pct_change(horizon, fill_method=None).shift(-horizon).fillna(0)
 
         min_train = 60
         if n < min_train + horizon + 10:
@@ -308,7 +308,7 @@ def _linear_baseline(serie: np.ndarray, horizon: int, context: dict = None) -> t
         if X is None:
             return 0.0, 0.25
 
-        y_raw = s.pct_change(horizon).shift(-horizon).fillna(0)
+        y_raw = s.pct_change(horizon, fill_method=None).shift(-horizon).fillna(0)
         if n < 40 + horizon:
             return 0.0, 0.25
 

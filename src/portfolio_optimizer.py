@@ -245,7 +245,7 @@ def _covariance_adjustment(
                 continue
             for col in df.columns:
                 ticker = col_to_ticker.get(col, col)
-                series = df[col].pct_change().dropna()
+                series = df[col].pct_change(fill_method=None).dropna()
                 if len(series) >= COV_WINDOW:
                     returns_dict[ticker] = series.tail(COV_WINDOW).values
 

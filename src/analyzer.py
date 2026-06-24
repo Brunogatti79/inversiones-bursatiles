@@ -544,7 +544,7 @@ def _ranking_accionable(score_v2, asset_quality, rr_norm, volatility_score):
 def _volatility_score(series, period=60):
     if len(series) < period:
         return 50.0
-    returns = series.pct_change().dropna().tail(period)
+    returns = series.pct_change(fill_method=None).dropna().tail(period)
     vol = float(returns.std() * np.sqrt(252) * 100)
     if vol <= 10:
         return 90.0
@@ -1050,7 +1050,7 @@ def get_index_stats(df: pd.DataFrame, index_col: str) -> dict:
         return {}
  
     ret = (serie.iloc[-1] / serie.iloc[0] - 1) * 100
-    vol = serie.pct_change().dropna().std() * np.sqrt(252) * 100
+    vol = serie.pct_change(fill_method=None).dropna().std() * np.sqrt(252) * 100
     max_val = serie.max()
     min_val = serie.min()
  
@@ -1094,9 +1094,9 @@ def get_cross_market_correlation(merval_df, bovespa_df, sp500_df,
                                   window=21) -> dict:
     """Calcula correlación rolling entre los 3 mercados."""
     try:
-        mv = merval_df[merval_col].pct_change().dropna().tail(window * 2)
-        bv = bovespa_df[bovespa_col].pct_change().dropna().tail(window * 2)
-        sp = sp500_df[sp500_col].pct_change().dropna().tail(window * 2)
+        mv = merval_df[merval_col].pct_change(fill_method=None).dropna().tail(window * 2)
+        bv = bovespa_df[bovespa_col].pct_change(fill_method=None).dropna().tail(window * 2)
+        sp = sp500_df[sp500_col].pct_change(fill_method=None).dropna().tail(window * 2)
         combined = pd.DataFrame({"mv": mv, "bv": bv, "sp": sp}).dropna()
         if len(combined) < window:
             return {"regime": "SIN DATOS", "avg_correlation": 0}

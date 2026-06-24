@@ -106,9 +106,9 @@ def compute_cross_market_context(
 
         # Alinear fechas (usar intersección)
         combined = pd.DataFrame({
-            "mv": mv_serie.pct_change(),
-            "bv": bv_serie.pct_change(),
-            "sp": sp_serie.pct_change(),
+            "mv": mv_serie.pct_change(fill_method=None),
+            "bv": bv_serie.pct_change(fill_method=None),
+            "sp": sp_serie.pct_change(fill_method=None),
         }).dropna()
 
         if len(combined) < CORR_WINDOW + 5:
