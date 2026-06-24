@@ -1,8 +1,8 @@
 {
-  "global_score": 49.8,
-  "label": "🟠 Baja",
+  "global_score": 50.7,
+  "label": "🟡 Reducida",
   "components": {
-    "calidad_datos": 13.2,
+    "calidad_datos": 16.2,
     "predictor": 65.0,
     "macro": 47.9,
     "integridad_datos": 50.0,
@@ -15,10 +15,8 @@
     "integridad_datos": 0.1,
     "sla": 0.15
   },
-  "kill_switch_active": true,
-  "kill_switch_reasons": [
-    "quality_check encontró 8 alertas 🔴 críticas (umbral=5)"
-  ],
+  "kill_switch_active": false,
+  "kill_switch_reasons": [],
   "n_signals": 67,
-  "generated": "2026-06-24T14:07:28.615416"
+  "generated": "2026-06-24T16:57:47.817821"
 }
