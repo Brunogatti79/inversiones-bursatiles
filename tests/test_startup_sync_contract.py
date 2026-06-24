@@ -112,3 +112,12 @@ class TestStartupSyncContract:
         filenames = set(_extract_sync_filenames() or [])
         assert "historical_replay.json" in filenames
         assert "system_confidence.json" in filenames
+
+    def test_predictor_validation_in_startup_sync_from_day_one(self):
+        """predictor_validation.json (Prioridad 3) se agregó al sync de
+        arranque desde su primer commit -- a diferencia de historical_replay.json
+        y system_confidence.json, que se agregaron como fix después de
+        encontrarlos rotos en producción. Este test existe para que, si
+        alguna vez se refactoriza esta lista, no se pierda por descuido."""
+        filenames = set(_extract_sync_filenames() or [])
+        assert "predictor_validation.json" in filenames

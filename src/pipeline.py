@@ -29,7 +29,8 @@ from src.cross_market   import compute_cross_market_context
 from src.exit_model     import enrich_exit_levels
 from src.weight_optimizer    import run_weight_optimization, load_optimized_weights, apply_optimized_weights
 from src.monitor             import update_health_metrics, check_sla, persist_global_confidence
-from src.historical_replay   import run_historical_replay
+from src.historical_replay    import run_historical_replay
+from src.predictor_validation import run_predictor_validation
 from src.volatility_regime   import compute_volatility_regime
 from src.confidence_score    import enrich_confidence_scores, compute_global_confidence, apply_kill_switch
 from src.quality_check       import validar_señales, inyectar_semaforo
@@ -439,6 +440,23 @@ def run_pipeline():
             )
         except Exception as e_hr:
             logger.warning(f"Historical replay no crítico — continuando: {e_hr}")
+        # ─────────────────────────────────────────────────────────────────────
+
+        # ── PREDICTOR VALIDATION (Prioridad 3, roadmap externo) ──────────────
+        # 1x/semana (mismo gate por contenido que historical_replay, no por
+        # mtime). Corre el predictor real retroactivamente sobre los 12 meses
+        # de precios y lo compara contra 3 baselines simples (zero/momentum/
+        # promedio histórico) -- NOTA: la semana que le toca correr, esto
+        # agrega ~5 minutos a esa corrida puntual del pipeline (ensemble
+        # completo × ~67 tickers × ~6-7 snapshots cada uno); el resto de las
+        # semanas no hace nada porque el contenido sigue fresco.
+        try:
+            run_predictor_validation(
+                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                ticker_cols=ticker_cols,
+            )
+        except Exception as e_pv:
+            logger.warning(f"Predictor validation no crítico — continuando: {e_pv}")
         # ─────────────────────────────────────────────────────────────────────
 
         # ── WEIGHT OPTIMIZER (Fase 2) ──────────────────────────────────────────
