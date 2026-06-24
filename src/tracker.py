@@ -58,6 +58,15 @@ def update_history(signals: list[dict], max_days: int = 60):
             "rr_ratio":      s.get("rr_ratio", 0),
             "asset_quality": s.get("asset_quality", 0),
             "entry_score":   s.get("entry_score", 0),
+            # ── Mejora 4.3.2: pesos AQ/ES y consenso V1/V2 ───────────
+            # Estaban en la señal en vivo (analyzer.py) pero no se
+            # persistían -- sin esto no se puede reconstruir, después del
+            # hecho, cuánto pesó AQ vs ES por mercado en un día dado (clave
+            # para validar weight_optimizer) ni medir si el consenso V1/V2
+            # es predictivo de algo en el backtester.
+            "aq_weight_used": s.get("aq_weight_used", 0),
+            "es_weight_used": s.get("es_weight_used", 0),
+            "consenso":       s.get("consenso", ""),
             # ── Stops / Targets (para backtesting) ──────────────────
             "atr_stop":      s.get("atr_stop", 0),
             "atr_target":    s.get("atr_target", 0),
