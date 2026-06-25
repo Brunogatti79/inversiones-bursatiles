@@ -10,13 +10,29 @@ METODOLOGÍA:
      f* = (win_rate × avg_win - loss_rate × avg_loss) / avg_win
      Usa métricas reales del backtester por tipo de señal y mercado.
      Si no hay datos de backtest, usa win_rate conservador del score.
+     Escalado por regime_factor (Prioridad 5, roadmap externo, 25/06/2026):
+     LOW vol → ×1.10 (algo más agresivo), HIGH vol → ×0.75 (más
+     conservador) -- ver compute_volatility_regime() en volatility_regime.py.
+     Ese módulo prometía esta integración en su propio docstring desde que
+     se creó, pero nunca se conectó (verificado con grep en todo el repo:
+     cero referencias a regime_factor en este archivo antes de este fix) --
+     exit_model.py y confidence_score.py sí lo consumían, este no.
 
   2. Risk Parity (1/volatilidad normalizado)
      Activos más volátiles reciben menos capital.
-     Usa volatility_score y ATR del modelo.
+     Usa volatility_score y ATR del modelo. No se reescala por regime_factor
+     a propósito: ya captura volatilidad POR ACTIVO; regime_factor es la
+     dimensión de incertidumbre SISTÉMICA (todo el mercado), una señal
+     complementaria, no redundante.
 
   PESO FINAL:
      suggested_pct = Kelly × 0.60 + RiskParity × 0.40
+     (el componente Kelly de este blend se normaliza a suma=1 entre las
+     señales del día -- por diseño, regime_factor no cambia la proporción
+     RELATIVA entre tickers, solo el tamaño ABSOLUTO de kelly_f/kelly_half
+     por señal. Escalar también el peso relativo dentro del blend sería una
+     decisión de portfolio distinta -- "deployar menos capital total en
+     alta volatilidad" -- que no estaba pedida y queda fuera de este fix.)
 
 RESTRICCIONES:
   • Max por posición: MAX_POS_PCT (15%)
@@ -24,9 +40,12 @@ RESTRICCIONES:
   • Max por sector: MAX_SECTOR_PCT (25%)
   • Solo señales COMPRA o COMPRA FUERTE
   • Posiciones ya en cartera reciben menor asignación adicional
+  • Kelly cappeado a 20% por posición SIEMPRE después de aplicar
+    regime_factor -- el cap de riesgo no se relaja nunca por estar en
+    régimen de baja volatilidad.
 
 OUTPUT por señal (campos agregados al signal dict):
-  kelly_f              → fracción Kelly pura
+  kelly_f              → fracción Kelly pura (ya incluye regime_factor)
   kelly_half           → Kelly al 50% (conservador)
   risk_parity_pct      → peso por riesgo inverso
   suggested_pct        → recomendación final combinada
@@ -35,7 +54,10 @@ OUTPUT por señal (campos agregados al signal dict):
 
 USO desde pipeline.py:
     from src.portfolio_optimizer import optimize_portfolio_allocation
-    all_signals = optimize_portfolio_allocation(all_signals, backtest_results)
+    all_signals = optimize_portfolio_allocation(
+        all_signals, backtest_results,
+        regime_factor=vol_regime.get("regime_factor", 1.0),
+    )
 """
 
 import json
@@ -73,6 +95,7 @@ def optimize_portfolio_allocation(
     backtest_results: Optional[dict] = None,
     price_data: dict = None,
     ticker_cols: dict = None,
+    regime_factor: float = 1.0,
 ) -> list[dict]:
     """
     Enriquece cada señal de compra con recomendaciones de asignación de capital.
@@ -81,6 +104,10 @@ def optimize_portfolio_allocation(
     Args:
         signals:          lista de dicts de señales del pipeline
         backtest_results: resultado de run_backtest() (opcional, mejora Kelly)
+        regime_factor:    multiplicador de volatility_regime.compute_volatility_regime()
+                          (LOW=1.10, NORMAL=1.00, HIGH=0.75). Escala kelly_f/
+                          kelly_half por incertidumbre sistémica del mercado,
+                          ver docstring del módulo.
     """
     if not signals:
         return signals
@@ -99,10 +126,11 @@ def optimize_portfolio_allocation(
     if not buy_signals:
         return signals
 
-    logger.info(f"[portfolio_optimizer] {len(buy_signals)} señales de compra a optimizar")
+    logger.info(f"[portfolio_optimizer] {len(buy_signals)} señales de compra a optimizar "
+                f"(regime_factor={regime_factor})")
 
     # 1. Kelly por señal
-    kelly_weights = _calc_kelly_weights(buy_signals, backtest_results)
+    kelly_weights = _calc_kelly_weights(buy_signals, backtest_results, regime_factor=regime_factor)
 
     # 2. Risk parity por señal
     rp_weights = _calc_risk_parity_weights(buy_signals)
@@ -110,7 +138,7 @@ def optimize_portfolio_allocation(
     # 3. Blend y aplicar restricciones
     final_weights = _blend_and_cap(
         buy_signals, kelly_weights, rp_weights, existing_tickers,
-        price_data=price_data, ticker_cols=ticker_cols,
+        price_data=price_data, ticker_cols=ticker_cols, regime_factor=regime_factor,
     )
 
     # 4. Actualizar signal dicts
@@ -128,10 +156,13 @@ def optimize_portfolio_allocation(
 
 # ── Kelly Criterion ─────────────────────────────────────────────────────────
 
-def _calc_kelly_weights(buy_signals: list[dict], backtest: dict) -> list[float]:
+def _calc_kelly_weights(buy_signals: list[dict], backtest: dict, regime_factor: float = 1.0) -> list[float]:
     """
     Calcula Kelly fraction para cada señal de compra.
     Retorna lista de fracciones raw (0-1) en mismo orden que buy_signals.
+
+    regime_factor: multiplicador de incertidumbre sistémica (Prioridad 5,
+    roadmap externo, 25/06/2026) -- LOW vol=1.10, NORMAL=1.00, HIGH vol=0.75.
     """
     weights = []
 
@@ -168,6 +199,12 @@ def _calc_kelly_weights(buy_signals: list[dict], backtest: dict) -> list[float]:
         n_samples = metrics.get("samples", 0) if metrics else 0
         conf_adj  = min(1.0, (max(1, n_samples) / 100) ** 0.5)
         kelly_f   = kelly_f * conf_adj
+
+        # Régimen de volatilidad sistémica (Prioridad 5, roadmap externo):
+        # se aplica DESPUÉS del ajuste de confianza estadística y ANTES del
+        # cap de riesgo -- el cap de 20% es una pared absoluta, nunca se
+        # relaja por estar en régimen de baja volatilidad.
+        kelly_f = kelly_f * regime_factor
 
         # Clamp: Kelly entre 0 y 0.20 (máximo 20% de capital en una posición)
         kelly_f = max(0.0, min(0.20, kelly_f))
@@ -321,10 +358,15 @@ def _blend_and_cap(
     existing_tickers: set,
     price_data: dict = None,
     ticker_cols: dict = None,
+    regime_factor: float = 1.0,
 ) -> dict:
     """
     Combina Kelly + RiskParity, convierte a porcentajes y aplica caps.
     Retorna dict {idx: {suggested_pct, kelly_f, kelly_half, risk_parity_pct, ...}}
+
+    regime_factor: solo se usa acá para anotar el motivo en allocation_notes
+    -- el efecto numérico real ya está aplicado en kelly_weights (vienen
+    pre-escalados desde _calc_kelly_weights).
     """
     n = len(buy_signals)
     if n == 0:
@@ -416,7 +458,7 @@ def _blend_and_cap(
         pct = round(pct, 1)
 
         # Nota
-        notes = _build_notes(pct, cap_reason, kelly_weights[i], sig)
+        notes = _build_notes(pct, cap_reason, kelly_weights[i], sig, regime_factor=regime_factor)
 
         result[i] = {
             "kelly_f":          round(kelly_weights[i], 4),
@@ -431,7 +473,8 @@ def _blend_and_cap(
     return result
 
 
-def _build_notes(pct: float, cap: Optional[str], kelly_f: float, sig: dict) -> str:
+def _build_notes(pct: float, cap: Optional[str], kelly_f: float, sig: dict,
+                  regime_factor: float = 1.0) -> str:
     """Genera texto explicativo de la recomendación."""
     signal = sig.get("signal_v2") or sig.get("signal", "")
     score  = sig.get("score_final", 0)
@@ -457,6 +500,11 @@ def _build_notes(pct: float, cap: Optional[str], kelly_f: float, sig: dict) -> s
         parts.append("Capreado por límite de mercado (40%).")
     elif cap == "max_sector":
         parts.append("Capreado por límite de sector (25%).")
+
+    if regime_factor > 1.0:
+        parts.append(f"Kelly ampliado ×{regime_factor:.2f} (régimen de baja volatilidad).")
+    elif regime_factor < 1.0:
+        parts.append(f"Kelly recortado ×{regime_factor:.2f} (régimen de alta volatilidad).")
 
     if pct < MIN_POS_PCT:
         parts.append("⚠️ Por debajo del mínimo accionable — considerar no abrir.")

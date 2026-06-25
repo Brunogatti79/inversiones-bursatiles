@@ -243,8 +243,6 @@ def run_pipeline():
             )
         except Exception as e_vr:
             logger.warning(f"Vol regime no crítico — continuando: {e_vr}")
-        except Exception as e_cm:
-            logger.warning(f"Cross-market no crítico — continuando: {e_cm}")
         # ─────────────────────────────────────────────────────────────────────
 
         # 3. ANÁLISIS
@@ -290,6 +288,7 @@ def run_pipeline():
                 all_signals, backtest_results,
                 price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
                 ticker_cols=ticker_cols,
+                regime_factor=vol_regime.get("regime_factor", 1.0),
             )
         except Exception as e_po:
             logger.warning(f"Portfolio optimizer no crítico — continuando: {e_po}")
