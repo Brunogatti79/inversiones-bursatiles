@@ -80,7 +80,7 @@ def validar_frescura(df: pd.DataFrame, market: str) -> dict:
     Control 1: El último cierre debe ser del último día hábil.
     Tolerancia: máximo 3 días hábiles de atraso.
     """
-    resultado = {'control': 'frescura', 'ok': True, 'warnings': [], 'errors': []}
+    resultado = {'control': 'frescura', 'ok': True, 'info': [], 'warnings': [], 'errors': []}
 
     if df is None or df.empty:
         resultado['ok'] = False
@@ -93,7 +93,7 @@ def validar_frescura(df: pd.DataFrame, market: str) -> dict:
     diff_dias = (esperado - ultima_fecha).days
 
     if diff_dias == 0:
-        resultado['warnings'].append(f"[{market}] ✅ Dato fresco: {ultima_fecha} (esperado: {esperado})")
+        resultado['info'].append(f"[{market}] ✅ Dato fresco: {ultima_fecha} (esperado: {esperado})")
     elif diff_dias <= 3:
         resultado['warnings'].append(
             f"[{market}] ⚠️ Dato con {diff_dias}d de atraso: {ultima_fecha} (esperado: {esperado})"
@@ -114,7 +114,7 @@ def validar_consistencia(df: pd.DataFrame, market: str, index_col: str) -> dict:
     - Superar ±15% (dato corrupto)
     - Ser exactamente 0.0000% dos días seguidos
     """
-    resultado = {'control': 'consistencia', 'ok': True, 'warnings': [], 'errors': []}
+    resultado = {'control': 'consistencia', 'ok': True, 'info': [], 'warnings': [], 'errors': []}
 
     if df is None or df.empty or not index_col or index_col not in df.columns:
         resultado['warnings'].append(f"[{market}] No se pudo validar consistencia (columna índice no encontrada)")
@@ -154,8 +154,8 @@ def validar_consistencia(df: pd.DataFrame, market: str, index_col: str) -> dict:
             f"[{market}] ⚠️ {ceros} días con variación ~0% — verificar actualización"
         )
 
-    if resultado['ok'] and not resultado['errors']:
-        resultado['warnings'].insert(0, f"[{market}] ✅ Consistencia OK — variación hoy: {float(variaciones.iloc[-1]):.2f}%")
+    if resultado['ok'] and not resultado['errors'] and not resultado['warnings']:
+        resultado['info'].append(f"[{market}] ✅ Consistencia OK — variación hoy: {float(variaciones.iloc[-1]):.2f}%")
 
     return resultado
 
@@ -164,7 +164,7 @@ def validar_integridad(df: pd.DataFrame, market: str, n_tickers_esperados: int) 
     """
     Control 3: Mínimo 80% de tickers con datos en la última fecha.
     """
-    resultado = {'control': 'integridad', 'ok': True, 'warnings': [], 'errors': []}
+    resultado = {'control': 'integridad', 'ok': True, 'info': [], 'warnings': [], 'errors': []}
 
     if df is None or df.empty:
         resultado['ok'] = False
@@ -177,7 +177,7 @@ def validar_integridad(df: pd.DataFrame, market: str, n_tickers_esperados: int) 
     tasa = tickers_con_dato / total_cols if total_cols > 0 else 0
 
     if tasa >= 0.80:
-        resultado['warnings'].append(
+        resultado['info'].append(
             f"[{market}] ✅ Integridad OK: {tickers_con_dato}/{total_cols} tickers con dato ({tasa:.0%})"
         )
     elif tasa >= 0.50:
@@ -202,9 +202,17 @@ def validar_mercado(df: pd.DataFrame, market: str, index_col: str, n_tickers: in
     r3 = validar_integridad(df, market, n_tickers)
 
     todos_ok = r1['ok'] and r2['ok'] and r3['ok']
+    todos_info     = r1.get('info', []) + r2.get('info', []) + r3.get('info', [])
     todos_warnings = r1['warnings'] + r2['warnings'] + r3['warnings']
     todos_errors   = r1['errors']   + r2['errors']   + r3['errors']
 
+    # Fix (Prioridad 1, roadmap externo, 25/06/2026): antes los mensajes de
+    # confirmación ("✅ Dato fresco", "✅ Consistencia OK", "✅ Integridad OK")
+    # vivían en la misma lista 'warnings' que las advertencias reales, así
+    # que todos_warnings nunca estaba vacío en una corrida sana y nivel
+    # jamás llegaba a 'OK' -- se quedaba en 'WARNING' permanentemente,
+    # confirmado con datos 100% sanos antes de este fix. Ahora 'info' es
+    # una lista separada y nivel se calcula solo sobre warnings/errors reales.
     nivel = 'OK' if todos_ok and not todos_warnings else \
             'WARNING' if todos_ok else 'ERROR'
 
@@ -218,6 +226,7 @@ def validar_mercado(df: pd.DataFrame, market: str, index_col: str, n_tickers: in
         'market':   market,
         'ok':       todos_ok,
         'nivel':    nivel,
+        'info':     todos_info,
         'warnings': todos_warnings,
         'errors':   todos_errors,
         'ultima_fecha': str(df.index[-1].date()) if df is not None and not df.empty else '—',
@@ -240,6 +249,8 @@ def validar_todos(data: dict, index_cols: dict, n_tickers: dict) -> dict:
         nt     = n_tickers.get(key, 20)
         resultados[key] = validar_mercado(df, market, icol, nt)
 
+    # Mismo fix que en validar_mercado: 'warnings' ya no incluye los ✅ de
+    # confirmación, así que hay_warnings ahora refleja advertencias reales.
     hay_errores   = any(not r['ok'] for r in resultados.values())
     hay_warnings  = any(r['warnings'] for r in resultados.values())
     nivel_global  = 'ERROR' if hay_errores else 'WARNING' if hay_warnings else 'OK'

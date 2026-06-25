@@ -476,6 +476,58 @@ def load_optimized_weights() -> dict:
         return {}
 
 
+def weights_provenance() -> dict:
+    """
+    Prioridad 1 (roadmap externo, 25/06/2026) — "conciencia operativa":
+    no alcanza con que load_optimized_weights() funcione bien (ya
+    funciona); hace falta que se sepa, en cada corrida, si los pesos que
+    está usando AHORA vienen de historia real o de historical_replay.py
+    sintético. Antes de esto, esa información existía en
+    optimized_weights.json (campos 'mode' y 'n_real_entries') pero no
+    llegaba a ningún lado visible — ni Telegram ni health_metrics la leían.
+
+    Retorna, por mercado, si ese mercado puntual está 100% sostenido por
+    replay (n_real_entries == 0) — el campo 'mode' global ("sensitivity"
+    vs "walk_forward") puede ocultar que UN mercado en particular siga en
+    cero real aunque otro ya tenga historia.
+    """
+    fallback = {"available": False, "mode": None, "is_synthetic": False, "markets": {}}
+
+    if not os.path.exists(WEIGHTS_PATH):
+        return fallback
+
+    try:
+        with open(WEIGHTS_PATH) as f:
+            data = json.load(f)
+    except Exception as e:
+        logger.warning(f"[weights_provenance] Error leyendo {WEIGHTS_PATH}: {e}")
+        return fallback
+
+    mode = data.get("mode")
+    markets = {}
+    any_synthetic = False
+    for market in MARKETS:
+        w = data.get(market) or {}
+        n_real   = w.get("n_real_entries", 0) or 0
+        n_replay = w.get("n_replay_entries", 0) or 0
+        is_synth = n_real == 0 and n_replay > 0
+        any_synthetic = any_synthetic or is_synth
+        markets[market] = {
+            "n_real_entries":   n_real,
+            "n_replay_entries": n_replay,
+            "is_synthetic":     is_synth,
+        }
+
+    return {
+        "available":    True,
+        "mode":         mode,
+        "is_synthetic": any_synthetic or mode != "walk_forward",
+        "days_history": data.get("days_history"),
+        "markets":      markets,
+        "generated":    data.get("generated"),
+    }
+
+
 def apply_optimized_weights(weights: dict):
     """
     Aplica los pesos optimizados al módulo analyzer (muta W_POR_MERCADO en runtime).

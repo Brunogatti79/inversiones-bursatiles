@@ -49,7 +49,7 @@ DATA_DIR     = "data"
  
  
 
-def apply_prediction_override(signals: list[dict]) -> list[dict]:
+def apply_prediction_override(signals: list[dict], predictor_health: dict = None) -> list[dict]:
     """
     Post-proceso: ajusta señales cuando predictor contradice V1.
     Principio: el predictor tiene la ultima palabra en timing de entrada.
@@ -58,7 +58,23 @@ def apply_prediction_override(signals: list[dict]) -> list[dict]:
       - pred_21d < -5% + COMPRA* → VENTA PARCIAL (proyeccion muy negativa)
       - pred_21d <-10% + cualquier señal → VENTA  (baja fuerte proyectada)
       - ret_anual < -40% + COMPRA* → NEUTRAL  (caida estructural severa)
+
+    Gating por salud del predictor (Prioridad 1, roadmap externo, 25/06/2026):
+    esta función estuvo definida pero nunca invocada durante meses — el
+    predictor pudo tener edge débil o nulo (ver predictor_validation.py:
+    51% directional accuracy real, peor que el baseline histórico simple en
+    MAE) sin que esto afectara nada porque la función jamás corría. Ahora
+    que se activa, no tiene sentido dejarle el "última palabra" a un
+    predictor que el propio sistema marca como DEGRADED (accuracy < 0.45)
+    -- en ese caso se omite la Regla 1 (la más agresiva en volumen, dispara
+    con solo pred_21d<0) y se deja intacta la Regla 2 (estructural, no
+    depende del predictor). Con WARNING (0.45-0.54, que es el estado real
+    de hoy) la Regla 1 sigue activa pero ya viene atenuada indirectamente:
+    apply_health_to_signals() ya bajó pred_confidence por el mismo motivo.
     """
+    health_status = (predictor_health or {}).get("health", "UNKNOWN")
+    skip_pred_rule = health_status == "DEGRADED"
+
     overrides = 0
     for s in signals:
         pred_21d  = s.get("pred_21d")
@@ -69,7 +85,8 @@ def apply_prediction_override(signals: list[dict]) -> list[dict]:
         reasons = []
 
         # Regla 1: prediccion negativa → no comprar
-        if pred_21d is not None and is_buy:
+        # (omitida si el predictor está DEGRADED — ver docstring)
+        if pred_21d is not None and is_buy and not skip_pred_rule:
             if pred_21d < -10:
                 s["signal"] = "🔴 VENTA"
                 reasons.append(f"Pred21d {pred_21d:.1f}% (BAJA FUERTE)")
@@ -80,7 +97,8 @@ def apply_prediction_override(signals: list[dict]) -> list[dict]:
                 s["signal"] = "🟡 NEUTRAL/ESPERAR"
                 reasons.append(f"Pred21d {pred_21d:.1f}% (negativa)")
 
-        # Regla 2: caida estructural anual severa
+        # Regla 2: caida estructural anual severa (no depende del predictor,
+        # nunca se omite)
         if ret_anual < -40 and "COMPRA" in s.get("signal", ""):
             s["signal"] = "🟡 NEUTRAL/ESPERAR"
             reasons.append(f"Ret.anual {ret_anual:.1f}% (<-40% estructural)")
@@ -92,7 +110,14 @@ def apply_prediction_override(signals: list[dict]) -> list[dict]:
                 s["signal_v2"] = s["signal"]
             overrides += 1
 
-    logger.info(f"Prediction override: {overrides} señales ajustadas por predictor/tendencia")
+    if skip_pred_rule:
+        logger.info(
+            f"Prediction override: Regla 1 OMITIDA (predictor_health=DEGRADED) | "
+            f"{overrides} señales ajustadas solo por Regla 2 (estructural)"
+        )
+    else:
+        logger.info(f"Prediction override: {overrides} señales ajustadas por predictor/tendencia "
+                     f"(predictor_health={health_status})")
     return signals
 
 
@@ -277,6 +302,34 @@ def run_pipeline():
         except Exception as e:
             logger.warning(f"Predicciones no disponibles: {e}")
 
+        # ── PREDICTOR HEALTH (Fase 6) ─────────────────────────────────────────
+        try:
+            predictor_health = compute_predictor_health()
+            all_signals = apply_health_to_signals(all_signals, predictor_health)
+        except Exception as e_ph:
+            logger.warning(f"Predictor health no crítico — continuando: {e_ph}")
+            predictor_health = {}
+        # ─────────────────────────────────────────────────────────────────────
+
+        # ── PREDICTION OVERRIDE (Prioridad 1, roadmap externo, 25/06/2026) ────
+        # apply_prediction_override() existía en este archivo desde hacía
+        # tiempo (docstring completo, lógica de 4 reglas, hasta un log de
+        # resumen) pero NUNCA se llamaba desde ningún lado — confirmado con
+        # grep en todo el repo. El tooltip del dashboard (generator.py,
+        # columna pred21) afirma "Si negativo + señal COMPRA → override
+        # automático degrada la señal" desde siempre; eso era falso hasta
+        # esta línea. Se activa AHORA, gateada por predictor_health: si el
+        # predictor está DEGRADED, se omite por completo (pred_health_override
+        # ya se seteaba en apply_health_to_signals pero nada lo leía — tampoco
+        # esto). Corre ANTES del portfolio optimizer a propósito: si una señal
+        # se degrada de COMPRA a NEUTRAL acá, el optimizer no debe asignarle
+        # capital como si siguiera siendo COMPRA.
+        try:
+            all_signals = apply_prediction_override(all_signals, predictor_health)
+        except Exception as e_apo:
+            logger.warning(f"Prediction override no crítico — continuando: {e_apo}")
+        # ─────────────────────────────────────────────────────────────────────
+
         # ── PORTFOLIO OPTIMIZER (Fase 4) ──────────────────────────────────────
         try:
             backtest_results = {}
@@ -292,15 +345,6 @@ def run_pipeline():
             )
         except Exception as e_po:
             logger.warning(f"Portfolio optimizer no crítico — continuando: {e_po}")
-        # ─────────────────────────────────────────────────────────────────────
-
-        # ── PREDICTOR HEALTH (Fase 6) ─────────────────────────────────────────
-        try:
-            predictor_health = compute_predictor_health()
-            all_signals = apply_health_to_signals(all_signals, predictor_health)
-        except Exception as e_ph:
-            logger.warning(f"Predictor health no crítico — continuando: {e_ph}")
-            predictor_health = {}
         # ─────────────────────────────────────────────────────────────────────
 
         # ── QUALITY CHECK (Nivel 1+2 — validación cruzada + semáforo) ──────────
@@ -615,12 +659,29 @@ def run_pipeline():
         logger.info("8/8 Enviando Telegram...")
         if ALERT_CHANGE and changes:
             send_signal_change_alerts(changes)
+
+        # Procedencia de los pesos V1 (Prioridad 1, roadmap externo, 25/06/2026)
+        try:
+            from src.weight_optimizer import weights_provenance
+            wp = weights_provenance()
+            if wp.get("is_synthetic"):
+                logger.warning(
+                    f"⚠️ Pesos V1 sintéticos: modo={wp.get('mode')} "
+                    f"días_historia={wp.get('days_history')} — "
+                    f"mercados 100% replay: "
+                    f"{[m for m, v in wp.get('markets', {}).items() if v.get('is_synthetic')]}"
+                )
+        except Exception as e_wp:
+            logger.warning(f"weights_provenance no crítico — continuando: {e_wp}")
+            wp = {}
+
         send_daily_report(
             all_signals=all_signals,
             index_stats=index_stats,
             dashboard_filename=dashboard_name,
             run_date=run_date,
             validacion=validacion,
+            weights_provenance=wp,
         )
         if SEND_EXCEL and excel_path and os.path.exists(excel_path):
             send_excel(excel_path)

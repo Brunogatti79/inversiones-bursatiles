@@ -244,18 +244,36 @@ def _read_backtest_metrics() -> dict:
 
 
 def _read_weights_metrics() -> dict:
-    """Lee antigüedad de los pesos optimizados."""
+    """
+    Lee antigüedad de los pesos optimizados + procedencia (Prioridad 1,
+    roadmap externo, 25/06/2026): reusa weight_optimizer.weights_provenance()
+    en vez de duplicar la detección de "100% replay sintético" acá -- antes
+    este helper solo exponía 'mode', que no distingue si UN mercado puntual
+    sigue en 0 entradas reales aunque el modo global ya parezca avanzado.
+    """
     if not os.path.exists(WEIGHTS_PATH):
-        return {"optimized_weights_age_h": None, "optimized_weights_mode": "none"}
+        return {"optimized_weights_age_h": None, "optimized_weights_mode": "none",
+                "optimized_weights_is_synthetic": None}
     try:
         age_h = (time.time() - os.path.getmtime(WEIGHTS_PATH)) / 3600
         with open(WEIGHTS_PATH) as f:
             wdata = json.load(f)
-        return {
+
+        result = {
             "optimized_weights_age_h": round(age_h, 1),
             "optimized_weights_mode":  wdata.get("mode", "unknown"),
             "optimized_weights_days":  wdata.get("days_history", 0),
         }
+        try:
+            from src.weight_optimizer import weights_provenance
+            prov = weights_provenance()
+            result["optimized_weights_is_synthetic"] = prov.get("is_synthetic", False)
+            result["optimized_weights_synthetic_markets"] = [
+                m for m, v in prov.get("markets", {}).items() if v.get("is_synthetic")
+            ]
+        except Exception:
+            result["optimized_weights_is_synthetic"] = None
+        return result
     except Exception:
         return {}
 

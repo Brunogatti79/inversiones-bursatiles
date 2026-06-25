@@ -17,9 +17,78 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.4"
+MODEL_VERSION = "4.5"
 
 CHANGELOG = [
+    {
+        "version": "4.5",
+        "date": "2026-06-25",
+        "changes": [
+            "Fix CRÍTICO: apply_prediction_override() (pipeline.py) estaba "
+            "completamente definida (4 reglas, docstring, log de resumen) "
+            "pero NUNCA se llamaba desde ningún lado — confirmado con grep "
+            "en todo el repo. El tooltip del dashboard (columna pred21) "
+            "afirmaba 'Si negativo + señal COMPRA → override automático "
+            "degrada la señal' desde siempre; era falso hasta este fix. "
+            "Se activa ahora, gateada por predictor_health: si el "
+            "predictor está DEGRADED se omite la Regla 1 (la basada en "
+            "pred_21d); la Regla 2 (estructural, ret_anual<-40%) nunca se "
+            "omite. Corre ANTES del portfolio optimizer para que éste no "
+            "asigne capital a una señal que ya fue degradada de COMPRA a "
+            "NEUTRAL/VENTA. Efecto en señales: por primera vez, señales de "
+            "COMPRA con predicción 21d negativa se ajustan automáticamente "
+            "— antes no pasaba nada.",
+            "Fix: predictor_health.py dependía 100% de backtest_results.json "
+            "(necesita ≥6 días de signals_history.json — hoy hay 3) y "
+            "devolvía siempre UNKNOWN/factor=1.00 mientras tanto, aunque "
+            "predictor_validation.json YA tenía el resultado real (672 "
+            "snapshots, accuracy 0.51, banda WARNING) desde el día anterior. "
+            "Ahora cae a predictor_validation.json como fuente secundaria "
+            "cuando no hay backtest real. Con los datos reales de hoy: "
+            "health pasa de UNKNOWN a WARNING, confidence_factor de 1.00 a "
+            "0.90 — el predictor pesa un poco menos en pred_confidence de "
+            "todas las señales.",
+            "Fix: data_validator.py — con datos perfectamente sanos, "
+            "nivel/nivel_global NUNCA llegaba a 'OK', se quedaba en "
+            "'WARNING' para siempre. Causa: los mensajes de confirmación "
+            "('✅ Dato fresco', '✅ Consistencia OK', '✅ Integridad OK') "
+            "vivían en la misma lista 'warnings' que las advertencias "
+            "reales. Esto afectaba el banner del dashboard (🟡 todos los "
+            "días, nunca 🟢) y, más importante, confidence_score.py: "
+            "components['integridad_datos'] pegado en 50.0 (WARNING) en "
+            "vez de 100.0 (OK) TODOS los días, incluso con datos perfectos "
+            "— confirmado contra el snapshot real (system_confidence.json: "
+            "integridad_datos=50.0). Con el fix, en un día sano el global "
+            "score sube ~5 puntos (63.8 → ~68.8 con los demás componentes "
+            "del último run real sin cambios). Los ✅ ahora van a una "
+            "lista 'info' separada, nunca cuentan como warning.",
+            "Feat: weight_optimizer.weights_provenance() — 'conciencia "
+            "operativa' sobre los pesos V1: cuando optimized_weights.json "
+            "viene 100% de replay sintético (n_real_entries=0, hoy el caso "
+            "en los 3 mercados), se hace explícito en 3 lugares: el "
+            "mensaje de Telegram (_synthetic_weights_section en "
+            "notifier.py), health_metrics.json (monitor.py, vía "
+            "/api/health), y el log del pipeline. Antes esta información "
+            "existía en el JSON pero no llegaba a ningún lado visible.",
+            "Tests: +49 tests (predictor_health + override: 16, "
+            "weights_provenance: 12, data_validator — primera suite real "
+            "de este módulo: 18, volatility_regime — primera suite real: "
+            "24, consistencia del universo de 78 tickers: 9 — son 79, "
+            "ajustado por solapamiento de fixtures compartidos). Suite "
+            "completa: 370/370 verde.",
+            "Confirmado: universo de tickers en código son 78 (22 MERVAL + "
+            "25 BOVESPA + 31 SP500/CEDEARs/ETFs), no ~67-70 como "
+            "documentaban v4.0-v7.0. El último run real (24/06) procesó "
+            "67 — los 8 tickers nuevos (YPFD.BA, BBAR.BA, B3SA3.SA, "
+            "EMBR3.SA, JBSS3.SA, ITSA4.SA, SANB11.SA, VIVT3.SA) aún no "
+            "corrieron en producción. De paso: 11 tickers (6 nuevos + 5 "
+            "preexistentes: MELI, RIO, PBR, QCOM, GLOB) no tienen datos "
+            "fundamentales reales en ratios_consolidado_quant.csv — tarea "
+            "de carga manual pendiente, no un bug de código. Documentado "
+            "explícitamente en tests/test_ticker_universe_consistency.py "
+            "para que un gap nuevo no se pierda en el ruido.",
+        ],
+    },
     {
         "version": "4.4",
         "date": "2026-06-25",

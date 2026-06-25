@@ -125,6 +125,31 @@ def _index_line(stats, market):
             f"<code>{sign}{ret:.1f}%</code> 12m  |  Vol {vol:.1f}%")
  
  
+def _synthetic_weights_section(provenance: dict) -> str:
+    """
+    Prioridad 1 (roadmap externo, 25/06/2026) — "conciencia operativa":
+    si los pesos V1 que está usando el modelo HOY vienen 100% de replay
+    sintético (historical_replay.py), eso tiene que decirlo el mensaje que
+    Bruno lee todos los días, no quedar enterrado en un JSON. El riesgo
+    que esto previene: "sé que es sintético... pero igual lo uso como si
+    fuera real" porque nada lo recuerda en el momento de leer las señales.
+    """
+    if not provenance or not provenance.get("available") or not provenance.get("is_synthetic"):
+        return ""
+
+    synth_markets = [m for m, v in provenance.get("markets", {}).items() if v.get("is_synthetic")]
+    if not synth_markets:
+        return ""
+
+    mode = provenance.get("mode", "?")
+    days = provenance.get("days_history", "?")
+    return (
+        f"\n🧪 <b>Pesos V1 100% sintéticos</b> (modo <code>{mode}</code>, {days}d de historia real)\n"
+        f"  {', '.join(synth_markets)} — 0 entradas reales, solo historical_replay.\n"
+        f"  Los scores de hoy NO están validados contra resultados propios."
+    )
+
+
 def _validacion_section(validacion: dict) -> str:
     """
     Bloque de validación de datos para el mensaje Telegram.
@@ -242,7 +267,7 @@ def _reducciones_section(signals):
  
  
 def send_daily_report(all_signals, index_stats, dashboard_filename,
-                      run_date=None, validacion=None):
+                      run_date=None, validacion=None, weights_provenance=None):
     tz       = pytz.timezone(TIMEZONE)
     now      = datetime.now(tz)
     run_date = run_date or now.strftime("%d/%m/%Y %H:%M")
@@ -260,6 +285,10 @@ def send_daily_report(all_signals, index_stats, dashboard_filename,
  
     # Bloque de validación — va inmediatamente después de los índices
     validacion_block = _validacion_section(validacion) if validacion else ""
+
+    # Pesos sintéticos — alta visibilidad a propósito, junto a validación
+    # (Prioridad 1, roadmap externo, 25/06/2026)
+    synthetic_block = _synthetic_weights_section(weights_provenance) if weights_provenance else ""
  
     senales_block  = "\n<b>Señales activas del modelo</b>"
     senales_block += _radar_section(all_signals)
@@ -281,7 +310,7 @@ def send_daily_report(all_signals, index_stats, dashboard_filename,
         f"⏱ Próxima actualización: mañana al cierre"
     )
  
-    full_msg = header + indices_block + validacion_block + senales_block + override_block + footer
+    full_msg = header + indices_block + validacion_block + synthetic_block + senales_block + override_block + footer
  
     if len(full_msg) > 4000:
         full_msg = full_msg[:3990] + "\n…"
