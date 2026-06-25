@@ -91,6 +91,16 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         "top_performers":   _top_bottom(trades, top=True),
         "worst_performers": _top_bottom(trades, top=False),
         "signal_summary":   _signal_summary_table(trades),
+        # ── Prioridad 1 (roadmap externo, 25/06/2026) — cierra el loop de
+        # aprendizaje: ¿el consenso V1/V2 predice algo? ¿el confidence score
+        # ordena bien? ¿el ranking_accionable separa a los mejores del resto?
+        # Sin esto se estaba optimizando estructura del sistema sin medir si
+        # las señales que produce esa estructura son mejores que ruido.
+        "by_consenso":            _aggregate_by(trades, "consenso"),
+        "consenso_vs_no":         _aggregate_by(trades, "consenso_binario"),
+        "by_confidence_label":    _aggregate_by(trades, "confidence_label"),
+        "confidence_quantiles":   _confidence_quantile_breakdown(trades),
+        "ranking_top_vs_rest":    _ranking_quantile_breakdown(trades),
     }
 
     # Guardar
@@ -181,6 +191,16 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
             pred_signal   = entry.get("pred_signal", "")
             score_v1      = float(entry.get("score_v1", 0) or 0)
             score_v2      = float(entry.get("score_v2", 0) or 0)
+            # ── Prioridad 1 (roadmap externo, 25/06/2026) ────────────────
+            # Campos que no existían como dimensión de backtest hasta hoy:
+            # consenso V1/V2 y confidence_score por señal. Entradas viejas
+            # de signals_history.json (previas a este fix) no los tienen --
+            # se manejan como ausentes, no como "sin consenso"/confianza 0,
+            # para no contaminar el breakdown con falsos negativos.
+            consenso          = entry.get("consenso", "") or ""
+            confidence_score  = entry.get("confidence_score")
+            confidence_label  = entry.get("confidence_label", "") or ""
+            ranking           = entry.get("ranking", 0)
 
             if not signal or precio_entry <= 0 or not ticker:
                 continue
@@ -203,6 +223,13 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
                 "score_v2":     score_v2,
                 "pred_21d":     pred_21d,
                 "pred_signal":  pred_signal,
+                "ranking":          ranking,
+                "consenso":         consenso or "UNKNOWN",
+                "consenso_binario": ("Consenso" if consenso == "Consenso"
+                                     else "Sin consenso" if consenso
+                                     else None),
+                "confidence_score": confidence_score,
+                "confidence_label": confidence_label or "UNKNOWN",
             }
 
             # Retornos hold-to-horizon
@@ -458,6 +485,66 @@ def _top_bottom(trades: list, top: bool = True) -> list:
     ]
 
 
+def _quantile_split(valid: list, score_key: str, top_pct: float = 0.20) -> dict | None:
+    """
+    Helper compartido: ordena `valid` por `score_key` y separa
+    top_pct / bottom_pct / medio. Reutilizado por confidence_quantiles y
+    ranking_top_vs_rest -- misma lógica, distinta columna de score.
+    """
+    n = len(valid)
+    if n < 10:
+        return {"samples": n, "note": f"Necesita ≥10 trades con {score_key} para un split confiable"}
+
+    sorted_t = sorted(valid, key=lambda t: t[score_key])
+    cut = max(1, int(n * top_pct))
+
+    bottom = sorted_t[:cut]
+    top    = sorted_t[-cut:]
+    middle = sorted_t[cut:-cut] if n > 2 * cut else []
+
+    def _bucket(group):
+        rets = [t["ret_21d"] for t in group if t.get("ret_21d") is not None]
+        m = _metrics_from_rets(rets) or {"samples": 0}
+        m["count"] = len(group)
+        if group:
+            vals = [t[score_key] for t in group]
+            m[f"{score_key}_range"] = [round(min(vals), 1), round(max(vals), 1)]
+        return m
+
+    return {
+        "samples":      n,
+        "top_20pct":    _bucket(top),
+        "bottom_20pct": _bucket(bottom),
+        "middle_60pct": _bucket(middle),
+    }
+
+
+def _confidence_quantile_breakdown(trades: list) -> dict:
+    """
+    Test #3 de la devolución externa (25/06/2026): separa por PERCENTIL de
+    confidence_score numérico (no por el label de negocio, que ya cubre
+    by_confidence_label) -- top 20% vs bottom 20% vs el resto. Sin esto,
+    "el confidence score funciona" es una afirmación sin verificar: el
+    score puede estar perfectamente calculado y aun así no correlacionar
+    con nada real.
+    """
+    valid = [t for t in trades
+             if t.get("confidence_score") is not None and t.get("ret_21d") is not None]
+    return _quantile_split(valid, "confidence_score") or {"samples": 0}
+
+
+def _ranking_quantile_breakdown(trades: list) -> dict:
+    """
+    Test #2 de la devolución externa: ¿el ranking_accionable (lo que
+    efectivamente ordena la tabla que ve Bruno) separa a los mejores del
+    resto, o da lo mismo mirar cualquier fila? Mismo split top/bottom 20%
+    que confidence_quantiles, sobre la columna 'ranking'.
+    """
+    valid = [t for t in trades
+             if t.get("ranking") not in (None, 0) and t.get("ret_21d") is not None]
+    return _quantile_split(valid, "ranking") or {"samples": 0}
+
+
 def _signal_summary_table(trades: list) -> list:
     """
     Tabla resumen ejecutiva: una fila por tipo de señal con métricas clave.
@@ -513,4 +600,38 @@ def _log_summary(results: dict):
             f"time: {by_et.get('time', {}).get('pct', 0):.0f}% | "
             f"avg_days: {st.get('avg_days_to_exit', '—')}"
         )
+
+    # ── Prioridad 1 (roadmap externo, 25/06/2026) ────────────────────────
+    cvn = results.get("consenso_vs_no", {})
+    if cvn:
+        c = (cvn.get("Consenso") or {}).get("h21d") or {}
+        s = (cvn.get("Sin consenso") or {}).get("h21d") or {}
+        if c or s:
+            logger.info(
+                f"  Consenso V1/V2 — con consenso: n={(cvn.get('Consenso') or {}).get('count', 0)} "
+                f"WR={_fmt_pct(c.get('win_rate'))} EV={_fmt_pct(c.get('expected_value'))} | "
+                f"sin consenso: n={(cvn.get('Sin consenso') or {}).get('count', 0)} "
+                f"WR={_fmt_pct(s.get('win_rate'))} EV={_fmt_pct(s.get('expected_value'))}"
+            )
+
+    cq = results.get("confidence_quantiles", {})
+    if cq.get("samples", 0) >= 10:
+        t20, b20 = cq.get("top_20pct", {}), cq.get("bottom_20pct", {})
+        logger.info(
+            f"  Confidence quantiles — top20%: n={t20.get('count', 0)} EV={_fmt_pct(t20.get('expected_value'))} | "
+            f"bottom20%: n={b20.get('count', 0)} EV={_fmt_pct(b20.get('expected_value'))}"
+        )
+
+    rk = results.get("ranking_top_vs_rest", {})
+    if rk.get("samples", 0) >= 10:
+        t20, b20 = rk.get("top_20pct", {}), rk.get("bottom_20pct", {})
+        logger.info(
+            f"  Ranking top vs resto — top20%: n={t20.get('count', 0)} EV={_fmt_pct(t20.get('expected_value'))} | "
+            f"bottom20%: n={b20.get('count', 0)} EV={_fmt_pct(b20.get('expected_value'))}"
+        )
+
     logger.info("══════════════════════════════════════")
+
+
+def _fmt_pct(v) -> str:
+    return f"{v:+.1f}%" if isinstance(v, (int, float)) else "—"

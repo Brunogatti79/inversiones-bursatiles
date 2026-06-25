@@ -21,6 +21,11 @@ from src.backtester import (
     _metrics_from_rets,
     _predictor_accuracy,
     _get_future_prices,
+    _quantile_split,
+    _confidence_quantile_breakdown,
+    _ranking_quantile_breakdown,
+    _aggregate_by,
+    _build_trades,
 )
 
 
@@ -226,3 +231,147 @@ class TestGetFuturePrices:
     def test_max_horizon_respected(self):
         result = _get_future_prices("GGAL.BA", "2026-05-01", self.price_index, max_horizon=2)
         assert len(result) <= 2
+
+
+# ── Prioridad 1 (roadmap externo, 25/06/2026): consenso V1/V2 + cuantiles ───
+# de confianza + ranking_accionable. Cierra el loop "¿estas dimensiones
+# predicen algo real, o son ruido?" -- antes de esto solo había by_signal/
+# by_market/by_sector.
+
+def _trade(ret_21d=None, **extra):
+    """Trade mínimo para testear los helpers de agregación directamente,
+    sin pasar por todo _build_trades()."""
+    t = {"ret_21d": ret_21d}
+    t.update(extra)
+    return t
+
+
+class TestQuantileSplit:
+
+    def test_below_minimum_samples_returns_note(self):
+        valid = [_trade(ret_21d=1.0, score=i) for i in range(5)]
+        result = _quantile_split(valid, "score")
+        assert result["samples"] == 5
+        assert "note" in result
+
+    def test_top_and_bottom_are_correctly_separated(self):
+        """20 trades con score 0..19 y ret_21d = score (correlación perfecta
+        a propósito) -- top 20% debe ser claramente mejor que bottom 20%."""
+        valid = [_trade(ret_21d=float(i), score=i) for i in range(20)]
+        result = _quantile_split(valid, "score")
+
+        assert result["samples"] == 20
+        assert result["top_20pct"]["count"] == 4
+        assert result["bottom_20pct"]["count"] == 4
+        assert result["top_20pct"]["avg_ret"] > result["bottom_20pct"]["avg_ret"]
+        assert result["top_20pct"]["score_range"] == [16.0, 19.0]
+        assert result["bottom_20pct"]["score_range"] == [0.0, 3.0]
+
+    def test_middle_excludes_top_and_bottom(self):
+        valid = [_trade(ret_21d=float(i), score=i) for i in range(20)]
+        result = _quantile_split(valid, "score")
+        assert result["middle_60pct"]["count"] == 12  # 20 - 4 - 4
+
+    def test_no_correlation_top_and_bottom_similar(self):
+        """Si score y retorno NO tienen relación, top/bottom no deberían
+        diferir sistemáticamente -- sanity check de que el split no inventa
+        una señal donde no la hay."""
+        import random
+        random.seed(42)
+        valid = [_trade(ret_21d=random.uniform(-5, 5), score=i) for i in range(50)]
+        result = _quantile_split(valid, "score")
+        # No assert de desigualdad estricta (es aleatorio) -- solo que
+        # ambos grupos tengan datos y la diferencia no sea descabellada.
+        assert result["top_20pct"]["count"] == 10
+        assert result["bottom_20pct"]["count"] == 10
+
+
+class TestConfidenceQuantileBreakdown:
+
+    def test_filters_trades_without_confidence_score(self):
+        trades = [_trade(ret_21d=1.0, confidence_score=None)] * 5
+        trades += [_trade(ret_21d=2.0, confidence_score=80.0) for _ in range(10)]
+        result = _confidence_quantile_breakdown(trades)
+        assert result["samples"] == 10  # los 5 sin confidence_score se excluyen
+
+    def test_empty_trades_returns_zero_samples(self):
+        result = _confidence_quantile_breakdown([])
+        assert result["samples"] == 0
+
+
+class TestRankingQuantileBreakdown:
+
+    def test_filters_zero_and_none_ranking(self):
+        trades  = [_trade(ret_21d=1.0, ranking=0)] * 3
+        trades += [_trade(ret_21d=1.0, ranking=None)] * 3
+        trades += [_trade(ret_21d=float(i), ranking=i) for i in range(1, 11)]
+        result = _ranking_quantile_breakdown(trades)
+        assert result["samples"] == 10  # excluye ranking=0 y ranking=None
+
+
+class TestBuildTradesNewFields:
+    """Verifica que _build_trades() extraiga consenso/confidence_score/
+    confidence_label/ranking desde signals_history.json -- y que entradas
+    viejas (sin estos campos, pre fix 25/06/2026) no contaminen el grupo
+    'Sin consenso'/'UNKNOWN' con falsos negativos."""
+
+    def setup_method(self):
+        self.price_index = {
+            "GGAL.BA": {f"2026-05-{d:02d}": 100.0 + d for d in range(1, 20)},
+        }
+        # _build_trades() excluye los últimos 5 días de sorted_dates (no hay
+        # futuro suficiente todavía) -- se necesitan >5 fechas para que
+        # "2026-05-01" quede dentro de la ventana evaluable.
+        self.sorted_dates = [f"2026-05-{d:02d}" for d in range(1, 8)]
+
+    def _history_entry(self, **overrides):
+        base = {
+            "ticker": "GGAL.BA", "signal": "🟢 COMPRA", "precio": 100.0,
+            "mercado": "MERVAL", "sector": "Financiero",
+        }
+        base.update(overrides)
+        return base
+
+    def test_extracts_consenso_and_confidence_fields(self):
+        history = {"2026-05-01": [self._history_entry(
+            consenso="Consenso", confidence_score=82.5, confidence_label="🟢 Alta", ranking=91.2,
+        )]}
+        trades = _build_trades(history, self.sorted_dates, self.price_index)
+        assert len(trades) == 1
+        t = trades[0]
+        assert t["consenso"] == "Consenso"
+        assert t["consenso_binario"] == "Consenso"
+        assert t["confidence_score"] == 82.5
+        assert t["confidence_label"] == "🟢 Alta"
+        assert t["ranking"] == 91.2
+
+    def test_divergent_consenso_maps_to_sin_consenso(self):
+        history = {"2026-05-01": [self._history_entry(
+            consenso="V1↑/V2↓ buen activo, mal timing",
+        )]}
+        trades = _build_trades(history, self.sorted_dates, self.price_index)
+        assert trades[0]["consenso_binario"] == "Sin consenso"
+
+    def test_old_entry_without_fields_does_not_become_sin_consenso(self):
+        """Entrada sin 'consenso' (pre fix) -> consenso_binario debe ser
+        None (después se agrupa como UNKNOWN vía _aggregate_by), nunca
+        'Sin consenso' -- eso sería un falso negativo sobre datos que
+        simplemente no existen."""
+        history = {"2026-05-01": [self._history_entry()]}  # sin consenso/confidence
+        trades = _build_trades(history, self.sorted_dates, self.price_index)
+        t = trades[0]
+        assert t["consenso_binario"] is None
+        assert t["confidence_score"] is None
+        assert t["confidence_label"] == "UNKNOWN"
+
+    def test_aggregate_by_consenso_binario_buckets_missing_as_unknown(self):
+        history = {"2026-05-01": [
+            self._history_entry(consenso="Consenso"),
+            self._history_entry(),  # sin consenso -> debe ir a UNKNOWN, no a "Sin consenso"
+        ]}
+        trades = _build_trades(history, self.sorted_dates, self.price_index)
+        grouped = _aggregate_by(trades, "consenso_binario")
+        assert "Consenso" in grouped
+        assert "UNKNOWN" in grouped
+        assert "Sin consenso" not in grouped
+

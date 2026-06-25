@@ -67,6 +67,14 @@ def update_history(signals: list[dict], max_days: int = 60):
             "aq_weight_used": s.get("aq_weight_used", 0),
             "es_weight_used": s.get("es_weight_used", 0),
             "consenso":       s.get("consenso", ""),
+            # ── Prioridad 1 (roadmap externo, 25/06/2026): confidence score
+            # por señal (confidence_score.py) -- estaba en la señal en vivo
+            # pero no se persistía, así que backtester.py no podía responder
+            # "¿el confidence score predice algo, o es ruido?" con datos
+            # reales. Sin este campo el breakdown por cuantiles de confianza
+            # solo puede arrancar a acumular desde el día en que se agrega.
+            "confidence_score": s.get("confidence_score"),
+            "confidence_label": s.get("confidence_label", ""),
             # ── Stops / Targets (para backtesting) ──────────────────
             "atr_stop":      s.get("atr_stop", 0),
             "atr_target":    s.get("atr_target", 0),

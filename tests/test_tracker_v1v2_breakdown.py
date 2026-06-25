@@ -37,6 +37,7 @@ def _signal(**overrides):
         "asset_quality": 64.0, "entry_score": 55.0,
         "aq_weight_used": 0.60, "es_weight_used": 0.40,
         "consenso": "✅ Consenso",
+        "confidence_score": 78.5, "confidence_label": "🟢 Alta",
         "atr_stop": 140.0, "atr_target": 165.0, "atr": 5.2,
         "pred_5d": 1.2, "pred_21d": 4.5, "pred_signal": "📈 SUBA", "pred_confidence": 0.71,
         "rsi": 48.0, "ret_anual": 12.0, "ret_mes": 3.0,
@@ -61,6 +62,33 @@ class TestV1V2BreakdownPersistence:
         history = json.loads(open(tracker.HISTORY_PATH).read())
         today_entry = next(iter(history.values()))
         assert today_entry[0]["consenso"] == "V1↑/V2↓ activo fuerte, mal entry"
+
+    def test_confidence_score_and_label_are_persisted(self):
+        """Prioridad 1 (roadmap externo, 25/06/2026): sin esto,
+        backtester.py no puede responder si el confidence score predice
+        algo real -- estaba en la señal en vivo (confidence_score.py) pero
+        no se guardaba en el historial."""
+        tracker.update_history([_signal(confidence_score=91.0, confidence_label="🟢 Alta")])
+        history = json.loads(open(tracker.HISTORY_PATH).read())
+        today_entry = next(iter(history.values()))
+        assert today_entry[0]["confidence_score"] == 91.0
+        assert today_entry[0]["confidence_label"] == "🟢 Alta"
+
+    def test_missing_confidence_score_defaults_to_none_without_raising(self):
+        """Si confidence_score.enrich_confidence_scores() falló para esa
+        señal (try/except en pipeline.py la deja sin el campo), no debe
+        romper el guardado -- y el default debe ser None, no 0, para que
+        backtester.py pueda distinguir 'sin dato' de 'confianza cero'."""
+        signal = _signal()
+        del signal["confidence_score"]
+        del signal["confidence_label"]
+
+        tracker.update_history([signal])  # no debe lanzar excepción
+
+        history = json.loads(open(tracker.HISTORY_PATH).read())
+        today_entry = next(iter(history.values()))
+        assert today_entry[0]["confidence_score"] is None
+        assert today_entry[0]["confidence_label"] == ""
 
     def test_missing_aq_es_weight_defaults_to_zero_without_raising(self):
         """Señales viejas (de antes de esta mejora) o de un ticker donde el
@@ -91,7 +119,8 @@ class TestV1V2BreakdownPersistence:
             "score_v1", "score_v2", "score_macro", "score_tecnico",
             "score_fund", "score_sectorial", "ranking", "rr_ratio",
             "asset_quality", "entry_score", "aq_weight_used", "es_weight_used",
-            "consenso", "atr_stop", "atr_target", "atr",
+            "consenso", "confidence_score", "confidence_label",
+            "atr_stop", "atr_target", "atr",
             "pred_5d", "pred_21d", "pred_signal", "pred_confidence",
             "rsi", "ret_anual", "ret_mes", "factor_contrib", "factor_dominante",
         }
