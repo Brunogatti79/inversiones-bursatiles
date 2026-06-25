@@ -19,12 +19,88 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 
-from src.confidence_score import compute_exposure_factor, KILL_SWITCH_THRESHOLD
+from src.confidence_score import compute_exposure_factor, apply_exposure_factor, KILL_SWITCH_THRESHOLD
 from src.notifier import _exposure_shadow_section
 
 
 def _gc(score, kill_switch_active=False):
     return {"global_score": score, "kill_switch_active": kill_switch_active}
+
+
+def _buy_signal(**overrides):
+    base = {"ticker": "GGAL.BA", "kelly_f": 0.10, "kelly_half": 5.0, "suggested_pct": 8.0}
+    base.update(overrides)
+    return base
+
+
+class TestApplyExposureFactor:
+
+    def test_scales_all_three_fields(self):
+        exposure = compute_exposure_factor(_gc(62))  # confidence_component=0.84 exacto
+        factor = exposure["exposure_factor"]
+        signals = [_buy_signal()]
+        out = apply_exposure_factor(signals, exposure)
+        assert out[0]["kelly_f"] == round(0.10 * factor, 4)
+        assert out[0]["kelly_half"] == round(5.0 * factor, 1)
+        assert out[0]["suggested_pct"] == round(8.0 * factor, 1)
+        assert out[0]["exposure_factor_applied"] == factor
+
+    def test_full_exposure_does_not_touch_values(self):
+        exposure = compute_exposure_factor(_gc(85))  # factor 1.0
+        signals = [_buy_signal()]
+        out = apply_exposure_factor(signals, exposure)
+        assert out[0]["kelly_f"] == 0.10
+        assert out[0]["kelly_half"] == 5.0
+        assert out[0]["suggested_pct"] == 8.0
+        assert out[0]["exposure_factor_applied"] == 1.0
+
+    def test_kill_switch_zero_factor_zeroes_everything(self):
+        exposure = compute_exposure_factor(_gc(85, kill_switch_active=True))
+        signals = [_buy_signal()]
+        out = apply_exposure_factor(signals, exposure)
+        assert out[0]["kelly_f"] == 0.0
+        assert out[0]["kelly_half"] == 0.0
+        assert out[0]["suggested_pct"] == 0.0
+
+    def test_signals_without_kelly_fields_untouched(self):
+        """Señales que no son COMPRA (portfolio_optimizer no las toca) no
+        tienen kelly_f/kelly_half/suggested_pct -- no debe crashear ni
+        agregarles esos campos de la nada."""
+        exposure = compute_exposure_factor(_gc(62))
+        signals = [{"ticker": "X", "signal": "🔴 VENTA"}]
+        out = apply_exposure_factor(signals, exposure)
+        assert "kelly_f" not in out[0]
+        assert out[0]["exposure_factor_applied"] == exposure["exposure_factor"]
+
+    def test_empty_signals_or_exposure_returns_unchanged(self):
+        assert apply_exposure_factor([], {}) == []
+        signals = [_buy_signal()]
+        assert apply_exposure_factor(signals, {}) == signals
+        assert apply_exposure_factor(None, {}) is None
+
+    def test_relative_proportions_preserved_across_signals(self):
+        """El factor es uniforme -- la proporción RELATIVA entre dos
+        señales del mismo día no debe cambiar, solo el tamaño absoluto."""
+        exposure = compute_exposure_factor(_gc(62))
+        signals = [_buy_signal(ticker="A", suggested_pct=10.0),
+                   _buy_signal(ticker="B", suggested_pct=5.0)]
+        out = apply_exposure_factor(signals, exposure)
+        ratio_before = 10.0 / 5.0
+        ratio_after = out[0]["suggested_pct"] / out[1]["suggested_pct"]
+        assert ratio_after == pytest.approx(ratio_before, rel=1e-3)
+
+    def test_appends_note_when_factor_reduces_position(self):
+        exposure = compute_exposure_factor(_gc(62))
+        signals = [_buy_signal(allocation_notes="Allocar 8.0% del capital.")]
+        out = apply_exposure_factor(signals, exposure)
+        assert "Exposure Total recortó" in out[0]["allocation_notes"]
+        assert "Allocar 8.0% del capital." in out[0]["allocation_notes"]
+
+    def test_no_note_appended_when_factor_is_full(self):
+        exposure = compute_exposure_factor(_gc(85))
+        signals = [_buy_signal(allocation_notes="Allocar 8.0% del capital.")]
+        out = apply_exposure_factor(signals, exposure)
+        assert out[0]["allocation_notes"] == "Allocar 8.0% del capital."
 
 
 class TestComputeExposureFactor:
@@ -81,12 +157,12 @@ class TestComputeExposureFactor:
         r = compute_exposure_factor(_gc(62))
         assert r["exposure_factor"] == pytest.approx(0.84, abs=0.01)
 
-    def test_marked_as_shadow_not_active(self):
-        """Flag explícito de que esto NO está activo en producción --
-        si algún día se activa, este test debe actualizarse a mano (no
-        por accidente)."""
+    def test_marked_as_active_in_production(self):
+        """Activado el 25/06/2026 a pedido explícito de Bruno -- si esto
+        se revierte a modo sombra alguna vez, debe ser un cambio
+        deliberado que actualice este test, no un accidente."""
         r = compute_exposure_factor(_gc(80))
-        assert r["active_in_production"] is False
+        assert r["active_in_production"] is True
 
 
 class TestExposureShadowSection:
@@ -104,15 +180,19 @@ class TestExposureShadowSection:
         exposure = compute_exposure_factor(_gc(62))
         section = _exposure_shadow_section(exposure)
         assert "84%" in section
-        assert "no activo" in section
+        assert "aplicado" in section
 
-    def test_active_in_production_true_suppresses_section(self):
-        """Si en el futuro esto se activa de verdad, esta sección de
-        'diseño, no activo' debe dejar de mostrarse -- cubre ese caso
-        aunque hoy active_in_production siempre sea False."""
+    def test_shows_even_when_active_in_production_true(self):
+        """Activo desde el 25/06/2026 -- a diferencia del período en modo
+        sombra, ahora la sección debe mostrarse SIEMPRE que el factor sea
+        <1.0, sin importar el flag active_in_production (ya no condiciona
+        nada, el factor aplicado es real)."""
         exposure = compute_exposure_factor(_gc(62))
-        exposure["active_in_production"] = True
-        assert _exposure_shadow_section(exposure) == ""
+        section_con_flag_true = _exposure_shadow_section(exposure)
+        exposure_sin_flag = dict(exposure)
+        del exposure_sin_flag["active_in_production"]
+        section_sin_flag = _exposure_shadow_section(exposure_sin_flag)
+        assert section_con_flag_true == section_sin_flag != ""
 
     def test_zero_exposure_from_kill_switch_shown(self):
         exposure = compute_exposure_factor(_gc(80, kill_switch_active=True))

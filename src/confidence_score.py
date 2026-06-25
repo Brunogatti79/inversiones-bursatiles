@@ -356,7 +356,7 @@ def apply_kill_switch(signals: list[dict], global_conf: dict) -> list[dict]:
     return signals
 
 
-# ── EXPOSURE TOTAL — DISEÑO, NO ACTIVADO EN PRODUCCIÓN ──────────────────────
+# ── EXPOSURE TOTAL — ACTIVADO (26/06/2026, a pedido explícito de Bruno) ────
 # (devolución externa 25/06/2026: "falta una prioridad clave, exposure
 # total -- el sistema decide qué comprar y cuánto relativo, pero no
 # cuánto capital total usar")
@@ -378,25 +378,34 @@ def apply_kill_switch(signals: list[dict], global_conf: dict) -> list[dict]:
 # Los 3 cortes (70/50/35) NO son números nuevos: son los mismos que ya
 # definen el label de confidence global ("🟢 Confiable" >=70, "🟡 Reducida"
 # >=50, "🟠 Baja" >=35, "🔴 Crítica" <35) y 35 es literalmente
-# KILL_SWITCH_THRESHOLD. Cero números inventados a propósito -- inventar
-# un cuarto criterio de calibración (ej. "confidence>70+LOW vol→100%") sin
-# datos reales es exactamente el error que ya causó el incidente del kill
-# switch el 24/06.
+# KILL_SWITCH_THRESHOLD. Cero números inventados sin datos.
 #
-# NO SE ACTIVA TODAVÍA: esta función se calcula y se expone (Telegram +
-# health_metrics, mismo patrón que weights_provenance/kill_switch_log) pero
-# NO multiplica kelly_f/suggested_pct en portfolio_optimizer.py. Activarla
-# es una decisión separada y explícita -- la Prioridad 5 original ya
-# advertía "ninguna capa nueva sin validar la anterior", y portfolio
-# Optimizer todavía corre con pesos 100% sintéticos (ver weights_provenance).
-# Mientras esté en sombra, se puede comparar contra qué hubiera pasado.
+# ACTIVADO a pedido explícito de Bruno el 25/06/2026, después de quedar en
+# modo sombra (commit 6a7b574). Advertencia que se le hizo antes de activar
+# y que sigue vigente, no resuelta por esta activación: portfolio_optimizer
+# corre HOY con pesos V1 100% replay sintético (ver weights_provenance) y
+# solo 3 días de signals_history.json real -- exposure_factor depende de
+# global_score, que a su vez depende de señales calculadas con esos pesos
+# sintéticos. Activar esto no espera a que esa capa de abajo esté validada;
+# es una decisión consciente de Bruno, no una recomendación de Claude.
+#
+# apply_exposure_factor() (al final de este bloque) escala kelly_f/
+# kelly_half/suggested_pct YA CALCULADOS por portfolio_optimizer.py, en un
+# paso final post-proceso -- mismo patrón que apply_kill_switch(), no
+# requirió reordenar el pipeline ni threadear el factor a través de Kelly/
+# Risk Parity. A diferencia de regime_factor (que sí entra DENTRO de
+# _calc_kelly_weights y por eso se cancela en la normalización del blend),
+# exposure_factor se aplica DESPUÉS de la normalización -- por eso sí
+# afecta suggested_pct, que es justo lo que la devolución pedía y que
+# regime_factor (Prioridad 5) explícitamente no hacía.
 
 def compute_exposure_factor(global_conf: dict, regime_factor: float = 1.0) -> dict:
     """
     Calcula qué fracción del capital "normal" del día debería usarse,
     combinando confianza global (rampa continua 35-70, reusa los cortes
     del label) y regime_factor (volatility_regime.py). Ver nota de diseño
-    arriba -- NO se aplica a kelly_f/suggested_pct todavía.
+    arriba. Activo en producción desde el 25/06/2026 — ver
+    apply_exposure_factor() para dónde se aplica.
 
     Args:
         global_conf:   output de compute_global_confidence() (necesita
@@ -429,7 +438,45 @@ def compute_exposure_factor(global_conf: dict, regime_factor: float = 1.0) -> di
         "regime_component":     regime_factor,
         "global_score":         score,
         "kill_switch_active":   kill_switch_active,
-        "active_in_production": False,  # modo sombra -- ver nota de diseño arriba
+        "active_in_production": True,
         "generated":            datetime.now().isoformat(),
     }
+
+
+def apply_exposure_factor(signals: list[dict], exposure: dict) -> list[dict]:
+    """
+    Escala kelly_f / kelly_half / suggested_pct (ya calculados por
+    portfolio_optimizer.optimize_portfolio_allocation()) por
+    exposure['exposure_factor']. Solo toca señales que ya tienen esos
+    campos (es decir, señales de COMPRA que portfolio_optimizer procesó) --
+    el resto queda intacto.
+
+    Si exposure_factor >= 1.0 no hay nada que escalar (no reescribe los
+    campos sin necesidad, evita ruido de redondeo en runs sin ajuste).
+
+    Si el kill switch ya está activo, apply_kill_switch() (arriba) ya puso
+    kelly_half/kelly_half_adj en 0 antes de que esto corra -- multiplicar
+    por exposure_factor (que también sería 0 en ese caso) es redundante
+    pero no dañino, y cubre kelly_f/suggested_pct que apply_kill_switch no
+    toca.
+    """
+    if not signals or not exposure:
+        return signals
+
+    factor = exposure.get("exposure_factor", 1.0)
+
+    for sig in signals:
+        sig["exposure_factor_applied"] = factor
+        if factor >= 1.0:
+            continue
+        if sig.get("kelly_f") is not None:
+            sig["kelly_f"] = round(sig["kelly_f"] * factor, 4)
+        if sig.get("kelly_half") is not None:
+            sig["kelly_half"] = round(sig["kelly_half"] * factor, 1)
+        if sig.get("suggested_pct") is not None:
+            sig["suggested_pct"] = round(sig["suggested_pct"] * factor, 1)
+            nota_exposure = f" Exposure Total recortó a {factor*100:.0f}% (confianza/régimen del sistema)."
+            sig["allocation_notes"] = (sig.get("allocation_notes") or "") + nota_exposure
+
+    return signals
 

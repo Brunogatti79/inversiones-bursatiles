@@ -675,6 +675,10 @@ def _sync_all_data_from_github():
             "predictor_validation.json",  # Prioridad 3: predictor vs baselines (desde el día 1)
             "kill_switch_history.json",     # Prioridad 2: bitácora append-only del kill switch
             "kill_switch_validation.json",  # Prioridad 2: validación retroactiva vs precios
+            "download_status.json",         # gap heredado de v4.0 (§8.1/#8 lista v9) -- se
+                                             # commiteaba pero no se restauraba al arrancar;
+                                             # impacto cosmético (solo un string de log), se
+                                             # cierra de paso por ser de una línea.
         ])
         print("[start_server] data/ sincronizado desde GitHub", flush=True)
     except Exception as e:

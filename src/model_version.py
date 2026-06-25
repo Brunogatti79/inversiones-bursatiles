@@ -17,9 +17,40 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.5"
+MODEL_VERSION = "4.6"
 
 CHANGELOG = [
+    {
+        "version": "4.6",
+        "date": "2026-06-25",
+        "changes": [
+            "Feat CRÍTICO: Exposure Total ACTIVADO en producción, a pedido "
+            "explícito de Bruno (había quedado en modo sombra en 4.5/commit "
+            "6a7b574). confidence_score.apply_exposure_factor() ahora escala "
+            "de verdad kelly_f/kelly_half/suggested_pct de TODAS las señales "
+            "de compra, como paso final post-proceso (mismo patrón que "
+            "apply_kill_switch — no requirió reordenar el pipeline). "
+            "exposure_factor = rampa continua de confianza global (35-70, "
+            "reusa los cortes ya existentes del label, 0% por debajo de "
+            "KILL_SWITCH_THRESHOLD=35) × regime_factor de volatility_regime. "
+            "A diferencia de regime_factor solo (Prioridad 5, no tocaba "
+            "suggested_pct por cancelarse en la normalización del blend), "
+            "esto SÍ escala el % sugerido relativo — es la pieza que "
+            "faltaba para 'cuánto capital total usar', no solo 'cuánto por "
+            "posición'. Con el score real de hoy (~62): recorta a ~84%. "
+            "ADVERTENCIA que sigue vigente, no resuelta por esta activación: "
+            "portfolio_optimizer corre con pesos V1 100% replay sintético "
+            "(ver weights_provenance, n_real_entries=0 en los 3 mercados) — "
+            "exposure_factor depende de un global_score calculado sobre "
+            "señales con esos pesos. Activar fue decisión de Bruno, no "
+            "recomendación de Claude (que sugería esperar datos reales).",
+            "Fix: download_status.json (gap heredado de v4.0, GitHub Actions "
+            "lo commiteaba pero no estaba en sync_all_at_startup) agregado "
+            "al sync de arranque. Impacto bajo (solo un string de log).",
+            "Tests: +23 (exposure_total: 21 nuevos/actualizados desde modo "
+            "sombra, sync contract: 1 más). Suite completa: 393/393 verde.",
+        ],
+    },
     {
         "version": "4.5",
         "date": "2026-06-25",

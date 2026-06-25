@@ -132,3 +132,13 @@ class TestStartupSyncContract:
         filenames = set(_extract_sync_filenames() or [])
         assert "kill_switch_history.json" in filenames
         assert "kill_switch_validation.json" in filenames
+
+    def test_download_status_in_startup_sync(self):
+        """Gap heredado de v4.0 (§8.1/punto #8 de la lista de v9, cerrado
+        25/06/2026): download_status.json se commiteaba vía GitHub Actions
+        pero no se restauraba al arrancar Railway. Impacto bajo (solo un
+        string informativo de log), pero el patrón -- archivo trackeado en
+        git que no está en sync_all_at_startup -- es el mismo que causó la
+        pérdida real de signals_history.json en su momento."""
+        filenames = set(_extract_sync_filenames() or [])
+        assert "download_status.json" in filenames

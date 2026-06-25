@@ -28,11 +28,14 @@ METODOLOGÍA:
   PESO FINAL:
      suggested_pct = Kelly × 0.60 + RiskParity × 0.40
      (el componente Kelly de este blend se normaliza a suma=1 entre las
-     señales del día -- por diseño, regime_factor no cambia la proporción
-     RELATIVA entre tickers, solo el tamaño ABSOLUTO de kelly_f/kelly_half
-     por señal. Escalar también el peso relativo dentro del blend sería una
-     decisión de portfolio distinta -- "deployar menos capital total en
-     alta volatilidad" -- que no estaba pedida y queda fuera de este fix.)
+     señales del día -- por diseño, regime_factor NO cambia la proporción
+     RELATIVA entre tickers acá adentro, solo el tamaño ABSOLUTO de
+     kelly_f/kelly_half por señal, porque se cancela en esta normalización.
+     Escalar también el tamaño TOTAL de capital deployado es una decisión
+     de portfolio distinta -- eso es lo que hace exposure_factor
+     [confidence_score.apply_exposure_factor(), activado 25/06/2026] como
+     paso POSTERIOR a este módulo, sobre kelly_f/kelly_half/suggested_pct
+     ya calculados. Ver pipeline.py para el orden exacto.)
 
 RESTRICCIONES:
   • Max por posición: MAX_POS_PCT (15%)
