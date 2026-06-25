@@ -620,6 +620,24 @@ def run_pipeline():
                 send_portfolio_alerts(portfolio_alerts)
         # 6. DASHBOARD
         logger.info("6/8 Generando dashboard...")
+
+        # Procedencia de los pesos V1 (Prioridad 1, roadmap externo, 25/06/2026)
+        # -- se mueve acá (antes vivía en la sección de Telegram) para que el
+        # dashboard también pueda mostrarlo, no solo el mensaje de Telegram.
+        try:
+            from src.weight_optimizer import weights_provenance
+            wp = weights_provenance()
+            if wp.get("is_synthetic"):
+                logger.warning(
+                    f"⚠️ Pesos V1 sintéticos: modo={wp.get('mode')} "
+                    f"días_historia={wp.get('days_history')} — "
+                    f"mercados 100% replay: "
+                    f"{[m for m, v in wp.get('markets', {}).items() if v.get('is_synthetic')]}"
+                )
+        except Exception as e_wp:
+            logger.warning(f"weights_provenance no crítico — continuando: {e_wp}")
+            wp = {}
+
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         dashboard_name = datetime.now(tz).strftime("informe_inversiones_%m%Y.html")
         dashboard_path = f"{OUTPUT_DIR}/{dashboard_name}"
@@ -630,6 +648,8 @@ def run_pipeline():
             run_date=run_date,
             price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
             validacion=validacion,
+            weights_provenance=wp,
+            exposure=exposure,
         )
         logger.info(f"Dashboard generado: {dashboard_path}")
 
@@ -679,21 +699,6 @@ def run_pipeline():
         logger.info("8/8 Enviando Telegram...")
         if ALERT_CHANGE and changes:
             send_signal_change_alerts(changes)
-
-        # Procedencia de los pesos V1 (Prioridad 1, roadmap externo, 25/06/2026)
-        try:
-            from src.weight_optimizer import weights_provenance
-            wp = weights_provenance()
-            if wp.get("is_synthetic"):
-                logger.warning(
-                    f"⚠️ Pesos V1 sintéticos: modo={wp.get('mode')} "
-                    f"días_historia={wp.get('days_history')} — "
-                    f"mercados 100% replay: "
-                    f"{[m for m, v in wp.get('markets', {}).items() if v.get('is_synthetic')]}"
-                )
-        except Exception as e_wp:
-            logger.warning(f"weights_provenance no crítico — continuando: {e_wp}")
-            wp = {}
 
         send_daily_report(
             all_signals=all_signals,

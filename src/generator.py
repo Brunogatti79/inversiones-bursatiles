@@ -213,6 +213,8 @@ def generate_dashboard(
     run_date: str = "",
     price_data: dict = None,
     validacion: dict = None,
+    weights_provenance: dict = None,
+    exposure: dict = None,
 ) -> str:
     """Genera el HTML del dashboard y lo escribe en output_path."""
  
@@ -261,6 +263,38 @@ def generate_dashboard(
 </div>'''
     else:
         validacion_banner = ""
+
+    # Banner de estado del sistema: pesos sintéticos + exposure total
+    # (Prioridad 1 / Exposure Total, 25/06/2026). Mismo patrón visual que
+    # validacion_banner arriba -- bloque Python autocontenido, no JS, para
+    # mantener el riesgo de tocar este archivo lo más bajo posible. Solo
+    # se muestra cuando hay algo que decir (pesos sintéticos o exposure<100%);
+    # si todo es normal, no agrega ruido visual.
+    status_parts = []
+    if weights_provenance and weights_provenance.get("is_synthetic"):
+        synth_mkts = [m for m, v in weights_provenance.get("markets", {}).items() if v.get("is_synthetic")]
+        mkts_txt = ", ".join(synth_mkts) if synth_mkts else "todos"
+        status_parts.append(
+            f'<span>🧪 <b>Pesos V1 sintéticos</b> '
+            f'<span style="color:#888">({weights_provenance.get("mode","?")}, '
+            f'{weights_provenance.get("days_history","?")}d real — {mkts_txt})</span></span>'
+        )
+    if exposure and exposure.get("exposure_factor") is not None and exposure["exposure_factor"] < 1.0:
+        status_parts.append(
+            f'<span>🧮 <b>Exposure Total: {exposure["exposure_factor"]*100:.0f}%</b> '
+            f'<span style="color:#888">(confianza {exposure.get("confidence_component",0)*100:.0f}% × '
+            f'régimen {exposure.get("regime_component",1)*100:.0f}%)</span></span>'
+        )
+
+    if status_parts:
+        system_status_banner = (
+            '<div style="background:#1a1500;border-bottom:1px solid #4a3a00;padding:8px 32px;'
+            'font-size:12px;color:#fbbf24;display:flex;align-items:center;gap:16px;flex-wrap:wrap">'
+            + '<span style="color:#666">|</span>'.join(status_parts) +
+            '</div>'
+        )
+    else:
+        system_status_banner = ""
     
     signals_json     = json.dumps(signals,     ensure_ascii=False)
     index_stats_json = json.dumps(index_stats, ensure_ascii=False)
@@ -598,7 +632,7 @@ def generate_dashboard(
   </div>
   <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>Modelo v2.0 — Asset Quality(50%Macro+30%Fundamental+20%Sectorial) · Entry Score(60%Técnico+25%Riesgo/Retorno+15%Dist.Máximo)</div>
 </div>
-<!-- banner -->
+{validacion_banner}{system_status_banner}
 <div class="tabs">
   <div class="tab on" onclick="sw('panorama',this)">Panorama</div>
   <div class="tab"    onclick="sw('merval',this)">MERVAL</div>
