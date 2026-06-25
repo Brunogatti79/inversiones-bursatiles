@@ -33,7 +33,7 @@ from src.kill_switch_log     import log_kill_switch_event, evaluate_kill_switch_
 from src.historical_replay    import run_historical_replay
 from src.predictor_validation import run_predictor_validation
 from src.volatility_regime   import compute_volatility_regime
-from src.confidence_score    import enrich_confidence_scores, compute_global_confidence, apply_kill_switch
+from src.confidence_score    import enrich_confidence_scores, compute_global_confidence, apply_kill_switch, compute_exposure_factor
 from src.quality_check       import validar_señales, inyectar_semaforo
 from src.trailing_stop       import apply_trailing_stops
 from src.predictor_health    import compute_predictor_health, apply_health_to_signals
@@ -421,6 +421,24 @@ def run_pipeline():
             logger.warning(f"Kill switch log no crítico — continuando: {e_ksl}")
         # ─────────────────────────────────────────────────────────────────────
 
+        # ── EXPOSURE TOTAL — DISEÑO EN MODO SOMBRA (no activado) ──────────────
+        # Devolución externa 25/06/2026: "falta una prioridad clave, exposure
+        # total". Se calcula y se expone (Telegram + health_metrics) para
+        # empezar a juntar datos de qué hubiera recomendado, pero NO se
+        # multiplica todavía contra kelly_f/suggested_pct en
+        # portfolio_optimizer.py -- ver docstring de compute_exposure_factor()
+        # en confidence_score.py para el razonamiento completo de por qué.
+        exposure = {}
+        try:
+            exposure = compute_exposure_factor(global_conf, regime_factor=vol_regime.get("regime_factor", 1.0))
+            logger.info(
+                f"[exposure_total] (SOMBRA, no activo) factor={exposure['exposure_factor']} "
+                f"= confidence({exposure['confidence_component']}) × regime({exposure['regime_component']})"
+            )
+        except Exception as e_exp:
+            logger.warning(f"Exposure total no crítico — continuando: {e_exp}")
+        # ─────────────────────────────────────────────────────────────────────
+
         # ── EXIT MODEL (Fase 1) ───────────────────────────────────────────────
         try:
             regime = cross_market.get("regime", "NEUTRAL")
@@ -682,6 +700,7 @@ def run_pipeline():
             run_date=run_date,
             validacion=validacion,
             weights_provenance=wp,
+            exposure=exposure,
         )
         if SEND_EXCEL and excel_path and os.path.exists(excel_path):
             send_excel(excel_path)
@@ -699,6 +718,7 @@ def run_pipeline():
                 "validacion_nivel": nivel,
                 "run_date":         run_date,
                 "global_confidence": global_conf,
+                "exposure_shadow":  exposure,
             })
         except Exception as e_mon:
             logger.warning(f"Monitor no crítico — continuando: {e_mon}")

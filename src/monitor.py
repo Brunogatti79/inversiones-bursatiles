@@ -115,6 +115,13 @@ def update_health_metrics(run_context: dict) -> dict:
         health["global_confidence_label"] = global_conf.get("label")
         health["kill_switch_active"]      = global_conf.get("kill_switch_active", False)
 
+    # Exposure total — diseño en modo sombra (devolución externa, 25/06/2026).
+    # No mueve capital todavía; se guarda para poder comparar más adelante
+    # qué hubiera recomendado vs qué pasó realmente.
+    exposure_shadow = run_context.get("exposure_shadow")
+    if exposure_shadow:
+        health["exposure_factor_shadow"] = exposure_shadow.get("exposure_factor")
+
     # Runs hoy / semana
     today = datetime.now().strftime("%Y-%m-%d")
     week_start = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")

@@ -355,3 +355,81 @@ def apply_kill_switch(signals: list[dict], global_conf: dict) -> list[dict]:
 
     return signals
 
+
+# ── EXPOSURE TOTAL — DISEÑO, NO ACTIVADO EN PRODUCCIÓN ──────────────────────
+# (devolución externa 25/06/2026: "falta una prioridad clave, exposure
+# total -- el sistema decide qué comprar y cuánto relativo, pero no
+# cuánto capital total usar")
+#
+# Por qué esto generaliza lo que YA existe, en vez de agregar una capa
+# nueva sin coordinar:
+#   - El kill switch (arriba) ya es una forma de exposure total -- pero
+#     binaria: a score>=35, kelly_half full; a score<35, cero. Es un
+#     escalón, no una rampa.
+#   - regime_factor (volatility_regime.py, Prioridad 5) ya escala
+#     kelly_f/kelly_half por incertidumbre SISTÉMICA -- pero solo por
+#     régimen de volatilidad, no por confianza global.
+#   - compute_exposure_factor() combina ambos en un solo número, y
+#     generaliza el escalón del kill switch en la zona 35-70 (hoy: nada
+#     pasa ahí, kelly_half es full hasta justo antes de 35) a una rampa
+#     continua -- exactamente la crítica de la devolución sobre el
+#     escalón del kill switch, aplicada acá también.
+#
+# Los 3 cortes (70/50/35) NO son números nuevos: son los mismos que ya
+# definen el label de confidence global ("🟢 Confiable" >=70, "🟡 Reducida"
+# >=50, "🟠 Baja" >=35, "🔴 Crítica" <35) y 35 es literalmente
+# KILL_SWITCH_THRESHOLD. Cero números inventados a propósito -- inventar
+# un cuarto criterio de calibración (ej. "confidence>70+LOW vol→100%") sin
+# datos reales es exactamente el error que ya causó el incidente del kill
+# switch el 24/06.
+#
+# NO SE ACTIVA TODAVÍA: esta función se calcula y se expone (Telegram +
+# health_metrics, mismo patrón que weights_provenance/kill_switch_log) pero
+# NO multiplica kelly_f/suggested_pct en portfolio_optimizer.py. Activarla
+# es una decisión separada y explícita -- la Prioridad 5 original ya
+# advertía "ninguna capa nueva sin validar la anterior", y portfolio
+# Optimizer todavía corre con pesos 100% sintéticos (ver weights_provenance).
+# Mientras esté en sombra, se puede comparar contra qué hubiera pasado.
+
+def compute_exposure_factor(global_conf: dict, regime_factor: float = 1.0) -> dict:
+    """
+    Calcula qué fracción del capital "normal" del día debería usarse,
+    combinando confianza global (rampa continua 35-70, reusa los cortes
+    del label) y regime_factor (volatility_regime.py). Ver nota de diseño
+    arriba -- NO se aplica a kelly_f/suggested_pct todavía.
+
+    Args:
+        global_conf:   output de compute_global_confidence() (necesita
+                       'global_score' y 'kill_switch_active').
+        regime_factor: output de compute_volatility_regime()['regime_factor'].
+
+    Returns dict con exposure_factor (0.0 a ~1.10) + el detalle de cada
+    componente, para poder loguear/exponer sin recalcular nada.
+    """
+    score = global_conf.get("global_score", 50.0)
+    kill_switch_active = bool(global_conf.get("kill_switch_active", False))
+
+    if kill_switch_active or score < KILL_SWITCH_THRESHOLD:
+        # Mismo resultado que el kill switch -- esta función NUNCA da más
+        # exposición que el kill switch en su zona, solo agrega gradiente
+        # por ENCIMA del umbral.
+        confidence_component = 0.0
+    elif score >= 70:
+        confidence_component = 1.00
+    elif score >= 50:
+        confidence_component = round(0.60 + (score - 50) / 20 * 0.40, 3)
+    else:  # KILL_SWITCH_THRESHOLD <= score < 50
+        confidence_component = round(0.30 + (score - KILL_SWITCH_THRESHOLD) / 15 * 0.30, 3)
+
+    exposure_factor = round(confidence_component * regime_factor, 3)
+
+    return {
+        "exposure_factor":      exposure_factor,
+        "confidence_component": confidence_component,
+        "regime_component":     regime_factor,
+        "global_score":         score,
+        "kill_switch_active":   kill_switch_active,
+        "active_in_production": False,  # modo sombra -- ver nota de diseño arriba
+        "generated":            datetime.now().isoformat(),
+    }
+

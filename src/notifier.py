@@ -125,6 +125,31 @@ def _index_line(stats, market):
             f"<code>{sign}{ret:.1f}%</code> 12m  |  Vol {vol:.1f}%")
  
  
+def _exposure_shadow_section(exposure: dict) -> str:
+    """
+    Diseño de Exposure Total (devolución externa, 25/06/2026) -- MODO
+    SOMBRA: informa qué hubiera recomendado, no cambia nada todavía. Ver
+    compute_exposure_factor() en confidence_score.py para el razonamiento
+    completo. Se muestra siempre que el factor sea < 1.0 (cuando es 1.0
+    no hay nada interesante que decir: "usarías el 100% de tu capital
+    normal" no aporta información).
+    """
+    if not exposure or exposure.get("active_in_production", True):
+        return ""
+
+    factor = exposure.get("exposure_factor")
+    if factor is None or factor >= 1.0:
+        return ""
+
+    return (
+        f"\n🧮 <b>Exposure total (diseño, no activo)</b>\n"
+        f"  Si esto ya estuviera activo, hoy sugeriría usar el "
+        f"<code>{factor*100:.0f}%</code> del capital normal "
+        f"(confianza={exposure.get('confidence_component',0)*100:.0f}% × "
+        f"régimen={exposure.get('regime_component',1)*100:.0f}%)."
+    )
+
+
 def _synthetic_weights_section(provenance: dict) -> str:
     """
     Prioridad 1 (roadmap externo, 25/06/2026) — "conciencia operativa":
@@ -267,7 +292,8 @@ def _reducciones_section(signals):
  
  
 def send_daily_report(all_signals, index_stats, dashboard_filename,
-                      run_date=None, validacion=None, weights_provenance=None):
+                      run_date=None, validacion=None, weights_provenance=None,
+                      exposure=None):
     tz       = pytz.timezone(TIMEZONE)
     now      = datetime.now(tz)
     run_date = run_date or now.strftime("%d/%m/%Y %H:%M")
@@ -289,6 +315,9 @@ def send_daily_report(all_signals, index_stats, dashboard_filename,
     # Pesos sintéticos — alta visibilidad a propósito, junto a validación
     # (Prioridad 1, roadmap externo, 25/06/2026)
     synthetic_block = _synthetic_weights_section(weights_provenance) if weights_provenance else ""
+
+    # Exposure total en modo sombra (diseño, 25/06/2026) -- FYI, no gatea nada
+    exposure_block = _exposure_shadow_section(exposure) if exposure else ""
  
     senales_block  = "\n<b>Señales activas del modelo</b>"
     senales_block += _radar_section(all_signals)
@@ -310,7 +339,8 @@ def send_daily_report(all_signals, index_stats, dashboard_filename,
         f"⏱ Próxima actualización: mañana al cierre"
     )
  
-    full_msg = header + indices_block + validacion_block + synthetic_block + senales_block + override_block + footer
+    full_msg = (header + indices_block + validacion_block + synthetic_block +
+                exposure_block + senales_block + override_block + footer)
  
     if len(full_msg) > 4000:
         full_msg = full_msg[:3990] + "\n…"
