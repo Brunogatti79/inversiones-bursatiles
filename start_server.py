@@ -673,6 +673,8 @@ def _sync_all_data_from_github():
             "historical_replay.json",     # fix 24/06: antes se perdía en cada redeploy
             "system_confidence.json",     # mejora 4.3: confidence global + kill switch
             "predictor_validation.json",  # Prioridad 3: predictor vs baselines (desde el día 1)
+            "kill_switch_history.json",     # Prioridad 2: bitácora append-only del kill switch
+            "kill_switch_validation.json",  # Prioridad 2: validación retroactiva vs precios
         ])
         print("[start_server] data/ sincronizado desde GitHub", flush=True)
     except Exception as e:

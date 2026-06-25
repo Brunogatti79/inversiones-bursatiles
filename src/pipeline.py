@@ -29,6 +29,7 @@ from src.cross_market   import compute_cross_market_context
 from src.exit_model     import enrich_exit_levels
 from src.weight_optimizer    import run_weight_optimization, load_optimized_weights, apply_optimized_weights
 from src.monitor             import update_health_metrics, check_sla, persist_global_confidence
+from src.kill_switch_log     import log_kill_switch_event, evaluate_kill_switch_history
 from src.historical_replay    import run_historical_replay
 from src.predictor_validation import run_predictor_validation
 from src.volatility_regime   import compute_volatility_regime
@@ -338,15 +339,17 @@ def run_pipeline():
         # críticas), se frena la asignación de capital NUEVO en todas las
         # señales. No toca posiciones ya abiertas.
         global_conf = {}
+        sla_status_run = "OK"
         try:
             sla_now = check_sla(send_telegram=False)
+            sla_status_run = sla_now.get("status", "OK")
             global_conf = compute_global_confidence(
                 n_signals=len(all_signals),
                 quality_resumen=quality_resumen,
                 predictor_health=predictor_health,
                 macro_confidence=(macro_auto.get("macro_confidence", {}) if isinstance(macro_auto, dict) else {}),
                 validacion_nivel=nivel,
-                sla_status=sla_now.get("status", "OK"),
+                sla_status=sla_status_run,
             )
             all_signals = apply_kill_switch(all_signals, global_conf)
             persist_global_confidence(global_conf)
@@ -356,6 +359,23 @@ def run_pipeline():
             )
         except Exception as e_gc:
             logger.warning(f"Confidence global / kill switch no crítico — continuando: {e_gc}")
+        # ─────────────────────────────────────────────────────────────────────
+
+        # ── HISTORIAL DEL KILL SWITCH (Prioridad 2, roadmap externo) ──────────
+        # Bitácora append-only, separada del confidence global de arriba a
+        # propósito: system_confidence.json se pisa en cada corrida, esto no.
+        # Sin esto no hay manera de calibrar los umbrales (35 / 5 críticas)
+        # con datos reales más adelante -- solo con "a ojo".
+        try:
+            log_kill_switch_event(
+                global_conf,
+                quality_resumen=quality_resumen,
+                validacion_nivel=nivel,
+                sla_status=sla_status_run,
+                n_signals=len(all_signals),
+            )
+        except Exception as e_ksl:
+            logger.warning(f"Kill switch log no crítico — continuando: {e_ksl}")
         # ─────────────────────────────────────────────────────────────────────
 
         # ── EXIT MODEL (Fase 1) ───────────────────────────────────────────────
@@ -457,6 +477,24 @@ def run_pipeline():
             )
         except Exception as e_pv:
             logger.warning(f"Predictor validation no crítico — continuando: {e_pv}")
+        # ─────────────────────────────────────────────────────────────────────
+
+        # ── VALIDACIÓN RETROACTIVA DEL KILL SWITCH (Prioridad 2, roadmap externo) ─
+        # 1x/semana (mismo gate por contenido que predictor_validation, arriba).
+        # Mide si los días con kill switch activo estuvieron seguidos de una
+        # baja del índice (kill switch "ayudó") vs. los días sin kill switch
+        # activo, como baseline de contraste. Mientras haya pocas corridas
+        # reales con kill switch activo (hoy: 0 casos válidos, el único caso
+        # real fue un falso positivo ya corregido) esto va a devolver muestras
+        # chicas a propósito -- es preferible ver "n=0" que inventar una
+        # conclusión.
+        try:
+            evaluate_kill_switch_history(
+                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                index_cols=index_cols,
+            )
+        except Exception as e_ksv:
+            logger.warning(f"Kill switch validation no crítica — continuando: {e_ksv}")
         # ─────────────────────────────────────────────────────────────────────
 
         # ── WEIGHT OPTIMIZER (Fase 2) ──────────────────────────────────────────

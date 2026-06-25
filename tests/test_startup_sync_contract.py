@@ -121,3 +121,14 @@ class TestStartupSyncContract:
         alguna vez se refactoriza esta lista, no se pierda por descuido."""
         filenames = set(_extract_sync_filenames() or [])
         assert "predictor_validation.json" in filenames
+
+    def test_kill_switch_log_files_in_startup_sync_from_day_one(self):
+        """kill_switch_history.json / kill_switch_validation.json
+        (Prioridad 2, 25/06/2026) se agregaron al sync desde su primer
+        commit -- mismo criterio que predictor_validation.json arriba.
+        kill_switch_history.json es además append-only: perderlo en un
+        redeploy no es recalculable como historical_replay.json, es
+        historia real que no vuelve."""
+        filenames = set(_extract_sync_filenames() or [])
+        assert "kill_switch_history.json" in filenames
+        assert "kill_switch_validation.json" in filenames
