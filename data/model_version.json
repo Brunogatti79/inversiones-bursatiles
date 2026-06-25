@@ -1,6 +1,17 @@
 {
-  "version": "4.3",
+  "version": "4.4",
   "changelog": [
+    {
+      "version": "4.4",
+      "date": "2026-06-25",
+      "changes": [
+        "Feat (Prioridad 5, roadmap externo): portfolio_optimizer.py ahora escala kelly_f/kelly_half por regime_factor de volatility_regime.py (LOW vol ×1.10, NORMAL ×1.00, HIGH vol ×0.75). Este módulo prometía la integración en su propio docstring desde que se creó pero nunca se conectó — verificado con grep en todo el repo, cero referencias a regime_factor en portfolio_optimizer.py antes de este fix. exit_model.py (stops) y confidence_score.py (componente de confianza) sí lo consumían; este era el consumidor faltante. El cap de riesgo de 20% por posición se aplica DESPUÉS del ajuste de régimen y nunca se relaja, ni en LOW vol. allocation_notes menciona explícitamente cuándo el régimen amplió/recortó el Kelly. Efecto en señales: kelly_f/kelly_half por ticker de compra cambia según el régimen de volatilidad sistémica del día; suggested_pct (asignación relativa entre tickers) NO cambia por diseño — regime_factor es un escalar uniforme que se cancela en la normalización del blend Kelly/RiskParity (ver docstring del módulo para el razonamiento completo).",
+        "Refactor (Prioridad 4, roadmap externo): quality_check.py — cada check declara explícitamente 'categoria' (data|model|signal) y 'es_estructural' (bool) en su propio dict, reemplazando la inferencia por nombre hardcodeado que causó el falso positivo del kill switch en 4.3. Comportamiento numérico verificado idéntico (criticas/criticas_estructurales sin cambios para los mismos inputs). No afecta señales/Kelly directamente — se incluye en este bump junto con el cambio de portfolio_optimizer.py de la misma sesión.",
+        "Feat (Prioridad 1, roadmap externo): backtester.py — nuevos breakdowns by_consenso, consenso_vs_no, by_confidence_label, confidence_quantiles (top/bottom 20% real) y ranking_top_vs_rest. tracker.py ahora persiste confidence_score/confidence_label en signals_history.json (no se guardaban antes). No afecta señales/Kelly en vivo — es instrumentación de backtesting, incluida en este bump por completitud de la sesión.",
+        "Feat (Prioridad 2, roadmap externo): nuevo kill_switch_log.py — bitácora histórica append-only del kill switch + evaluación retroactiva contra precios reales (forward return 5d del índice en días con kill switch activo vs baseline). No afecta señales/Kelly — instrumentación.",
+        "Tests: +62 tests en total para la sesión completa (de 229 a 291, incluyendo kill_switch_log que se shippeó en esta misma sesión sin bump de versión por ser pura instrumentación): kill_switch_log (16), backtester consenso/confianza (11), tracker confidence_score (2), quality_check — primera suite de este módulo (15), portfolio_optimizer — primera suite de este módulo (17), regresión de sync de arranque (1)."
+      ]
+    },
     {
       "version": "4.3",
       "date": "2026-06-24",
