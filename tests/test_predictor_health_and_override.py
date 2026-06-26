@@ -184,3 +184,46 @@ class TestApplyPredictionOverride:
         signals = [_signal(pred_21d=-12.0)]
         out = apply_prediction_override(signals, predictor_health={})
         assert out[0]["signal"] == "🔴 VENTA"
+
+
+# ── Fase 2 (auditoría 26/06/2026): gate específico para MERVAL ─────────
+# predictor_validation.json muestra accuracy 45,6% (peor que monedazo) y
+# correlación -0,111 en MERVAL específicamente, mientras BOVESPA/SP500
+# superan 52% con correlación positiva débil. La Regla 1 (la más agresiva,
+# dispara con solo pred_21d<0) no debería aplicarse a señales MERVAL
+# independientemente de la salud global del predictor.
+
+class TestApplyPredictionOverrideMervalGate:
+
+    def test_rule1_skipped_for_merval_even_with_healthy_global_predictor(self):
+        """Salud global OK, pero mercado=MERVAL -> Regla 1 se omite igual."""
+        signals = [_signal(pred_21d=-7.0, mercado="MERVAL")]
+        out = apply_prediction_override(signals, predictor_health={"health": "OK"})
+        assert out[0]["signal"] == "🟢 COMPRA"
+        assert "signal_override" not in out[0]
+
+    def test_rule1_still_applies_for_bovespa_with_healthy_predictor(self):
+        """Mismo escenario pero BOVESPA -> Regla 1 sigue aplicando normalmente."""
+        signals = [_signal(pred_21d=-7.0, mercado="BOVESPA")]
+        out = apply_prediction_override(signals, predictor_health={"health": "OK"})
+        assert out[0]["signal"] == "🟠 VENTA PARCIAL"
+
+    def test_rule1_still_applies_for_sp500_with_healthy_predictor(self):
+        signals = [_signal(pred_21d=-7.0, mercado="SP500")]
+        out = apply_prediction_override(signals, predictor_health={"health": "OK"})
+        assert out[0]["signal"] == "🟠 VENTA PARCIAL"
+
+    def test_rule2_structural_still_applies_to_merval(self):
+        """La Regla 2 (caída anual estructural) NO depende del predictor por
+        mercado -- sigue aplicando a MERVAL igual que a cualquier otro."""
+        signals = [_signal(pred_21d=-7.0, mercado="MERVAL", ret_anual=-45.0)]
+        out = apply_prediction_override(signals, predictor_health={"health": "OK"})
+        assert out[0]["signal"] == "🟡 NEUTRAL/ESPERAR"
+
+    def test_merval_gate_independent_of_global_degraded_status(self):
+        """Con predictor DEGRADED globalmente, MERVAL ya se omitía por la
+        otra razón -- confirmar que sigue omitida (las dos razones de skip
+        no deberían interferir entre sí)."""
+        signals = [_signal(pred_21d=-2.0, mercado="MERVAL")]
+        out = apply_prediction_override(signals, predictor_health={"health": "DEGRADED"})
+        assert out[0]["signal"] == "🟢 COMPRA"

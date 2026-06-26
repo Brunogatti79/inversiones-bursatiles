@@ -17,9 +17,119 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.6"
+MODEL_VERSION = "4.7"
 
 CHANGELOG = [
+    {
+        "version": "4.7",
+        "date": "2026-06-26",
+        "changes": [
+            "Fix CRITICO de causa raiz: analyzer.py::_atr() devolvia 0.0 en "
+            "el 100% de las senales, siempre -- confirmado contra los 4 dias "
+            "de signals_history.json disponibles (22-25/06). Causa: el "
+            "codigo buscaba columnas '_High'/'_Low' via "
+            "col.replace('Close','High'), pero los CSV de cierres reales "
+            "(merval/bovespa/sp500_cierres.csv) solo tienen una columna de "
+            "precio de cierre por ticker (nombre de la empresa) -- la "
+            "palabra 'Close' nunca aparece en el nombre real de columna, "
+            "asi que esas columnas jamas existieron. Esto dejaba "
+            "atr_stop/atr_target en 0.0 siempre, y por lo tanto "
+            "exit_model.py (multiplicadores dinamicos) y trailing_stop.py "
+            "(aborta si atr<=0) completamente inertes en produccion desde "
+            "que existen, pese a estar bien implementados. Fix: proxy "
+            "close-only (|close-close_prev| rolling mean) cuando no hay "
+            "High/Low real -- subestima volatilidad intradia pero da un "
+            "numero usable. Persistido como atr_metodo en cada senal "
+            "('ohlc' | 'close_proxy' | 'sin_datos') para trazabilidad.",
+            "Fix CRITICO: pricing del portfolio limitado a 14/78 tickers "
+            "(3 diccionarios hardcodeados en tracker.update_portfolio_usd: "
+            "MERVAL_MAP 4, BOVESPA_MAP 1, CEDEAR_MAP 9). Confirmado en datos "
+            "reales: GGAL.BA, BMA.BA, EDN.BA, GOOGL mostraban 0,00% de "
+            "rendimiento durante semanas pese a que sus precios reales si "
+            "se movieron. Se creo src/execution/pricing_engine.py como "
+            "unica fuente de pricing (reemplaza la implementacion de "
+            "tracker.py Y la segunda implementacion, ligeramente distinta, "
+            "que vivia embebida en start_server.py _handle_get_portfolio) "
+            "-- generaliza MERVAL_CSV/BOVESPA_CSV a los 47 tickers reales de "
+            "esos mercados automaticamente, via precio_fuente + los mismos "
+            "diccionarios ticker-nombre que ya usa downloader.py para "
+            "analisis, sin lista manual aparte.",
+            "Investigado y descartado (no shippeado): aproximacion de "
+            "pricing CEDEAR (GLOB, MELI, MSFT, COPX, IBB, PBR, RIO, EWZ -- "
+            "8 de las 17 posiciones reales) via nyse_usd x ratio_cedear. "
+            "Se implemento, se probo contra datos reales y dio "
+            "rendimientos absurdos (MELI +3493%, IBB +14948%, etc.). Se "
+            "verificaron los ratios reales de BYMA (MSFT 30:1, MELI 120:1, "
+            "AAPL 20:1, fuente: rankia.com.ar jun-2026) contra el campo "
+            "ratio_cedear ya guardado en portfolio.json para esas mismas "
+            "posiciones (MSFT=1.1943, MELI=0.3177) -- no coinciden en "
+            "absoluto. Conclusion: ni la formula ni el dato de entrada son "
+            "confiables hoy. Estas 8 posiciones quedan explicitamente sin "
+            "resolver (precio_metodo='cedear_sin_fuente_confiable') en vez "
+            "de mostrar un numero con apariencia de precision pero "
+            "incorrecto. No empeora nada (ya estaban congeladas: "
+            "data/cedear_cierres.csv nunca existio en el repo, 0 commits "
+            "en toda su historia) -- ahora el sistema lo dice explicito.",
+            "Feat: stop_loss/target reales en posiciones nuevas. "
+            "/api/compra creaba toda posicion con stop_loss=None, "
+            "target=None hardcodeado -- nunca leia el atr_stop/atr_target "
+            "que el analyzer ya habia calculado para esa senal en ese "
+            "mismo momento (y que, hasta el fix de ATR de arriba, hubiera "
+            "sido 0.0 igual). src/execution/risk_engine.py "
+            "(compute_initial_stop_target) ahora calcula esto en USD para "
+            "MERVAL/BOVESPA; para CEDEARs queda sin asignar -- el pricing "
+            "USD de esas posiciones no es confiable todavia (ver punto "
+            "anterior) y asignar un stop en esa moneda crearia un "
+            "descalce. Incluye backfill_missing_stops() para proteger "
+            "retroactivamente las 17 posiciones reales abiertas antes de "
+            "este fix -- pendiente de correr despues del primer pipeline "
+            "post-deploy (signals_history.json necesita ATR real, hoy "
+            "tiene datos de antes del fix).",
+            "Fix de moneda en tracker.check_portfolio_alerts(): 'Stop loss "
+            "manual' y 'Target manual' comparaban precio_actual (moneda "
+            "NATIVA de la senal: ARS para MERVAL/BOVESPA) contra "
+            "stop_loss/target (que se guardan en USD) -- nunca se noto "
+            "porque stop_loss era siempre None. Con valores reales (ver "
+            "punto anterior) este descalce hubiera dejado la alerta muda "
+            "para siempre. Ahora compara precio_actual_usd vs stop/target, "
+            "misma moneda. El check de 'ATR stop'/'ATR target' (moneda "
+            "nativa en ambos lados) no tenia este problema y empieza a "
+            "funcionar solo con el fix de ATR, sin tocar nada mas.",
+            "Feat: capa de ejecucion src/execution/ (order_engine.py, "
+            "pricing_engine.py, risk_engine.py). La logica de compra/venta "
+            "que vivia embebida en el handler HTTP de start_server.py "
+            "(_handle_portfolio_op, ~80 lineas mezclando parseo de "
+            "request + logica de negocio + persistencia) se extrajo a "
+            "order_engine.execute_compra/execute_venta -- el handler ahora "
+            "solo traduce HTTP. check_portfolio_alerts() se queda en "
+            "tracker.py (ya funcionaba bien, no se duplica). Resultado "
+            "neto: tracker.py -215 lineas, start_server.py -313 lineas, "
+            "+3 modulos nuevos con responsabilidad unica cada uno.",
+            "Feat: gate especifico para MERVAL en "
+            "apply_prediction_override() Regla 1. predictor_validation.json "
+            "muestra directional accuracy 45,6% (peor que monedazo) y "
+            "correlacion -0,111 en MERVAL especificamente, vs >52% con "
+            "correlacion positiva en BOVESPA/SP500 -- el gate global por "
+            "health_status mezcla los 3 mercados y no lo capturaba: con "
+            "WARNING global (estado real de hoy) la Regla 1 seguia "
+            "aplicandose tambien a MERVAL. Se omite para MERVAL "
+            "independientemente del health global; la Regla 2 (estructural, "
+            "ret_anual) sigue aplicando igual a los 3 mercados.",
+            "Tests: +38 (ATR proxy + gate: 4, gate MERVAL en "
+            "apply_prediction_override: 5, capa de ejecucion -- primera "
+            "suite de pricing_engine/risk_engine/order_engine: 23, "
+            "check_portfolio_alerts -- primera suite, no tenia cobertura: "
+            "8; -2 por reescritura de los 2 tests viejos de _atr a la "
+            "nueva firma). Suite completa: 444/444 verde.",
+            "Pendiente para la proxima sesion (no resuelto aca, fuera de "
+            "alcance): pricing CEDEAR real (necesita data/cedear_cierres.csv "
+            "con fuente real de BYMA, o corregir manualmente ratio_cedear "
+            "de las 8 posiciones contra la tabla real de BYMA/COMAFI antes "
+            "de reintentar una formula); limpieza de App/ (63MB muerto, sin "
+            "relacion con el pipeline, encontrado en esta auditoria) y demas "
+            "archivos muertos senalados en v4.0 -- no tocado, no afecta P&L.",
+        ],
+    },
     {
         "version": "4.6",
         "date": "2026-06-25",

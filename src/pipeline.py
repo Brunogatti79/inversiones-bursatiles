@@ -71,6 +71,19 @@ def apply_prediction_override(signals: list[dict], predictor_health: dict = None
     depende del predictor). Con WARNING (0.45-0.54, que es el estado real
     de hoy) la Regla 1 sigue activa pero ya viene atenuada indirectamente:
     apply_health_to_signals() ya bajó pred_confidence por el mismo motivo.
+
+    Gating adicional por mercado (auditoría 26/06/2026, fase 2): el breakdown
+    de predictor_validation.json muestra que el predictor es directamente
+    contraproducente en MERVAL específicamente — directional accuracy 45,6%
+    (peor que monedazo) y correlación -0,111 (negativa: cuando predice más
+    suba, en promedio pasa lo contrario) — mientras que en BOVESPA y SP500
+    sí muestra accuracy >52% con correlación positiva débil. El gate global
+    por health_status mezcla los 3 mercados y no captura esto: con
+    WARNING global, la Regla 1 seguía aplicándose también a señales MERVAL,
+    pese a que ahí el predictor empeora la decisión en vez de mejorarla. Se
+    omite la Regla 1 para MERVAL independientemente del health_status
+    global, hasta que predictor_validation muestre accuracy >50% con
+    correlación no-negativa específicamente para ese mercado.
     """
     health_status = (predictor_health or {}).get("health", "UNKNOWN")
     skip_pred_rule = health_status == "DEGRADED"
@@ -80,13 +93,17 @@ def apply_prediction_override(signals: list[dict], predictor_health: dict = None
         pred_21d  = s.get("pred_21d")
         ret_anual = s.get("ret_anual", 0) or 0
         signal    = s.get("signal", "")
+        mercado   = s.get("mercado", "")
         is_buy    = "COMPRA" in signal
 
         reasons = []
 
         # Regla 1: prediccion negativa → no comprar
-        # (omitida si el predictor está DEGRADED — ver docstring)
-        if pred_21d is not None and is_buy and not skip_pred_rule:
+        # (omitida si el predictor está DEGRADED globalmente — ver docstring —
+        #  o si el mercado es MERVAL, donde el predictor mide peor que
+        #  monedazo con correlación negativa — ver docstring)
+        skip_pred_rule_this_signal = skip_pred_rule or (mercado == "MERVAL")
+        if pred_21d is not None and is_buy and not skip_pred_rule_this_signal:
             if pred_21d < -10:
                 s["signal"] = "🔴 VENTA"
                 reasons.append(f"Pred21d {pred_21d:.1f}% (BAJA FUERTE)")

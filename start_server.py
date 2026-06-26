@@ -217,135 +217,23 @@ class Handler(SimpleHTTPRequestHandler):
     def _handle_get_portfolio(self):
         """GET /api/portfolio — devuelve portfolio.json enriquecido con precios en tiempo real.
 
-        Lógica de precio por fuente (campo precio_fuente en cada posición):
-          MERVAL_CSV  (.BA):  precio_ars (CSV) / CCL = precio_usd
-          BOVESPA_CSV (.SA):  precio_brl (CSV) / BRL_USD = precio_usd
-          SP500_CSV:          precio_usd_nyse (CSV) × ratio_cedear = precio_usd_cedear
-        Todos los tickers también devuelven precio_actual_ars = precio_usd × CCL.
+        FIX 26/06/2026: esta lógica de pricing (que ya generalizaba bien
+        MERVAL_CSV/BOVESPA_CSV pero nunca pudo resolver SP500_CSV/CEDEAR
+        porque data/cedear_cierres.csv nunca existió) se consolidó en
+        src/execution/pricing_engine.py — es la MISMA función que usa el
+        pipeline (tracker.update_portfolio_usd), para que no vuelvan a
+        existir dos implementaciones de pricing desincronizadas. Acá se
+        llama con persist=False: esto se sirve en cada GET (potencialmente
+        cada 60s por el auto-refresh del dashboard) y no debe escribir a
+        disco ni pushear a GitHub en cada request — eso lo sigue haciendo
+        solo el pipeline, 4 veces por día.
         """
         try:
-            portfolio_path = "data/portfolio.json"
-            if os.path.exists(portfolio_path):
-                with open(portfolio_path) as f:
-                    portfolio = json.load(f)
-            else:
+            from src.execution.pricing_engine import refresh_portfolio_prices
+            portfolio = refresh_portfolio_prices(signals=None, persist=False)
+            if not portfolio:
                 portfolio = {"positions": [], "last_updated": ""}
-
-            # CCL actual
-            ccl_val = 0.0
-            ccl_path = "data/ccl_cache.json"
-            try:
-                if os.path.exists(ccl_path):
-                    with open(ccl_path) as fc:
-                        ccl_data = json.load(fc)
-                        ccl_val = float(ccl_data.get("compra", 0) or 0)
-                    portfolio["ccl"] = ccl_data
-            except Exception:
-                pass
-            if ccl_val <= 0:
-                ccl_val = 1487.0
-
-            # BRL/USD desde Yahoo Finance
-            brl_usd = 5.70
-            try:
-                import yfinance as yf
-                brl_hist = yf.Ticker("BRL=X").history(period="2d")
-                if not brl_hist.empty:
-                    brl_usd = round(float(brl_hist["Close"].iloc[-1]), 4)
-            except Exception:
-                pass
-
-            if portfolio.get("positions"):
-                try:
-                    prices_cache = _get_latest_prices()  # {ticker: precio_en_moneda_local}
-
-                    for p in portfolio["positions"]:
-                        t       = p.get("ticker", "")
-                        cant    = p.get("cantidad", 1)
-                        ini_usd = p.get("valor_inicial_usd", 0)
-                        fuente  = p.get("precio_fuente", "")
-                        ratio   = p.get("ratio_cedear", 1.0)
-
-                        precio_usd = 0.0
-                        precio_ars = 0.0
-
-                        if fuente == "MERVAL_CSV":
-                            p_ars = prices_cache.get(t, 0)
-                            if p_ars > 0 and ccl_val > 0:
-                                precio_ars = round(p_ars, 2)
-                                precio_usd = round(p_ars / ccl_val, 4)
-
-                        elif fuente == "BOVESPA_CSV":
-                            p_brl = prices_cache.get(t, 0)
-                            if p_brl > 0 and brl_usd > 0:
-                                precio_usd = round(p_brl / brl_usd, 4)
-                                precio_ars = round(precio_usd * ccl_val, 2)
-
-                        elif fuente == "SP500_CSV":
-                            # Los CEDEARs cotizan en BYMA con precio propio (distinto del NYSE).
-                            # No se puede calcular el precio CEDEAR desde NYSE × ratio_cedear.
-                            # Usamos el precio guardado del broker (fallback a continuación).
-                            # Cuando exista cedear_cierres.csv, leer de ahí directamente.
-                            cedear_csv = "data/cedear_cierres.csv"
-                            if os.path.exists(cedear_csv):
-                                try:
-                                    import io as _io
-                                    with open(cedear_csv, encoding="utf-8-sig") as _fc:
-                                        _cc = _fc.read()
-                                    _dfc = pd.read_csv(_io.StringIO(_cc), sep=";", decimal=",", thousands=" ")
-                                    from src.downloader import SP500_TICKERS as _sp_map
-                                    _n2t = {v: k for k, v in _sp_map.items()}
-                                    for _col in _dfc.columns:
-                                        if _col == "Fecha":
-                                            continue
-                                        _tk = _n2t.get(_col)
-                                        if _tk and _tk == t:
-                                            _vals = pd.to_numeric(
-                                                _dfc[_col].astype(str).str.replace(" ","").str.replace(",","."),
-                                                errors="coerce"
-                                            ).dropna()
-                                            if not _vals.empty and _vals.iloc[-1] > 0:
-                                                p_ars_cedear = round(float(_vals.iloc[-1]), 2)
-                                                precio_ars = p_ars_cedear
-                                                precio_usd = round(p_ars_cedear / ccl_val, 4) if ccl_val > 0 else 0
-                                except Exception as _e_ced:
-                                    logger.warning(f"[portfolio] cedear_cierres.csv error para {t}: {_e_ced}")
-
-                        if precio_usd <= 0:
-                            # Usar valor guardado como fallback
-                            precio_usd = p.get("precio_actual_usd", 0)
-                            precio_ars = round(precio_usd * ccl_val, 2) if precio_usd > 0 else 0
-
-                        if precio_usd > 0:
-                            val_usd = round(precio_usd * cant, 2)
-                            val_ars = round(precio_ars * cant, 2)
-                            p["precio_actual_usd"] = precio_usd
-                            p["precio_actual_ars"] = precio_ars
-                            p["valor_actual_usd"]  = val_usd
-                            p["valor_actual_ars"]  = val_ars
-                            if ini_usd > 0:
-                                p["rend_usd"] = round(val_usd - ini_usd, 2)
-                                p["rend_pct"] = round((val_usd / ini_usd - 1) * 100, 2)
-
-                    # Totales
-                    total_usd  = round(sum(p.get("valor_actual_usd", p.get("valor_inicial_usd", 0)) for p in portfolio["positions"]), 2)
-                    total_ars  = round(sum(p.get("valor_actual_ars", 0) for p in portfolio["positions"]), 2)
-                    capital_ref = portfolio.get("capital_usd_ref", 0)
-                    portfolio["capital_usd"]  = total_usd
-                    portfolio["capital_ars"]  = total_ars
-                    portfolio["pl_total_usd"] = round(total_usd - capital_ref, 2)
-                    portfolio["pl_total_pct"] = round((total_usd / capital_ref - 1) * 100, 2) if capital_ref > 0 else 0.0
-                    portfolio["ccl_usado"]    = ccl_val
-
-                except Exception as e:
-                    logger.warning(f"Error enriqueciendo portfolio: {e}")
-
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            import json as _j
-            self.wfile.write(_j.dumps(portfolio, ensure_ascii=False, default=str).encode())
+            self._send_json(200, portfolio)
             return
         except Exception as e:
             self._send_json(500, {"error": str(e)})
@@ -373,155 +261,44 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(500, {"error": str(e)})
  
     def _handle_portfolio_op(self):
-        """POST /api/compra o /api/venta — registrar operación (sin auth, acceso público desde dashboard)."""
+        """POST /api/compra o /api/venta — registrar operación (sin auth, acceso público desde dashboard).
+
+        FIX 26/06/2026: la lógica de negocio (promediado, venta parcial/total,
+        push a GitHub, notificación Telegram) se extrajo a
+        src/execution/order_engine.py. Este handler ahora solo parsea el
+        request HTTP y traduce la respuesta — ver order_engine.py para el
+        detalle de qué hace cada operación.
+        """
         try:
             body = self._read_body()
             ticker = body.get("ticker", "").upper()
-            precio_raw     = float(body.get("precio", 0))   # precio unitario USD (frontend)
-            total_usd_raw  = float(body.get("total_usd", 0))# total USD (frontend)
+            precio_raw    = float(body.get("precio", 0))
+            total_usd_raw = float(body.get("total_usd", 0))
             cantidad = int(body.get("cantidad", 0))
             nombre = body.get("nombre", ticker)
-            op_type_pre = "compra" if self.path == "/api/compra" else "venta"
-            if not ticker or precio_raw <= 0 or cantidad <= 0:
-                self._send_json(400, {"error": "ticker, precio y nominales requeridos"})
-                return
-            # Para COMPRA: total_invertido = precio_unitario * cantidad (precio ya es unitario)
-            # Para VENTA:  precio_unitario = precio_raw directamente
-            precio_unitario  = round(precio_raw, 6)
-            total_invertido  = round(precio_unitario * cantidad, 2) if total_usd_raw <= 0 else round(total_usd_raw, 2)
-            portfolio_path = "data/portfolio.json"
-            if os.path.exists(portfolio_path):
-                with open(portfolio_path) as f:
-                    portfolio = json.load(f)
-            else:
-                portfolio = {"positions": [], "reglas": {}}
-            op_type = op_type_pre  # ya calculado arriba
-            from datetime import datetime as dt
-            fecha = dt.now().strftime("%Y-%m-%d")
+            op_type = "compra" if self.path == "/api/compra" else "venta"
+
+            from src.execution import order_engine
             if op_type == "compra":
-                existing = None
-                for p in portfolio.get("positions", []):
-                    if p["ticker"] == ticker:
-                        existing = p
-                        break
-                if existing:
-                    old_total = existing.get("total_invertido", existing["precio_compra"] * existing["cantidad"])
-                    new_total_inv = old_total + total_invertido
-                    new_cant = existing["cantidad"] + cantidad
-                    new_precio_usd = round(new_total_inv / new_cant, 6)
-                    existing["precio_compra"]     = new_precio_usd
-                    existing["precio_compra_usd"] = new_precio_usd
-                    existing["cantidad"]          = new_cant
-                    existing["valor_inicial_usd"] = round(new_total_inv, 2)
-                    existing["valor_actual_usd"]  = round(new_total_inv, 2)
-                    existing["rend_usd"]          = 0
-                    existing["fecha_compra"] = fecha
-                    existing["notas"] = f"Promediado {fecha}: +{cantidad} nom, +U$D {total_invertido}"
-                    msg = f"Compra agregada a {ticker}, total: U$D {new_total_inv:.0f}, {new_cant} nom"
-                else:
-                    mercado_form = body.get("mercado", "")
-                    if mercado_form:
-                        mercado = mercado_form
-                    else:
-                        mercado = "MERVAL" if ".BA" in ticker else "BOVESPA" if ".SA" in ticker else "SP500"
-                    # Tipo instrumento y ratio CEDEAR — enviados desde el formulario
-                    precio_fuente = body.get("precio_fuente", "")
-                    ratio_cedear  = float(body.get("ratio_cedear", 1.0) or 1.0)
-                    # Inferir precio_fuente si no viene del formulario (compatibilidad)
-                    if not precio_fuente:
-                        if ticker.endswith(".BA"):
-                            precio_fuente = "MERVAL_CSV"
-                        elif ticker.endswith(".SA"):
-                            precio_fuente = "BOVESPA_CSV"
-                        else:
-                            precio_fuente = "SP500_CSV"
-                    new_pos = {
-                        "ticker": ticker, "nombre": nombre,
-                        "mercado": mercado, "moneda": "USD",
-                        "precio_compra":     precio_unitario,
-                        "precio_compra_usd": precio_unitario,
-                        "precio_actual_usd": precio_unitario,
-                        "cantidad": cantidad,
-                        "valor_inicial_usd": round(total_invertido, 2),
-                        "valor_actual_usd":  round(total_invertido, 2),
-                        "rend_usd": 0,
-                        "fecha_compra": fecha,
-                        "stop_loss": None, "target": None,
-                        "precio_fuente": precio_fuente,
-                        "ratio_cedear":  ratio_cedear if precio_fuente == "SP500_CSV" else 1.0,
-                        "notas": f"Compra {fecha} via Dashboard — {precio_fuente}",
-                    }
-                    portfolio.setdefault("positions", []).append(new_pos)
-                    msg = f"Nueva posición: {ticker} {cantidad} nom @ U$D {total_invertido:.0f} total [{precio_fuente}]"
+                result = order_engine.execute_compra(
+                    ticker=ticker,
+                    precio_raw=precio_raw,
+                    total_usd_raw=total_usd_raw,
+                    cantidad=cantidad,
+                    nombre=nombre,
+                    mercado_form=body.get("mercado", ""),
+                    precio_fuente_form=body.get("precio_fuente", ""),
+                    ratio_cedear_form=float(body.get("ratio_cedear", 1.0) or 1.0),
+                )
             else:
-                existing = None
-                for p in portfolio.get("positions", []):
-                    if p["ticker"] == ticker:
-                        existing = p
-                        break
-                if not existing:
-                    self._send_json(404, {"error": f"No hay posición en {ticker}"})
-                    return
-                if cantidad > existing["cantidad"]:
-                    self._send_json(400, {"error": f"Solo tenés {existing['cantidad']} de {ticker}"})
-                    return
-                pc = existing.get("precio_compra_usd") or existing.get("precio_compra", 0)
-                pnl_pct = round((precio_unitario / pc - 1) * 100, 2) if pc > 0 else 0
-                pnl_abs = round((precio_unitario - pc) * cantidad, 2)
-                if cantidad == existing["cantidad"]:
-                    portfolio["positions"] = [p for p in portfolio["positions"] if p["ticker"] != ticker]
-                    msg = f"Venta total {ticker}. P&L: {pnl_abs} ({pnl_pct}%)"
-                else:
-                    restantes = existing["cantidad"] - cantidad
-                    existing["cantidad"] = restantes
-                    existing["valor_inicial_usd"] = round((existing.get("precio_compra_usd") or existing.get("precio_compra",0)) * restantes, 2)
-                    existing["valor_actual_usd"]  = round(precio_unitario * restantes, 2)
-                    existing["rend_usd"] = round((precio_unitario - (existing.get("precio_compra_usd") or existing.get("precio_compra",0))) * restantes, 2)
-                    existing["notas"] = f"Venta parcial {fecha}: -{cantidad} @ USD {precio_unitario}"
-                    msg = f"Venta parcial {ticker}. P&L: {pnl_abs} ({pnl_pct}%)"
-            portfolio["last_updated"] = dt.now().strftime("%Y-%m-%d %H:%M")
-            with open(portfolio_path, "w") as f:
-                json.dump(portfolio, f, ensure_ascii=False, indent=2)
+                result = order_engine.execute_venta(
+                    ticker=ticker, precio_raw=precio_raw, cantidad=cantidad,
+                )
 
-            # ── Push a GitHub con reintento y alerta explícita si falla ──
-            pushed, push_error = self._push_portfolio_to_github(
-                portfolio_path, f"api: {op_type} {ticker} {fecha}"
-            )
-
-            # ── Notificar por Telegram (operación + estado del push) ──
-            try:
-                import requests as _req_tg
-                bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-                chat_ids  = [c.strip() for c in os.environ.get("CHAT_IDS", os.environ.get("TELEGRAM_CHAT_ID","")).split(",") if c.strip()]
-                if bot_token and chat_ids:
-                    icon = "\U0001f7e2" if op_type == "compra" else "\U0001f534"
-                    push_status = "✅ Sincronizado con GitHub" if pushed else f"⚠️ <b>Push falló</b>: {push_error}"
-                    text = (
-                        f"{icon} <b>{op_type.upper()} registrada</b>\n"
-                        f"Ticker: <b>{ticker}</b> — {cantidad} @ USD {precio_unitario:.4f}\n"
-                        f"Total: USD {total_invertido:.2f}\n"
-                        f"{push_status}"
-                    )
-                    for cid in chat_ids:
-                        try:
-                            _req_tg.post(
-                                f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                                json={"chat_id": cid, "text": text, "parse_mode": "HTML"},
-                                timeout=10
-                            )
-                        except Exception:
-                            pass
-            except Exception as _e:
-                print(f"[api] Telegram notify error: {_e}", flush=True)
-
-            # ── Respuesta al frontend ──
-            response_payload = {"status": "ok", "msg": msg, "pushed": pushed}
-            if not pushed:
-                # Informar al dashboard para que muestre advertencia visible
-                response_payload["push_warning"] = push_error or "GitHub no disponible — portfolio guardado localmente en Railway"
-            self._send_json(200, response_payload)
-            print(f"[api] {op_type}: {ticker} {cantidad} @ {precio_unitario:.4f} | pushed={pushed}" +
-                  (f" | push_error={push_error}" if not pushed else ""), flush=True)
+            http_code = result.pop("http_code", 200 if result.get("status") == "ok" else 500)
+            self._send_json(http_code, result)
+            print(f"[api] {op_type}: {ticker} {cantidad} @ {precio_raw:.4f} | "
+                  f"status={result.get('status')} pushed={result.get('pushed')}", flush=True)
         except Exception as e:
             self._send_json(500, {"error": str(e)})
             print(f"[api] Error: {e}", flush=True)

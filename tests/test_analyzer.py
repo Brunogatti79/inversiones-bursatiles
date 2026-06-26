@@ -182,13 +182,14 @@ class TestSignalThresholds:
 
 class TestATR:
     def test_atr_positive(self):
-        """ATR siempre positivo."""
+        """ATR siempre positivo (con High/Low → metodo 'ohlc')."""
         n = 30
         close = pd.Series([100.0 + i * 0.5 for i in range(n)])
         high  = close + 2.0
         low   = close - 2.0
-        result = _atr(high, low, close)
+        result, metodo = _atr(high, low, close)
         assert result > 0, f"ATR debe ser > 0, got {result}"
+        assert metodo == "ohlc"
 
     def test_atr_flat_series(self):
         """Serie perfectamente plana → ATR cercano a 0."""
@@ -196,8 +197,30 @@ class TestATR:
         close = pd.Series([100.0] * n)
         high  = pd.Series([100.1] * n)
         low   = pd.Series([99.9] * n)
-        result = _atr(high, low, close)
+        result, metodo = _atr(high, low, close)
         assert result < 1.0, f"ATR serie plana esperado <1, got {result}"
+        assert metodo == "ohlc"
+
+    def test_atr_close_only_proxy_fallback(self):
+        """
+        Sin High/Low (caso real en producción: los CSV de cierres no traen
+        esas columnas) → debe usar el proxy close-only en vez de devolver 0.0.
+        Fix 26/06/2026 — antes de este fix, atr_val era 0.0 el 100% de las
+        veces y por lo tanto atr_stop/atr_target/exit_model/trailing_stop
+        quedaban inertes en producción.
+        """
+        n = 30
+        close = pd.Series([100.0 + i * 0.5 for i in range(n)])
+        result, metodo = _atr(None, None, close)
+        assert metodo == "close_proxy"
+        assert result > 0, "el proxy close-only debe dar un ATR > 0 sobre una serie con movimiento real"
+
+    def test_atr_sin_datos_suficientes(self):
+        """Serie muy corta (< period+1) → 0.0, metodo 'sin_datos', sin excepción."""
+        close = pd.Series([100.0, 101.0, 99.0])
+        result, metodo = _atr(None, None, close)
+        assert result == 0.0
+        assert metodo == "sin_datos"
 
 
 # ── Normalización distancia al máximo ──────────────────────────────────────

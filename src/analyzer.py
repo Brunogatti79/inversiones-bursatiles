@@ -237,14 +237,48 @@ def _volume_confirmation(volume_series, price_series, lookback=5):
  
  
 def _atr(high_series, low_series, close_series, period=14):
-    if high_series is None or len(high_series) < period + 1:
-        return 0.0
-    tr1 = high_series - low_series
-    tr2 = abs(high_series - close_series.shift(1))
-    tr3 = abs(low_series - close_series.shift(1))
-    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    atr = tr.rolling(period).mean()
-    return float(atr.iloc[-1]) if not pd.isna(atr.iloc[-1]) else 0.0
+    """
+    ATR (Average True Range).
+
+    FIX 26/06/2026 — causa raíz encontrada en auditoría: los CSV de cierres
+    reales (merval_cierres.csv, bovespa_cierres.csv, sp500_cierres.csv) solo
+    tienen una columna de precio de cierre por ticker (nombre de la empresa),
+    NUNCA columnas "_High"/"_Low" — el código que buscaba
+    `col.replace('Close','High')` jamás encontraba esas columnas porque la
+    palabra "Close" tampoco está en el nombre real de columna. Resultado
+    verificado: atr=0.0 en el 100% de las señales de los 4 días de historia
+    real disponibles (signals_history.json, 22-25/06/2026) — lo que a su vez
+    dejaba atr_stop/atr_target siempre en 0.0, y por lo tanto exit_model.py
+    (multiplicadores dinámicos) y trailing_stop.py (que aborta si atr<=0)
+    completamente inertes en producción, pese a estar bien implementados.
+
+    Mientras no exista una fuente de High/Low real (requeriría tocar el
+    workflow de GitHub Actions que descarga los CSV), se usa un proxy
+    close-only: True Range ≈ |close - close_prev|, rolling mean. Subestima
+    la volatilidad intradía real (ignora gaps y rango High-Low), pero es
+    muy preferible a devolver 0.0 — habilita que stops/targets/trailing
+    stop vuelvan a tener un número real con el que operar.
+
+    Returns:
+        (valor_atr: float, metodo: str)  metodo ∈ {"ohlc", "close_proxy", "sin_datos"}
+    """
+    if close_series is None or len(close_series) < period + 1:
+        return 0.0, "sin_datos"
+
+    if high_series is not None and low_series is not None and len(high_series) >= period + 1:
+        tr1 = high_series - low_series
+        tr2 = abs(high_series - close_series.shift(1))
+        tr3 = abs(low_series - close_series.shift(1))
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        atr = tr.rolling(period).mean()
+        val = float(atr.iloc[-1]) if not pd.isna(atr.iloc[-1]) else 0.0
+        return val, "ohlc"
+
+    # Fallback: proxy close-only (caso real en producción hoy)
+    tr_proxy = close_series.diff().abs()
+    atr_proxy = tr_proxy.rolling(period).mean()
+    val = float(atr_proxy.iloc[-1]) if not pd.isna(atr_proxy.iloc[-1]) else 0.0
+    return val, "close_proxy"
  
  
 def _rsi_divergence(series, rsi_period=14, lookback=20):
@@ -876,14 +910,15 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         v2_w = _adaptive_aq_es_weights(market, vol_score)
  
         # ATR para stops dinámicos
-        atr_val = 0.0
+        # Fix 26/06/2026: antes esto era 0.0 SIEMPRE — ver docstring de _atr().
+        high_col = col.replace('Close', 'High') if 'Close' in str(col) else None
+        low_col = col.replace('Close', 'Low') if 'Close' in str(col) else None
+        high_s = df_12m[high_col] if high_col and high_col in df_12m.columns else None
+        low_s  = df_12m[low_col]  if low_col  and low_col  in df_12m.columns else None
         try:
-            high_col = col.replace('Close', 'High') if 'Close' in str(col) else None
-            low_col = col.replace('Close', 'Low') if 'Close' in str(col) else None
-            if high_col and low_col and high_col in df_12m.columns and low_col in df_12m.columns:
-                atr_val = _atr(df_12m[high_col], df_12m[low_col], serie)
+            atr_val, atr_metodo = _atr(high_s, low_s, serie)
         except Exception:
-            atr_val = 0.0
+            atr_val, atr_metodo = 0.0, "error"
         atr_stop = round(precio_actual - (atr_val * 2), 2) if atr_val > 0 else 0.0
         atr_target = round(precio_actual + (atr_val * 3), 2) if atr_val > 0 else 0.0
  
@@ -959,6 +994,7 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "consenso": consenso,
             # ── ATR stops dinámicos ──
             "atr": round(atr_val, 2),
+            "atr_metodo": atr_metodo,
             "atr_stop": atr_stop,
             "atr_target": atr_target,
             # ── Indicadores líderes ──
