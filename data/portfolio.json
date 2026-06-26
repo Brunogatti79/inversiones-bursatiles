@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-06-26 16:22",
+  "last_updated": "2026-06-26 17:22",
   "capital_usd_ref": 9263.04,
-  "capital_usd": 9244.94,
+  "capital_usd": 9262.2,
   "positions": [
     {
       "ticker": "CEPU.BA",
@@ -9,22 +9,23 @@
       "mercado": "MERVAL",
       "moneda": "USD",
       "precio_compra_usd": 1.560122,
-      "precio_actual_usd": 1.483524,
+      "precio_actual_usd": 1.494956,
       "cantidad": 458,
       "valor_inicial_usd": 714.54,
-      "valor_actual_usd": 679.45,
-      "rend_usd": -35.09,
+      "valor_actual_usd": 684.69,
+      "rend_usd": -29.85,
       "fecha_compra": "2026-06-12",
       "stop_loss": null,
       "target": null,
       "precio_compra": 1.560122,
-      "rend_pct": -4.91,
+      "rend_pct": -4.18,
       "nombre_csv": "Central Puerto",
       "precio_fuente": "MERVAL_CSV",
-      "precio_actual_ars": 2395.0,
-      "valor_actual_ars": 814300.0,
+      "precio_actual_ars": 2223.0,
+      "valor_actual_ars": 1018134.0,
       "ratio_cedear": 1.0,
-      "notas": "Promediado 2026-06-12: +118 nom, +U$D 193.52"
+      "notas": "Promediado 2026-06-12: +118 nom, +U$D 193.52",
+      "precio_metodo": "merval_signal_ccl"
     },
     {
       "ticker": "COME.BA",
@@ -32,21 +33,22 @@
       "mercado": "MERVAL",
       "moneda": "USD",
       "precio_compra_usd": 0.0307,
-      "precio_actual_usd": 0.028258,
+      "precio_actual_usd": 0.027586,
       "cantidad": 16300,
       "valor_inicial_usd": 500,
-      "valor_actual_usd": 460.61,
-      "rend_usd": -39.39,
+      "valor_actual_usd": 449.65,
+      "rend_usd": -50.35,
       "fecha_compra": "2026-05-16",
       "stop_loss": null,
       "target": null,
       "precio_compra": 0.0307,
-      "rend_pct": -7.88,
+      "rend_pct": -10.07,
       "nombre_csv": "Soc. Comercial del Plata",
       "precio_fuente": "MERVAL_CSV",
-      "precio_actual_ars": 50.2,
-      "valor_actual_ars": 818260.0,
-      "ratio_cedear": 1.0
+      "precio_actual_ars": 41.02,
+      "valor_actual_ars": 668626.0,
+      "ratio_cedear": 1.0,
+      "precio_metodo": "merval_signal_ccl"
     },
     {
       "ticker": "IRSA.BA",
@@ -54,21 +56,22 @@
       "mercado": "MERVAL",
       "moneda": "USD",
       "precio_compra_usd": 1.5152,
-      "precio_actual_usd": 1.647613,
+      "precio_actual_usd": 1.600538,
       "cantidad": 328,
       "valor_inicial_usd": 497,
-      "valor_actual_usd": 540.42,
-      "rend_usd": 43.42,
+      "valor_actual_usd": 524.98,
+      "rend_usd": 27.98,
       "fecha_compra": "2026-05-16",
       "stop_loss": null,
       "target": null,
       "precio_compra": 1.5152,
-      "rend_pct": 8.74,
+      "rend_pct": 5.63,
       "nombre_csv": "IRSA",
       "precio_fuente": "MERVAL_CSV",
-      "precio_actual_ars": 2330.0,
-      "valor_actual_ars": 764240.0,
-      "ratio_cedear": 1.0
+      "precio_actual_ars": 2380.0,
+      "valor_actual_ars": 780640.0,
+      "ratio_cedear": 1.0,
+      "precio_metodo": "merval_signal_ccl"
     },
     {
       "ticker": "TRAN.BA",
@@ -76,22 +79,23 @@
       "mercado": "MERVAL",
       "moneda": "USD",
       "precio_compra_usd": 2.626192,
-      "precio_actual_usd": 2.452925,
+      "precio_actual_usd": 2.4731,
       "cantidad": 475,
       "valor_inicial_usd": 1247.44,
-      "valor_actual_usd": 1165.14,
-      "rend_usd": -82.3,
+      "valor_actual_usd": 1174.72,
+      "rend_usd": -72.72,
       "fecha_compra": "2026-06-12",
       "stop_loss": null,
       "target": null,
       "precio_compra": 2.626192,
-      "rend_pct": -6.6,
+      "rend_pct": -5.83,
       "nombre_csv": "Transener",
       "precio_fuente": "MERVAL_CSV",
-      "precio_actual_ars": 4095.0,
-      "valor_actual_ars": 1420965.0,
+      "precio_actual_ars": 3677.5,
+      "valor_actual_ars": 1746812.5,
       "ratio_cedear": 1.0,
-      "notas": "Promediado 2026-06-12: +128 nom, +U$D 349.44"
+      "notas": "Promediado 2026-06-12: +128 nom, +U$D 349.44",
+      "precio_metodo": "merval_signal_ccl"
     },
     {
       "ticker": "COPX",
@@ -112,7 +116,8 @@
       "ratio_cedear": 11.2481,
       "precio_fuente": "SP500_CSV",
       "precio_actual_ars": 1506336.8,
-      "valor_actual_ars": 224444183.2
+      "valor_actual_ars": 224444183.2,
+      "precio_metodo": "cedear_sin_fuente_confiable"
     },
     {
       "ticker": "EWZ",
@@ -133,7 +138,8 @@
       "precio_fuente": "SP500_CSV",
       "precio_actual_ars": 301863.23,
       "valor_actual_ars": 3320495.53,
-      "rend_pct": -0.49
+      "rend_pct": -0.49,
+      "precio_metodo": "cedear_sin_fuente_confiable"
     },
     {
       "ticker": "GLOB",
@@ -154,7 +160,8 @@
       "ratio_cedear": 1.9577,
       "precio_fuente": "SP500_CSV",
       "precio_actual_ars": 129369.3,
-      "valor_actual_ars": 4527925.5
+      "valor_actual_ars": 4527925.5,
+      "precio_metodo": "cedear_sin_fuente_confiable"
     },
     {
       "ticker": "HAPV3.SA",
@@ -162,21 +169,22 @@
       "mercado": "BOVESPA",
       "moneda": "USD",
       "precio_compra_usd": 2.6194,
-      "precio_actual_usd": 1.784211,
+      "precio_actual_usd": 1.957636,
       "cantidad": 402,
       "valor_inicial_usd": 1053,
-      "valor_actual_usd": 717.25,
-      "rend_usd": -335.75,
+      "valor_actual_usd": 786.97,
+      "rend_usd": -266.03,
       "fecha_compra": "2026-05-16",
       "stop_loss": null,
       "target": null,
       "precio_compra": 2.6194,
-      "rend_pct": -31.89,
+      "rend_pct": -25.26,
       "nombre_csv": "Hapvida",
       "precio_fuente": "BOVESPA_CSV",
-      "precio_actual_ars": 16492.17,
-      "valor_actual_ars": 6629852.34,
-      "ratio_cedear": 1.0
+      "precio_actual_ars": 2911.0,
+      "valor_actual_ars": 1170222.0,
+      "ratio_cedear": 1.0,
+      "precio_metodo": "bovespa_signal_brlusd"
     },
     {
       "ticker": "IBB",
@@ -197,7 +205,8 @@
       "ratio_cedear": 5.5205,
       "precio_fuente": "SP500_CSV",
       "precio_actual_ars": 1390355.56,
-      "valor_actual_ars": 201601556.2
+      "valor_actual_ars": 201601556.2,
+      "precio_metodo": "cedear_sin_fuente_confiable"
     },
     {
       "ticker": "MELI",
@@ -218,7 +227,8 @@
       "ratio_cedear": 0.3177,
       "precio_fuente": "SP500_CSV",
       "precio_actual_ars": 817749.33,
-      "valor_actual_ars": 31074474.54
+      "valor_actual_ars": 31074474.54,
+      "precio_metodo": "cedear_sin_fuente_confiable"
     },
     {
       "ticker": "MSFT",
@@ -239,7 +249,8 @@
       "ratio_cedear": 1.1943,
       "precio_fuente": "SP500_CSV",
       "precio_actual_ars": 817848.51,
-      "valor_actual_ars": 29442546.36
+      "valor_actual_ars": 29442546.36,
+      "precio_metodo": "cedear_sin_fuente_confiable"
     },
     {
       "ticker": "PBR",
@@ -260,7 +271,8 @@
       "precio_fuente": "SP500_CSV",
       "precio_actual_ars": 636435.11,
       "valor_actual_ars": 14001572.42,
-      "rend_pct": -4.89
+      "rend_pct": -4.89,
+      "precio_metodo": "cedear_sin_fuente_confiable"
     },
     {
       "ticker": "RIO",
@@ -281,7 +293,8 @@
       "ratio_cedear": 7.0393,
       "precio_fuente": "SP500_CSV",
       "precio_actual_ars": 1140532.12,
-      "valor_actual_ars": 59307670.24
+      "valor_actual_ars": 59307670.24,
+      "precio_metodo": "cedear_sin_fuente_confiable"
     },
     {
       "ticker": "GGAL.BA",
@@ -290,17 +303,21 @@
       "moneda": "USD",
       "precio_compra": 5.1,
       "precio_compra_usd": 5.1,
-      "precio_actual_usd": 5.1,
+      "precio_actual_usd": 5.114324,
       "cantidad": 66,
       "valor_inicial_usd": 336.6,
-      "valor_actual_usd": 336.6,
-      "rend_usd": 0,
+      "valor_actual_usd": 337.55,
+      "rend_usd": 0.95,
       "fecha_compra": "2026-06-03",
       "stop_loss": null,
       "target": null,
       "precio_fuente": "MERVAL_CSV",
       "ratio_cedear": 1.0,
-      "notas": "Compra 2026-06-03 via Dashboard — MERVAL_CSV"
+      "notas": "Compra 2026-06-03 via Dashboard — MERVAL_CSV",
+      "precio_actual_ars": 7605.0,
+      "valor_actual_ars": 501930.0,
+      "rend_pct": 0.28,
+      "precio_metodo": "merval_signal_ccl"
     },
     {
       "ticker": "GOOGL",
@@ -319,7 +336,8 @@
       "target": null,
       "precio_fuente": "SP500_CSV",
       "ratio_cedear": 1.0,
-      "notas": "Compra 2026-06-03 via Dashboard — SP500_CSV"
+      "notas": "Compra 2026-06-03 via Dashboard — SP500_CSV",
+      "precio_metodo": "cedear_sin_fuente_confiable"
     },
     {
       "ticker": "EDN.BA",
@@ -328,17 +346,21 @@
       "moneda": "USD",
       "precio_compra": 1.43,
       "precio_compra_usd": 1.43,
-      "precio_actual_usd": 1.43,
+      "precio_actual_usd": 1.273705,
       "cantidad": 41,
       "valor_inicial_usd": 58.63,
-      "valor_actual_usd": 58.63,
-      "rend_usd": 0,
+      "valor_actual_usd": 52.22,
+      "rend_usd": -6.41,
       "fecha_compra": "2026-06-12",
       "stop_loss": null,
       "target": null,
       "precio_fuente": "MERVAL_CSV",
       "ratio_cedear": 1.0,
-      "notas": "Compra 2026-06-12 via Dashboard — MERVAL_CSV"
+      "notas": "Compra 2026-06-12 via Dashboard — MERVAL_CSV",
+      "precio_actual_ars": 1894.0,
+      "valor_actual_ars": 77654.0,
+      "rend_pct": -10.93,
+      "precio_metodo": "merval_signal_ccl"
     },
     {
       "ticker": "BMA.BA",
@@ -347,17 +369,21 @@
       "moneda": "USD",
       "precio_compra": 10.26,
       "precio_compra_usd": 10.26,
-      "precio_actual_usd": 10.26,
+      "precio_actual_usd": 9.37458,
       "cantidad": 40,
       "valor_inicial_usd": 410.4,
-      "valor_actual_usd": 410.4,
-      "rend_usd": 0,
+      "valor_actual_usd": 374.98,
+      "rend_usd": -35.42,
       "fecha_compra": "2026-06-19",
       "stop_loss": null,
       "target": null,
       "precio_fuente": "MERVAL_CSV",
       "ratio_cedear": 1.0,
-      "notas": "Compra 2026-06-19 via Dashboard — MERVAL_CSV"
+      "notas": "Compra 2026-06-19 via Dashboard — MERVAL_CSV",
+      "precio_actual_ars": 13940.0,
+      "valor_actual_ars": 557600.0,
+      "rend_pct": -8.63,
+      "precio_metodo": "merval_signal_ccl"
     }
   ],
   "reglas": {
@@ -378,8 +404,8 @@
     "RIO": 7.0393
   },
   "capital_ars": 591193840.13,
-  "pl_total_usd": -18.1,
-  "pl_total_pct": -0.2,
+  "pl_total_usd": -0.84,
+  "pl_total_pct": -0.01,
   "ccl_usado": 1487.0,
-  "brl_usd_usado": 5.7
+  "brl_usd_usado": 5.1695
 }
