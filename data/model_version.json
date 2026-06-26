@@ -1,6 +1,17 @@
 {
-  "version": "4.7",
+  "version": "4.8",
   "changelog": [
+    {
+      "version": "4.8",
+      "date": "2026-06-26",
+      "changes": [
+        "Feat CRITICO: pricing real de CEDEAR via data912.com (API publica, sin autenticacion, sin costo -- confirmada en uso por herramientas argentinas reales como rendimientos.co/cedears). En la v4.7 (mismo dia, sesion anterior) se intento la aproximacion nyse_usd x ratio_cedear y se descarto por dar numeros absurdos; la causa de fondo era que no existe ninguna fuente de precio CEDEAR real en el repo. data912 resuelve esto de raiz: para cada ticker, su endpoint /live/arg_cedears trae tanto la linea ARS del CEDEAR como, para la mayoria, una linea '{ticker}D' -- un instrumento DISTINTO, liquidado directo en dolares en BYMA (dolar-MEP). Usar esa linea D da el precio USD real de mercado sin necesitar ratio_cedear ni CCL para nada -- elimina la ambiguedad de ratio que rompio el intento anterior. Confirmado en vivo: GLOB c=2376 ARS / GLOBD c=1.61 USD, mismo patron en IBB, EWZ, COPX y la mayoria del resto. Cuando un ticker no tiene linea D (CEDEAR poco operado), cae a ARS/CCL como respaldo -- sigue siendo precio real de mercado.",
+        "Feat: las 8 posiciones CEDEAR reales (GLOB, MELI, MSFT, COPX, IBB, PBR, RIO, EWZ) ahora SI reciben stop_loss/target al comprar (risk_engine.compute_initial_stop_target) -- usando el ATR de la senal NYSE aplicado directo en USD. Aproximacion razonable (mismo activo subyacente, volatilidad en dolares correlacionada) pero no es el ATR de la serie real del CEDEAR en BYMA -- queda marcado con metodo='atr_nyse_aplicado_a_cedear_*' para que sea auditable si en el futuro se quiere calcular sobre la serie historica real del CEDEAR.",
+        "Feat: data/cedear_cierres.csv -- snapshot diario del precio CEDEAR persistido a GitHub (mismo patron que el resto del proyecto: filesystem de Railway efimero). Sirve de respaldo si data912 esta caido en el momento de un run; agregado a sync_all_at_startup.",
+        "Tests: +13 (resolve_position_price con cedear real: 2, fetch_live_cedear_usd_prices -- primera suite, mockeando la respuesta HTTP sin red real: 4, stop/target CEDEAR habilitado: 1, contrato de sync: 1; ajustados 3 tests existentes a la nueva firma de cedear_prices keyed-por-ticker-en-USD en vez de keyed-por-nombre-en-ARS). Suite completa: 449/449 verde.",
+        "Pendiente: el ATR aplicado a CEDEAR usa la serie NYSE, no la serie real del CEDEAR en BYMA -- data912 no expone OHLC historico facil de descargar todavia (solo live), así que calcular un ATR propio del CEDEAR queda para una sesion futura si la aproximacion actual resulta insuficiente en la practica."
+      ]
+    },
     {
       "version": "4.7",
       "date": "2026-06-26",
