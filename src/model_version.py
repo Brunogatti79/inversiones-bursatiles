@@ -121,6 +121,20 @@ CHANGELOG = [
             "check_portfolio_alerts -- primera suite, no tenia cobertura: "
             "8; -2 por reescritura de los 2 tests viejos de _atr a la "
             "nueva firma). Suite completa: 444/444 verde.",
+            "Fix: bot.py tenia una TERCERA implementacion independiente de "
+            "'registrar compra/venta' (cmd_compra/cmd_venta via Telegram) "
+            "ademas de las dos ya consolidadas arriba -- tambien "
+            "hardcodeaba stop_loss=None. Se delega a order_engine, mismo "
+            "motivo que el resto de esta version: una compra registrada "
+            "por Telegram ahora tiene el mismo stop/target real que una "
+            "por el dashboard, y no queda un cuarto lugar con la misma "
+            "logica de promediado/persistencia.",
+            "Feat: comando /backfill_stops (Telegram). Asigna "
+            "retroactivamente stop_loss/target a posiciones abiertas antes "
+            "de este fix -- dry-run por default, '/backfill_stops aplicar' "
+            "para confirmar. Destaca por separado las posiciones donde el "
+            "stop calculado retroactivamente ya fue cruzado por el precio "
+            "actual (revisar hoy, no son un backfill mas).",
             "Pendiente para la proxima sesion (no resuelto aca, fuera de "
             "alcance): pricing CEDEAR real (necesita data/cedear_cierres.csv "
             "con fuente real de BYMA, o corregir manualmente ratio_cedear "

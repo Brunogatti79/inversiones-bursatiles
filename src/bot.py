@@ -10,6 +10,7 @@ Comandos:
   /compra  — Registrar compra: /compra TICKER PRECIO CANTIDAD
   /venta   — Registrar venta: /venta TICKER PRECIO CANTIDAD
   /portfolio — Ver posiciones actuales
+  /backfill_stops — Asignar stop/target a posiciones sin uno (one-shot, post-fix 26/06/2026)
   /help    — Ayuda
 """
  
@@ -82,6 +83,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/compra TICKER PRECIO_USD CANTIDAD — Registrar compra (precio en USD/acc)\n"
         "/venta TICKER PRECIO_USD CANTIDAD — Registrar venta (precio en USD/acc)\n"
         "/portfolio — Ver posiciones actuales\n"
+        "/backfill_stops — Asignar stop/target a posiciones sin uno (correr 1 vez post-fix)\n"
         "/bootstrap_macro — Precarga 3 años de historia FRED (1 sola vez)\n"
         "/help — Esta ayuda\n\n"
         "Ejemplos:\n"
@@ -165,7 +167,16 @@ async def cmd_señales(update: Update, context: ContextTypes.DEFAULT_TYPE):
  
  
 async def cmd_compra(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Registrar compra: /compra TICKER PRECIO_USD CANTIDAD (precio en USD/acción, igual que broker)"""
+    """Registrar compra: /compra TICKER PRECIO_USD CANTIDAD (precio en USD/acción, igual que broker)
+
+    FIX 26/06/2026: esta lógica era una TERCERA implementación independiente
+    de "registrar compra" (las otras dos: tracker.py/start_server.py, ya
+    consolidadas en src/execution/order_engine.py) -- también hardcodeaba
+    stop_loss=None, target=None. Se delega a order_engine.execute_compra()
+    para que una compra registrada por Telegram tenga el mismo stop/target
+    real que una registrada desde el dashboard, y para no mantener un
+    cuarto lugar con la misma lógica de promediado/persistencia.
+    """
     args = context.args
     if not args or len(args) < 3:
         await update.message.reply_text(
@@ -175,7 +186,7 @@ async def cmd_compra(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
         return
- 
+
     ticker = args[0].upper()
     try:
         precio = float(args[1].replace(",", "."))
@@ -183,87 +194,36 @@ async def cmd_compra(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("❌ Precio y cantidad deben ser números.", parse_mode="HTML")
         return
- 
+
     if precio <= 0 or cantidad <= 0:
         await update.message.reply_text("❌ Precio y cantidad deben ser positivos.", parse_mode="HTML")
         return
- 
-    portfolio = _load_portfolio()
- 
-    # Buscar si ya existe la posición
-    existing = None
-    for p in portfolio["positions"]:
-        if p["ticker"] == ticker:
-            existing = p
-            break
- 
-    tz = pytz.timezone(TIMEZONE)
-    fecha = datetime.now(tz).strftime("%Y-%m-%d")
- 
-    if existing:
-        # Promediar precio de compra
-        old_ini = existing.get("valor_inicial_usd") or (existing.get("precio_compra", 0) * existing["cantidad"])
-        new_ini = precio * cantidad
-        new_cantidad = existing["cantidad"] + cantidad
-        new_precio = round((old_ini + new_ini) / new_cantidad, 4)
-        existing["precio_compra"]     = new_precio
-        existing["precio_compra_usd"] = new_precio
-        existing["cantidad"]          = new_cantidad
-        existing["valor_inicial_usd"] = round(old_ini + new_ini, 2)
-        existing["valor_actual_usd"]  = existing["valor_inicial_usd"]  # se actualiza al próx. run
-        existing["rend_usd"]          = 0
-        existing["fecha_compra"] = fecha
-        existing["notas"] = f"Promediado {fecha}: +{cantidad} @ USD {precio}"
-        msg = (
-            f"✅ <b>Compra agregada a posición existente</b>\n\n"
-            f"📌 <code>{ticker}</code>\n"
-            f"Cantidad nueva: {new_cantidad}\n"
-            f"Precio promedio: USD {new_precio:,.4f}/acc\n"
-            f"Invertido total: USD {existing['valor_inicial_usd']:,.2f}\n"
-            f"Fecha: {fecha}"
-        )
+
+    from src.execution import order_engine
+    result = order_engine.execute_compra(
+        ticker=ticker, precio_raw=precio, total_usd_raw=0, cantidad=cantidad,
+    )
+
+    if result.get("status") != "ok":
+        await update.message.reply_text(f"❌ {result.get('error', 'Error desconocido')}", parse_mode="HTML")
+        return
+
+    msg = f"✅ <b>{result['msg']}</b>"
+    if not result.get("pushed"):
+        msg += f"\n\n⚠️ {result.get('push_warning', 'GitHub no disponible — guardado local')}"
     else:
-        # Nueva posición
-        new_pos = {
-            "ticker": ticker,
-            "nombre": ticker,
-            "mercado": "MERVAL" if ".BA" in ticker else "BOVESPA" if ".SA" in ticker else "SP500",
-            "moneda": "USD",  # Todos los precios en USD (broker)
-            "precio_compra": precio,           # USD/acc backward compat
-            "precio_compra_usd": precio,        # USD/acc
-            "precio_actual_usd": precio,        # inicia igual a compra
-            "cantidad": cantidad,
-            "valor_inicial_usd": round(precio * cantidad, 2),
-            "valor_actual_usd": round(precio * cantidad, 2),
-            "rend_usd": 0,
-            "fecha_compra": fecha,
-            "stop_loss": None,
-            "target": None,
-            "notas": f"Compra {fecha} via Telegram",
-        }
-        portfolio["positions"].append(new_pos)
-        msg = (
-            f"✅ <b>Nueva posición registrada</b>\n\n"
-            f"📌 <code>{ticker}</code>\n"
-            f"Precio: USD {precio:,.4f}/acc\n"
-            f"Cantidad: {cantidad}\n"
-            f"Total invertido: USD {precio * cantidad:,.2f}\n"
-            f"Fecha: {fecha}"
-        )
- 
-    _save_portfolio(portfolio)
-    pushed = _push_portfolio_to_github()
-    if pushed:
         msg += "\n\n📤 Portfolio actualizado en GitHub"
-    else:
-        msg += "\n\n⚠️ Guardado local (GitHub push pendiente)"
- 
+
     await update.message.reply_text(msg, parse_mode="HTML")
-    logger.info(f"Compra registrada: {ticker} {cantidad} @ {precio}")
- 
- 
+    logger.info(f"Compra registrada (bot): {ticker} {cantidad} @ {precio}")
+
+
 async def cmd_venta(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Registrar venta: /venta TICKER PRECIO CANTIDAD"""
+    """Registrar venta: /venta TICKER PRECIO CANTIDAD
+
+    FIX 26/06/2026: delega en order_engine.execute_venta() -- ver nota en
+    cmd_compra (misma consolidación, mismo motivo).
+    """
     args = context.args
     if not args or len(args) < 3:
         await update.message.reply_text(
@@ -272,7 +232,7 @@ async def cmd_venta(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
         return
- 
+
     ticker = args[0].upper()
     try:
         precio_venta = float(args[1].replace(",", "."))
@@ -280,83 +240,30 @@ async def cmd_venta(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("❌ Precio y cantidad deben ser números.", parse_mode="HTML")
         return
- 
+
     if precio_venta <= 0 or cantidad_venta <= 0:
         await update.message.reply_text("❌ Precio y cantidad deben ser positivos.", parse_mode="HTML")
         return
- 
-    portfolio = _load_portfolio()
- 
-    # Buscar posición existente
-    existing = None
-    for p in portfolio["positions"]:
-        if p["ticker"] == ticker:
-            existing = p
-            break
- 
-    if not existing:
-        await update.message.reply_text(
-            f"❌ No tenés posición abierta en <code>{ticker}</code>",
-            parse_mode="HTML"
-        )
-        return
- 
-    if cantidad_venta > existing["cantidad"]:
-        await update.message.reply_text(
-            f"❌ Querés vender {cantidad_venta} pero solo tenés {existing['cantidad']} de <code>{ticker}</code>",
-            parse_mode="HTML"
-        )
-        return
- 
-    tz = pytz.timezone(TIMEZONE)
-    fecha = datetime.now(tz).strftime("%Y-%m-%d")
- 
-    # Calcular P&L en USD
-    precio_compra_orig = existing.get("precio_compra_usd") or existing.get("precio_compra", 0)
-    pnl_por_unidad = precio_venta - precio_compra_orig
-    pnl_total = round(pnl_por_unidad * cantidad_venta, 2)
-    pnl_pct = round((precio_venta / precio_compra_orig - 1) * 100, 2) if precio_compra_orig > 0 else 0
 
-    if cantidad_venta == existing["cantidad"]:
-        # Venta total — eliminar posición
-        portfolio["positions"] = [p for p in portfolio["positions"] if p["ticker"] != ticker]
-        tipo = "VENTA TOTAL"
-    else:
-        # Venta parcial — reducir cantidad y actualizar USD fields
-        restantes = existing["cantidad"] - cantidad_venta
-        existing["cantidad"] = restantes
-        existing["valor_inicial_usd"] = round(precio_compra_orig * restantes, 2)
-        existing["valor_actual_usd"]  = round(precio_venta * restantes, 2)
-        existing["rend_usd"] = round((precio_venta - precio_compra_orig) * restantes, 2)
-        existing["notas"] = f"Venta parcial {fecha}: -{cantidad_venta} @ USD {precio_venta}"
-        tipo = "VENTA PARCIAL"
- 
-    icon = "💰" if pnl_total >= 0 else "📉"
-    color_pnl = "+" if pnl_total >= 0 else ""
- 
-    msg = (
-        f"{icon} <b>{tipo}</b>\n\n"
-        f"📌 <code>{ticker}</code>\n"
-        f"Vendido: {cantidad_venta} @ USD {precio_venta:,.4f}/acc\n"
-        f"Compra fue: USD {precio_compra_orig:,.4f}/acc\n"
-        f"P&L: {color_pnl}USD {pnl_total:,.2f} ({color_pnl}{pnl_pct}%)\n"
-        f"Fecha: {fecha}"
+    from src.execution import order_engine
+    result = order_engine.execute_venta(
+        ticker=ticker, precio_raw=precio_venta, cantidad=cantidad_venta,
     )
- 
-    if tipo == "VENTA PARCIAL":
-        msg += f"\n\nPosición restante: {existing['cantidad']} unidades"
- 
-    _save_portfolio(portfolio)
-    pushed = _push_portfolio_to_github()
-    if pushed:
-        msg += "\n\n📤 Portfolio actualizado en GitHub"
+
+    if result.get("status") != "ok":
+        await update.message.reply_text(f"❌ {result.get('error', 'Error desconocido')}", parse_mode="HTML")
+        return
+
+    msg = f"💰 <b>{result['msg']}</b>"
+    if not result.get("pushed"):
+        msg += f"\n\n⚠️ {result.get('push_warning', 'GitHub no disponible — guardado local')}"
     else:
-        msg += "\n\n⚠️ Guardado local (GitHub push pendiente)"
- 
+        msg += "\n\n📤 Portfolio actualizado en GitHub"
+
     await update.message.reply_text(msg, parse_mode="HTML")
-    logger.info(f"Venta registrada: {ticker} {cantidad_venta} @ {precio_venta} P&L={pnl_total}")
- 
- 
+    logger.info(f"Venta registrada (bot): {ticker} {cantidad_venta} @ {precio_venta}")
+
+
 async def cmd_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Muestra el portfolio actual."""
     portfolio = _load_portfolio()
@@ -458,6 +365,84 @@ async def cmd_bootstrap_macro(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
 
 
+async def cmd_backfill_stops(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /backfill_stops          -> vista previa (dry-run), no modifica nada
+    /backfill_stops aplicar  -> asigna stop_loss/target de verdad y pushea
+
+    Asigna stop_loss/target a posiciones que se abrieron ANTES del fix de
+    causa raíz del 26/06/2026 (ATR estaba en 0.0 siempre -> /api/compra no
+    tenía de dónde leer un stop real, así que quedaba en None). Pensado
+    para correrse UNA vez, después del primer pipeline en producción con
+    el fix ya desplegado -- antes de eso, signals_history.json todavía
+    tiene el ATR viejo en 0 y esto no va a encontrar nada para asignar.
+
+    Usa risk_engine.backfill_missing_stops(): solo toca posiciones con
+    stop_loss/target en None — no pisa nada que ya esté seteado.
+    """
+    args = context.args
+    aplicar = bool(args) and args[0].strip().lower() in ("aplicar", "confirmar", "si", "sí")
+
+    portfolio = _load_portfolio()
+    if not portfolio.get("positions"):
+        await update.message.reply_text("📭 No tenés posiciones abiertas.", parse_mode="HTML")
+        return
+
+    from src.execution.risk_engine import backfill_missing_stops
+    propuestas = backfill_missing_stops(portfolio, dry_run=not aplicar)
+
+    if not propuestas:
+        await update.message.reply_text(
+            "✅ Todas las posiciones abiertas ya tienen stop_loss/target asignado — nada para backfillear.",
+            parse_mode="HTML"
+        )
+        return
+
+    con_dato = [p for p in propuestas if p.get("stop_loss_propuesto") is not None]
+    sin_dato = [p for p in propuestas if p.get("stop_loss_propuesto") is None]
+    ya_en_riesgo = [p for p in con_dato if p.get("ya_por_debajo_del_stop")]
+
+    titulo = "🛡️ Backfill de stops — APLICADO" if aplicar else "🛡️ Backfill de stops — vista previa (nada aplicado todavía)"
+    lines = [f"<b>{titulo}</b>\n"]
+
+    if ya_en_riesgo:
+        lines.append("🔴 <b>YA están por debajo del stop calculado — revisar HOY:</b>")
+        for p in ya_en_riesgo:
+            lines.append(
+                f"  <code>{p['ticker']:<10}</code> precio USD {p['precio_actual_usd']:.4f} "
+                f"≤ stop USD {p['stop_loss_propuesto']:.4f}"
+            )
+        lines.append("")
+
+    otros = [p for p in con_dato if not p.get("ya_por_debajo_del_stop")]
+    if otros:
+        lines.append("Stop/target propuesto:" if not aplicar else "Stop/target asignado:")
+        for p in otros:
+            lines.append(
+                f"  <code>{p['ticker']:<10}</code> stop USD {p['stop_loss_propuesto']:.4f} | "
+                f"target USD {p['target_propuesto']:.4f}"
+            )
+        lines.append("")
+
+    if sin_dato:
+        lines.append("<i>Sin datos suficientes todavía (probar de nuevo después del próximo pipeline):</i>")
+        for p in sin_dato:
+            lines.append(f"  <code>{p['ticker']:<10}</code> — {p['metodo']}")
+        lines.append("")
+
+    if aplicar:
+        _save_portfolio(portfolio)
+        pushed = _push_portfolio_to_github()
+        lines.append("📤 Guardado y sincronizado con GitHub." if pushed else
+                      "⚠️ Guardado local — push a GitHub pendiente.")
+    else:
+        lines.append("👉 Para aplicar de verdad: <code>/backfill_stops aplicar</code>")
+
+    await update.message.reply_text("\n".join(lines), parse_mode="HTML")
+    logger.info(f"Backfill de stops ({'aplicado' if aplicar else 'dry-run'}): "
+                f"{len(con_dato)} con dato, {len(sin_dato)} sin dato, {len(ya_en_riesgo)} ya en riesgo")
+
+
 # ─────────────────────────────────────────────
 # Inicialización
 # ─────────────────────────────────────────────
@@ -479,6 +464,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("venta",     cmd_venta))
     app.add_handler(CommandHandler("portfolio", cmd_portfolio))
     app.add_handler(CommandHandler("bootstrap_macro", cmd_bootstrap_macro))
+    app.add_handler(CommandHandler("backfill_stops", cmd_backfill_stops))
  
     return app
  
