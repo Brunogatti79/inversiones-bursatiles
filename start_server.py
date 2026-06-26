@@ -456,6 +456,9 @@ def _sync_all_data_from_github():
                                              # commiteaba pero no se restauraba al arrancar;
                                              # impacto cosmético (solo un string de log), se
                                              # cierra de paso por ser de una línea.
+            "cedear_cierres.csv",           # FIX 26/06/2026 (sesión 2): snapshot de respaldo
+                                             # de precios CEDEAR (data912.com) -- por si la API
+                                             # está caída justo al arrancar Railway.
         ])
         print("[start_server] data/ sincronizado desde GitHub", flush=True)
     except Exception as e:

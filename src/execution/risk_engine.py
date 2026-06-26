@@ -22,15 +22,16 @@ División de responsabilidades (para no duplicar):
     leer el atr_stop/atr_target que el analyzer ya había calculado para
     esa señal en ese mismo momento.
 
-Nota sobre CEDEAR (GLOB, MELI, MSFT, etc.): mientras el pricing USD de
-estas posiciones no tenga una fuente confiable (ver advertencia en
-pricing_engine.py — los ratio_cedear guardados no coinciden con los
-ratios reales de BYMA), este módulo tampoco les asigna stop_loss/target en
-USD: hacerlo crearía un descalce de monedas (compararía un precio_actual_usd
-congelado/no confiable contra un stop calculado con datos frescos). La
-protección real que SÍ tienen estas posiciones hoy es la de
-check_portfolio_alerts, que compara en la moneda nativa de la señal
-(USD-NYSE) y es independiente de este problema.
+Nota sobre CEDEAR (GLOB, MELI, MSFT, etc.) — actualizada 26/06/2026 sesión 2:
+el pricing USD de estas posiciones ahora tiene fuente real (data912.com,
+ver pricing_engine.py), así que SÍ se les asigna stop_loss/target. El
+nivel se calcula con el ATR de la señal NYSE (sp500_cierres.csv) aplicado
+directo en USD — es una aproximación razonable (mismo activo subyacente,
+volatilidad en dólares correlacionada) pero no es el ATR calculado sobre
+la serie real del CEDEAR en BYMA, que no se descarga históricamente todavía.
+Queda marcado con metodo="atr_nyse_aplicado_a_cedear_*" para que sea
+auditable. check_portfolio_alerts sigue dando una segunda capa de
+protección independiente, en moneda nativa de la señal (USD-NYSE).
 """
 
 import json
@@ -124,12 +125,21 @@ def compute_initial_stop_target(
         target_usd = round(atr_target_native / brl_usd, 6)
 
     elif precio_fuente == "SP500_CSV":
-        # Ver advertencia en docstring del módulo y en pricing_engine.py:
-        # el pricing USD de estas posiciones (CEDEAR) no tiene fuente
-        # confiable todavía — no se asigna stop en USD para evitar un
-        # descalce de monedas. La protección real hoy viene de
-        # check_portfolio_alerts (moneda nativa, independiente de esto).
-        return None, None, "cedear_pricing_no_confiable"
+        # FIX 26/06/2026 (sesión 2): el pricing CEDEAR ahora tiene fuente
+        # real (data912.com, ver pricing_engine.py) -- se habilita el stop.
+        # Matiz importante: atr_stop_native viene calculado sobre la serie
+        # de precios NYSE (sp500_cierres.csv), no sobre la serie del CEDEAR
+        # en BYMA -- son dos instrumentos distintos del mismo activo
+        # subyacente. Se usa el ATR en USD-NYSE directo como nivel de stop
+        # en USD, asumiendo que el rango de movimiento diario en dólares es
+        # razonablemente similar entre ambas plazas (ambas reflejan la
+        # misma empresa) -- el spread CCL/MEP que separa NYSE de CEDEAR es
+        # un factor macro de movimiento más lento, no agrega ruido de corto
+        # plazo comparable al ATR. Es una aproximación razonable, no un
+        # cálculo exacto sobre la volatilidad real del CEDEAR en BYMA.
+        stop_usd   = round(atr_stop_native, 6)
+        target_usd = round(atr_target_native, 6)
+        return stop_usd, target_usd, f"atr_nyse_aplicado_a_cedear_{atr_metodo}"
 
     else:
         return None, None, "fuente_desconocida"

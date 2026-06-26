@@ -69,30 +69,86 @@ class TestResolvePositionPriceBovespa:
 
 class TestResolvePositionPriceCedear:
     def test_cedear_sin_fuente_confiable_no_inventa_numero(self):
-        """FIX 26/06/2026: se probó la aproximación nyse_usd × ratio_cedear
-        y dio rendimientos absurdos (MELI +3493%, IBB +14948%, etc.) sobre
-        datos reales -- se removió. Confirmar que el camino CEDEAR queda
-        explícitamente sin resolver, no que inventa un número con
-        apariencia de precisión."""
+        """Sin precio en cedear_prices (data912 caído y sin snapshot previo)
+        -> queda explícitamente sin resolver, no inventa un número."""
         precio_usd, precio_ars, metodo = pricing_engine.resolve_position_price(
             ticker="MELI", mercado="SP500", precio_fuente="SP500_CSV",
             ratio_cedear=0.3177, local_prices={"MELI": 1619.25},
-            ccl=1487.0, brl_usd=5.70,
+            ccl=1487.0, brl_usd=5.70, cedear_prices={},
         )
         assert precio_usd == 0.0
         assert metodo == "cedear_sin_fuente_confiable"
 
-    def test_cedear_usa_fuente_real_si_existe(self):
-        """Si algún día existe cedear_cierres.csv, debe usarse (camino
-        forward-compatible, no implementado todavía en producción)."""
+    def test_cedear_usa_precio_real_de_data912(self):
+        """FIX 26/06/2026 (sesión 2): cedear_prices ahora viene de
+        fetch_live_cedear_usd_prices() (data912.com), keyed por ticker y
+        YA en USD -- no necesita ratio_cedear ni CCL para resolver."""
         precio_usd, precio_ars, metodo = pricing_engine.resolve_position_price(
             ticker="GLOB", mercado="SP500", precio_fuente="SP500_CSV",
             ratio_cedear=1.9577, local_prices={"GLOB": 27.73},
             ccl=1487.0, brl_usd=5.70,
-            cedear_prices={"Globant": 4970.0},
+            cedear_prices={"GLOB": 1.61},  # GLOBD real, data912 26/06/2026
         )
-        assert metodo == "cedear_real_ccl"
-        assert precio_usd == pytest.approx(4970.0 / 1487.0, rel=1e-4)
+        assert metodo == "cedear_real_data912"
+        assert precio_usd == 1.61
+        assert precio_ars == pytest.approx(1.61 * 1487.0, rel=1e-4)
+
+
+class TestFetchLiveCedearUsdPrices:
+    def test_data912_caido_devuelve_vacio_no_rompe(self, monkeypatch):
+        """Si data912 no responde (timeout, 500, etc.), debe devolver {}
+        sin levantar excepción -- el llamador cae al snapshot persistido."""
+        import requests
+
+        def _boom(*a, **k):
+            raise requests.exceptions.Timeout("simulado")
+
+        monkeypatch.setattr("requests.get", _boom)
+        result = pricing_engine.fetch_live_cedear_usd_prices()
+        assert result == {}
+
+    def test_prioriza_linea_d_dolar_mep_sobre_ars(self, monkeypatch):
+        """La línea {ticker}D (dólar MEP, instrumento real separado) tiene
+        prioridad sobre la línea ARS / CCL -- no debería ni mirar el CCL
+        si la línea D existe y es válida."""
+        class FakeResp:
+            def raise_for_status(self): pass
+            def json(self):
+                return [
+                    {"symbol": "GLOB", "c": 2376.0},
+                    {"symbol": "GLOBD", "c": 1.61},
+                ]
+        monkeypatch.setattr("requests.get", lambda *a, **k: FakeResp())
+        monkeypatch.setattr(pricing_engine, "get_ccl", lambda signals=None: 999999.0)  # CCL absurdo a propósito
+
+        from src import downloader
+        monkeypatch.setattr(downloader, "SP500_TICKERS", {"GLOB": "Globant"})
+
+        prices = pricing_engine.fetch_live_cedear_usd_prices()
+        assert prices.get("GLOB") == 1.61  # vino de GLOBD, no de 2376/999999
+
+    def test_fallback_a_linea_ars_dividido_ccl_si_no_hay_d(self, monkeypatch):
+        class FakeResp:
+            def raise_for_status(self): pass
+            def json(self):
+                return [{"symbol": "XYZ", "c": 1500.0}]  # sin XYZD
+        monkeypatch.setattr("requests.get", lambda *a, **k: FakeResp())
+        monkeypatch.setattr(pricing_engine, "get_ccl", lambda signals=None: 1500.0)
+
+        from src import downloader
+        monkeypatch.setattr(downloader, "SP500_TICKERS", {"XYZ": "Ticker Ficticio"})
+
+        prices = pricing_engine.fetch_live_cedear_usd_prices()
+        assert prices.get("XYZ") == pytest.approx(1.0)  # 1500/1500
+
+    def test_respuesta_no_es_lista_no_rompe(self, monkeypatch):
+        class FakeResp:
+            def raise_for_status(self): pass
+            def json(self):
+                return {"error": "formato inesperado"}
+        monkeypatch.setattr("requests.get", lambda *a, **k: FakeResp())
+        result = pricing_engine.fetch_live_cedear_usd_prices()
+        assert result == {}
 
 
 class TestRefreshPortfolioPrices:
@@ -174,16 +230,18 @@ class TestComputeInitialStopTarget:
         assert stop is None
         assert metodo == "atr_no_disponible"
 
-    def test_cedear_no_asigna_stop_en_usd(self):
-        """Ver docstring de risk_engine.py: el pricing CEDEAR no tiene
-        fuente confiable todavía -- asignar un stop en USD acá crearía un
-        descalce de monedas. Debe devolver None explícitamente."""
+    def test_cedear_ahora_si_asigna_stop_en_usd(self):
+        """FIX 26/06/2026 (sesión 2): el pricing CEDEAR ahora tiene fuente
+        real (data912), así que se habilita el stop/target -- calculado
+        sobre el ATR de la señal NYSE, aplicado directo en USD (ver
+        docstring del módulo para el detalle de la aproximación)."""
         signal = {"atr_stop": 25.0, "atr_target": 30.0, "atr_metodo": "close_proxy"}
         stop, target, metodo = risk_engine.compute_initial_stop_target(
             "GLOB", "SP500", "SP500_CSV", signal=signal,
         )
-        assert stop is None
-        assert metodo == "cedear_pricing_no_confiable"
+        assert stop == 25.0
+        assert target == 30.0
+        assert metodo == "atr_nyse_aplicado_a_cedear_close_proxy"
 
 
 class TestBackfillMissingStops:

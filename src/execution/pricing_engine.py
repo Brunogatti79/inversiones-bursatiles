@@ -31,45 +31,36 @@ un ticker nuevo al universo.
 Los tres caminos:
   MERVAL_CSV  (.BA real, ej. GGAL.BA):  precio_ars (signal) / CCL
   BOVESPA_CSV (.SA, ej. PETR4.SA):      precio_brl (signal) / BRL_USD
-  SP500_CSV   (CEDEAR, ej. GLOB, AAPL): precio_usd_nyse (signal) × ratio_cedear
-                                        — APROXIMACIÓN, ver advertencia abajo.
+  SP500_CSV   (CEDEAR, ej. GLOB, AAPL): precio real de BYMA vía data912.com.
 
-⚠️ ACTUALIZACIÓN SOBRE EL CAMINO CEDEAR — la aproximación se intentó y se
-DESCARTÓ en esta misma sesión (26/06/2026), con evidencia:
+✅ ACTUALIZACIÓN 26/06/2026 (sesión 2) — CEDEAR resuelto con fuente real:
 
-1. Se implementó la fórmula `nyse_usd × ratio_cedear` (la única documentada
-   en el código, en el viejo docstring de start_server.py línea 223) y se
-   probó contra los datos reales del portfolio. Resultado: rendimientos
-   absurdos (MELI +3493%, IBB +14948%, RIO +5143%, etc.) — la fórmula está
-   mal, o el dato de entrada está mal, o ambos.
-2. Se buscaron los ratios de conversión reales de BYMA/COMAFI (rankia.com.ar,
-   junio 2026) para validar: AAPL 20:1, AMZN 144:1, KO 5:1, MSFT 30:1,
-   TSLA 15:1, MELI 120:1 (formato "X CEDEARs = 1 acción real", o sea
-   precio_cedear_usd ≈ precio_nyse_usd / X).
-3. Comparando contra el campo `ratio_cedear` que YA está guardado en
-   portfolio.json para las posiciones reales: MSFT tiene guardado 1,1943
-   (el real es 30), MELI tiene guardado 0,3177 (el real es 120). No se
-   parecen en absoluto — el dato `ratio_cedear` que entra hoy por el
-   formulario del dashboard no corresponde a un ratio real de BYMA.
+Antes (misma sesión, más temprano): se intentó la aproximación
+`nyse_usd × ratio_cedear` y se descartó — dio rendimientos absurdos (MELI
++3493%, IBB +14948%, etc.) porque ni la fórmula ni el ratio_cedear guardado
+eran confiables (verificado contra la tabla real de BYMA/COMAFI).
 
-Conclusión: ni la fórmula ni el dato de entrada actual son confiables.
-Implementar una aproximación con estos números habría sido peor que no
-tener nada (números con apariencia de precisión pero completamente
-incorrectos). Por eso el camino SP500_CSV/CEDEAR queda explícitamente
-SIN resolver (precio_usd=0, metodo="cedear_sin_fuente_confiable") hasta
-que pase una de estas dos cosas:
-  (a) se construya data/cedear_cierres.csv con precio real de BYMA (scraping
-      de un sitio como byma.com.ar / Comafi / data912.com), o
-  (b) se corrija manualmente el campo ratio_cedear de cada posición CEDEAR
-      contra la tabla real de BYMA (ratio "X:1" → guardar X, y la fórmula
-      sí pasaría a ser nyse_usd / X) y se reactive el bloque de aproximación
-      que queda comentado más abajo.
+Ahora: `fetch_live_cedear_usd_prices()` consulta data912.com
+(https://data912.com/live/arg_cedears), una API pública sin autenticación
+que ya usan herramientas argentinas reales (rendimientos.co/cedears, entre
+otras). Para cada ticker, prioriza la línea "{ticker}D" — la variante
+dólar-MEP del mismo CEDEAR, que es un instrumento que cotiza DIRECTO en
+dólares en BYMA. Esto elimina por completo la necesidad de ratio_cedear o
+de CCL para estos tickers: es un precio de mercado real, ya en USD, no una
+aproximación teórica. Confirmado funcionando en vivo (26/06/2026): GLOB
+(c=2376 ARS, GLOBD c=1.61 USD), IBB, EWZ, COPX con sus variantes D.
 
-Esto NO empeora nada respecto al estado anterior: estas 8 posiciones
-(MELI, MSFT, COPX, IBB, GLOB, PBR, RIO, EWZ) ya estaban efectivamente
-congeladas antes de esta sesión (cedear_cierres.csv nunca existió). Lo que
-cambia es que ahora el sistema lo dice explícitamente en vez de mostrar
-un rendimiento como si fuera dato real.
+Si un ticker no tiene línea "D" (CEDEAR poco operado), cae a "{ticker}"
+(ARS) / CCL como red de respaldo — ahí sí queda sujeto al spread CCL
+implícito de ese CEDEAR específico, pero sigue siendo un precio real de
+mercado, no una fórmula inventada.
+
+data912 es código abierto/educativo, sin SLA garantizado (cache de ~2hs en
+Cloudflare, rate limit ~120 req/min) — mismo nivel de garantía que el
+scraping de Ámbito que ya usa macro_auto.py para riesgo país. Si en algún
+momento deja de responder, el sistema cae al último snapshot persistido en
+data/cedear_cierres.csv (mismo patrón que el resto de los datos del
+proyecto: vive en GitHub porque el filesystem de Railway es efímero).
 """
 
 import os
@@ -219,10 +210,10 @@ def resolve_position_price(
     su precio_fuente (MERVAL_CSV / BOVESPA_CSV / SP500_CSV).
 
     local_prices:  {ticker: precio_en_moneda_local} — de get_latest_prices_by_ticker()
-    cedear_prices: {nombre_empresa: precio_ars} — de data/cedear_cierres.csv si
-                   alguna vez existe (hoy no existe — queda el camino listo
-                   para cuando se construya esa fuente real, sin tocar este
-                   módulo otra vez).
+    cedear_prices: {ticker: precio_usd} — de fetch_live_cedear_usd_prices()
+                   (data912.com, en vivo) o del último snapshot persistido en
+                   data/cedear_cierres.csv. Ya viene en USD real de mercado —
+                   no requiere ratio_cedear ni CCL (ver docstring del módulo).
     """
     precio_usd, precio_ars, metodo = 0.0, 0.0, "sin_precio"
 
@@ -241,42 +232,121 @@ def resolve_position_price(
             metodo = "bovespa_signal_brlusd"
 
     elif precio_fuente == "SP500_CSV":
-        # 1) Si alguna vez existe cedear_cierres.csv, usarlo (precio real BYMA).
-        if cedear_prices:
-            from src.downloader import SP500_TICKERS
-            nombre = SP500_TICKERS.get(ticker)
-            p_ars_cedear = cedear_prices.get(nombre, 0) if nombre else 0
-            if p_ars_cedear > 0 and ccl > 0:
-                precio_ars = round(p_ars_cedear, 2)
-                precio_usd = round(p_ars_cedear / ccl, 6)
-                metodo = "cedear_real_ccl"
-        # 2) Sin cedear_cierres.csv (caso real hoy) y sin un ratio_cedear
-        #    confiable (ver advertencia del módulo: los valores guardados no
-        #    coinciden con los ratios reales de BYMA) → queda explícitamente
-        #    sin resolver. NO se aproxima con nyse_usd × ratio_cedear: se
-        #    probó en esta misma sesión y dio rendimientos absurdos
-        #    (MELI +3493%, IBB +14948%, etc.) — ver docstring del módulo.
-        if precio_usd <= 0:
+        p_usd_cedear = (cedear_prices or {}).get(ticker, 0)
+        if p_usd_cedear > 0:
+            precio_usd = round(p_usd_cedear, 6)
+            precio_ars = round(precio_usd * ccl, 2) if ccl > 0 else 0.0
+            metodo = "cedear_real_data912"
+        else:
+            # data912 caído y sin snapshot previo persistido — mejor no
+            # resolver que inventar un número (ver docstring del módulo:
+            # la aproximación nyse_usd × ratio_cedear ya se descartó por
+            # dar resultados absurdos).
             metodo = "cedear_sin_fuente_confiable"
 
     return precio_usd, precio_ars, metodo
 
 
+CEDEAR_LIVE_URL = "https://data912.com/live/arg_cedears"
+
+
+def fetch_live_cedear_usd_prices(timeout: float = 10.0) -> dict:
+    """
+    Trae precios reales de CEDEARs desde data912.com (API pública, sin
+    autenticación, sin costo — usada también por herramientas reales como
+    rendimientos.co/cedears). Confirmado funcionando en vivo el 26/06/2026.
+
+    Prioriza la línea "{ticker}D" (variante dólar-MEP del mismo CEDEAR):
+    es un instrumento que cotiza DIRECTO en dólares en BYMA, así que da el
+    precio USD real de mercado sin necesitar ratio_cedear ni CCL — elimina
+    de raíz la ambigüedad de ratio que hizo descartar la aproximación
+    nyse_usd × ratio_cedear más temprano en esta sesión. Si no existe línea
+    D para un ticker (CEDEAR poco operado), cae a "{ticker}" (ARS) / CCL.
+
+    Devuelve {ticker: precio_usd}. Vacío si data912 no responde — el
+    llamador cae al último snapshot persistido en cedear_cierres.csv.
+    """
+    import requests
+    from src.downloader import SP500_TICKERS
+
+    try:
+        resp = requests.get(CEDEAR_LIVE_URL, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        logger.warning(f"[pricing_engine] data912 arg_cedears no disponible: {e}")
+        return {}
+
+    if not isinstance(data, list):
+        logger.warning("[pricing_engine] data912 arg_cedears: formato inesperado")
+        return {}
+
+    by_symbol = {item.get("symbol"): item for item in data if isinstance(item, dict)}
+    ccl_local = get_ccl()
+
+    prices = {}
+    for ticker in SP500_TICKERS:
+        d_line = by_symbol.get(f"{ticker}D")
+        try:
+            if d_line and float(d_line.get("c") or 0) > 0:
+                prices[ticker] = round(float(d_line["c"]), 6)
+                continue
+        except (TypeError, ValueError):
+            pass
+        ars_line = by_symbol.get(ticker)
+        try:
+            if ars_line and float(ars_line.get("c") or 0) > 0 and ccl_local > 0:
+                prices[ticker] = round(float(ars_line["c"]) / ccl_local, 6)
+        except (TypeError, ValueError):
+            pass
+
+    return prices
+
+
+def _persist_cedear_snapshot(prices: dict):
+    """Guarda el snapshot de hoy en data/cedear_cierres.csv y lo pushea a
+    GitHub — mismo motivo que el resto de los datos del proyecto: el
+    filesystem de Railway es efímero y se resetea en cada redeploy."""
+    if not prices:
+        return
+    try:
+        df = pd.DataFrame([prices])
+        df.insert(0, "Fecha", datetime.now().strftime("%Y-%m-%d"))
+        df.to_csv(CEDEAR_CSV_PATH, sep=";", decimal=",", index=False, encoding="utf-8-sig")
+        from src.github_persistence import push_file
+        push_file(CEDEAR_CSV_PATH, f"auto: cedear_cierres {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    except Exception as e:
+        logger.warning(f"[pricing_engine] Error persistiendo cedear_cierres.csv: {e}")
+
+
 def _load_cedear_prices() -> dict:
-    """Lee data/cedear_cierres.csv si existe (hoy no existe en producción)."""
+    """
+    Precios CEDEAR en USD. Intenta en vivo contra data912.com primero
+    (fuente real de BYMA); si falla (red caída, rate limit, etc.) cae al
+    último snapshot persistido en data/cedear_cierres.csv.
+    """
+    live = fetch_live_cedear_usd_prices()
+    if live:
+        _persist_cedear_snapshot(live)
+        return live
+
     if not os.path.exists(CEDEAR_CSV_PATH):
         return {}
     try:
-        df = pd.read_csv(CEDEAR_CSV_PATH, sep=";", decimal=",", encoding="utf-8-sig", thousands=" ")
+        df = pd.read_csv(CEDEAR_CSV_PATH, sep=";", decimal=",", encoding="utf-8-sig")
+        if df.empty:
+            return {}
+        last = df.iloc[-1]
         out = {}
         for col in df.columns:
             if col == "Fecha":
                 continue
-            vals = pd.to_numeric(
-                df[col].astype(str).str.replace(" ", "").str.replace(",", "."), errors="coerce"
-            ).dropna()
-            if not vals.empty and vals.iloc[-1] > 0:
-                out[col] = round(float(vals.iloc[-1]), 2)
+            try:
+                val = float(last[col])
+                if val > 0:
+                    out[col] = val
+            except (TypeError, ValueError):
+                pass
         return out
     except Exception as e:
         logger.warning(f"[pricing_engine] Error leyendo cedear_cierres.csv: {e}")

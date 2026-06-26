@@ -142,3 +142,12 @@ class TestStartupSyncContract:
         pérdida real de signals_history.json en su momento."""
         filenames = set(_extract_sync_filenames() or [])
         assert "download_status.json" in filenames
+
+    def test_cedear_cierres_csv_in_startup_sync(self):
+        """FIX 26/06/2026 (sesión 2): cedear_cierres.csv es el respaldo
+        local del precio CEDEAR (data912.com, ver pricing_engine.py) -- si
+        Railway redeploya justo cuando la API está caída, este snapshot
+        sincronizado es lo único que evita que las 8 posiciones CEDEAR
+        queden congeladas hasta el próximo run exitoso."""
+        filenames = set(_extract_sync_filenames() or [])
+        assert "cedear_cierres.csv" in filenames
