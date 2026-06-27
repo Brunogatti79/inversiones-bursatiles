@@ -1,0 +1,183 @@
+{
+  "generated": "2026-06-27T17:31:01.383575",
+  "total_trades": 67,
+  "days_history": 6,
+  "by_signal": {
+    "🟢 COMPRA": {
+      "count": 11,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "🟡 NEUTRAL/ESPERAR": {
+      "count": 52,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "🟠 VENTA PARCIAL": {
+      "count": 4,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    }
+  },
+  "by_market": {
+    "SP500": {
+      "count": 30,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "BOVESPA": {
+      "count": 17,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "MERVAL": {
+      "count": 20,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    }
+  },
+  "by_sector": {
+    "TECNOLOGÍA": {
+      "count": 8,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "SALUD": {
+      "count": 5,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "CONSUMO": {
+      "count": 10,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "INDUSTRIAL": {
+      "count": 5,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "FINANCIERO": {
+      "count": 15,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "UTILITIES": {
+      "count": 4,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "ENERGÍA": {
+      "count": 7,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "TELECOM": {
+      "count": 1,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "MATERIALES": {
+      "count": 9,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "INMOBILIARIO": {
+      "count": 3,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    }
+  },
+  "predictor": {
+    "samples": 0,
+    "note": "Sin datos de predictor aún"
+  },
+  "stop_target": {
+    "samples": 0
+  },
+  "top_performers": [],
+  "worst_performers": [],
+  "signal_summary": [
+    {
+      "signal": "🟢 COMPRA",
+      "n": 11,
+      "win_rate_21d": null,
+      "avg_ret_21d": null,
+      "expected_value": null,
+      "sharpe_21d": null,
+      "max_drawdown": null,
+      "pct_target_hit": null,
+      "pct_stop_hit": null
+    },
+    {
+      "signal": "🟡 NEUTRAL/ESPERAR",
+      "n": 52,
+      "win_rate_21d": null,
+      "avg_ret_21d": null,
+      "expected_value": null,
+      "sharpe_21d": null,
+      "max_drawdown": null,
+      "pct_target_hit": null,
+      "pct_stop_hit": null
+    },
+    {
+      "signal": "🟠 VENTA PARCIAL",
+      "n": 4,
+      "win_rate_21d": null,
+      "avg_ret_21d": null,
+      "expected_value": null,
+      "sharpe_21d": null,
+      "max_drawdown": null,
+      "pct_target_hit": null,
+      "pct_stop_hit": null
+    }
+  ],
+  "by_consenso": {
+    "UNKNOWN": {
+      "count": 67,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    }
+  },
+  "consenso_vs_no": {
+    "UNKNOWN": {
+      "count": 67,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    }
+  },
+  "by_confidence_label": {
+    "UNKNOWN": {
+      "count": 67,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    }
+  },
+  "confidence_quantiles": {
+    "samples": 0,
+    "note": "Necesita ≥10 trades con confidence_score para un split confiable"
+  },
+  "ranking_top_vs_rest": {
+    "samples": 0,
+    "note": "Necesita ≥10 trades con ranking para un split confiable"
+  }
+}
