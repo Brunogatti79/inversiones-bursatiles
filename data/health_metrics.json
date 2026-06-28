@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-06-27T17:31:15.696334",
-  "last_run_utc": "2026-06-27T20:31:15.696367",
-  "last_success": "2026-06-27T17:31:15.696334",
+  "last_run": "2026-06-28T17:31:14.957473",
+  "last_run_utc": "2026-06-28T20:31:14.957508",
+  "last_success": "2026-06-28T17:31:14.957473",
   "consecutive_failures": 0,
   "duration_history": [
-    36.5,
     34.4,
     73.7,
     34.8,
@@ -13,11 +12,12 @@
     30.4,
     75.4,
     38.3,
-    75.7
+    75.7,
+    75.0
   ],
-  "duration_avg_sec": 51.1,
+  "duration_avg_sec": 53.4,
   "duration_p95_sec": 78.4,
-  "duration_last_sec": 75.7,
+  "duration_last_sec": 75.0,
   "signals_count": 67,
   "buy_signals": 18,
   "sell_signals": 10,
@@ -166,10 +166,15 @@
       "ts": "2026-06-27",
       "success": true,
       "duration": 75.7
+    },
+    {
+      "ts": "2026-06-28",
+      "success": true,
+      "duration": 75.0
     }
   ],
   "pipeline_runs_today": 1,
-  "pipeline_runs_week": 28,
+  "pipeline_runs_week": 29,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
@@ -179,7 +184,7 @@
   "global_confidence_score": 40.7,
   "global_confidence_label": "🟠 Baja",
   "kill_switch_active": false,
-  "optimized_weights_days": 6,
+  "optimized_weights_days": 7,
   "exposure_factor_shadow": 0.414,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
@@ -188,8 +193,8 @@
     "SP500"
   ],
   "backtest_ev_21d": null,
-  "backtest_total_trades": 67,
+  "backtest_total_trades": 134,
   "predictor_dir_acc": null,
   "predictor_mae": null,
-  "backtest_generated": "2026-06-27"
+  "backtest_generated": "2026-06-28"
 }
