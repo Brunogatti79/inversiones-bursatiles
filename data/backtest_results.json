@@ -1,28 +1,28 @@
 {
-  "generated": "2026-06-28T17:30:59.815339",
-  "total_trades": 134,
-  "days_history": 7,
+  "generated": "2026-06-29T10:14:45.017825",
+  "total_trades": 201,
+  "days_history": 8,
   "by_signal": {
     "🟢 COMPRA": {
-      "count": 23,
+      "count": 34,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "🟡 NEUTRAL/ESPERAR": {
-      "count": 94,
+      "count": 139,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "🟠 VENTA PARCIAL": {
-      "count": 16,
+      "count": 26,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "⭐ COMPRA FUERTE": {
-      "count": 1,
+      "count": 2,
       "h5d": null,
       "h10d": null,
       "h21d": null
@@ -30,19 +30,19 @@
   },
   "by_market": {
     "SP500": {
-      "count": 60,
+      "count": 90,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "BOVESPA": {
-      "count": 34,
+      "count": 51,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "MERVAL": {
-      "count": 40,
+      "count": 60,
       "h5d": null,
       "h10d": null,
       "h21d": null
@@ -50,61 +50,61 @@
   },
   "by_sector": {
     "TECNOLOGÍA": {
-      "count": 16,
+      "count": 24,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "SALUD": {
-      "count": 10,
+      "count": 15,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "CONSUMO": {
-      "count": 20,
-      "h5d": null,
-      "h10d": null,
-      "h21d": null
-    },
-    "INDUSTRIAL": {
-      "count": 10,
-      "h5d": null,
-      "h10d": null,
-      "h21d": null
-    },
-    "FINANCIERO": {
       "count": 30,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
+    "INDUSTRIAL": {
+      "count": 15,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "FINANCIERO": {
+      "count": 45,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
     "UTILITIES": {
-      "count": 8,
+      "count": 12,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "ENERGÍA": {
-      "count": 14,
+      "count": 21,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "TELECOM": {
-      "count": 2,
+      "count": 3,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "MATERIALES": {
-      "count": 18,
+      "count": 27,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "INMOBILIARIO": {
-      "count": 6,
+      "count": 9,
       "h5d": null,
       "h10d": null,
       "h21d": null
@@ -122,7 +122,7 @@
   "signal_summary": [
     {
       "signal": "🟢 COMPRA",
-      "n": 23,
+      "n": 34,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
@@ -133,7 +133,7 @@
     },
     {
       "signal": "🟡 NEUTRAL/ESPERAR",
-      "n": 94,
+      "n": 139,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
@@ -144,7 +144,7 @@
     },
     {
       "signal": "🟠 VENTA PARCIAL",
-      "n": 16,
+      "n": 26,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
@@ -155,7 +155,7 @@
     },
     {
       "signal": "⭐ COMPRA FUERTE",
-      "n": 1,
+      "n": 2,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
@@ -171,6 +171,24 @@
       "h5d": null,
       "h10d": null,
       "h21d": null
+    },
+    "Consenso": {
+      "count": 56,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "V1↑/V2↓ buen activo, mal timing": {
+      "count": 5,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "V1↓/V2↑ activo débil, buen entry": {
+      "count": 6,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
     }
   },
   "consenso_vs_no": {
@@ -179,11 +197,23 @@
       "h5d": null,
       "h10d": null,
       "h21d": null
+    },
+    "Consenso": {
+      "count": 56,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "Sin consenso": {
+      "count": 11,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
     }
   },
   "by_confidence_label": {
     "UNKNOWN": {
-      "count": 134,
+      "count": 201,
       "h5d": null,
       "h10d": null,
       "h21d": null
