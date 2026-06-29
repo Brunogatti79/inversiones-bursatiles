@@ -2132,6 +2132,11 @@ function renderPortfolio(portfolio, pAlerts, fromApi){{
   var PORT_COLS=[
     {{key:'ticker',  label:'Ticker',     type:'str', get:function(p){{return p.ticker||'';}}}},
     {{key:'mercado', label:'Mercado',    type:'str', get:function(p){{return p.mercado||'';}}}},
+    {{key:'dias',    label:'Días',       type:'num', get:function(p){{
+      if(!p.fecha_compra) return null;
+      var fc=new Date(p.fecha_compra+'T00:00:00');
+      return isNaN(fc.getTime())?null:Math.floor((Date.now()-fc.getTime())/86400000);
+    }}}},
     {{key:'compra',  label:'Compra USD', type:'num', get:function(p){{return _portDerived(p).pCompUsd;}}}},
     {{key:'actual',  label:'Actual USD', type:'num', get:function(p){{return _portDerived(p).pActUsd;}}}},
     {{key:'cant',    label:'Cant',       type:'num', get:function(p){{return p.cantidad;}}}},
@@ -2204,10 +2209,22 @@ function renderPortfolio(portfolio, pAlerts, fromApi){{
         var acc=pnl?(pnl.accion||'🟢 HOLD'):(sd?'🟢 HOLD':'⚠️ Sin precio');
         var accColor=acc.indexOf('VENDER')>=0?'#f87171':acc.indexOf('REDUCIR')>=0?'#fbbf24':acc.indexOf('PARCIAL')>=0?'#c084fc':acc.indexOf('AGREGAR')>=0||acc.indexOf('HOLD')>=0?'#4ade80':'#aaa';
         var fl=p.mercado==='MERVAL'?'🇦🇷':p.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';
+        var fcVal=p.fecha_compra||'';
+        var fcDias=fcVal?Math.floor((Date.now()-new Date(fcVal+'T00:00:00').getTime())/86400000):null;
+        var fcSafeId=p.ticker.replace(/[^A-Za-z0-9]/g,'_');
         var rowBg=acc.indexOf('VENDER')>=0?'background:rgba(248,113,113,.05);':'';
         return '<tr style="'+rowBg+'">'+
           '<td class="ticker" style="font-weight:700">'+p.ticker+'</td>'+
           '<td style="color:#888;font-size:11px">'+fl+' '+p.mercado+'</td>'+
+          '<td style="font-size:11px;color:#aaa;white-space:nowrap">'+
+            '<span id="fcview-'+fcSafeId+'">'+(fcDias!=null?fcDias+'d':'—')+
+            ' <span class="fcEdit" data-ticker="'+p.ticker+'" data-fcid="'+fcSafeId+'" style="cursor:pointer;opacity:.55" title="Editar fecha de compra" onclick="editFechaCompra(this)">✎</span></span>'+
+            '<span id="fcedit-'+fcSafeId+'" style="display:none">'+
+              '<input type="date" id="fcinput-'+fcSafeId+'" value="'+fcVal+'" style="width:108px;background:#1c1c28;color:#e2e8f0;border:1px solid #333;border-radius:4px;padding:1px 3px;font-size:11px">'+
+              ' <span class="fcSave" data-ticker="'+p.ticker+'" data-fcid="'+fcSafeId+'" style="cursor:pointer;color:#4ade80" onclick="saveFechaCompra(this)">✓</span>'+
+              ' <span data-fcid="'+fcSafeId+'" style="cursor:pointer;color:#f87171" onclick="cancelFechaCompra(this)">✕</span>'+
+            '</span>'+
+          '</td>'+
           '<td style="color:#888">'+( pCompUsd>0?'$'+pCompUsd.toFixed(4):'—')+'</td>'+
           '<td style="color:'+(pActUsd>0?'#e2e8f0':'#555')+';font-weight:600">'+(pActUsd>0?'$'+pActUsd.toFixed(4):'—')+'</td>'+
           '<td>'+p.cantidad+'</td>'+
@@ -2256,6 +2273,41 @@ function renderPortfolio(portfolio, pAlerts, fromApi){{
     }}).join('');
   }}
 }}  // end renderPortfolio
+
+// ─── editar fecha_compra inline (columna Días, Portfolio) — NUEVO 29/06/2026 ──
+function editFechaCompra(el){{
+  var fcid=el.getAttribute('data-fcid');
+  var v=document.getElementById('fcview-'+fcid), e=document.getElementById('fcedit-'+fcid);
+  if(v) v.style.display='none';
+  if(e) e.style.display='inline';
+}}
+
+function cancelFechaCompra(el){{
+  var fcid=el.getAttribute('data-fcid');
+  var v=document.getElementById('fcview-'+fcid), e=document.getElementById('fcedit-'+fcid);
+  if(e) e.style.display='none';
+  if(v) v.style.display='inline';
+}}
+
+function saveFechaCompra(el){{
+  var ticker=el.getAttribute('data-ticker'), fcid=el.getAttribute('data-fcid');
+  var input=document.getElementById('fcinput-'+fcid);
+  var nueva=input?input.value:'';
+  if(!nueva){{ alert('Elegí una fecha'); return; }}
+  el.style.opacity='.4'; el.style.pointerEvents='none';
+  fetch(RAILWAY_API_URL+'/api/portfolio/fecha_compra',{{
+    method:'POST',
+    headers:{{'Content-Type':'application/json'}},
+    body:JSON.stringify({{ticker:ticker, fecha_compra:nueva}})
+  }}).then(function(r){{return r.json();}}).then(function(d){{
+    el.style.opacity='1'; el.style.pointerEvents='auto';
+    if(d&&d.status==='ok'){{ _doFetch(); }}
+    else {{ alert('Error: '+((d&&(d.error||d.msg))||'desconocido')); }}
+  }}).catch(function(err){{
+    el.style.opacity='1'; el.style.pointerEvents='auto';
+    alert('Error de red: '+err);
+  }});
+}}
 
 // ─── helper KPI card ────────────────────────────────────────────
 function _kpi(title, value, sub, color){{

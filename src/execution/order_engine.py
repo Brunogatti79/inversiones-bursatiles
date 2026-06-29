@@ -127,7 +127,11 @@ def execute_compra(
         existing["valor_inicial_usd"] = round(new_total_inv, 2)
         existing["valor_actual_usd"]  = round(new_total_inv, 2)
         existing["rend_usd"]          = 0
-        existing["fecha_compra"]      = fecha
+        # FIX 29/06/2026: fecha_compra ya NO se reescribe al promediar. Antes esto
+        # resetaba la antigüedad real de la posición cada vez que se sumaba a un
+        # ticker existente (afecta el TIME STOP de tracker.py, que mide días desde
+        # fecha_compra). La fecha de entrada original ahora se conserva; el detalle
+        # del add-on queda solo en "notas".
         existing["notas"] = f"Promediado {fecha}: +{cantidad} nom, +U$D {total_invertido}"
         msg = f"Compra agregada a {ticker}, total: U$D {new_total_inv:.0f}, {new_cant} nom"
     else:
@@ -220,6 +224,43 @@ def execute_venta(ticker: str, precio_raw: float, cantidad: int) -> dict:
     total_invertido = round(precio_unitario * cantidad, 2)
     pushed, push_error = _save_and_push(portfolio, f"api: venta {ticker} {fecha}")
     _notify_telegram("venta", ticker, cantidad, precio_unitario, total_invertido, pushed, push_error)
+
+    result = {"status": "ok", "msg": msg, "pushed": pushed, "http_code": 200}
+    if not pushed:
+        result["push_warning"] = push_error
+    return result
+
+
+def execute_edit_fecha_compra(ticker: str, nueva_fecha: str) -> dict:
+    """
+    NUEVO 29/06/2026: edita manualmente fecha_compra de una posición existente —
+    para corregir el valor por defecto (fecha de carga al sistema, o fecha del
+    último promediado antes del fix de arriba) cuando la posición real es más
+    antigua. No toca precio/cantidad/stop. Usado por el input editable de la
+    columna "Días" en el dashboard (Portfolio tab).
+    Devuelve {"status": "ok"|"error", "msg"/"error": str, "pushed": bool, ...}
+    """
+    ticker = (ticker or "").upper()
+    if not ticker:
+        return {"status": "error", "error": "ticker requerido", "http_code": 400}
+
+    try:
+        fc_nueva = datetime.strptime(nueva_fecha, "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return {"status": "error", "error": "fecha debe tener formato YYYY-MM-DD", "http_code": 400}
+    if fc_nueva > datetime.now():
+        return {"status": "error", "error": "la fecha de compra no puede ser futura", "http_code": 400}
+
+    portfolio = _load_portfolio()
+    existing = next((p for p in portfolio.get("positions", []) if p["ticker"] == ticker), None)
+    if not existing:
+        return {"status": "error", "error": f"No hay posición en {ticker}", "http_code": 404}
+
+    fecha_anterior = existing.get("fecha_compra")
+    existing["fecha_compra"] = nueva_fecha
+    msg = f"{ticker}: fecha_compra {fecha_anterior or '—'} → {nueva_fecha}"
+
+    pushed, push_error = _save_and_push(portfolio, f"api: editar fecha_compra {ticker} -> {nueva_fecha}")
 
     result = {"status": "ok", "msg": msg, "pushed": pushed, "http_code": 200}
     if not pushed:

@@ -185,6 +185,8 @@ class Handler(SimpleHTTPRequestHandler):
             self._handle_webhook()
         elif self.path in ("/api/compra", "/api/venta"):
             self._handle_portfolio_op()
+        elif self.path == "/api/portfolio/fecha_compra":
+            self._handle_edit_fecha_compra()
         else:
             self.send_error(404)
  
@@ -298,6 +300,27 @@ class Handler(SimpleHTTPRequestHandler):
             http_code = result.pop("http_code", 200 if result.get("status") == "ok" else 500)
             self._send_json(http_code, result)
             print(f"[api] {op_type}: {ticker} {cantidad} @ {precio_raw:.4f} | "
+                  f"status={result.get('status')} pushed={result.get('pushed')}", flush=True)
+        except Exception as e:
+            self._send_json(500, {"error": str(e)})
+            print(f"[api] Error: {e}", flush=True)
+
+    def _handle_edit_fecha_compra(self):
+        """POST /api/portfolio/fecha_compra — editar fecha_compra de una posición
+        existente (sin auth, mismo criterio que /api/compra y /api/venta). No toca
+        precio/cantidad/stop. Usado por el input editable de la columna "Días" del
+        dashboard (Portfolio tab) — NUEVO 29/06/2026."""
+        try:
+            body = self._read_body()
+            ticker = body.get("ticker", "").upper()
+            fecha_compra = body.get("fecha_compra", "")
+
+            from src.execution import order_engine
+            result = order_engine.execute_edit_fecha_compra(ticker=ticker, nueva_fecha=fecha_compra)
+
+            http_code = result.pop("http_code", 200 if result.get("status") == "ok" else 500)
+            self._send_json(http_code, result)
+            print(f"[api] editar_fecha_compra: {ticker} -> {fecha_compra} | "
                   f"status={result.get('status')} pushed={result.get('pushed')}", flush=True)
         except Exception as e:
             self._send_json(500, {"error": str(e)})
