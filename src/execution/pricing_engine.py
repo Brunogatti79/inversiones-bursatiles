@@ -306,12 +306,41 @@ def fetch_live_cedear_usd_prices(timeout: float = 10.0) -> dict:
 def _persist_cedear_snapshot(prices: dict):
     """Guarda el snapshot de hoy en data/cedear_cierres.csv y lo pushea a
     GitHub — mismo motivo que el resto de los datos del proyecto: el
-    filesystem de Railway es efímero y se resetea en cada redeploy."""
+    filesystem de Railway es efímero y se resetea en cada redeploy.
+
+    FIX 29/06/2026: antes esto sobreescribía el archivo completo en cada
+    corrida (df = pd.DataFrame([prices]); to_csv sin leer lo existente) —
+    nunca acumulaba más que la fila del día en curso. Confirmado en
+    producción: el archivo lleva desde el 26/06 (introducido en 4.8) y
+    seguía teniendo una sola fila el 29/06. Esto invalidaba el propósito
+    del archivo (construir un histórico real de precio CEDEAR en USD para
+    eventualmente calcular un ATR propio en vez de usar la serie NYSE como
+    proxy). Ahora lee el histórico existente, reemplaza solo la fila de HOY
+    si ya corrió antes en el mismo día (varias corridas/día → última gana),
+    y conserva las filas de días anteriores — recién así se puede acumular
+    una serie real con el tiempo.
+    """
     if not prices:
         return
+    hoy = datetime.now().strftime("%Y-%m-%d")
     try:
-        df = pd.DataFrame([prices])
-        df.insert(0, "Fecha", datetime.now().strftime("%Y-%m-%d"))
+        hist = pd.DataFrame()
+        if os.path.exists(CEDEAR_CSV_PATH):
+            try:
+                hist = pd.read_csv(CEDEAR_CSV_PATH, sep=";", decimal=",", encoding="utf-8-sig")
+            except Exception as e:
+                logger.warning(f"[pricing_engine] No se pudo leer histórico previo de cedear_cierres.csv, se empieza de cero: {e}")
+                hist = pd.DataFrame()
+
+        if not hist.empty and "Fecha" in hist.columns:
+            hist = hist[hist["Fecha"].astype(str) != hoy]  # sacar la fila de hoy si ya existía (re-run del mismo día)
+
+        fila_nueva = dict(prices)
+        fila_nueva["Fecha"] = hoy
+        df = pd.concat([hist, pd.DataFrame([fila_nueva])], ignore_index=True, sort=False)
+        cols = ["Fecha"] + [c for c in df.columns if c != "Fecha"]
+        df = df[cols]
+
         df.to_csv(CEDEAR_CSV_PATH, sep=";", decimal=",", index=False, encoding="utf-8-sig")
         from src.github_persistence import push_file
         push_file(CEDEAR_CSV_PATH, f"auto: cedear_cierres {datetime.now().strftime('%Y-%m-%d %H:%M')}")

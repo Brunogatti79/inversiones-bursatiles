@@ -593,23 +593,53 @@ def _volatility_score(series, period=60):
  
  
 def _adx(high_series, low_series, close_series, period=14):
-    if high_series is None or len(high_series) < period * 2:
-        return 0.0, 50.0
-    plus_dm = high_series.diff()
-    minus_dm = -low_series.diff()
-    plus_dm = plus_dm.where((plus_dm > minus_dm) & (plus_dm > 0), 0.0)
-    minus_dm = minus_dm.where((minus_dm > plus_dm) & (minus_dm > 0), 0.0)
-    tr1 = high_series - low_series
-    tr2 = abs(high_series - close_series.shift(1))
-    tr3 = abs(low_series - close_series.shift(1))
-    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    atr_s = tr.rolling(period).mean()
+    """
+    ADX (Average Directional Index).
+
+    FIX 29/06/2026: mismo bug que tenía _atr() antes del fix de 26/06 — los
+    CSV reales no tienen columnas High/Low (ver docstring de _atr() para el
+    detalle completo de la causa raíz), así que high_col/low_col en el
+    llamador nunca se resolvían a una columna real y _adx() jamás se
+    ejecutaba con datos reales en producción: quedaba siempre en el
+    fallback hardcodeado 0.0/50.0 (neutro). Mismo tratamiento que _atr():
+    proxy close-only cuando no hay High/Low real. Sin rango real no hay
+    +DM/-DM verdaderos; se aproxima la dirección con el signo de
+    close.diff() y la "fuerza del movimiento" con su magnitud — subestima
+    la fuerza de tendencia real (ignora reversiones intradía) pero es
+    preferible al 50.0 neutro que no refleja nada.
+
+    Returns:
+        (valor_adx: float, score: float, metodo: str)
+        metodo ∈ {"ohlc", "close_proxy", "sin_datos"}
+    """
+    if close_series is None or len(close_series) < period * 2:
+        return 0.0, 50.0, "sin_datos"
+
+    if high_series is not None and low_series is not None and len(high_series) >= period * 2:
+        plus_dm = high_series.diff()
+        minus_dm = -low_series.diff()
+        plus_dm = plus_dm.where((plus_dm > minus_dm) & (plus_dm > 0), 0.0)
+        minus_dm = minus_dm.where((minus_dm > plus_dm) & (minus_dm > 0), 0.0)
+        tr1 = high_series - low_series
+        tr2 = abs(high_series - close_series.shift(1))
+        tr3 = abs(low_series - close_series.shift(1))
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        atr_s = tr.rolling(period).mean()
+        metodo = "ohlc"
+    else:
+        # Fallback: proxy close-only (caso real en producción hoy)
+        delta = close_series.diff()
+        plus_dm = delta.clip(lower=0)
+        minus_dm = (-delta).clip(lower=0)
+        atr_s = delta.abs().rolling(period).mean()
+        metodo = "close_proxy"
+
     plus_di = 100 * (plus_dm.rolling(period).mean() / atr_s)
     minus_di = 100 * (minus_dm.rolling(period).mean() / atr_s)
     dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di).replace(0, np.nan)
     adx_val = float(dx.rolling(period).mean().iloc[-1])
     if pd.isna(adx_val):
-        return 0.0, 50.0
+        return 0.0, 50.0, metodo
     if adx_val >= 40:
         score = 85.0
     elif adx_val >= 25:
@@ -618,7 +648,7 @@ def _adx(high_series, low_series, close_series, period=14):
         score = 50.0
     else:
         score = 30.0
-    return round(adx_val, 1), round(score, 1)
+    return round(adx_val, 1), round(score, 1), metodo
  
  
 # ─────────────────────────────────────────────
@@ -895,14 +925,17 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
  
         # Volatility score y ADX (Fase 2)
         vol_score = _volatility_score(serie)
-        adx_val, adx_score = 0.0, 50.0
+        # Fix 29/06/2026: antes esto era 50.0 SIEMPRE (mismo bug que tenía
+        # _atr) — ver docstring de _adx(). Ahora usa el mismo proxy close-only
+        # que ATR cuando no hay High/Low real, en vez de quedar en el default.
+        high_col_adx = col.replace('Close', 'High') if 'Close' in str(col) else None
+        low_col_adx  = col.replace('Close', 'Low')  if 'Close' in str(col) else None
+        high_s_adx = df_12m[high_col_adx] if high_col_adx and high_col_adx in df_12m.columns else None
+        low_s_adx  = df_12m[low_col_adx]  if low_col_adx  and low_col_adx  in df_12m.columns else None
         try:
-            high_col = col.replace('Close', 'High') if 'Close' in str(col) else None
-            low_col = col.replace('Close', 'Low') if 'Close' in str(col) else None
-            if high_col and low_col and high_col in df_12m.columns and low_col in df_12m.columns:
-                adx_val, adx_score = _adx(df_12m[high_col], df_12m[low_col], serie)
+            adx_val, adx_score, adx_metodo = _adx(high_s_adx, low_s_adx, serie)
         except Exception:
-            pass
+            adx_val, adx_score, adx_metodo = 0.0, 50.0, "error"
  
         sf_v2 = _score_final_v2(aq, es, market, vol_score)
         sig_v2 = _signal_v2(sf_v2)
@@ -1006,6 +1039,7 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "volatility_score": round(vol_score, 1),
             "adx": adx_val,
             "adx_score": adx_score,
+            "adx_metodo": adx_metodo,
             "dist_support_norm": round(dist_sup_norm, 1),
             # ── Multi-timeframe ──
             "weekly_trend":    wt["weekly_trend"],
