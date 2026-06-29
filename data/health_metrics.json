@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-06-28T17:31:14.957473",
-  "last_run_utc": "2026-06-28T20:31:14.957508",
-  "last_success": "2026-06-28T17:31:14.957473",
+  "last_run": "2026-06-29T10:15:00.115605",
+  "last_run_utc": "2026-06-29T13:15:00.115641",
+  "last_success": "2026-06-29T10:15:00.115605",
   "consecutive_failures": 0,
   "duration_history": [
-    34.4,
     73.7,
     34.8,
     81.1,
@@ -13,11 +12,12 @@
     75.4,
     38.3,
     75.7,
-    75.0
+    75.0,
+    293.0
   ],
-  "duration_avg_sec": 53.4,
-  "duration_p95_sec": 78.4,
-  "duration_last_sec": 75.0,
+  "duration_avg_sec": 76.7,
+  "duration_p95_sec": 187.1,
+  "duration_last_sec": 293.0,
   "signals_count": 67,
   "buy_signals": 18,
   "sell_signals": 10,
@@ -171,11 +171,16 @@
       "ts": "2026-06-28",
       "success": true,
       "duration": 75.0
+    },
+    {
+      "ts": "2026-06-29",
+      "success": true,
+      "duration": 293.0
     }
   ],
   "pipeline_runs_today": 1,
-  "pipeline_runs_week": 29,
-  "optimized_weights_age_h": 0.0,
+  "pipeline_runs_week": 30,
+  "optimized_weights_age_h": 16.7,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
@@ -193,8 +198,8 @@
     "SP500"
   ],
   "backtest_ev_21d": null,
-  "backtest_total_trades": 134,
+  "backtest_total_trades": 201,
   "predictor_dir_acc": null,
   "predictor_mae": null,
-  "backtest_generated": "2026-06-28"
+  "backtest_generated": "2026-06-29"
 }
