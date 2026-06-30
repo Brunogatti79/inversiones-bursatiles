@@ -1,22 +1,22 @@
 {
-  "generated": "2026-06-29T17:30:40.602318",
-  "total_trades": 201,
-  "days_history": 8,
+  "generated": "2026-06-30T17:35:41.702054",
+  "total_trades": 268,
+  "days_history": 9,
   "by_signal": {
     "🟢 COMPRA": {
-      "count": 34,
+      "count": 47,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "🟡 NEUTRAL/ESPERAR": {
-      "count": 139,
+      "count": 184,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "🟠 VENTA PARCIAL": {
-      "count": 26,
+      "count": 35,
       "h5d": null,
       "h10d": null,
       "h21d": null
@@ -30,19 +30,19 @@
   },
   "by_market": {
     "SP500": {
-      "count": 90,
+      "count": 120,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "BOVESPA": {
-      "count": 51,
+      "count": 68,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "MERVAL": {
-      "count": 60,
+      "count": 80,
       "h5d": null,
       "h10d": null,
       "h21d": null
@@ -50,61 +50,61 @@
   },
   "by_sector": {
     "TECNOLOGÍA": {
-      "count": 24,
+      "count": 32,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "SALUD": {
-      "count": 15,
+      "count": 20,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "CONSUMO": {
-      "count": 30,
+      "count": 40,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "INDUSTRIAL": {
-      "count": 15,
+      "count": 20,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "FINANCIERO": {
-      "count": 45,
+      "count": 60,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "UTILITIES": {
-      "count": 12,
+      "count": 16,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "ENERGÍA": {
-      "count": 21,
+      "count": 28,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "TELECOM": {
-      "count": 3,
+      "count": 4,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "MATERIALES": {
-      "count": 27,
+      "count": 36,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "INMOBILIARIO": {
-      "count": 9,
+      "count": 12,
       "h5d": null,
       "h10d": null,
       "h21d": null
@@ -122,7 +122,7 @@
   "signal_summary": [
     {
       "signal": "🟢 COMPRA",
-      "n": 34,
+      "n": 47,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
@@ -133,7 +133,7 @@
     },
     {
       "signal": "🟡 NEUTRAL/ESPERAR",
-      "n": 139,
+      "n": 184,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
@@ -144,7 +144,7 @@
     },
     {
       "signal": "🟠 VENTA PARCIAL",
-      "n": 26,
+      "n": 35,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
@@ -173,19 +173,19 @@
       "h21d": null
     },
     "Consenso": {
-      "count": 56,
+      "count": 116,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "V1↑/V2↓ buen activo, mal timing": {
-      "count": 5,
+      "count": 8,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "V1↓/V2↑ activo débil, buen entry": {
-      "count": 6,
+      "count": 10,
       "h5d": null,
       "h10d": null,
       "h21d": null
@@ -199,13 +199,13 @@
       "h21d": null
     },
     "Consenso": {
-      "count": 56,
+      "count": 116,
       "h5d": null,
       "h10d": null,
       "h21d": null
     },
     "Sin consenso": {
-      "count": 11,
+      "count": 18,
       "h5d": null,
       "h10d": null,
       "h21d": null
@@ -214,6 +214,30 @@
   "by_confidence_label": {
     "UNKNOWN": {
       "count": 201,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "🟢 Alta": {
+      "count": 7,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "🟠 Baja": {
+      "count": 34,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "🟡 Media": {
+      "count": 22,
+      "h5d": null,
+      "h10d": null,
+      "h21d": null
+    },
+    "🔴 Muy baja": {
+      "count": 4,
       "h5d": null,
       "h10d": null,
       "h21d": null
