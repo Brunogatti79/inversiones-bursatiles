@@ -257,5 +257,22 @@
       "sla_status": "CRITICAL",
       "n_signals": 67
     }
+  ],
+  "2026-07-01": [
+    {
+      "timestamp": "2026-07-01T17:35:45.017073",
+      "global_score": 39.9,
+      "label": "🟠 Baja",
+      "kill_switch_active": true,
+      "kill_switch_reasons": [
+        "data_validator marcó ERROR (datos de mercado corruptos o faltantes)"
+      ],
+      "criticas": 2,
+      "criticas_estructurales": 0,
+      "advertencias": 5,
+      "validacion_nivel": "ERROR",
+      "sla_status": "CRITICAL",
+      "n_signals": 67
+    }
   ]
 }
