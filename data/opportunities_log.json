@@ -1501,5 +1501,97 @@
         "sp500_trend_score": 44.0
       }
     }
+  ],
+  "2026-07-01": [
+    {
+      "ticker": "TRAN.BA",
+      "empresa": "Transener",
+      "mercado": "MERVAL",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 9220.0,
+      "entrada": 9127.8,
+      "stop": 3672.95,
+      "target": 3859.72,
+      "riesgo_pct": 59.8,
+      "reward_pct": -57.7,
+      "rr_ratio": 4.76,
+      "score_macro": 53.5,
+      "score_tecnico": 44.5,
+      "score_fundamental": 95.6,
+      "score_final_v1": 77.0,
+      "asset_quality": 66.3,
+      "entry_score": 53.1,
+      "score_final_v2": 61.0,
+      "ranking_accionable": 58.6,
+      "volatility_score": 41.2,
+      "adx": 16.9,
+      "alignment_score": 95,
+      "alignment_label": "TRIPLE CONFIRMACIÓN",
+      "weekly_trend": "ALCISTA",
+      "monthly_trend": "ALCISTA",
+      "rsi": 36.6,
+      "momentum_21d": -6.4,
+      "pred_5d": 1.29,
+      "pred_10d": 1.31,
+      "pred_21d": -0.13,
+      "pred_confidence": 0.487,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 65.3,
+      "index_snapshot": {
+        "actual": 3123411.0,
+        "ret_dia": 0.88,
+        "ret_anual": 53.19
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 44.0
+      }
+    },
+    {
+      "ticker": "BBAS3.SA",
+      "empresa": "Banco do Brasil",
+      "mercado": "BOVESPA",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 42.24,
+      "entrada": 39.53,
+      "stop": 19.95,
+      "target": 20.81,
+      "riesgo_pct": 49.5,
+      "reward_pct": -47.4,
+      "rr_ratio": 2.37,
+      "score_macro": 39.4,
+      "score_tecnico": 37.2,
+      "score_fundamental": 75.5,
+      "score_final_v1": 46.6,
+      "asset_quality": 52.1,
+      "entry_score": 71.4,
+      "score_final_v2": 60.8,
+      "ranking_accionable": 58.0,
+      "volatility_score": 60.1,
+      "adx": 39.4,
+      "alignment_score": 70,
+      "alignment_label": "DOBLE CONFIRMACIÓN",
+      "weekly_trend": "BAJISTA",
+      "monthly_trend": "LATERAL",
+      "rsi": 79.8,
+      "momentum_21d": -0.6,
+      "pred_5d": 2.68,
+      "pred_10d": 5.58,
+      "pred_21d": 4.02,
+      "pred_confidence": 0.505,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 54.6,
+      "index_snapshot": {
+        "actual": 173295.0,
+        "ret_dia": 0.76,
+        "ret_anual": 26.39
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 44.0
+      }
+    }
   ]
 }
