@@ -1,10 +1,16 @@
 {
   "status": "ok",
-  "generated": "2026-07-02T16:09:39.610140",
+  "generated": "2026-07-02T16:27:15.619613",
   "total_oportunidades_registradas": 37,
-  "total_evaluadas": 11,
+  "total_evaluadas": 33,
   "global": {
-    "5d": null,
+    "5d": {
+      "n": 6,
+      "win_rate_pct": 83.3,
+      "avg_ret_pct": 48.2,
+      "best_pct": 282.01,
+      "worst_pct": -2.2
+    },
     "10d": null,
     "21d": null
   },
@@ -15,19 +21,37 @@
       "21d": null
     },
     "BOVESPA": {
-      "5d": null,
+      "5d": {
+        "n": 4,
+        "win_rate_pct": 100.0,
+        "avg_ret_pct": 2.35,
+        "best_pct": 3.9,
+        "worst_pct": 1.46
+      },
       "10d": null,
       "21d": null
     },
     "SP500": {
-      "5d": null,
+      "5d": {
+        "n": 2,
+        "win_rate_pct": 50.0,
+        "avg_ret_pct": 139.91,
+        "best_pct": 282.01,
+        "worst_pct": -2.2
+      },
       "10d": null,
       "21d": null
     }
   },
   "by_signal": {
     "🟢 COMPRA": {
-      "5d": null,
+      "5d": {
+        "n": 6,
+        "win_rate_pct": 83.3,
+        "avg_ret_pct": 48.2,
+        "best_pct": 282.01,
+        "worst_pct": -2.2
+      },
       "10d": null,
       "21d": null
     }
