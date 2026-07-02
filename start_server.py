@@ -482,6 +482,16 @@ def _sync_all_data_from_github():
             "cedear_cierres.csv",           # FIX 26/06/2026 (sesión 2): snapshot de respaldo
                                              # de precios CEDEAR (data912.com) -- por si la API
                                              # está caída justo al arrancar Railway.
+            "merval_cierres.csv",           # FIX 02/07/2026: no estaban en esta lista, por lo
+            "bovespa_cierres.csv",          # que quedaban congelados en lo que tuviera la imagen
+            "sp500_cierres.csv",            # del último deploy de código -- watchPatterns bloquea
+                                                # a propósito el redeploy en commits de solo-datos,
+                                                # asi que sin este sync explicito nunca se actualizaban
+                                                # solos aunque download_data.yml corriera bien y
+                                                # GitHub tuviera precios frescos. downloader.py sigue
+                                                # teniendo su fallback a descarga directa de Yahoo si
+                                                # el archivo local supera MAX_CSV_AGE_DAYS, pero ahora
+                                                # ese fallback casi no debería activarse.        
         ])
         print("[start_server] data/ sincronizado desde GitHub", flush=True)
     except Exception as e:
