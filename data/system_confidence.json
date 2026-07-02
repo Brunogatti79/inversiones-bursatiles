@@ -1,12 +1,12 @@
 {
-  "global_score": 42.7,
-  "label": "🟠 Baja",
+  "global_score": 63.6,
+  "label": "🟡 Reducida",
   "components": {
-    "calidad_datos": 64.6,
+    "calidad_datos": 49.6,
     "predictor": 55.0,
-    "macro": 47.9,
-    "integridad_datos": 0.0,
-    "sla": 0.0
+    "macro": 49.8,
+    "integridad_datos": 100.0,
+    "sla": 100.0
   },
   "weights": {
     "calidad_datos": 0.3,
@@ -15,10 +15,8 @@
     "integridad_datos": 0.1,
     "sla": 0.15
   },
-  "kill_switch_active": true,
-  "kill_switch_reasons": [
-    "data_validator marcó ERROR (datos de mercado corruptos o faltantes)"
-  ],
+  "kill_switch_active": false,
+  "kill_switch_reasons": [],
   "n_signals": 67,
-  "generated": "2026-07-02T15:34:21.799039"
+  "generated": "2026-07-02T16:27:07.453915"
 }
