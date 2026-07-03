@@ -13,9 +13,9 @@ import json
 import logging
 import pandas as pd
 from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
-
+ 
 logger = logging.getLogger(__name__)
-
+ 
 # ── Versión del código — para verificar qué está corriendo en Railway ──
 import hashlib as _hashlib
 _CODE_VERSION = _hashlib.md5(open(__file__, "rb").read()).hexdigest()[:8]
@@ -42,7 +42,7 @@ WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "")
 # Referencia global al hilo del pipeline para evitar ejecuciones simultáneas
 _pipeline_lock = threading.Lock()
 _pipeline_running = False
-
+ 
 # ── Ticker registry y precios desde CSVs ──────────────────────────
 def _build_ticker_registry():
     """Construye lista de tickers válidos desde downloader.py."""
@@ -59,7 +59,7 @@ def _build_ticker_registry():
     except Exception as e:
         logger.warning(f"Error construyendo registry de tickers: {e}")
         return []
-
+ 
 def _get_latest_prices():
     """
     Lee último precio de cierre de cada ticker.
@@ -132,7 +132,7 @@ def _get_latest_prices():
  
  
 def trigger_pipeline():
-    """Ejecuta git pull + pipeline en un hilo separado."""
+    """Sincroniza datos frescos desde GitHub + ejecuta el pipeline, en un hilo separado."""
     global _pipeline_running
     with _pipeline_lock:
         if _pipeline_running:
@@ -143,13 +143,17 @@ def trigger_pipeline():
     def _run():
         global _pipeline_running
         try:
-            # Primero actualizar el código/datos desde GitHub
-            print("[webhook] git pull para obtener datos frescos...", flush=True)
-            pull = subprocess.run(
-                ["git", "pull", "origin", "main"],
-                capture_output=True, text=True, timeout=30
-            )
-            print(f"[webhook] git pull: {pull.stdout.strip()}", flush=True)
+            # FIX 03/07/2026: "git pull origin main" fallaba silenciosamente en Railway
+            # porque /app no es un repo git (el build de Docker copia un snapshot, sin
+            # .git) -- el codigo nunca chequeaba el returncode, asi que el pipeline
+            # seguia corriendo igual con los CSVs viejos que ya tenia en disco. Esto
+            # generaba un atraso de ~1 dia habil entre lo que GitHub Actions ya habia
+            # commiteado (00:06 UTC) y lo que el pipeline realmente analizaba (13:27 hs).
+            # Reemplazado por el mismo mecanismo que ya usa el sync de arranque
+            # (GitHub Contents API via github_persistence.py), corriendo ahora en
+            # cada trigger del webhook y no solo al bootear el contenedor.
+            print("[webhook] sincronizando datos frescos desde GitHub...", flush=True)
+            _sync_all_data_from_github()
  
             # Ahora correr el pipeline
             from src.pipeline import run_pipeline
@@ -218,7 +222,7 @@ class Handler(SimpleHTTPRequestHandler):
  
     def _handle_get_portfolio(self):
         """GET /api/portfolio — devuelve portfolio.json enriquecido con precios en tiempo real.
-
+ 
         FIX 26/06/2026: esta lógica de pricing (que ya generalizaba bien
         MERVAL_CSV/BOVESPA_CSV pero nunca pudo resolver SP500_CSV/CEDEAR
         porque data/cedear_cierres.csv nunca existió) se consolidó en
@@ -248,7 +252,7 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(200, ccl)
         except Exception as e:
             self._send_json(500, {"error": str(e)})
-
+ 
     def _handle_get_tickers(self):
         """GET /api/tickers — devuelve lista de tickers válidos con precios."""
         try:
@@ -264,7 +268,7 @@ class Handler(SimpleHTTPRequestHandler):
  
     def _handle_portfolio_op(self):
         """POST /api/compra o /api/venta — registrar operación (sin auth, acceso público desde dashboard).
-
+ 
         FIX 26/06/2026: la lógica de negocio (promediado, venta parcial/total,
         push a GitHub, notificación Telegram) se extrajo a
         src/execution/order_engine.py. Este handler ahora solo parsea el
@@ -279,7 +283,7 @@ class Handler(SimpleHTTPRequestHandler):
             cantidad = int(body.get("cantidad", 0))
             nombre = body.get("nombre", ticker)
             op_type = "compra" if self.path == "/api/compra" else "venta"
-
+ 
             from src.execution import order_engine
             if op_type == "compra":
                 result = order_engine.execute_compra(
@@ -296,7 +300,7 @@ class Handler(SimpleHTTPRequestHandler):
                 result = order_engine.execute_venta(
                     ticker=ticker, precio_raw=precio_raw, cantidad=cantidad,
                 )
-
+ 
             http_code = result.pop("http_code", 200 if result.get("status") == "ok" else 500)
             self._send_json(http_code, result)
             print(f"[api] {op_type}: {ticker} {cantidad} @ {precio_raw:.4f} | "
@@ -304,7 +308,7 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             self._send_json(500, {"error": str(e)})
             print(f"[api] Error: {e}", flush=True)
-
+ 
     def _handle_edit_fecha_compra(self):
         """POST /api/portfolio/fecha_compra — editar fecha_compra de una posición
         existente (sin auth, mismo criterio que /api/compra y /api/venta). No toca
@@ -314,10 +318,10 @@ class Handler(SimpleHTTPRequestHandler):
             body = self._read_body()
             ticker = body.get("ticker", "").upper()
             fecha_compra = body.get("fecha_compra", "")
-
+ 
             from src.execution import order_engine
             result = order_engine.execute_edit_fecha_compra(ticker=ticker, nueva_fecha=fecha_compra)
-
+ 
             http_code = result.pop("http_code", 200 if result.get("status") == "ok" else 500)
             self._send_json(http_code, result)
             print(f"[api] editar_fecha_compra: {ticker} -> {fecha_compra} | "
@@ -326,7 +330,7 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(500, {"error": str(e)})
             print(f"[api] Error: {e}", flush=True)
  
-
+ 
     def _push_portfolio_to_github(self, portfolio_path: str, commit_msg: str, max_retries: int = 3):
         """
         Push portfolio.json a GitHub con reintento automático.
@@ -337,11 +341,11 @@ class Handler(SimpleHTTPRequestHandler):
             import requests as _req
         except ImportError:
             return False, "requests no disponible en el entorno"
-
+ 
         gh_token = os.environ.get("GH_TOKEN", "")
         if not gh_token:
             return False, "GH_TOKEN no configurado en Railway"
-
+ 
         repo    = "Brunogatti79/inversiones-bursatiles"
         path    = "data/portfolio.json"
         url     = f"https://api.github.com/repos/{repo}/contents/{path}"
@@ -349,7 +353,7 @@ class Handler(SimpleHTTPRequestHandler):
             "Authorization": f"token {gh_token}",
             "Accept":        "application/vnd.github.v3+json",
         }
-
+ 
         last_error = None
         for attempt in range(1, max_retries + 1):
             try:
@@ -360,33 +364,33 @@ class Handler(SimpleHTTPRequestHandler):
                     print(f"[push] intento {attempt}/{max_retries} — {last_error}", flush=True)
                     continue
                 sha = r_get.json().get("sha", "") if r_get.status_code == 200 else ""
-
+ 
                 # 2. Leer archivo local
                 with open(portfolio_path, "r", encoding="utf-8") as f:
                     raw = f.read()
                 encoded = _b64.b64encode(raw.encode("utf-8")).decode()
-
+ 
                 # 3. PUT
                 payload = {"message": commit_msg, "content": encoded}
                 if sha:
                     payload["sha"] = sha
                 r_put = _req.put(url, headers=headers, json=payload, timeout=15)
-
+ 
                 if r_put.status_code in (200, 201):
                     print(f"[push] ✅ portfolio.json pushed (intento {attempt})", flush=True)
                     return True, None
                 else:
                     last_error = f"PUT status {r_put.status_code}: {r_put.text[:120]}"
                     print(f"[push] intento {attempt}/{max_retries} — {last_error}", flush=True)
-
+ 
             except Exception as e:
                 last_error = str(e)
                 print(f"[push] intento {attempt}/{max_retries} — excepción: {last_error}", flush=True)
-
+ 
         # Todos los intentos fallaron
         print(f"[push] ❌ push falló después de {max_retries} intentos: {last_error}", flush=True)
         return False, last_error
-
+ 
     def _handle_health(self):
         """GET /api/health — devuelve métricas de salud del sistema."""
         try:
@@ -396,7 +400,7 @@ class Handler(SimpleHTTPRequestHandler):
                     health = json.load(f)
             else:
                 health = {"sla_status": "UNKNOWN", "error": "No health data yet"}
-
+ 
             # SLA check en tiempo real
             last_success = health.get("last_success")
             if last_success:
@@ -413,12 +417,12 @@ class Handler(SimpleHTTPRequestHandler):
                     health["sla_hours_since_success"] = round(hours_ago, 1)
                 except Exception:
                     pass
-
+ 
             health["pipeline_running"] = _pipeline_running
             self._send_json(200, health)
         except Exception as e:
             self._send_json(500, {"error": str(e), "sla_status": "ERROR"})
-
+ 
     def _handle_webhook(self):
         # Verificar secret si está configurado
         if WEBHOOK_SECRET:
@@ -496,8 +500,8 @@ def _sync_all_data_from_github():
         print("[start_server] data/ sincronizado desde GitHub", flush=True)
     except Exception as e:
         print(f"[start_server] No se pudo sincronizar data/ desde GitHub: {e}", flush=True)
-
-
+ 
+ 
 def launch_main():
     import time
     time.sleep(2)
