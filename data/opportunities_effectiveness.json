@@ -1,43 +1,49 @@
 {
   "status": "ok",
-  "generated": "2026-07-03T13:28:00.057099",
-  "total_oportunidades_registradas": 38,
-  "total_evaluadas": 33,
+  "generated": "2026-07-03T15:06:44.103997",
+  "total_oportunidades_registradas": 41,
+  "total_evaluadas": 35,
   "global": {
     "5d": {
-      "n": 6,
-      "win_rate_pct": 83.3,
-      "avg_ret_pct": 48.2,
+      "n": 11,
+      "win_rate_pct": 72.7,
+      "avg_ret_pct": 25.92,
       "best_pct": 282.01,
-      "worst_pct": -2.2
+      "worst_pct": -10.72
     },
     "10d": null,
     "21d": null
   },
   "by_market": {
     "MERVAL": {
-      "5d": null,
+      "5d": {
+        "n": 1,
+        "win_rate_pct": 100.0,
+        "avg_ret_pct": 1.72,
+        "best_pct": 1.72,
+        "worst_pct": 1.72
+      },
       "10d": null,
       "21d": null
     },
     "BOVESPA": {
       "5d": {
-        "n": 4,
-        "win_rate_pct": 100.0,
-        "avg_ret_pct": 2.35,
+        "n": 7,
+        "win_rate_pct": 85.7,
+        "avg_ret_pct": 2.05,
         "best_pct": 3.9,
-        "worst_pct": 1.46
+        "worst_pct": -1.22
       },
       "10d": null,
       "21d": null
     },
     "SP500": {
       "5d": {
-        "n": 2,
-        "win_rate_pct": 50.0,
-        "avg_ret_pct": 139.91,
+        "n": 3,
+        "win_rate_pct": 33.3,
+        "avg_ret_pct": 89.7,
         "best_pct": 282.01,
-        "worst_pct": -2.2
+        "worst_pct": -10.72
       },
       "10d": null,
       "21d": null
@@ -46,11 +52,11 @@
   "by_signal": {
     "🟢 COMPRA": {
       "5d": {
-        "n": 6,
-        "win_rate_pct": 83.3,
-        "avg_ret_pct": 48.2,
+        "n": 11,
+        "win_rate_pct": 72.7,
+        "avg_ret_pct": 25.92,
         "best_pct": 282.01,
-        "worst_pct": -2.2
+        "worst_pct": -10.72
       },
       "10d": null,
       "21d": null
