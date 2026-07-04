@@ -1777,5 +1777,97 @@
         "sp500_trend_score": 56.0
       }
     }
+  ],
+  "2026-07-04": [
+    {
+      "ticker": "MGLU3.SA",
+      "empresa": "Magazine Luiza",
+      "mercado": "BOVESPA",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 4.45,
+      "entrada": 4.41,
+      "stop": 4.12,
+      "target": 4.93,
+      "riesgo_pct": 6.6,
+      "reward_pct": 11.8,
+      "rr_ratio": 5.0,
+      "score_macro": 39.8,
+      "score_tecnico": 43.5,
+      "score_fundamental": 73.3,
+      "score_final_v1": 42.8,
+      "asset_quality": 52.0,
+      "entry_score": 83.9,
+      "score_final_v2": 68.9,
+      "ranking_accionable": 56.0,
+      "volatility_score": 29.7,
+      "adx": 44.4,
+      "alignment_score": 95,
+      "alignment_label": "TRIPLE CONFIRMACIÓN",
+      "weekly_trend": "BAJISTA",
+      "monthly_trend": "BAJISTA",
+      "rsi": 29.7,
+      "momentum_21d": -18.2,
+      "pred_5d": -2.41,
+      "pred_10d": -6.8,
+      "pred_21d": -9.37,
+      "pred_confidence": 0.508,
+      "pred_signal": "📉 BAJA",
+      "opportunity_score": 55.2,
+      "index_snapshot": {
+        "actual": 174070.0,
+        "ret_dia": 0.74,
+        "ret_anual": 23.52
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 56.0
+      }
+    },
+    {
+      "ticker": "HARG.BA",
+      "empresa": "Holcim Argentina",
+      "mercado": "MERVAL",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 664.0,
+      "entrada": 657.36,
+      "stop": 1473.0,
+      "target": 1568.92,
+      "riesgo_pct": -124.1,
+      "reward_pct": 138.7,
+      "rr_ratio": 3.0,
+      "score_macro": 43.3,
+      "score_tecnico": 53.2,
+      "score_fundamental": 72.7,
+      "score_final_v1": 48.2,
+      "asset_quality": 53.4,
+      "entry_score": 74.3,
+      "score_final_v2": 61.8,
+      "ranking_accionable": 55.5,
+      "volatility_score": 42.8,
+      "adx": 40.5,
+      "alignment_score": 50,
+      "alignment_label": "NEUTRAL",
+      "weekly_trend": "BAJISTA",
+      "monthly_trend": "BAJISTA",
+      "rsi": 3.0,
+      "momentum_21d": -14.2,
+      "pred_5d": -1.79,
+      "pred_10d": -2.58,
+      "pred_21d": -1.16,
+      "pred_confidence": 0.5,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 52.0,
+      "index_snapshot": {
+        "actual": 3196900.0,
+        "ret_dia": 1.26,
+        "ret_anual": 53.83
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 56.0
+      }
+    }
   ]
 }
