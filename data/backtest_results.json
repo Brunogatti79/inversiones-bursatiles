@@ -1,6 +1,6 @@
 {
-  "generated": "2026-07-06T17:30:44.297241",
-  "total_trades": 671,
+  "generated": "2026-07-06T18:33:36.667899",
+  "total_trades": 670,
   "days_history": 15,
   "by_signal": {
     "🟢 COMPRA": {
@@ -30,16 +30,16 @@
       }
     },
     "🟡 NEUTRAL/ESPERAR": {
-      "count": 419,
+      "count": 418,
       "h5d": {
-        "samples": 230,
-        "win_rate": 0.513,
-        "avg_ret": -0.07,
+        "samples": 229,
+        "win_rate": 0.515,
+        "avg_ret": -0.05,
         "avg_win": 3.56,
-        "avg_loss": 3.9,
-        "expected_value": -0.07,
+        "avg_loss": 3.89,
+        "expected_value": -0.05,
         "sharpe": -0.01,
-        "max_drawdown": -84.62
+        "max_drawdown": -83.96
       },
       "h10d": null,
       "h21d": null,
@@ -99,16 +99,16 @@
   },
   "by_market": {
     "SP500": {
-      "count": 301,
+      "count": 300,
       "h5d": {
-        "samples": 121,
-        "win_rate": 0.562,
-        "avg_ret": 0.71,
+        "samples": 120,
+        "win_rate": 0.567,
+        "avg_ret": 0.75,
         "avg_win": 4.75,
-        "avg_loss": 4.47,
-        "expected_value": 0.71,
-        "sharpe": 0.12,
-        "max_drawdown": -41.6
+        "avg_loss": 4.48,
+        "expected_value": 0.75,
+        "sharpe": 0.13,
+        "max_drawdown": -39.1
       },
       "h10d": null,
       "h21d": null,
@@ -231,16 +231,16 @@
       }
     },
     "CONSUMO": {
-      "count": 101,
+      "count": 100,
       "h5d": {
-        "samples": 56,
-        "win_rate": 0.589,
-        "avg_ret": 0.81,
+        "samples": 55,
+        "win_rate": 0.6,
+        "avg_ret": 0.9,
         "avg_win": 3.27,
-        "avg_loss": 2.71,
-        "expected_value": 0.81,
-        "sharpe": 0.21,
-        "max_drawdown": -23.69
+        "avg_loss": 2.65,
+        "expected_value": 0.9,
+        "sharpe": 0.24,
+        "max_drawdown": -20.43
       },
       "h10d": null,
       "h21d": null,
@@ -453,7 +453,7 @@
     },
     {
       "signal": "🟡 NEUTRAL/ESPERAR",
-      "n": 419,
+      "n": 418,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
@@ -487,16 +487,16 @@
   ],
   "by_consenso": {
     "UNKNOWN": {
-      "count": 135,
+      "count": 134,
       "h5d": {
-        "samples": 135,
-        "win_rate": 0.4,
-        "avg_ret": -1.04,
+        "samples": 134,
+        "win_rate": 0.403,
+        "avg_ret": -1.01,
         "avg_win": 3.89,
         "avg_loss": 4.32,
-        "expected_value": -1.04,
+        "expected_value": -1.01,
         "sharpe": -0.2,
-        "max_drawdown": -83.54
+        "max_drawdown": -82.84
       },
       "h10d": null,
       "h21d": null
@@ -582,16 +582,16 @@
   },
   "consenso_vs_no": {
     "UNKNOWN": {
-      "count": 135,
+      "count": 134,
       "h5d": {
-        "samples": 135,
-        "win_rate": 0.4,
-        "avg_ret": -1.04,
+        "samples": 134,
+        "win_rate": 0.403,
+        "avg_ret": -1.01,
         "avg_win": 3.89,
         "avg_loss": 4.32,
-        "expected_value": -1.04,
+        "expected_value": -1.01,
         "sharpe": -0.2,
-        "max_drawdown": -83.54
+        "max_drawdown": -82.84
       },
       "h10d": null,
       "h21d": null
@@ -651,16 +651,16 @@
   },
   "by_confidence_label": {
     "UNKNOWN": {
-      "count": 202,
+      "count": 201,
       "h5d": {
-        "samples": 202,
-        "win_rate": 0.396,
-        "avg_ret": -0.97,
+        "samples": 201,
+        "win_rate": 0.398,
+        "avg_ret": -0.95,
         "avg_win": 3.95,
         "avg_loss": 4.19,
-        "expected_value": -0.97,
+        "expected_value": -0.95,
         "sharpe": -0.19,
-        "max_drawdown": -92.02
+        "max_drawdown": -91.68
       },
       "h10d": null,
       "h21d": null
