@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-06T15:03:21.416064",
-  "last_run_utc": "2026-07-06T18:03:21.416103",
-  "last_success": "2026-07-06T15:03:21.416064",
+  "last_run": "2026-07-06T15:04:15.687109",
+  "last_run_utc": "2026-07-06T18:04:15.687180",
+  "last_success": "2026-07-06T15:04:15.687109",
   "consecutive_failures": 0,
   "duration_history": [
-    71.7,
     33.7,
     83.5,
     78.5,
@@ -13,14 +12,15 @@
     41.7,
     73.7,
     74.1,
-    112.3
+    112.3,
+    119.9
   ],
-  "duration_avg_sec": 62.0,
-  "duration_p95_sec": 97.9,
-  "duration_last_sec": 112.3,
-  "signals_count": 68,
+  "duration_avg_sec": 69.9,
+  "duration_p95_sec": 116.1,
+  "duration_last_sec": 119.9,
+  "signals_count": 67,
   "buy_signals": 14,
-  "sell_signals": 14,
+  "sell_signals": 13,
   "neutral_signals": 40,
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
@@ -126,21 +126,26 @@
       "ts": "2026-07-06",
       "success": true,
       "duration": 112.3
+    },
+    {
+      "ts": "2026-07-06",
+      "success": true,
+      "duration": 119.9
     }
   ],
-  "pipeline_runs_today": 1,
-  "pipeline_runs_week": 20,
+  "pipeline_runs_today": 2,
+  "pipeline_runs_week": 21,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 49.8,
-  "global_confidence_label": "🟠 Baja",
+  "global_confidence_score": 64.3,
+  "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
   "optimized_weights_days": 14,
-  "exposure_factor_shadow": 0.596,
+  "exposure_factor_shadow": 0.886,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
     "MERVAL",
@@ -148,7 +153,7 @@
     "SP500"
   ],
   "backtest_ev_21d": null,
-  "backtest_total_trades": 671,
+  "backtest_total_trades": 670,
   "predictor_dir_acc": null,
   "predictor_mae": null,
   "backtest_generated": "2026-07-06"
