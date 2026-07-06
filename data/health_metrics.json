@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-05T17:31:14.094919",
-  "last_run_utc": "2026-07-05T20:31:14.094953",
-  "last_success": "2026-07-05T17:31:14.094919",
+  "last_run": "2026-07-06T15:03:21.416064",
+  "last_run_utc": "2026-07-06T18:03:21.416103",
+  "last_success": "2026-07-06T15:03:21.416064",
   "consecutive_failures": 0,
   "duration_history": [
-    32.5,
     71.7,
     33.7,
     83.5,
@@ -13,25 +12,21 @@
     35.5,
     41.7,
     73.7,
-    74.1
+    74.1,
+    112.3
   ],
-  "duration_avg_sec": 60.0,
-  "duration_p95_sec": 86.7,
-  "duration_last_sec": 74.1,
-  "signals_count": 67,
+  "duration_avg_sec": 62.0,
+  "duration_p95_sec": 97.9,
+  "duration_last_sec": 112.3,
+  "signals_count": 68,
   "buy_signals": 14,
-  "sell_signals": 13,
+  "sell_signals": 14,
   "neutral_signals": 40,
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 56/100), correlación moderada entre mercados. Ajuste macro: MERVAL +0.3",
   "validacion_nivel": "OK",
   "runs_log": [
-    {
-      "ts": "2026-06-28",
-      "success": true,
-      "duration": 75.0
-    },
     {
       "ts": "2026-06-29",
       "success": true,
@@ -126,6 +121,11 @@
       "ts": "2026-07-05",
       "success": true,
       "duration": 74.1
+    },
+    {
+      "ts": "2026-07-06",
+      "success": true,
+      "duration": 112.3
     }
   ],
   "pipeline_runs_today": 1,
@@ -136,11 +136,11 @@
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 49.6,
+  "global_confidence_score": 49.8,
   "global_confidence_label": "🟠 Baja",
   "kill_switch_active": false,
   "optimized_weights_days": 14,
-  "exposure_factor_shadow": 0.592,
+  "exposure_factor_shadow": 0.596,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
     "MERVAL",
@@ -148,8 +148,8 @@
     "SP500"
   ],
   "backtest_ev_21d": null,
-  "backtest_total_trades": 603,
+  "backtest_total_trades": 671,
   "predictor_dir_acc": null,
   "predictor_mae": null,
-  "backtest_generated": "2026-07-05"
+  "backtest_generated": "2026-07-06"
 }
