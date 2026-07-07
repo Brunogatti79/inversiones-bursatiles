@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-06T21:08:51.129553",
-  "last_run_utc": "2026-07-07T00:08:51.129605",
-  "last_success": "2026-07-06T21:08:51.129553",
+  "last_run": "2026-07-07T14:39:42.246520",
+  "last_run_utc": "2026-07-07T17:39:42.246550",
+  "last_success": "2026-07-07T14:39:42.246520",
   "consecutive_failures": 0,
   "duration_history": [
-    35.5,
     41.7,
     73.7,
     74.1,
@@ -13,35 +12,21 @@
     124.6,
     59.6,
     445.4,
-    38.4
+    38.4,
+    91.8
   ],
-  "duration_avg_sec": 106.4,
+  "duration_avg_sec": 110.6,
   "duration_p95_sec": 285.0,
-  "duration_last_sec": 38.4,
+  "duration_last_sec": 91.8,
   "signals_count": 67,
-  "buy_signals": 13,
+  "buy_signals": 12,
   "sell_signals": 14,
-  "neutral_signals": 40,
+  "neutral_signals": 41,
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 56/100), correlación moderada entre mercados. Ajuste macro: MERVAL +0.3",
   "validacion_nivel": "OK",
   "runs_log": [
-    {
-      "ts": "2026-06-29",
-      "success": true,
-      "duration": 293.0
-    },
-    {
-      "ts": "2026-06-29",
-      "success": true,
-      "duration": 131.7
-    },
-    {
-      "ts": "2026-06-29",
-      "success": true,
-      "duration": 56.5
-    },
     {
       "ts": "2026-06-30",
       "success": true,
@@ -151,21 +136,26 @@
       "ts": "2026-07-06",
       "success": true,
       "duration": 38.4
+    },
+    {
+      "ts": "2026-07-07",
+      "success": true,
+      "duration": 91.8
     }
   ],
-  "pipeline_runs_today": 6,
-  "pipeline_runs_week": 25,
+  "pipeline_runs_today": 1,
+  "pipeline_runs_week": 23,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 61.7,
-  "global_confidence_label": "🟡 Reducida",
+  "global_confidence_score": 46.4,
+  "global_confidence_label": "🟠 Baja",
   "kill_switch_active": false,
   "optimized_weights_days": 14,
-  "exposure_factor_shadow": 0.834,
+  "exposure_factor_shadow": 0.528,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
     "MERVAL",
@@ -173,8 +163,8 @@
     "SP500"
   ],
   "backtest_ev_21d": null,
-  "backtest_total_trades": 670,
+  "backtest_total_trades": 737,
   "predictor_dir_acc": null,
   "predictor_mae": null,
-  "backtest_generated": "2026-07-06"
+  "backtest_generated": "2026-07-07"
 }
