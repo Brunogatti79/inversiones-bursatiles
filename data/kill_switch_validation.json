@@ -1,41 +1,41 @@
 {
-  "generated": "2026-07-03T15:06:45.169474",
-  "n_records": 3,
+  "generated": "2026-07-09T16:23:38.524609",
+  "n_records": 14,
   "forward_horizon_dias": 5,
   "global": {
     "active": {
-      "n": 0,
-      "avg_return_5d": null,
-      "pct_decline": null
+      "n": 2,
+      "avg_return_5d": 0.99,
+      "pct_decline": 50.0
     },
     "inactive": {
-      "n": 3,
-      "avg_return_5d": 1.38,
-      "pct_decline": 0.0
+      "n": 12,
+      "avg_return_5d": 1.19,
+      "pct_decline": 16.7
     }
   },
   "by_market": {
     "bovespa": {
       "active": {
-        "n": 0,
-        "avg_return_5d": null,
-        "pct_decline": null
+        "n": 1,
+        "avg_return_5d": -0.6,
+        "pct_decline": 100.0
       },
       "inactive": {
-        "n": 1,
-        "avg_return_5d": 0.46,
-        "pct_decline": 0.0
+        "n": 4,
+        "avg_return_5d": 0.15,
+        "pct_decline": 25.0
       }
     },
     "merval": {
       "active": {
-        "n": 0,
-        "avg_return_5d": null,
-        "pct_decline": null
+        "n": 1,
+        "avg_return_5d": 2.58,
+        "pct_decline": 0.0
       },
       "inactive": {
-        "n": 1,
-        "avg_return_5d": 1.97,
+        "n": 4,
+        "avg_return_5d": 2.23,
         "pct_decline": 0.0
       }
     },
@@ -46,9 +46,9 @@
         "pct_decline": null
       },
       "inactive": {
-        "n": 1,
-        "avg_return_5d": 1.71,
-        "pct_decline": 0.0
+        "n": 4,
+        "avg_return_5d": 1.21,
+        "pct_decline": 25.0
       }
     }
   }
