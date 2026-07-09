@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-08T21:11:03.954488",
-  "last_run_utc": "2026-07-09T00:11:03.954550",
-  "last_success": "2026-07-08T21:11:03.954488",
+  "last_run": "2026-07-09T14:35:28.542899",
+  "last_run_utc": "2026-07-09T17:35:28.542939",
+  "last_success": "2026-07-09T14:35:28.542899",
   "consecutive_failures": 0,
   "duration_history": [
-    74.3,
     47.3,
     35.9,
     34.6,
@@ -13,30 +12,21 @@
     41.5,
     70.7,
     34.1,
-    33.4
+    33.4,
+    76.2
   ],
-  "duration_avg_sec": 54.6,
-  "duration_p95_sec": 96.0,
-  "duration_last_sec": 33.4,
+  "duration_avg_sec": 53.1,
+  "duration_p95_sec": 88.2,
+  "duration_last_sec": 76.2,
   "signals_count": 67,
-  "buy_signals": 11,
+  "buy_signals": 13,
   "sell_signals": 14,
-  "neutral_signals": 42,
+  "neutral_signals": 40,
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 56/100), correlación moderada entre mercados. Ajuste macro: MERVAL +0.3",
   "validacion_nivel": "OK",
   "runs_log": [
-    {
-      "ts": "2026-07-01",
-      "success": true,
-      "duration": 366.4
-    },
-    {
-      "ts": "2026-07-01",
-      "success": true,
-      "duration": 282.5
-    },
     {
       "ts": "2026-07-02",
       "success": true,
@@ -186,21 +176,26 @@
       "ts": "2026-07-08",
       "success": true,
       "duration": 33.4
+    },
+    {
+      "ts": "2026-07-09",
+      "success": true,
+      "duration": 76.2
     }
   ],
-  "pipeline_runs_today": 6,
-  "pipeline_runs_week": 32,
+  "pipeline_runs_today": 1,
+  "pipeline_runs_week": 31,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 65.9,
+  "global_confidence_score": 50.9,
   "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
   "optimized_weights_days": 14,
-  "exposure_factor_shadow": 0.918,
+  "exposure_factor_shadow": 0.618,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
     "MERVAL",
@@ -208,8 +203,8 @@
     "SP500"
   ],
   "backtest_ev_21d": null,
-  "backtest_total_trades": 804,
+  "backtest_total_trades": 871,
   "predictor_dir_acc": null,
   "predictor_mae": null,
-  "backtest_generated": "2026-07-08"
+  "backtest_generated": "2026-07-09"
 }
