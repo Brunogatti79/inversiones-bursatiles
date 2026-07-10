@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-09T21:06:08.518470",
-  "last_run_utc": "2026-07-10T00:06:08.518501",
-  "last_success": "2026-07-09T21:06:08.518470",
+  "last_run": "2026-07-10T14:25:54.866110",
+  "last_run_utc": "2026-07-10T17:25:54.866141",
+  "last_success": "2026-07-10T14:25:54.866110",
   "consecutive_failures": 0,
   "duration_history": [
-    36.2,
     41.5,
     70.7,
     34.1,
@@ -13,50 +12,21 @@
     39.4,
     66.5,
     37.9,
-    40.6
+    40.6,
+    76.0
   ],
-  "duration_avg_sec": 52.4,
-  "duration_p95_sec": 88.2,
-  "duration_last_sec": 40.6,
+  "duration_avg_sec": 50.2,
+  "duration_p95_sec": 76.1,
+  "duration_last_sec": 76.0,
   "signals_count": 67,
-  "buy_signals": 13,
+  "buy_signals": 12,
   "sell_signals": 14,
-  "neutral_signals": 40,
+  "neutral_signals": 41,
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 56/100), correlación moderada entre mercados. Ajuste macro: MERVAL +0.3",
-  "validacion_nivel": "OK",
+  "validacion_nivel": "WARNING",
   "runs_log": [
-    {
-      "ts": "2026-07-02",
-      "success": true,
-      "duration": 376.0
-    },
-    {
-      "ts": "2026-07-02",
-      "success": true,
-      "duration": 309.4
-    },
-    {
-      "ts": "2026-07-02",
-      "success": true,
-      "duration": 89.9
-    },
-    {
-      "ts": "2026-07-02",
-      "success": true,
-      "duration": 32.5
-    },
-    {
-      "ts": "2026-07-02",
-      "success": true,
-      "duration": 71.7
-    },
-    {
-      "ts": "2026-07-02",
-      "success": true,
-      "duration": 33.7
-    },
     {
       "ts": "2026-07-03",
       "success": true,
@@ -201,21 +171,26 @@
       "ts": "2026-07-09",
       "success": true,
       "duration": 40.6
+    },
+    {
+      "ts": "2026-07-10",
+      "success": true,
+      "duration": 76.0
     }
   ],
-  "pipeline_runs_today": 5,
-  "pipeline_runs_week": 35,
+  "pipeline_runs_today": 1,
+  "pipeline_runs_week": 30,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 66.2,
-  "global_confidence_label": "🟡 Reducida",
+  "global_confidence_score": 43.6,
+  "global_confidence_label": "🟠 Baja",
   "kill_switch_active": false,
   "optimized_weights_days": 14,
-  "exposure_factor_shadow": 0.924,
+  "exposure_factor_shadow": 0.472,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
     "MERVAL",
