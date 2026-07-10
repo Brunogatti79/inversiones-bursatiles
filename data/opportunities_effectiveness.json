@@ -1,20 +1,20 @@
 {
   "status": "ok",
-  "generated": "2026-07-09T21:05:53.820937",
+  "generated": "2026-07-10T14:25:41.783699",
   "total_oportunidades_registradas": 60,
-  "total_evaluadas": 54,
+  "total_evaluadas": 55,
   "global": {
     "5d": {
-      "n": 37,
-      "win_rate_pct": 45.9,
-      "avg_ret_pct": -9.69,
+      "n": 38,
+      "win_rate_pct": 44.7,
+      "avg_ret_pct": -9.5,
       "best_pct": 282.01,
       "worst_pct": -60.09
     },
     "10d": {
-      "n": 9,
-      "win_rate_pct": 55.6,
-      "avg_ret_pct": 33.8,
+      "n": 10,
+      "win_rate_pct": 60.0,
+      "avg_ret_pct": 30.62,
       "best_pct": 312.24,
       "worst_pct": -5.65
     },
@@ -23,13 +23,19 @@
   "by_market": {
     "MERVAL": {
       "5d": {
-        "n": 7,
-        "win_rate_pct": 14.3,
-        "avg_ret_pct": -51.21,
+        "n": 8,
+        "win_rate_pct": 12.5,
+        "avg_ret_pct": -45.12,
         "best_pct": 1.18,
         "worst_pct": -60.09
       },
-      "10d": null,
+      "10d": {
+        "n": 1,
+        "win_rate_pct": 100.0,
+        "avg_ret_pct": 1.93,
+        "best_pct": 1.93,
+        "worst_pct": 1.93
+      },
       "21d": null
     },
     "BOVESPA": {
@@ -70,16 +76,16 @@
   "by_signal": {
     "🟢 COMPRA": {
       "5d": {
-        "n": 37,
-        "win_rate_pct": 45.9,
-        "avg_ret_pct": -9.69,
+        "n": 38,
+        "win_rate_pct": 44.7,
+        "avg_ret_pct": -9.5,
         "best_pct": 282.01,
         "worst_pct": -60.09
       },
       "10d": {
-        "n": 9,
-        "win_rate_pct": 55.6,
-        "avg_ret_pct": 33.8,
+        "n": 10,
+        "win_rate_pct": 60.0,
+        "avg_ret_pct": 30.62,
         "best_pct": 312.24,
         "worst_pct": -5.65
       },
