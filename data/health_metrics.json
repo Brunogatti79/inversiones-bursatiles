@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-14T20:56:01.666402",
-  "last_run_utc": "2026-07-14T23:56:01.666445",
-  "last_success": "2026-07-14T20:56:01.666402",
+  "last_run": "2026-07-15T10:28:39.711008",
+  "last_run_utc": "2026-07-15T13:28:39.711045",
+  "last_success": "2026-07-15T10:28:39.711008",
   "consecutive_failures": 0,
   "duration_history": [
-    43.2,
     44.8,
     60.1,
     90.1,
@@ -13,45 +12,21 @@
     37.1,
     70.5,
     35.9,
-    34.4
+    34.4,
+    72.7
   ],
-  "duration_avg_sec": 90.7,
-  "duration_p95_sec": 284.0,
-  "duration_last_sec": 34.4,
+  "duration_avg_sec": 53.8,
+  "duration_p95_sec": 81.7,
+  "duration_last_sec": 72.7,
   "signals_count": 67,
-  "buy_signals": 13,
+  "buy_signals": 12,
   "sell_signals": 12,
-  "neutral_signals": 42,
+  "neutral_signals": 43,
   "cross_market_regime": "RISK_ON",
   "cross_market_sp500_trend": "ALCISTA",
   "cross_market_narrative": "Apetito global por riesgo activo. S&P 500 alcista (score 58/100), correlación moderada entre mercados. Ajuste macro: MER",
   "validacion_nivel": "WARNING",
   "runs_log": [
-    {
-      "ts": "2026-07-07",
-      "success": true,
-      "duration": 91.8
-    },
-    {
-      "ts": "2026-07-07",
-      "success": true,
-      "duration": 74.3
-    },
-    {
-      "ts": "2026-07-07",
-      "success": true,
-      "duration": 47.3
-    },
-    {
-      "ts": "2026-07-07",
-      "success": true,
-      "duration": 35.9
-    },
-    {
-      "ts": "2026-07-07",
-      "success": true,
-      "duration": 34.6
-    },
     {
       "ts": "2026-07-08",
       "success": true,
@@ -196,21 +171,26 @@
       "ts": "2026-07-14",
       "success": true,
       "duration": 34.4
+    },
+    {
+      "ts": "2026-07-15",
+      "success": true,
+      "duration": 72.7
     }
   ],
-  "pipeline_runs_today": 5,
-  "pipeline_runs_week": 34,
-  "optimized_weights_age_h": 0.0,
+  "pipeline_runs_today": 1,
+  "pipeline_runs_week": 30,
+  "optimized_weights_age_h": 13.6,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 64.0,
+  "global_confidence_score": 56.3,
   "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
   "optimized_weights_days": 4,
-  "exposure_factor_shadow": 0.88,
+  "exposure_factor_shadow": 0.726,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
     "MERVAL",
@@ -218,8 +198,8 @@
     "SP500"
   ],
   "backtest_ev_21d": null,
-  "backtest_total_trades": 67,
+  "backtest_total_trades": 134,
   "predictor_dir_acc": null,
   "predictor_mae": null,
-  "backtest_generated": "2026-07-14"
+  "backtest_generated": "2026-07-15"
 }
