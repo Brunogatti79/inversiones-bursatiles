@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-17T20:54:31.546445",
-  "last_run_utc": "2026-07-17T23:54:31.546481",
-  "last_success": "2026-07-17T20:54:31.546445",
+  "last_run": "2026-07-18T17:31:17.360277",
+  "last_run_utc": "2026-07-18T20:31:17.360323",
+  "last_success": "2026-07-18T17:31:17.360277",
   "consecutive_failures": 0,
   "duration_history": [
-    75.1,
     31.9,
     56.9,
     34.0,
@@ -13,11 +12,12 @@
     33.4,
     62.3,
     33.7,
-    31.5
+    31.5,
+    77.4
   ],
-  "duration_avg_sec": 57.2,
-  "duration_p95_sec": 97.8,
-  "duration_last_sec": 31.5,
+  "duration_avg_sec": 55.3,
+  "duration_p95_sec": 87.2,
+  "duration_last_sec": 77.4,
   "signals_count": 67,
   "buy_signals": 13,
   "sell_signals": 11,
@@ -27,31 +27,6 @@
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 56/100), correlación moderada entre mercados. BOVESPA en modo idiosincr",
   "validacion_nivel": "WARNING",
   "runs_log": [
-    {
-      "ts": "2026-07-10",
-      "success": true,
-      "duration": 76.0
-    },
-    {
-      "ts": "2026-07-10",
-      "success": true,
-      "duration": 36.8
-    },
-    {
-      "ts": "2026-07-10",
-      "success": true,
-      "duration": 58.6
-    },
-    {
-      "ts": "2026-07-10",
-      "success": true,
-      "duration": 33.0
-    },
-    {
-      "ts": "2026-07-10",
-      "success": true,
-      "duration": 39.4
-    },
     {
       "ts": "2026-07-11",
       "success": true,
@@ -196,21 +171,26 @@
       "ts": "2026-07-17",
       "success": true,
       "duration": 31.5
+    },
+    {
+      "ts": "2026-07-18",
+      "success": true,
+      "duration": 77.4
     }
   ],
-  "pipeline_runs_today": 5,
-  "pipeline_runs_week": 34,
+  "pipeline_runs_today": 1,
+  "pipeline_runs_week": 30,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 64.1,
-  "global_confidence_label": "🟡 Reducida",
+  "global_confidence_score": 47.9,
+  "global_confidence_label": "🟠 Baja",
   "kill_switch_active": false,
-  "optimized_weights_days": 4,
-  "exposure_factor_shadow": 0.882,
+  "optimized_weights_days": 10,
+  "exposure_factor_shadow": 0.558,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
     "MERVAL",
@@ -218,8 +198,8 @@
     "SP500"
   ],
   "backtest_ev_21d": null,
-  "backtest_total_trades": 268,
+  "backtest_total_trades": 335,
   "predictor_dir_acc": null,
   "predictor_mae": null,
-  "backtest_generated": "2026-07-17"
+  "backtest_generated": "2026-07-18"
 }
