@@ -4963,5 +4963,52 @@
         "sp500_trend_score": 44.0
       }
     }
+  ],
+  "2026-07-22": [
+    {
+      "ticker": "EQTL3.SA",
+      "empresa": "Equatorial",
+      "mercado": "BOVESPA",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 38.83,
+      "entrada": 38.44,
+      "stop": 37.45,
+      "target": 40.49,
+      "riesgo_pct": 2.6,
+      "reward_pct": 5.3,
+      "rr_ratio": 4.38,
+      "score_macro": 38.9,
+      "score_tecnico": 52.5,
+      "score_fundamental": 72.8,
+      "score_final_v1": 46.2,
+      "asset_quality": 51.8,
+      "entry_score": 72.9,
+      "score_final_v2": 61.3,
+      "ranking_accionable": 58.6,
+      "volatility_score": 62.0,
+      "adx": 20.3,
+      "alignment_score": 50,
+      "alignment_label": "NEUTRAL",
+      "weekly_trend": "BAJISTA",
+      "monthly_trend": "LATERAL",
+      "rsi": 50.6,
+      "momentum_21d": 1.6,
+      "pred_5d": 0.53,
+      "pred_10d": 0.9,
+      "pred_21d": 1.3,
+      "pred_confidence": 0.591,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 67.2,
+      "index_snapshot": {
+        "actual": 173326.0,
+        "ret_dia": -0.03,
+        "ret_anual": 29.19
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 56.0
+      }
+    }
   ]
 }
