@@ -432,17 +432,112 @@ def generate_dashboard(
     hl_dur       = _health.get("duration_last_sec", 0)
     hl_buy       = _health.get("buy_signals", 0)
     hl_sla_color = {"OK": "#4ade80", "WARNING": "#fbbf24", "CRITICAL": "#f87171"}.get(hl_sla, "#888")
-    bt_ev        = None
-    bt_acc       = None
-    bt_trades    = _backtest.get("total_trades", 0)
-    for _row in _backtest.get("signal_summary", []):
-        if "COMPRA" in _row.get("signal", "") and _row.get("expected_value") is not None:
-            bt_ev  = _row["expected_value"]
-            break
-    _pred = _backtest.get("predictor", {})
-    bt_acc = _pred.get("directional_accuracy")
-    bt_ev_str  = f"{bt_ev:+.1f}%" if bt_ev is not None else "—"
-    bt_acc_str = f"{bt_acc:.0%}"  if bt_acc is not None else "—"
+
+    # ── Conclusiones del Modelo (a partir de backtest_results.json) ──────
+    # Elige el horizonte más largo con muestra disponible (21d > 10d > 5d),
+    # así el panel se vuelve más sólido solo, sin tocar código, a medida
+    # que se acumule historia real (h21d empieza a poblarse a los ~21 días).
+    def _mc_best_h(entry):
+        if not entry:
+            return None, None
+        for _lbl, _key in (("21d", "h21d"), ("10d", "h10d"), ("5d", "h5d")):
+            _h = entry.get(_key)
+            if _h and _h.get("samples", 0) > 0:
+                return _lbl, _h
+        return None, None
+
+    def _mc_chip(label, entry, min_n=15):
+        _hz, _h = _mc_best_h(entry)
+        if not _h:
+            return (f'<div style="background:#111116;border:1px solid #222;border-radius:6px;padding:6px 10px">'
+                     f'<div style="font-size:10px;color:#888;font-weight:600">{label}</div>'
+                     f'<div style="font-size:11px;color:#555;margin-top:2px">sin datos aún</div></div>')
+        _wr = _h.get("win_rate"); _ev = _h.get("expected_value"); _n = _h.get("samples", 0)
+        _wr_str = f"{_wr:.0%}" if _wr is not None else "—"
+        _ev_str = f"{_ev:+.1f}%" if _ev is not None else "—"
+        _ev_color = "#4ade80" if (_ev or 0) > 0 else "#f87171" if (_ev or 0) < 0 else "#888"
+        _warn = (f'<div style="font-size:9px;color:#fbbf24;margin-top:2px">⚠️ muestra chica (n&lt;{min_n})</div>'
+                  if _n < min_n else "")
+        return (
+            f'<div style="background:#111116;border:1px solid #222;border-radius:6px;padding:6px 10px">'
+            f'<div style="font-size:10px;color:#888;font-weight:600">{label} '
+            f'<span style="color:#444">· n={_n} ({_hz})</span></div>'
+            f'<div style="font-size:12px;color:#ccc;margin-top:2px">WR <b>{_wr_str}</b>'
+            f'&nbsp;&nbsp;EV <b style="color:{_ev_color}">{_ev_str}</b></div>'
+            f'{_warn}</div>'
+        )
+
+    try:
+        _by_conf = _backtest.get("by_confidence_label", {})
+        _conf_order = ["🟢 Alta", "🟡 Media", "🟠 Baja", "🔴 Muy baja"]
+        mc_chips_conf = "".join(_mc_chip(_l, _by_conf.get(_l)) for _l in _conf_order if _l in _by_conf)
+
+        _by_cons = _backtest.get("by_consenso", {})
+        _cons_keys = sorted(_by_cons.keys(),
+                             key=lambda k: (k != "Consenso", -_by_cons[k].get("count", 0)))
+        mc_chips_cons = "".join(_mc_chip(_k, _by_cons[_k]) for _k in _cons_keys)
+
+        _by_mkt = _backtest.get("by_market", {})
+        _mkt_order = ["MERVAL", "BOVESPA", "SP500"]
+        mc_chips_mkt = "".join(_mc_chip(_m, _by_mkt.get(_m)) for _m in _mkt_order if _m in _by_mkt)
+
+        _by_sec = _backtest.get("by_sector", {})
+        _sec_evs = []
+        for _sname, _sentry in _by_sec.items():
+            _shz, _sh = _mc_best_h(_sentry)
+            if _sh and _sh.get("samples", 0) >= 15 and _sh.get("expected_value") is not None:
+                _sec_evs.append((_sname, _sh["expected_value"], _sh["samples"]))
+        mc_best_sector_line = mc_worst_sector_line = ""
+        if _sec_evs:
+            _sec_evs.sort(key=lambda x: x[1])
+            _worst_name, _worst_ev, _worst_n = _sec_evs[0]
+            _best_name, _best_ev, _best_n = _sec_evs[-1]
+            mc_worst_sector_line = (f'<span style="color:#f87171">Peor sector: {_worst_name} '
+                                      f'(EV {_worst_ev:+.1f}%, n={_worst_n})</span>')
+            if _best_name != _worst_name:
+                mc_best_sector_line = (f'<span style="color:#4ade80">Mejor sector: {_best_name} '
+                                         f'(EV {_best_ev:+.1f}%, n={_best_n})</span>')
+
+        _st_exit = _backtest.get("stop_target", {}).get("by_exit_type", {})
+        _pct_target = _st_exit.get("target", {}).get("pct")
+        _pct_stop   = _st_exit.get("stop", {}).get("pct")
+        mc_exits_line = ""
+        if _pct_target is not None and _pct_stop is not None:
+            mc_exits_line = f'<span>Salidas: 🎯 target {_pct_target:.0f}% · 🛑 stop {_pct_stop:.0f}%</span>'
+
+        mc_days_hist = _backtest.get("days_history", 0)
+        mc_n_trades  = _backtest.get("total_trades", 0)
+        mc_disclaimer = ""
+        if mc_days_hist and mc_days_hist < 21:
+            mc_disclaimer = (
+                f'<div style="margin-top:6px;font-size:10px;color:#666;font-style:italic">'
+                f'⚠️ Con {mc_days_hist} días de historia todavía no hay retornos a 21 ruedas — '
+                f'estos números son a {("5" if mc_days_hist < 10 else "5-10")} ruedas y son preliminares. '
+                f'Se vuelven más sólidos a medida que se acumula historia real.</div>'
+            )
+
+        model_conclusions_html = (
+            '<div style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:10px 14px;flex:1;min-width:280px">'
+            '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+            '<span style="font-size:11px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.5px">'
+            '📊 Conclusiones del Modelo</span>'
+            f'<span style="font-size:10px;color:#555">{mc_n_trades} trades · {mc_days_hist}d historia</span>'
+            '</div>'
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px">'
+            f'{mc_chips_conf}{mc_chips_cons}{mc_chips_mkt}'
+            '</div>'
+            '<div style="margin-top:8px;font-size:10.5px;color:#888;display:flex;gap:14px;flex-wrap:wrap">'
+            f'{mc_exits_line}{mc_best_sector_line}{mc_worst_sector_line}'
+            '</div>'
+            f'{mc_disclaimer}'
+            '</div>'
+        )
+    except Exception as _e_mc:
+        logger.warning(f"No se pudo armar el panel de Conclusiones del Modelo: {_e_mc}")
+        model_conclusions_html = (
+            '<div style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:10px 14px;flex:1;min-width:280px">'
+            '<span style="font-size:11px;color:#666">📊 Conclusiones del Modelo: sin datos disponibles aún</span></div>'
+        )
 
     # ── Registro de Oportunidades (para medir efectividad real del proyecto) ──
     try:
@@ -716,14 +811,7 @@ def generate_dashboard(
       <span style="font-size:11px;color:#555">|</span>
       <span style="font-size:11px;color:#666">Compras: <b style="color:#4ade80">{hl_buy}</b></span>
     </div>
-    <div style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:8px 14px;display:flex;gap:8px;align-items:center">
-      <span style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Backtest</span>
-      <span style="font-size:11px;color:#666">EV compras 21d: <b style="color:{'#4ade80' if bt_ev and bt_ev>0 else '#f87171' if bt_ev and bt_ev<0 else '#888'}">{bt_ev_str}</b></span>
-      <span style="font-size:11px;color:#555">|</span>
-      <span style="font-size:11px;color:#666">Predictor acc: <b style="color:#a78bfa">{bt_acc_str}</b></span>
-      <span style="font-size:11px;color:#555">|</span>
-      <span style="font-size:11px;color:#666">n={bt_trades}</span>
-    </div>
+    {model_conclusions_html}
   </div>
 
   <!-- ── Cross-Market Context ── -->
