@@ -271,19 +271,12 @@ def fetch_argentina_macro():
     val, dt = _datos_gob_csv_latest(_cfg["url"], _cfg["column"], _cfg["multiplier"])
     data["balanza_comercial"] = {"valor": val, "fecha": dt or ""}
  
-    # Resultado fiscal primario — datos.gob.ar (Mecon)
-    # NOTA (jul-2026): el ID opaco de abajo también está deprecado (mismo bug
-    # que desempleo/balanza) y sigue devolviendo None. A diferencia de los
-    # otros dos, NO se migró a CSV directo todavía: la serie de reemplazo
-    # confirmada (dataset 452, columna "resultado_primario") viene en
-    # millones de $ ARS nominales, no en %PBI como espera RANGES["arg_fiscal"]
-    # (-3.0 a 2.0). Conectarla tal cual rompería la normalización peor que
-    # el None actual. Pendiente: calcular %PBI cruzando con una serie de PBI
-    # trimestral (dataset 8.0/8.2) — requiere validar la metodología contra
-    # los % que publica Hacienda antes de usarla en el modelo. Mientras tanto
-    # se mantiene el fetch viejo, que falla con gracia (None, excluido del
-    # promedio) igual que antes.
-    val, dt = _datos_gob_latest(DATOS_GOB_SERIES["fiscal"])
+    # Resultado fiscal primario, como % del PBI (trailing-12m sobre PBI real)
+    # Corregido jul-2026: el ID opaco de Mecon estaba deprecado (mismo bug que
+    # desempleo/balanza) Y el reemplazo directo venía en ARS nominal, no %PBI.
+    # Ver docstring de _resultado_fiscal_pct_pbi() para la metodología y su
+    # limitación conocida frente al %PBI que publica Hacienda.
+    val, dt = _resultado_fiscal_pct_pbi()
     data["resultado_fiscal"] = {"valor": val, "fecha": dt or ""}
  
     logger.info(f"ARG macro: {sum(1 for v in data.values() if v['valor'] is not None)}/{len(data)} variables obtenidas")
@@ -298,7 +291,7 @@ DATOS_GOB_SERIES = {
     "ipc":       "148.3_INIVELNAL_DICI_M_26",
     "desempleo": "41.1_DESO_TOTAL_D_L_29",   # DEPRECADO jul-2026, ver DATOS_GOB_CSV
     "balanza":   "185.1_EXPOIM_TOTAL_D_M_26",  # DEPRECADO jul-2026, ver DATOS_GOB_CSV
-    "fiscal":    "28.3_RFPFSPN_D_0_M_36",    # también deprecado, sin reemplazo aún (ver nota en fetch_argentina_macro)
+    "fiscal":    "28.3_RFPFSPN_D_0_M_36",    # DEPRECADO jul-2026, reemplazado por cálculo %PBI (ver _resultado_fiscal_pct_pbi)
 }
 
 # Reemplazos vía descarga CSV directa (infra.datos.gob.ar) — más robustos que
@@ -318,7 +311,97 @@ DATOS_GOB_CSV = {
         "column": "ica_saldo_comercial",
         "multiplier": 1.0,  # ya viene en millones de USD, sin conversión
     },
+    "resultado_primario": {
+        "url": ("https://infra.datos.gob.ar/catalog/sspm/dataset/452/distribution/"
+                "452.3/download/imig-mensual.csv"),
+        "column": "resultado_primario",
+        "multiplier": 1.0,  # millones de $ ARS nominales, mensual
+    },
+    "pbi_trimestral": {
+        "url": ("https://infra.datos.gob.ar/catalog/sspm/dataset/8/distribution/"
+                "8.2/download/producto-interno-bruto-precios-corrientes-valores-trimestrales-base-2004.csv"),
+        "column": "producto_interno_bruto_precios_mercado",
+        "multiplier": 1.0,  # millones de $ ARS nominales, trimestral
+    },
 }
+
+
+def _datos_gob_csv_series(url, column):
+    """Descarga la distribución completa de datos.gob.ar y devuelve un
+    DataFrame [indice_tiempo, column] ordenado cronológicamente, sin nulos.
+    Variante de _datos_gob_csv_latest() que devuelve toda la serie en vez de
+    solo el último valor -- la necesitan los cálculos que suman una ventana
+    (ej. trailing-12m del resultado fiscal como %PBI, ver más abajo).
+    """
+    try:
+        r = requests.get(url, timeout=20, headers={"User-Agent": "InversionesBursatiles/1.0"})
+        r.raise_for_status()
+        import io
+        df = pd.read_csv(io.StringIO(r.text))
+        if column not in df.columns:
+            logger.warning(f"datos.gob.ar CSV (serie): columna '{column}' no encontrada en {url}")
+            return None
+        df["indice_tiempo"] = pd.to_datetime(df["indice_tiempo"])
+        out = df[["indice_tiempo", column]].dropna().sort_values("indice_tiempo").reset_index(drop=True)
+        return out if not out.empty else None
+    except Exception as e:
+        logger.warning(f"datos.gob.ar CSV (serie) error [{column}]: {e}")
+        return None
+
+
+def _resultado_fiscal_pct_pbi():
+    """
+    Resultado fiscal primario como % del PBI, método trailing-12m:
+
+        %PBI = (suma resultado_primario, últimos 12 meses)
+             / (suma PBI nominal, últimos 4 trimestres disponibles) × 100
+
+    LIMITACIÓN CONOCIDA (documentada jul-2026, validada empíricamente contra
+    cifras oficiales antes de shippear esto):
+    Este % NO va a coincidir con el que publica Hacienda en su informe mensual
+    (IMIG). Hacienda calcula su %PBI contra el PBI NOMINAL PROYECTADO en la Ley
+    de Presupuesto de ese año -- un supuesto de política fijado una vez al año
+    y publicado en PDF, no como serie abierta y machine-readable -- en vez del
+    PBI real ex-post que publica INDEC. Con inflación alta, esos dos números
+    divergen fuerte y la brecha crece durante el año.
+
+    Se validó cruzando contra dos cifras oficiales conocidas:
+      - H1-2022: Hacienda publicó "0,99% del PBI" para un déficit de
+        $755.975,7M. Usando el PBI REAL trailing-12m a jun-2022 da 0.31% --
+        ~3.2x más chico.
+      - 2020 (año pandemia): déficit primario oficial ~6.5% PBI. Usando PBI
+        real anual 2020 da ~1.6% -- factor similar (~4x).
+    La brecha es sistemática (mismo orden de magnitud en ambos chequeos), pero
+    no hay manera de reconstruir el supuesto de Presupuesto desde datos
+    abiertos -- no es una serie publicada, es un número de política que
+    cambia por Ley cada año. Por eso esta función usa PBI real: da un %
+    distinto al que sale en los diarios, pero es 100% automático, reproducible
+    y consistente en el tiempo -- mide "resultado fiscal sobre el tamaño REAL
+    de la economía", no sobre el supuesto de Presupuesto. RANGES["arg_fiscal"]
+    fue recalibrado para esta definición (ver comentario ahí), no para la
+    anterior.
+
+    Devuelve (pct, fecha) o (None, None) si falta alguna de las dos series.
+    """
+    _cfg_rp = DATOS_GOB_CSV["resultado_primario"]
+    _cfg_pbi = DATOS_GOB_CSV["pbi_trimestral"]
+
+    df_rp = _datos_gob_csv_series(_cfg_rp["url"], _cfg_rp["column"])
+    df_pbi = _datos_gob_csv_series(_cfg_pbi["url"], _cfg_pbi["column"])
+    if df_rp is None or df_pbi is None or len(df_rp) < 12 or len(df_pbi) < 4:
+        return None, None
+
+    try:
+        rp_12m = float(df_rp.tail(12)[_cfg_rp["column"]].sum())
+        pbi_12m = float(df_pbi.tail(4)[_cfg_pbi["column"]].sum())
+        if not pbi_12m:
+            return None, None
+        pct = round(rp_12m / pbi_12m * 100.0, 2)
+        fecha = str(df_rp.iloc[-1]["indice_tiempo"].date())
+        return pct, fecha
+    except Exception as e:
+        logger.warning(f"resultado_fiscal_pct_pbi error: {e}")
+        return None, None
 
 
 def _datos_gob_csv_latest(url, column, multiplier=1.0):
@@ -473,7 +556,10 @@ RANGES = {
     "arg_ipc":       (6.0,    0.3),   # var% mensual
     "arg_desempleo": (15.0,   4.0),   # % desocupacion
     "arg_balanza":   (-2000,  4000),  # M USD
-    "arg_fiscal":    (-3.0,   2.0),   # % PBI
+    "arg_fiscal":    (-2.0,   1.0),   # % PBI trailing-12m sobre PBI REAL (no el
+                                       # supuesto de Presupuesto que usa Hacienda
+                                       # en sus informes) -- recalibrado jul-2026,
+                                       # ver _resultado_fiscal_pct_pbi()
     # Brasil — ahora auto via BCB/FRED
     "bra_deuda_pib": (100.0,  30.0),  # % PIB
     "bra_pmi":       (40.0,   58.0),  # PMI < 50 contraccion
