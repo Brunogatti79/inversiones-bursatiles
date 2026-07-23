@@ -37556,14 +37556,14 @@
    "signal": "🟢 COMPRA",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 65.4,
-   "score_v2": 51.1,
-   "score_macro": 31.4,
+   "score_v2": 51.5,
+   "score_macro": 33.2,
    "score_tecnico": 49.2,
    "score_fund": 83.9,
    "score_sectorial": 42.7,
-   "ranking": 50.0,
+   "ranking": 50.5,
    "rr_ratio": 3.83,
-   "asset_quality": 52.0,
+   "asset_quality": 52.8,
    "entry_score": 49.9,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -37581,12 +37581,15 @@
    "ret_anual": 26.26,
    "ret_mes": 0.03,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 7.4,
     "fundamental": 25.2,
     "sector": 4.3
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "LLY",
@@ -37608,15 +37611,15 @@
    "aq_weight_used": 0.5,
    "es_weight_used": 0.5,
    "consenso": "Consenso",
-   "confidence_score": 60.8,
+   "confidence_score": 60.9,
    "confidence_label": "🟡 Media",
    "atr_stop": 1119.41,
    "atr_target": 1236.29,
    "atr": 18.32,
-   "pred_5d": 1.43,
-   "pred_21d": 10.25,
+   "pred_5d": 1.52,
+   "pred_21d": 10.32,
    "pred_signal": "📈 SUBA",
-   "pred_confidence": 0.577,
+   "pred_confidence": 0.576,
    "rsi": 44.4,
    "ret_anual": 50.85,
    "ret_mes": 5.53,
@@ -37626,7 +37629,10 @@
     "fundamental": 17.0,
     "sector": 4.6
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "GE",
@@ -37653,10 +37659,10 @@
    "atr_stop": 329.43,
    "atr_target": 360.95,
    "atr": 4.94,
-   "pred_5d": -0.2,
-   "pred_21d": 2.16,
+   "pred_5d": -0.18,
+   "pred_21d": 2.13,
    "pred_signal": "➡️ LATERAL",
-   "pred_confidence": 0.565,
+   "pred_confidence": 0.564,
    "rsi": 26.0,
    "ret_anual": 32.4,
    "ret_mes": -3.8,
@@ -37666,7 +37672,10 @@
     "fundamental": 17.1,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "JNJ",
@@ -37693,10 +37702,10 @@
    "atr_stop": 243.01,
    "atr_target": 270.93,
    "atr": 4.25,
-   "pred_5d": -0.14,
-   "pred_21d": 5.59,
+   "pred_5d": -0.23,
+   "pred_21d": 5.6,
    "pred_signal": "📈 SUBA",
-   "pred_confidence": 0.569,
+   "pred_confidence": 0.568,
    "rsi": 51.4,
    "ret_anual": 56.03,
    "ret_mes": 10.52,
@@ -37706,7 +37715,10 @@
     "fundamental": 16.7,
     "sector": 4.6
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "IRSA.BA",
@@ -37717,7 +37729,7 @@
    "signal_v2": "⭐ COMPRA FUERTE",
    "score_v1": 60.3,
    "score_v2": 70.0,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 58.0,
    "score_fund": 88.6,
    "score_sectorial": 42.0,
@@ -37746,7 +37758,10 @@
     "fundamental": 26.6,
     "sector": 4.2
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "V",
@@ -37773,7 +37788,7 @@
    "atr_stop": 341.85,
    "atr_target": 369.94,
    "atr": 4.59,
-   "pred_5d": -0.04,
+   "pred_5d": -0.06,
    "pred_21d": 0.36,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.543,
@@ -37786,7 +37801,10 @@
     "fundamental": 17.1,
     "sector": 3.9
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "UNH",
@@ -37813,10 +37831,10 @@
    "atr_stop": 414.02,
    "atr_target": 452.26,
    "atr": 5.82,
-   "pred_5d": 0.17,
-   "pred_21d": 3.45,
+   "pred_5d": 0.19,
+   "pred_21d": 3.5,
    "pred_signal": "➡️ LATERAL",
-   "pred_confidence": 0.549,
+   "pred_confidence": 0.548,
    "rsi": 52.9,
    "ret_anual": 55.32,
    "ret_mes": 6.06,
@@ -37826,7 +37844,10 @@
     "fundamental": 15.3,
     "sector": 4.6
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "KO",
@@ -37853,8 +37874,8 @@
    "atr_stop": 78.64,
    "atr_target": 86.52,
    "atr": 1.2,
-   "pred_5d": 0.91,
-   "pred_21d": 2.51,
+   "pred_5d": 0.88,
+   "pred_21d": 2.47,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.605,
    "rsi": 52.7,
@@ -37866,7 +37887,10 @@
     "fundamental": 16.6,
     "sector": 4.3
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "TXAR.BA",
@@ -37877,7 +37901,7 @@
    "signal_v2": "⭐ COMPRA FUERTE",
    "score_v1": 56.5,
    "score_v2": 71.2,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 54.8,
    "score_fund": 83.7,
    "score_sectorial": 43.0,
@@ -37906,7 +37930,10 @@
     "fundamental": 25.1,
     "sector": 4.3
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "NVDA",
@@ -37933,7 +37960,7 @@
    "atr_stop": 202.4,
    "atr_target": 228.3,
    "atr": 4.06,
-   "pred_5d": -0.04,
+   "pred_5d": -0.06,
    "pred_21d": 0.36,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.543,
@@ -37946,7 +37973,10 @@
     "fundamental": 18.3,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "GS",
@@ -37973,8 +38003,8 @@
    "atr_stop": 1048.55,
    "atr_target": 1196.52,
    "atr": 24.58,
-   "pred_5d": 0.75,
-   "pred_21d": 2.18,
+   "pred_5d": 0.91,
+   "pred_21d": 2.16,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.574,
    "rsi": 61.4,
@@ -37986,7 +38016,10 @@
     "fundamental": 15.7,
     "sector": 3.9
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "AAPL",
@@ -38013,8 +38046,8 @@
    "atr_stop": 315.05,
    "atr_target": 341.37,
    "atr": 4.3,
-   "pred_5d": 1.1,
-   "pred_21d": 0.37,
+   "pred_5d": 1.08,
+   "pred_21d": 0.33,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.589,
    "rsi": 76.2,
@@ -38026,7 +38059,10 @@
     "fundamental": 16.7,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "BAC",
@@ -38066,7 +38102,10 @@
     "fundamental": 15.5,
     "sector": 3.9
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "JPM",
@@ -38093,8 +38132,8 @@
    "atr_stop": 339.8,
    "atr_target": 361.78,
    "atr": 3.77,
-   "pred_5d": -0.14,
-   "pred_21d": -0.53,
+   "pred_5d": -0.06,
+   "pred_21d": -0.48,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.591,
    "rsi": 64.8,
@@ -38106,7 +38145,10 @@
     "fundamental": 15.8,
     "sector": 3.9
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "TGSU2.BA",
@@ -38117,7 +38159,7 @@
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 55.3,
    "score_v2": 50.7,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 52.0,
    "score_fund": 81.5,
    "score_sectorial": 42.0,
@@ -38146,7 +38188,10 @@
     "fundamental": 24.4,
     "sector": 4.2
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "TECO2.BA",
@@ -38157,13 +38202,13 @@
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 55.3,
    "score_v2": 50.2,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 54.2,
    "score_fund": 79.3,
    "score_sectorial": 45.0,
    "ranking": 48.6,
    "rr_ratio": 0.71,
-   "asset_quality": 59.1,
+   "asset_quality": 59.2,
    "entry_score": 40.5,
    "aq_weight_used": 0.52,
    "es_weight_used": 0.48,
@@ -38186,7 +38231,10 @@
     "fundamental": 23.8,
     "sector": 4.5
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "VALO.BA",
@@ -38197,7 +38245,7 @@
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 55.0,
    "score_v2": 58.2,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 51.0,
    "score_fund": 81.5,
    "score_sectorial": 40.0,
@@ -38208,15 +38256,15 @@
    "aq_weight_used": 0.6,
    "es_weight_used": 0.4,
    "consenso": "Consenso",
-   "confidence_score": 50.9,
+   "confidence_score": 51.3,
    "confidence_label": "🟠 Baja",
    "atr_stop": 632.38,
    "atr_target": 649.14,
    "atr": 3.89,
-   "pred_5d": 0.7,
-   "pred_21d": 2.33,
+   "pred_5d": 0.69,
+   "pred_21d": 2.25,
    "pred_signal": "➡️ LATERAL",
-   "pred_confidence": 0.573,
+   "pred_confidence": 0.546,
    "rsi": 39.4,
    "ret_anual": 98.45,
    "ret_mes": -0.74,
@@ -38226,7 +38274,10 @@
     "fundamental": 24.4,
     "sector": 4.0
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "ALUA.BA",
@@ -38237,13 +38288,13 @@
    "signal_v2": "🟢 COMPRA",
    "score_v1": 54.7,
    "score_v2": 63.5,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 48.2,
    "score_fund": 81.0,
    "score_sectorial": 43.0,
-   "ranking": 61.7,
+   "ranking": 61.8,
    "rr_ratio": 3.86,
-   "asset_quality": 59.3,
+   "asset_quality": 59.4,
    "entry_score": 69.7,
    "aq_weight_used": 0.6,
    "es_weight_used": 0.4,
@@ -38266,7 +38317,10 @@
     "fundamental": 24.3,
     "sector": 4.3
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "WEGE3.SA",
@@ -38275,15 +38329,15 @@
    "precio": 46.74,
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
-   "score_v1": 54.6,
-   "score_v2": 54.0,
-   "score_macro": 31.4,
+   "score_v1": 54.7,
+   "score_v2": 54.4,
+   "score_macro": 33.2,
    "score_tecnico": 54.8,
    "score_fund": 82.3,
-   "score_sectorial": 42.1,
-   "ranking": 51.5,
+   "score_sectorial": 42.2,
+   "ranking": 52.0,
    "rr_ratio": 1.45,
-   "asset_quality": 51.4,
+   "asset_quality": 52.2,
    "entry_score": 57.2,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -38293,20 +38347,23 @@
    "atr_stop": 45.22,
    "atr_target": 49.14,
    "atr": 0.8,
-   "pred_5d": -0.85,
-   "pred_21d": 1.63,
+   "pred_5d": -0.9,
+   "pred_21d": 1.58,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.559,
    "rsi": 52.1,
    "ret_anual": 18.63,
    "ret_mes": 3.29,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 8.2,
     "fundamental": 24.7,
     "sector": 4.2
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "LOMA.BA",
@@ -38317,7 +38374,7 @@
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 54.2,
    "score_v2": 51.8,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 58.2,
    "score_fund": 74.4,
    "score_sectorial": 43.0,
@@ -38346,7 +38403,10 @@
     "fundamental": 22.3,
     "sector": 4.3
    },
-   "factor_dominante": "macro"
+   "factor_dominante": "macro",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "HAPV3.SA",
@@ -38356,14 +38416,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 54.1,
-   "score_v2": 54.0,
-   "score_macro": 31.4,
+   "score_v2": 54.4,
+   "score_macro": 33.2,
    "score_tecnico": 49.5,
    "score_fund": 75.4,
    "score_sectorial": 45.8,
-   "ranking": 46.8,
+   "ranking": 47.2,
    "rr_ratio": 1.3,
-   "asset_quality": 49.7,
+   "asset_quality": 50.5,
    "entry_score": 57.8,
    "aq_weight_used": 0.47,
    "es_weight_used": 0.53,
@@ -38381,12 +38441,15 @@
    "ret_anual": -63.4,
    "ret_mes": 7.35,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 7.4,
     "fundamental": 22.6,
     "sector": 4.6
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "PETR4.SA",
@@ -38396,14 +38459,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 53.9,
-   "score_v2": 45.1,
-   "score_macro": 31.4,
+   "score_v2": 45.5,
+   "score_macro": 33.2,
    "score_tecnico": 41.0,
    "score_fund": 86.9,
-   "score_sectorial": 40.8,
-   "ranking": 50.7,
+   "score_sectorial": 40.9,
+   "ranking": 51.2,
    "rr_ratio": 0.44,
-   "asset_quality": 52.7,
+   "asset_quality": 53.5,
    "entry_score": 35.7,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -38413,20 +38476,23 @@
    "atr_stop": 41.22,
    "atr_target": 44.21,
    "atr": 0.57,
-   "pred_5d": 1.46,
-   "pred_21d": 3.1,
+   "pred_5d": 1.44,
+   "pred_21d": 3.04,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.588,
    "rsi": 78.9,
    "ret_anual": 47.76,
    "ret_mes": 8.71,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 6.1,
     "fundamental": 26.1,
     "sector": 4.1
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "GOOGL",
@@ -38453,8 +38519,8 @@
    "atr_stop": 327.06,
    "atr_target": 365.13,
    "atr": 5.76,
-   "pred_5d": 2.33,
-   "pred_21d": 9.68,
+   "pred_5d": 2.46,
+   "pred_21d": 9.55,
    "pred_signal": "📈 SUBA",
    "pred_confidence": 0.585,
    "rsi": 38.1,
@@ -38466,7 +38532,10 @@
     "fundamental": 17.5,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "TRAN.BA",
@@ -38476,14 +38545,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "⭐ COMPRA FUERTE",
    "score_v1": 53.2,
-   "score_v2": 71.2,
-   "score_macro": 49.7,
+   "score_v2": 71.3,
+   "score_macro": 49.8,
    "score_tecnico": 47.5,
    "score_fund": 95.6,
    "score_sectorial": 44.0,
    "ranking": 65.5,
    "rr_ratio": 9.67,
-   "asset_quality": 64.6,
+   "asset_quality": 64.7,
    "entry_score": 81.1,
    "aq_weight_used": 0.6,
    "es_weight_used": 0.4,
@@ -38506,7 +38575,10 @@
     "fundamental": 28.7,
     "sector": 4.4
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "AMZN",
@@ -38546,7 +38618,10 @@
     "fundamental": 16.6,
     "sector": 4.3
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "BMA.BA",
@@ -38557,7 +38632,7 @@
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 52.9,
    "score_v2": 47.8,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 60.5,
    "score_fund": 69.8,
    "score_sectorial": 40.0,
@@ -38573,8 +38648,8 @@
    "atr_stop": 14873.26,
    "atr_target": 16350.37,
    "atr": 356.79,
-   "pred_5d": 1.27,
-   "pred_21d": -2.9,
+   "pred_5d": 1.2,
+   "pred_21d": -2.99,
    "pred_signal": "📉 BAJA",
    "pred_confidence": 0.55,
    "rsi": 61.4,
@@ -38586,7 +38661,10 @@
     "fundamental": 20.9,
     "sector": 4.0
    },
-   "factor_dominante": "macro"
+   "factor_dominante": "macro",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "CAT",
@@ -38613,8 +38691,8 @@
    "atr_stop": 852.23,
    "atr_target": 951.63,
    "atr": 15.58,
-   "pred_5d": -0.11,
-   "pred_21d": 9.49,
+   "pred_5d": -0.24,
+   "pred_21d": 9.5,
    "pred_signal": "📈 SUBA",
    "pred_confidence": 0.559,
    "rsi": 27.0,
@@ -38626,7 +38704,10 @@
     "fundamental": 16.0,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "CRES.BA",
@@ -38636,14 +38717,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 52.2,
-   "score_v2": 56.2,
-   "score_macro": 49.7,
+   "score_v2": 56.3,
+   "score_macro": 49.8,
    "score_tecnico": 53.2,
    "score_fund": 89.9,
    "score_sectorial": 42.0,
-   "ranking": 55.7,
+   "ranking": 55.8,
    "rr_ratio": 0.28,
-   "asset_quality": 62.2,
+   "asset_quality": 62.3,
    "entry_score": 47.3,
    "aq_weight_used": 0.6,
    "es_weight_used": 0.4,
@@ -38666,7 +38747,10 @@
     "fundamental": 27.0,
     "sector": 4.2
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "GGAL.BA",
@@ -38677,7 +38761,7 @@
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 52.2,
    "score_v2": 59.4,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 60.5,
    "score_fund": 67.4,
    "score_sectorial": 40.0,
@@ -38693,8 +38777,8 @@
    "atr_stop": 7958.39,
    "atr_target": 8779.15,
    "atr": 201.66,
-   "pred_5d": 3.04,
-   "pred_21d": 2.88,
+   "pred_5d": 3.12,
+   "pred_21d": 2.93,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.582,
    "rsi": 56.6,
@@ -38706,7 +38790,10 @@
     "fundamental": 20.2,
     "sector": 4.0
    },
-   "factor_dominante": "macro"
+   "factor_dominante": "macro",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "CEPU.BA",
@@ -38716,14 +38803,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟢 COMPRA",
    "score_v1": 52.1,
-   "score_v2": 63.9,
-   "score_macro": 49.7,
+   "score_v2": 64.0,
+   "score_macro": 49.8,
    "score_tecnico": 58.2,
    "score_fund": 87.0,
    "score_sectorial": 42.0,
-   "ranking": 58.3,
+   "ranking": 58.4,
    "rr_ratio": 0.61,
-   "asset_quality": 61.2,
+   "asset_quality": 61.3,
    "entry_score": 68.0,
    "aq_weight_used": 0.6,
    "es_weight_used": 0.4,
@@ -38746,7 +38833,10 @@
     "fundamental": 26.1,
     "sector": 4.2
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "BYMA.BA",
@@ -38757,7 +38847,7 @@
    "signal_v2": "🟢 COMPRA",
    "score_v1": 51.5,
    "score_v2": 60.2,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 54.2,
    "score_fund": 87.4,
    "score_sectorial": 40.0,
@@ -38773,8 +38863,8 @@
    "atr_stop": 286.86,
    "atr_target": 305.87,
    "atr": 4.41,
-   "pred_5d": 0.93,
-   "pred_21d": 2.39,
+   "pred_5d": 0.95,
+   "pred_21d": 2.48,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.579,
    "rsi": 44.5,
@@ -38786,47 +38876,10 @@
     "fundamental": 26.2,
     "sector": 4.0
    },
-   "factor_dominante": "fundamental"
-  },
-  {
-   "ticker": "LREN3.SA",
-   "mercado": "BOVESPA",
-   "sector": "CONSUMO",
-   "precio": 13.54,
-   "signal": "🟡 NEUTRAL/ESPERAR",
-   "signal_v2": "🟡 NEUTRAL/ESPERAR",
-   "score_v1": 50.5,
-   "score_v2": 55.0,
-   "score_macro": 31.4,
-   "score_tecnico": 46.8,
-   "score_fund": 84.7,
-   "score_sectorial": 42.7,
-   "ranking": 50.8,
-   "rr_ratio": 4.0,
-   "asset_quality": 52.3,
-   "entry_score": 58.4,
-   "aq_weight_used": 0.55,
-   "es_weight_used": 0.45,
-   "consenso": "Consenso",
-   "confidence_score": 51.2,
-   "confidence_label": "🟠 Baja",
-   "atr_stop": 12.99,
-   "atr_target": 14.41,
-   "atr": 0.29,
-   "pred_5d": -0.02,
-   "pred_21d": 1.95,
-   "pred_signal": "➡️ LATERAL",
-   "pred_confidence": 0.553,
-   "rsi": 34.3,
-   "ret_anual": -17.43,
-   "ret_mes": -4.4,
-   "factor_contrib": {
-    "macro": 14.1,
-    "tecnico": 7.0,
-    "fundamental": 25.4,
-    "sector": 4.3
-   },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "BBAR.BA",
@@ -38835,9 +38888,9 @@
    "precio": 10830.0,
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
-   "score_v1": 50.4,
+   "score_v1": 50.5,
    "score_v2": 46.6,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 60.5,
    "score_fund": 50.0,
    "score_sectorial": 40.0,
@@ -38853,8 +38906,8 @@
    "atr_stop": 10492.07,
    "atr_target": 11719.29,
    "atr": 296.43,
-   "pred_5d": 3.03,
-   "pred_21d": 12.99,
+   "pred_5d": 2.97,
+   "pred_21d": 13.1,
    "pred_signal": "📈 SUBA",
    "pred_confidence": 0.574,
    "rsi": 57.1,
@@ -38866,7 +38919,53 @@
     "fundamental": 15.0,
     "sector": 4.0
    },
-   "factor_dominante": "macro"
+   "factor_dominante": "macro",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
+  },
+  {
+   "ticker": "LREN3.SA",
+   "mercado": "BOVESPA",
+   "sector": "CONSUMO",
+   "precio": 13.54,
+   "signal": "🟡 NEUTRAL/ESPERAR",
+   "signal_v2": "🟡 NEUTRAL/ESPERAR",
+   "score_v1": 50.5,
+   "score_v2": 55.5,
+   "score_macro": 33.2,
+   "score_tecnico": 46.8,
+   "score_fund": 84.7,
+   "score_sectorial": 42.7,
+   "ranking": 51.3,
+   "rr_ratio": 4.0,
+   "asset_quality": 53.1,
+   "entry_score": 58.4,
+   "aq_weight_used": 0.55,
+   "es_weight_used": 0.45,
+   "consenso": "Consenso",
+   "confidence_score": 51.2,
+   "confidence_label": "🟠 Baja",
+   "atr_stop": 12.99,
+   "atr_target": 14.41,
+   "atr": 0.29,
+   "pred_5d": -0.02,
+   "pred_21d": 1.96,
+   "pred_signal": "➡️ LATERAL",
+   "pred_confidence": 0.553,
+   "rsi": 34.3,
+   "ret_anual": -17.43,
+   "ret_mes": -4.4,
+   "factor_contrib": {
+    "macro": 14.9,
+    "tecnico": 7.0,
+    "fundamental": 25.4,
+    "sector": 4.3
+   },
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "PG",
@@ -38893,10 +38992,10 @@
    "atr_stop": 142.33,
    "atr_target": 157.29,
    "atr": 2.08,
-   "pred_5d": -0.37,
-   "pred_21d": 1.69,
+   "pred_5d": -0.41,
+   "pred_21d": 1.64,
    "pred_signal": "➡️ LATERAL",
-   "pred_confidence": 0.575,
+   "pred_confidence": 0.576,
    "rsi": 52.9,
    "ret_anual": -3.75,
    "ret_mes": 0.98,
@@ -38906,7 +39005,10 @@
     "fundamental": 17.0,
     "sector": 4.3
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "MSFT",
@@ -38933,8 +39035,8 @@
    "atr_stop": 377.56,
    "atr_target": 411.82,
    "atr": 5.37,
-   "pred_5d": -0.53,
-   "pred_21d": -2.93,
+   "pred_5d": -0.55,
+   "pred_21d": -2.95,
    "pred_signal": "📉 BAJA",
    "pred_confidence": 0.578,
    "rsi": 54.0,
@@ -38946,7 +39048,10 @@
     "fundamental": 17.5,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "TSLA",
@@ -38986,7 +39091,10 @@
     "fundamental": 16.0,
     "sector": 4.3
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "YPFD.BA",
@@ -38995,9 +39103,9 @@
    "precio": 82500.0,
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟠 VENTA PARCIAL",
-   "score_v1": 49.3,
+   "score_v1": 49.4,
    "score_v2": 42.4,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 51.8,
    "score_fund": 50.0,
    "score_sectorial": 42.0,
@@ -39026,7 +39134,10 @@
     "fundamental": 15.0,
     "sector": 4.2
    },
-   "factor_dominante": "macro"
+   "factor_dominante": "macro",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "MIRG.BA",
@@ -39037,7 +39148,7 @@
    "signal_v2": "🟢 COMPRA",
    "score_v1": 49.0,
    "score_v2": 62.4,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 54.5,
    "score_fund": 71.4,
    "score_sectorial": 42.0,
@@ -39053,8 +39164,8 @@
    "atr_stop": 16561.01,
    "atr_target": 17361.79,
    "atr": 185.71,
-   "pred_5d": -0.08,
-   "pred_21d": -5.74,
+   "pred_5d": -0.06,
+   "pred_21d": -5.63,
    "pred_signal": "📉 BAJA",
    "pred_confidence": 0.562,
    "rsi": 51.9,
@@ -39066,7 +39177,10 @@
     "fundamental": 21.4,
     "sector": 4.2
    },
-   "factor_dominante": "macro"
+   "factor_dominante": "macro",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "META",
@@ -39093,8 +39207,8 @@
    "atr_stop": 587.66,
    "atr_target": 693.57,
    "atr": 16.6,
-   "pred_5d": 0.62,
-   "pred_21d": -1.87,
+   "pred_5d": 0.6,
+   "pred_21d": -1.79,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.565,
    "rsi": 53.1,
@@ -39106,7 +39220,10 @@
     "fundamental": 17.7,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "COME.BA",
@@ -39116,19 +39233,19 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟢 COMPRA",
    "score_v1": 48.7,
-   "score_v2": 68.6,
-   "score_macro": 49.7,
+   "score_v2": 68.7,
+   "score_macro": 49.8,
    "score_tecnico": 49.8,
    "score_fund": 72.4,
    "score_sectorial": 42.0,
-   "ranking": 58.3,
+   "ranking": 58.4,
    "rr_ratio": 1.31,
-   "asset_quality": 56.1,
+   "asset_quality": 56.2,
    "entry_score": 87.4,
    "aq_weight_used": 0.6,
    "es_weight_used": 0.4,
    "consenso": "Consenso",
-   "confidence_score": 86.6,
+   "confidence_score": 83.6,
    "confidence_label": "🟢 Alta",
    "atr_stop": 42.09,
    "atr_target": 44.81,
@@ -39146,7 +39263,10 @@
     "fundamental": 21.7,
     "sector": 4.2
    },
-   "factor_dominante": "macro"
+   "factor_dominante": "macro",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "SUZB3.SA",
@@ -39156,37 +39276,40 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟢 COMPRA",
    "score_v1": 48.7,
-   "score_v2": 62.0,
-   "score_macro": 31.4,
+   "score_v2": 62.4,
+   "score_macro": 33.2,
    "score_tecnico": 41.2,
    "score_fund": 82.2,
-   "score_sectorial": 42.0,
-   "ranking": 59.4,
+   "score_sectorial": 42.1,
+   "ranking": 59.8,
    "rr_ratio": 3.01,
-   "asset_quality": 51.3,
+   "asset_quality": 52.1,
    "entry_score": 75.0,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
    "consenso": "Consenso",
-   "confidence_score": 86.9,
+   "confidence_score": 86.8,
    "confidence_label": "🟢 Alta",
    "atr_stop": 41.98,
    "atr_target": 43.48,
    "atr": 0.26,
-   "pred_5d": -0.71,
+   "pred_5d": -0.69,
    "pred_21d": 0.33,
    "pred_signal": "➡️ LATERAL",
-   "pred_confidence": 0.557,
+   "pred_confidence": 0.556,
    "rsi": 75.4,
    "ret_anual": -14.97,
    "ret_mes": 1.47,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 6.2,
     "fundamental": 24.7,
     "sector": 4.2
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "HARG.BA",
@@ -39197,13 +39320,13 @@
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 48.5,
    "score_v2": 59.7,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 47.0,
    "score_fund": 72.7,
    "score_sectorial": 43.0,
    "ranking": 55.1,
    "rr_ratio": 0.65,
-   "asset_quality": 56.4,
+   "asset_quality": 56.5,
    "entry_score": 64.6,
    "aq_weight_used": 0.6,
    "es_weight_used": 0.4,
@@ -39226,7 +39349,10 @@
     "fundamental": 21.8,
     "sector": 4.3
    },
-   "factor_dominante": "macro"
+   "factor_dominante": "macro",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "SUPV.BA",
@@ -39237,7 +39363,7 @@
    "signal_v2": "🟢 COMPRA",
    "score_v1": 48.0,
    "score_v2": 61.9,
-   "score_macro": 49.7,
+   "score_macro": 49.8,
    "score_tecnico": 60.5,
    "score_fund": 65.4,
    "score_sectorial": 40.0,
@@ -39266,7 +39392,10 @@
     "fundamental": 19.6,
     "sector": 4.0
    },
-   "factor_dominante": "macro"
+   "factor_dominante": "macro",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "BPAC11.SA",
@@ -39276,14 +39405,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 47.7,
-   "score_v2": 51.9,
-   "score_macro": 31.4,
+   "score_v2": 52.4,
+   "score_macro": 33.2,
    "score_tecnico": 56.8,
    "score_fund": 78.5,
    "score_sectorial": 39.3,
-   "ranking": 51.7,
+   "ranking": 52.2,
    "rr_ratio": 1.31,
-   "asset_quality": 49.5,
+   "asset_quality": 50.3,
    "entry_score": 54.9,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -39293,7 +39422,7 @@
    "atr_stop": 54.66,
    "atr_target": 59.85,
    "atr": 0.99,
-   "pred_5d": 0.94,
+   "pred_5d": 0.98,
    "pred_21d": -0.08,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.563,
@@ -39301,12 +39430,15 @@
    "ret_anual": 47.66,
    "ret_mes": 9.21,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 8.5,
     "fundamental": 23.6,
     "sector": 3.9
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "EDN.BA",
@@ -39316,14 +39448,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 47.5,
-   "score_v2": 58.1,
-   "score_macro": 49.7,
+   "score_v2": 58.2,
+   "score_macro": 49.8,
    "score_tecnico": 55.8,
    "score_fund": 83.9,
    "score_sectorial": 44.0,
-   "ranking": 53.7,
+   "ranking": 53.8,
    "rr_ratio": 1.09,
-   "asset_quality": 60.5,
+   "asset_quality": 60.6,
    "entry_score": 54.6,
    "aq_weight_used": 0.6,
    "es_weight_used": 0.4,
@@ -39346,7 +39478,10 @@
     "fundamental": 25.2,
     "sector": 4.4
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_merval_v1",
+   "data_completeness": null
   },
   {
    "ticker": "BBDC4.SA",
@@ -39356,14 +39491,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 47.3,
-   "score_v2": 47.6,
-   "score_macro": 31.4,
+   "score_v2": 48.0,
+   "score_macro": 33.2,
    "score_tecnico": 54.2,
    "score_fund": 78.0,
    "score_sectorial": 39.3,
-   "ranking": 51.5,
+   "ranking": 52.0,
    "rr_ratio": 1.36,
-   "asset_quality": 49.3,
+   "asset_quality": 50.1,
    "entry_score": 45.5,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -39373,20 +39508,23 @@
    "atr_stop": 18.49,
    "atr_target": 19.55,
    "atr": 0.2,
-   "pred_5d": 0.21,
-   "pred_21d": 1.7,
+   "pred_5d": 0.24,
+   "pred_21d": 1.72,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.595,
    "rsi": 71.0,
    "ret_anual": 32.13,
    "ret_mes": 9.49,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 8.1,
     "fundamental": 23.4,
     "sector": 3.9
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "CYRE3.SA",
@@ -39396,14 +39534,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟢 COMPRA",
    "score_v1": 46.8,
-   "score_v2": 62.6,
-   "score_macro": 31.4,
+   "score_v2": 63.0,
+   "score_macro": 33.2,
    "score_tecnico": 49.5,
    "score_fund": 91.9,
-   "score_sectorial": 43.1,
-   "ranking": 55.5,
+   "score_sectorial": 43.0,
+   "ranking": 55.9,
    "rr_ratio": 0.96,
-   "asset_quality": 54.9,
+   "asset_quality": 55.7,
    "entry_score": 72.0,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -39421,12 +39559,15 @@
    "ret_anual": -10.23,
    "ret_mes": -1.75,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 7.4,
     "fundamental": 27.6,
     "sector": 4.3
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "BA",
@@ -39466,7 +39607,10 @@
     "fundamental": 15.8,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "BBAS3.SA",
@@ -39476,14 +39620,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 46.7,
-   "score_v2": 51.0,
-   "score_macro": 31.4,
+   "score_v2": 51.4,
+   "score_macro": 33.2,
    "score_tecnico": 54.5,
    "score_fund": 75.5,
    "score_sectorial": 39.3,
-   "ranking": 52.8,
+   "ranking": 53.2,
    "rr_ratio": 9.14,
-   "asset_quality": 48.4,
+   "asset_quality": 49.2,
    "entry_score": 54.2,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -39493,20 +39637,23 @@
    "atr_stop": 20.42,
    "atr_target": 21.89,
    "atr": 0.28,
-   "pred_5d": -0.49,
-   "pred_21d": -1.86,
+   "pred_5d": -0.39,
+   "pred_21d": -1.84,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.57,
    "rsi": 63.7,
    "ret_anual": 8.52,
    "ret_mes": 7.71,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 8.2,
     "fundamental": 22.6,
     "sector": 3.9
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "EGIE3.SA",
@@ -39516,14 +39663,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 46.6,
-   "score_v2": 53.3,
-   "score_macro": 31.4,
+   "score_v2": 53.8,
+   "score_macro": 33.2,
    "score_tecnico": 44.5,
    "score_fund": 78.0,
-   "score_sectorial": 44.6,
-   "ranking": 53.0,
+   "score_sectorial": 44.5,
+   "ranking": 53.5,
    "rr_ratio": 0.77,
-   "asset_quality": 50.3,
+   "asset_quality": 51.1,
    "entry_score": 57.0,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -39533,20 +39680,23 @@
    "atr_stop": 29.23,
    "atr_target": 31.58,
    "atr": 0.45,
-   "pred_5d": -0.86,
-   "pred_21d": 5.64,
+   "pred_5d": -0.95,
+   "pred_21d": 5.62,
    "pred_signal": "📈 SUBA",
    "pred_confidence": 0.596,
    "rsi": 33.8,
    "ret_anual": 6.0,
    "ret_mes": -11.46,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 6.7,
     "fundamental": 23.4,
-    "sector": 4.5
+    "sector": 4.4
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "EQTL3.SA",
@@ -39556,14 +39706,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 46.2,
-   "score_v2": 59.2,
-   "score_macro": 31.4,
+   "score_v2": 59.6,
+   "score_macro": 33.2,
    "score_tecnico": 52.5,
    "score_fund": 72.8,
-   "score_sectorial": 44.6,
-   "ranking": 56.6,
+   "score_sectorial": 44.5,
+   "ranking": 57.0,
    "rr_ratio": 3.37,
-   "asset_quality": 48.5,
+   "asset_quality": 49.3,
    "entry_score": 72.2,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -39573,20 +39723,23 @@
    "atr_stop": 37.97,
    "atr_target": 41.01,
    "atr": 0.53,
-   "pred_5d": 0.27,
+   "pred_5d": 0.26,
    "pred_21d": 1.64,
    "pred_signal": "➡️ LATERAL",
-   "pred_confidence": 0.592,
+   "pred_confidence": 0.593,
    "rsi": 50.3,
    "ret_anual": 20.93,
    "ret_mes": 4.52,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 7.9,
     "fundamental": 21.8,
-    "sector": 4.5
+    "sector": 4.4
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "XOM",
@@ -39613,8 +39766,8 @@
    "atr_stop": 149.21,
    "atr_target": 161.94,
    "atr": 2.08,
-   "pred_5d": 1.76,
-   "pred_21d": 2.19,
+   "pred_5d": 1.73,
+   "pred_21d": 2.16,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.58,
    "rsi": 81.2,
@@ -39626,7 +39779,10 @@
     "fundamental": 15.8,
     "sector": 4.0
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "VALE3.SA",
@@ -39636,14 +39792,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 45.8,
-   "score_v2": 50.6,
-   "score_macro": 31.4,
+   "score_v2": 51.1,
+   "score_macro": 33.2,
    "score_tecnico": 47.0,
    "score_fund": 74.5,
-   "score_sectorial": 42.0,
-   "ranking": 50.7,
+   "score_sectorial": 42.1,
+   "ranking": 51.2,
    "rr_ratio": 0.28,
-   "asset_quality": 48.6,
+   "asset_quality": 49.4,
    "entry_score": 53.1,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -39661,12 +39817,15 @@
    "ret_anual": 42.27,
    "ret_mes": -7.18,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 7.0,
     "fundamental": 22.3,
     "sector": 4.2
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "CVX",
@@ -39693,8 +39852,8 @@
    "atr_stop": 186.76,
    "atr_target": 201.87,
    "atr": 2.47,
-   "pred_5d": -0.42,
-   "pred_21d": 3.15,
+   "pred_5d": -0.53,
+   "pred_21d": 3.3,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.554,
    "rsi": 89.5,
@@ -39706,7 +39865,10 @@
     "fundamental": 15.3,
     "sector": 4.0
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "IBB",
@@ -39746,7 +39908,10 @@
     "fundamental": 10.0,
     "sector": 4.6
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "RENT3.SA",
@@ -39756,14 +39921,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 45.1,
-   "score_v2": 49.3,
-   "score_macro": 31.4,
+   "score_v2": 49.8,
+   "score_macro": 33.2,
    "score_tecnico": 42.2,
    "score_fund": 74.0,
-   "score_sectorial": 42.1,
-   "ranking": 46.8,
+   "score_sectorial": 42.2,
+   "ranking": 47.3,
    "rr_ratio": 0.34,
-   "asset_quality": 48.4,
+   "asset_quality": 49.3,
    "entry_score": 50.3,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
@@ -39773,20 +39938,23 @@
    "atr_stop": 35.66,
    "atr_target": 39.48,
    "atr": 0.78,
-   "pred_5d": 1.53,
-   "pred_21d": 8.04,
+   "pred_5d": 1.48,
+   "pred_21d": 8.28,
    "pred_signal": "📈 SUBA",
-   "pred_confidence": 0.561,
+   "pred_confidence": 0.56,
    "rsi": 31.1,
    "ret_anual": 8.94,
    "ret_mes": -7.87,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 6.3,
     "fundamental": 22.2,
     "sector": 4.2
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "MGLU3.SA",
@@ -39796,14 +39964,14 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 45.0,
-   "score_v2": 59.5,
-   "score_macro": 31.4,
+   "score_v2": 59.9,
+   "score_macro": 33.2,
    "score_tecnico": 44.8,
    "score_fund": 73.3,
    "score_sectorial": 42.7,
-   "ranking": 49.2,
+   "ranking": 49.7,
    "rr_ratio": 0.48,
-   "asset_quality": 48.3,
+   "asset_quality": 49.1,
    "entry_score": 69.4,
    "aq_weight_used": 0.47,
    "es_weight_used": 0.53,
@@ -39821,12 +39989,15 @@
    "ret_anual": -30.61,
    "ret_mes": 5.36,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 6.7,
     "fundamental": 22.0,
     "sector": 4.3
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "CSNA3.SA",
@@ -39836,21 +40007,21 @@
    "signal": "🟡 NEUTRAL/ESPERAR",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
    "score_v1": 45.0,
-   "score_v2": 57.6,
-   "score_macro": 31.4,
+   "score_v2": 58.0,
+   "score_macro": 33.2,
    "score_tecnico": 44.8,
    "score_fund": 64.0,
-   "score_sectorial": 42.0,
-   "ranking": 46.6,
+   "score_sectorial": 42.1,
+   "ranking": 47.1,
    "rr_ratio": 1.54,
-   "asset_quality": 44.9,
+   "asset_quality": 45.8,
    "entry_score": 68.8,
    "aq_weight_used": 0.47,
    "es_weight_used": 0.53,
    "consenso": "Consenso",
    "confidence_score": 60.9,
    "confidence_label": "🟡 Media",
-   "atr_stop": 5.21,
+   "atr_stop": 5.2,
    "atr_target": 5.78,
    "atr": 0.11,
    "pred_5d": -0.64,
@@ -39861,12 +40032,15 @@
    "ret_anual": -37.15,
    "ret_mes": 0.75,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 6.7,
     "fundamental": 19.2,
     "sector": 4.2
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "WMT",
@@ -39894,7 +40068,7 @@
    "atr_target": 114.59,
    "atr": 1.46,
    "pred_5d": -0.18,
-   "pred_21d": 2.02,
+   "pred_21d": 2.0,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.564,
    "rsi": 51.2,
@@ -39906,7 +40080,10 @@
     "fundamental": 16.0,
     "sector": 4.3
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "MELI",
@@ -39946,7 +40123,10 @@
     "fundamental": 10.0,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "COPX",
@@ -39986,47 +40166,53 @@
     "fundamental": 10.0,
     "sector": 4.1
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "SANB11.SA",
    "mercado": "BOVESPA",
    "sector": "FINANCIERO",
    "precio": 26.95,
-   "signal": "🔴 VENTA",
+   "signal": "🟠 VENTA PARCIAL",
    "signal_v2": "🟡 NEUTRAL/ESPERAR",
-   "score_v1": 34.9,
-   "score_v2": 49.6,
-   "score_macro": 31.4,
+   "score_v1": 35.5,
+   "score_v2": 50.1,
+   "score_macro": 33.2,
    "score_tecnico": 47.5,
    "score_fund": 50.0,
    "score_sectorial": 39.3,
-   "ranking": 49.7,
+   "ranking": 50.2,
    "rr_ratio": 2.22,
-   "asset_quality": 39.5,
+   "asset_quality": 40.3,
    "entry_score": 62.0,
    "aq_weight_used": 0.55,
    "es_weight_used": 0.45,
-   "consenso": "V1↓/V2↑ activo débil, buen entry",
+   "consenso": "Consenso",
    "confidence_score": 60.5,
    "confidence_label": "🟡 Media",
    "atr_stop": 26.05,
    "atr_target": 28.03,
    "atr": 0.38,
    "pred_5d": 0.17,
-   "pred_21d": 2.89,
+   "pred_21d": 2.82,
    "pred_signal": "➡️ LATERAL",
-   "pred_confidence": 0.6,
+   "pred_confidence": 0.599,
    "rsi": 56.7,
    "ret_anual": 10.2,
    "ret_mes": 2.0,
    "factor_contrib": {
-    "macro": 14.1,
+    "macro": 14.9,
     "tecnico": 7.1,
     "fundamental": 15.0,
     "sector": 3.9
    },
-   "factor_dominante": "fundamental"
+   "factor_dominante": "fundamental",
+   "model_version": "4.9",
+   "feature_set": "macro_bovespa_v1",
+   "data_completeness": null
   },
   {
    "ticker": "GLOB",
@@ -40066,7 +40252,10 @@
     "fundamental": 10.0,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "RIO",
@@ -40093,7 +40282,7 @@
    "atr_stop": 88.76,
    "atr_target": 98.2,
    "atr": 1.48,
-   "pred_5d": 0.07,
+   "pred_5d": -0.01,
    "pred_21d": 6.67,
    "pred_signal": "📈 SUBA",
    "pred_confidence": 0.564,
@@ -40106,7 +40295,10 @@
     "fundamental": 10.0,
     "sector": 4.1
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "QCOM",
@@ -40133,8 +40325,8 @@
    "atr_stop": 167.27,
    "atr_target": 194.83,
    "atr": 4.0,
-   "pred_5d": -1.4,
-   "pred_21d": 0.02,
+   "pred_5d": -1.26,
+   "pred_21d": 0.11,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.538,
    "rsi": 44.4,
@@ -40146,7 +40338,10 @@
     "fundamental": 10.0,
     "sector": 4.2
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "PBR",
@@ -40173,8 +40368,8 @@
    "atr_stop": 18.22,
    "atr_target": 19.97,
    "atr": 0.3,
-   "pred_5d": 3.01,
-   "pred_21d": 1.17,
+   "pred_5d": 2.96,
+   "pred_21d": 1.23,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.553,
    "rsi": 84.4,
@@ -40186,7 +40381,10 @@
     "fundamental": 10.0,
     "sector": 4.0
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   },
   {
    "ticker": "EWZ",
@@ -40213,8 +40411,8 @@
    "atr_stop": 35.51,
    "atr_target": 38.2,
    "atr": 0.44,
-   "pred_5d": 1.02,
-   "pred_21d": 3.82,
+   "pred_5d": 0.98,
+   "pred_21d": 3.93,
    "pred_signal": "➡️ LATERAL",
    "pred_confidence": 0.595,
    "rsi": 69.9,
@@ -40226,7 +40424,10 @@
     "fundamental": 10.0,
     "sector": 3.9
    },
-   "factor_dominante": "tecnico"
+   "factor_dominante": "tecnico",
+   "model_version": "4.9",
+   "feature_set": "macro_sp500_v1",
+   "data_completeness": null
   }
  ]
 }
