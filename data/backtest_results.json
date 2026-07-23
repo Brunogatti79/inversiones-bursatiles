@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-23T16:24:41.240712",
+  "generated": "2026-07-23T17:16:00.187929",
   "total_trades": 670,
   "days_history": 15,
   "by_signal": {
@@ -759,11 +759,167 @@
     }
   },
   "confidence_quantiles": {
-    "samples": 0,
-    "note": "Necesita ≥10 trades con confidence_score para un split confiable"
+    "samples": 469,
+    "top_20pct": {
+      "samples": 93,
+      "win_rate": 0.624,
+      "avg_ret": 0.57,
+      "avg_win": 2.62,
+      "avg_loss": 2.83,
+      "expected_value": 0.57,
+      "sharpe": 0.16,
+      "max_drawdown": -21.78,
+      "count": 93,
+      "horizontes_mezclados": null,
+      "confidence_score_range": [
+        64.8,
+        90.8
+      ]
+    },
+    "bottom_20pct": {
+      "samples": 93,
+      "win_rate": 0.333,
+      "avg_ret": -1.57,
+      "avg_win": 2.92,
+      "avg_loss": 3.82,
+      "expected_value": -1.57,
+      "sharpe": -0.38,
+      "max_drawdown": -79.62,
+      "count": 93,
+      "horizontes_mezclados": null,
+      "confidence_score_range": [
+        28.3,
+        47.9
+      ]
+    },
+    "middle_60pct": {
+      "samples": 283,
+      "win_rate": 0.47,
+      "avg_ret": -0.04,
+      "avg_win": 3.07,
+      "avg_loss": 2.8,
+      "expected_value": -0.04,
+      "sharpe": -0.01,
+      "max_drawdown": -72.51,
+      "count": 283,
+      "horizontes_mezclados": null,
+      "confidence_score_range": [
+        48.0,
+        64.8
+      ]
+    }
+  },
+  "confidence_calibration": {
+    "samples": 469,
+    "quintiles": [
+      {
+        "quintil": 1,
+        "rango_confianza": [
+          28.3,
+          48.0
+        ],
+        "count": 94,
+        "win_rate": 0.33,
+        "expected_value": -1.59,
+        "horizontes_mezclados": null
+      },
+      {
+        "quintil": 2,
+        "rango_confianza": [
+          48.0,
+          51.1
+        ],
+        "count": 94,
+        "win_rate": 0.521,
+        "expected_value": 0.23,
+        "horizontes_mezclados": null
+      },
+      {
+        "quintil": 3,
+        "rango_confianza": [
+          51.1,
+          53.9
+        ],
+        "count": 94,
+        "win_rate": 0.5,
+        "expected_value": 0.04,
+        "horizontes_mezclados": null
+      },
+      {
+        "quintil": 4,
+        "rango_confianza": [
+          54.7,
+          64.8
+        ],
+        "count": 94,
+        "win_rate": 0.394,
+        "expected_value": -0.35,
+        "horizontes_mezclados": null
+      },
+      {
+        "quintil": 5,
+        "rango_confianza": [
+          64.8,
+          90.8
+        ],
+        "count": 93,
+        "win_rate": 0.624,
+        "expected_value": 0.57,
+        "horizontes_mezclados": null
+      }
+    ],
+    "monotona": false,
+    "nota": "true = a mayor confianza, mayor win rate en TODO el rango (deseable) | false = hay al menos un quintil fuera de orden, revisar calibración | null = muy pocos quintiles con datos todavía para evaluar"
   },
   "ranking_top_vs_rest": {
-    "samples": 0,
-    "note": "Necesita ≥10 trades con ranking para un split confiable"
+    "samples": 469,
+    "top_20pct": {
+      "samples": 93,
+      "win_rate": 0.43,
+      "avg_ret": -0.16,
+      "avg_win": 2.8,
+      "avg_loss": 2.39,
+      "expected_value": -0.16,
+      "sharpe": -0.05,
+      "max_drawdown": -43.36,
+      "count": 93,
+      "horizontes_mezclados": null,
+      "ranking_range": [
+        55.8,
+        62.2
+      ]
+    },
+    "bottom_20pct": {
+      "samples": 93,
+      "win_rate": 0.452,
+      "avg_ret": -0.87,
+      "avg_win": 2.6,
+      "avg_loss": 3.72,
+      "expected_value": -0.87,
+      "sharpe": -0.21,
+      "max_drawdown": -77.78,
+      "count": 93,
+      "horizontes_mezclados": null,
+      "ranking_range": [
+        36.7,
+        45.9
+      ]
+    },
+    "middle_60pct": {
+      "samples": 283,
+      "win_rate": 0.495,
+      "avg_ret": -0.03,
+      "avg_win": 3.07,
+      "avg_loss": 3.07,
+      "expected_value": -0.03,
+      "sharpe": -0.01,
+      "max_drawdown": -70.35,
+      "count": 283,
+      "horizontes_mezclados": null,
+      "ranking_range": [
+        46.0,
+        55.8
+      ]
+    }
   }
 }
