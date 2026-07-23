@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
  
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 CACHE_PATH = "data/macro_auto_cache.json"
+LAST_KNOWN_PATH = "data/macro_last_known.json"
  
 # ─────────────────────────────────────────────
 # FRED (USA) — Federal Reserve Economic Data
@@ -239,7 +240,7 @@ def fetch_argentina_macro():
         data["brecha"] = {"valor": None, "fecha": ""}
  
     # IPC mensual — datos.gob.ar (INDEC)
-    try:
+    def _fetch_ipc():
         url_ipc = (
             "https://apis.datos.gob.ar/series/api/series/"
             "?ids=" + DATOS_GOB_SERIES["ipc"] + "&last=3&format=json"
@@ -249,34 +250,41 @@ def fetch_argentina_macro():
         pts = r_ipc.json().get("data", [])
         if len(pts) >= 2:
             ipc_var = round((float(pts[-1][1]) / float(pts[-2][1]) - 1) * 100, 2)
-            data["ipc"] = {"valor": ipc_var, "fecha": str(pts[-1][0])}
-        else:
-            data["ipc"] = {"valor": None, "fecha": ""}
-    except Exception as e:
-        logger.warning("IPC ARG error: " + str(e))
-        data["ipc"] = {"valor": None, "fecha": ""}
- 
+            return ipc_var, str(pts[-1][0])
+        return None, None
+
+    val, dt = _with_last_known_fallback("ipc", _fetch_ipc)
+    data["ipc"] = {"valor": val, "fecha": dt or ""}
+
     # Desempleo — datos.gob.ar (INDEC/EPH)
     # Corregido jul-2026: el ID opaco "41.1_DESO_TOTAL_D_L_29" quedó deprecado
     # (INDEC renumeró el dataset a 45.x) y devolvía 400 en cada corrida.
     # Se pasa a descarga CSV directa (más robusto: sobrevive renumeraciones
     # del ID opaco porque usa la URL de distribución + nombre de columna).
+    # Redundancia PRIMARY->SECONDARY (jul-2026): si igual falla, cae al
+    # último valor conocido en vez de None -- ver _with_last_known_fallback().
     _cfg = DATOS_GOB_CSV["desempleo"]
-    val, dt = _datos_gob_csv_latest(_cfg["url"], _cfg["column"], _cfg["multiplier"])
+    val, dt = _with_last_known_fallback(
+        "desempleo", lambda: _datos_gob_csv_latest(_cfg["url"], _cfg["column"], _cfg["multiplier"])
+    )
     data["desempleo"] = {"valor": val, "fecha": dt or ""}
- 
+
     # Balanza comercial — datos.gob.ar (INDEC)
-    # Corregido jul-2026, mismo motivo que desempleo arriba.
+    # Corregido jul-2026, mismo motivo que desempleo arriba. Mismo fallback.
     _cfg = DATOS_GOB_CSV["balanza"]
-    val, dt = _datos_gob_csv_latest(_cfg["url"], _cfg["column"], _cfg["multiplier"])
+    val, dt = _with_last_known_fallback(
+        "balanza_comercial", lambda: _datos_gob_csv_latest(_cfg["url"], _cfg["column"], _cfg["multiplier"])
+    )
     data["balanza_comercial"] = {"valor": val, "fecha": dt or ""}
- 
+
     # Resultado fiscal primario, como % del PBI (trailing-12m sobre PBI real)
     # Corregido jul-2026: el ID opaco de Mecon estaba deprecado (mismo bug que
     # desempleo/balanza) Y el reemplazo directo venía en ARS nominal, no %PBI.
     # Ver docstring de _resultado_fiscal_pct_pbi() para la metodología y su
-    # limitación conocida frente al %PBI que publica Hacienda.
-    val, dt = _resultado_fiscal_pct_pbi()
+    # limitación conocida frente al %PBI que publica Hacienda. Mismo
+    # fallback: si el cálculo falla (ej. una de las 2 fuentes caída), cae al
+    # último %PBI conocido en vez de perder la variable.
+    val, dt = _with_last_known_fallback("resultado_fiscal", _resultado_fiscal_pct_pbi)
     data["resultado_fiscal"] = {"valor": val, "fecha": dt or ""}
  
     logger.info(f"ARG macro: {sum(1 for v in data.values() if v['valor'] is not None)}/{len(data)} variables obtenidas")
@@ -298,6 +306,67 @@ DATOS_GOB_SERIES = {
 # el endpoint de series por ID opaco, que INDEC/Mecon deprecaron sin aviso
 # para varias series (hallazgo jul-2026). Confirmados en vivo, con datos
 # frescos, al momento de este fix.
+def _with_last_known_fallback(key, fetch_fn):
+    """
+    Redundancia PRIMARY -> SECONDARY (roadmap externo #3, jul-2026): envuelve
+    cualquier fetch_fn() de una variable macro que puede fallar. Si fetch_fn
+    devuelve un valor real, lo cachea en data/macro_last_known.json y lo
+    retorna tal cual. Si falla (None), cae al último valor cacheado -- con
+    una fecha de "stale_desde" para que se sepa que no es un dato fresco --
+    en vez de perder la variable por completo (None) como pasaba antes.
+
+    Generaliza el patrón que ya existía ad-hoc solo para TAMAR y reservas
+    (fallback hardcodeado a un valor fijo) para las 4 variables que ya
+    demostraron romperse este mes (desempleo, balanza, IPC, resultado
+    fiscal) -- sin necesidad de investigar y mantener un proveedor
+    alternativo real por variable, que sería mucho más esfuerzo para un
+    beneficio similar en la práctica: seguir teniendo ALGÚN dato razonable
+    en vez de None cuando la fuente primaria falla.
+
+    IMPORTANTE: esto es una red de seguridad para cortes de 1-2 corridas, no
+    una solución si la fuente está rota por semanas -- un valor de hace 2
+    meses usado como si fuera de hoy puede ser peor que excluir la variable,
+    así que hay un límite de antigüedad (ver MAX_STALE_DAYS) después del
+    cual se deja de usar el fallback y se vuelve a None con un warning.
+    """
+    from src.github_persistence import load_json, save_json
+
+    cache = load_json(LAST_KNOWN_PATH, default={})
+    MAX_STALE_DAYS = 45  # más viejo que esto, mejor excluir que usar un dato añejo
+
+    try:
+        val, fecha = fetch_fn()
+    except Exception as e:
+        logger.warning(f"[fallback] {key}: fetch primario lanzó excepción ({e})")
+        val, fecha = None, None
+
+    if val is not None:
+        cache[key] = {"valor": val, "fecha": fecha, "guardado_en": datetime.now().strftime("%Y-%m-%d")}
+        save_json(LAST_KNOWN_PATH, cache, message=f"auto: macro_last_known {key} {datetime.now().strftime('%Y-%m-%d')}")
+        return val, fecha
+
+    # Fetch primario falló -- probar el último valor conocido
+    cached = cache.get(key)
+    if not cached:
+        logger.warning(f"[fallback] {key}: fetch primario falló y no hay valor cacheado -- queda en None")
+        return None, None
+
+    try:
+        guardado = datetime.strptime(cached["guardado_en"], "%Y-%m-%d")
+        antiguedad_dias = (datetime.now() - guardado).days
+    except Exception:
+        antiguedad_dias = 9999
+
+    if antiguedad_dias > MAX_STALE_DAYS:
+        logger.warning(f"[fallback] {key}: fetch primario falló y el último valor cacheado tiene "
+                        f"{antiguedad_dias} días (> {MAX_STALE_DAYS}) -- demasiado viejo, queda en None")
+        return None, None
+
+    logger.warning(f"[fallback] {key}: fetch primario falló, usando último valor conocido "
+                    f"({cached['valor']}, cacheado hace {antiguedad_dias} días)")
+    return cached["valor"], cached.get("fecha", "")
+
+
 DATOS_GOB_CSV = {
     "desempleo": {
         "url": ("https://infra.datos.gob.ar/catalog/sspm/dataset/45/distribution/"
