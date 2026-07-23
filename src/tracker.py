@@ -91,6 +91,10 @@ def update_history(signals: list[dict], max_days: int = 60):
             # ── Factor decomposition (Fase 6) ──────────────────────────
             "factor_contrib":    s.get("factor_contrib", {}),
             "factor_dominante":  s.get("factor_dominante", ""),
+            # ── Trazabilidad de versión/datos (roadmap externo #5) ──────
+            "model_version":       s.get("model_version", ""),
+            "feature_set":         s.get("feature_set", ""),
+            "data_completeness":   s.get("data_completeness"),
         }
         for s in signals
     ]

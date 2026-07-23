@@ -201,6 +201,13 @@ def run_pipeline():
                 xlsx_signals = load_xlsx_signals(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")
                 xlsx_signals["macro_scores"] = macro_auto["macro_scores"]
                 xlsx_signals["macro_confidence"] = macro_auto.get("macro_confidence", {})
+                # Complemento nuevo (jul-2026, roadmap externo #5): cobertura real
+                # de variables macro por mercado (ej. "9/9"), para poder auditar
+                # después señal por señal con cuántos datos se calculó cada score
+                # -- sin esto, dos corridas del mismo MODEL_VERSION con distinta
+                # cobertura de datos (6/9 vs 9/9, como pasó con ARG este mes)
+                # producen señales distintas sin forma de distinguirlas.
+                xlsx_signals["variables_obtenidas"] = macro_auto.get("variables_obtenidas", {})
                 logger.info(f"Macro AUTO: {macro_auto['macro_scores']}")
             else:
                 raise ValueError("Macro auto sin datos")

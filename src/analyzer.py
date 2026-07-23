@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 import logging
 import json
 import os
+from src.model_version import MODEL_VERSION
  
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,13 @@ MACRO_SCORES_FALLBACK = {
     "BOVESPA": 52.5,
     "SP500": 44.1,
 }
+
+# Mapeo mercado (como lo usa analyze_market) -> clave de país que usa
+# macro_auto.py en variables_obtenidas ("ARG"/"BRA"/"USA"). Y el total de
+# variables macro que definen 9/9 hoy para cada mercado -- si en el futuro
+# se agrega/quita una variable macro a algún mercado, actualizar acá también.
+MARKET_TO_MACRO_KEY = {"MERVAL": "ARG", "BOVESPA": "BRA", "SP500": "USA"}
+MACRO_VARS_TOTAL = {"MERVAL": 9, "BOVESPA": 9, "SP500": 9}
  
 SECTOR_SCORES_DEFAULT = {
     "FINANCIERO": 40.0,
@@ -749,6 +757,18 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
     else:
         macro_score = MACRO_SCORES_FALLBACK.get(market, 44.0)
         logger.info(f"[{market}] Score macro fallback: {macro_score}")
+
+    # Data completeness (roadmap externo #5, jul-2026): cuántas de las
+    # variables macro esperadas para este mercado realmente se obtuvieron
+    # en esta corrida. Sin esto, dos corridas con el mismo MODEL_VERSION
+    # pero distinta cobertura de datos (ej. ARG con 6/9 vs 9/9, lo que pasó
+    # este mes con el bug de datos.gob.ar) producen señales distintas sin
+    # forma de distinguir "cambió el mercado" de "cambió cuántos datos
+    # tenía el modelo disponibles".
+    _macro_key = MARKET_TO_MACRO_KEY.get(market)
+    _vars_obtenidas = (xlsx_signals or {}).get("variables_obtenidas", {}).get(_macro_key)
+    _vars_total = MACRO_VARS_TOTAL.get(market, 9)
+    data_completeness = f"{_vars_obtenidas}/{_vars_total}" if _vars_obtenidas is not None else None
  
     # Seleccionar pesos optimizados para este mercado
     # Prioridad: archivo optimizados > hardcoded por mercado > default
@@ -1002,6 +1022,13 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "score_final": score_final,
             "signal": signal,
             "fecha": end.strftime("%Y-%m-%d"),
+            # ── Trazabilidad de versión/datos (roadmap externo #5, jul-2026) ──
+            # Sin esto, dos corridas del mismo modelo con distinta cobertura de
+            # datos macro (ej. 6/9 vs 9/9) producen señales distintas sin forma
+            # de auditar después por qué -- ver docstring más arriba.
+            "model_version": MODEL_VERSION,
+            "feature_set": f"macro_{market.lower()}_v1",
+            "data_completeness": data_completeness,
             # ── Fundamental detalle ──
             "upside_graham": upside_graham,
             "score_cuant": score_cuant,
