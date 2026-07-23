@@ -17,9 +17,70 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.8"
+MODEL_VERSION = "4.9"
 
 CHANGELOG = [
+    {
+        "version": "4.9",
+        "date": "2026-07-23",
+        "changes": [
+            "Fix CRITICO: 3 de 9 variables macro ARG venian devolviendo None en "
+            "cada corrida (confirmado en logs de produccion, no un hallazgo "
+            "teorico): desempleo, balanza_comercial y resultado_fiscal via "
+            "macro_auto.py::_datos_gob_latest() fallaban con 400 en el endpoint "
+            "apis.datos.gob.ar/series/api/series/?ids=<ID_OPACO> porque INDEC/"
+            "Mecon renumeraron los datasets (ej. desempleo paso de dataset '41.x' "
+            "a '45.x') sin avisar ni versionar el ID viejo. Confirmado con la API "
+            "en si funcionando bien contra IDs vigentes -- no era una caida "
+            "general del proveedor. compute_macro_scores() ya excluye con gracia "
+            "cualquier variable en None del promedio (nunca corrompio el score, "
+            "solo lo calculaba con 6/9 variables en vez de 9/9).",
+            "Fix: desempleo y balanza_comercial migrados a descarga CSV directa "
+            "de infra.datos.gob.ar (distribucion completa + nombre de columna) "
+            "en vez de pedir por ID opaco -- mas robusto a futuras "
+            "renumeraciones, porque solo depende del nombre de columna. Nuevas "
+            "funciones _datos_gob_csv_latest()/_datos_gob_csv_series() + dict "
+            "DATOS_GOB_CSV. Desempleo: dataset 45/dist 45.2 (trimestral, INDEC "
+            "EPH), columna eph_continua_tasa_desempleo_total, viene como "
+            "fraccion (x100 aplicado). Balanza: dataset 74/dist 74.3 (mensual), "
+            "columna ica_saldo_comercial, ya en millones USD.",
+            "Feat: resultado_fiscal ahora se CALCULA como %PBI trailing-12m "
+            "(resultado_primario mensual acumulado 12m / PBI nominal acumulado "
+            "ultimos 4 trimestres x100) en vez de depender de un ID roto -- "
+            "nueva funcion _resultado_fiscal_pct_pbi(). Fuentes: dataset 452/"
+            "452.3 (resultado_primario, validado EXACTO contra cifra oficial de "
+            "Hacienda: -$755.975,7M en H1-2022) y dataset 8/8.2 (PBI nominal "
+            "trimestral, INDEC). LIMITACION DOCUMENTADA Y VALIDADA: este %PBI "
+            "NO coincide con el que publica Hacienda en su informe mensual, "
+            "porque Hacienda usa el PBI PROYECTADO en la Ley de Presupuesto "
+            "(supuesto de politica anual, publicado en PDF, no como serie "
+            "abierta) en vez del PBI real ex-post de INDEC -- con inflacion "
+            "alta la brecha es sistematica (~3-4x mas chico usando PBI real, "
+            "confirmado en 2 puntos: H1-2022 y 2020). No hay forma de "
+            "reconstruir el supuesto de Presupuesto desde datos abiertos. "
+            "RANGES['arg_fiscal'] recalibrado de (-3.0, 2.0) a (-2.0, 1.0) "
+            "usando la distribucion historica real de este nuevo calculo "
+            "(-0.67% fines-2023 pre-Milei -> +0.35/0.45% sostenido 2024-2026, "
+            "consistente con el relato real de superavit fiscal).",
+            "Resultado neto: score macro ARG pasa de 6/9 a 9/9 variables "
+            "obtenidas por corrida.",
+            "Aclarado (no es un fix, es una limitacion permanente sin "
+            "solucion): USA ISM (serie FRED NAPMPI) esta ausente de FRED desde "
+            "2016 -- el ISM le pidio formalmente a FRED remover sus 22 series "
+            "por tema de licenciamiento, confirmado contra el comunicado "
+            "historico de FRED. No es un ID desactualizado, la serie no existe "
+            "mas en ninguna API publica de FRED. El codigo ya lo maneja bien "
+            "(excluido del promedio, no corrompe nada) -- USA macro sigue "
+            "8/9 de forma estructural, no por un bug propio.",
+            "Feat (mismo dia, sin bump aparte por ser UI/observabilidad pura): "
+            "panel 'Conclusiones del Modelo' en Panorama (generator.py) -- "
+            "breakdown por confianza del modelo, consenso V1/V2, mercado y "
+            "sector a partir de backtest_results.json, con leyenda WR/EV y "
+            "etiqueta de materialidad (+-0.5%) para no confundir ruido con "
+            "señal real dado el tamaño de muestra (14 dias de historia al "
+            "momento de este fix).",
+        ],
+    },
     {
         "version": "4.8",
         "date": "2026-06-26",
