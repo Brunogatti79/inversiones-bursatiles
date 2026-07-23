@@ -257,14 +257,32 @@ def fetch_argentina_macro():
         data["ipc"] = {"valor": None, "fecha": ""}
  
     # Desempleo — datos.gob.ar (INDEC/EPH)
-    val, dt = _datos_gob_latest(DATOS_GOB_SERIES["desempleo"])
+    # Corregido jul-2026: el ID opaco "41.1_DESO_TOTAL_D_L_29" quedó deprecado
+    # (INDEC renumeró el dataset a 45.x) y devolvía 400 en cada corrida.
+    # Se pasa a descarga CSV directa (más robusto: sobrevive renumeraciones
+    # del ID opaco porque usa la URL de distribución + nombre de columna).
+    _cfg = DATOS_GOB_CSV["desempleo"]
+    val, dt = _datos_gob_csv_latest(_cfg["url"], _cfg["column"], _cfg["multiplier"])
     data["desempleo"] = {"valor": val, "fecha": dt or ""}
  
     # Balanza comercial — datos.gob.ar (INDEC)
-    val, dt = _datos_gob_latest(DATOS_GOB_SERIES["balanza"])
+    # Corregido jul-2026, mismo motivo que desempleo arriba.
+    _cfg = DATOS_GOB_CSV["balanza"]
+    val, dt = _datos_gob_csv_latest(_cfg["url"], _cfg["column"], _cfg["multiplier"])
     data["balanza_comercial"] = {"valor": val, "fecha": dt or ""}
  
     # Resultado fiscal primario — datos.gob.ar (Mecon)
+    # NOTA (jul-2026): el ID opaco de abajo también está deprecado (mismo bug
+    # que desempleo/balanza) y sigue devolviendo None. A diferencia de los
+    # otros dos, NO se migró a CSV directo todavía: la serie de reemplazo
+    # confirmada (dataset 452, columna "resultado_primario") viene en
+    # millones de $ ARS nominales, no en %PBI como espera RANGES["arg_fiscal"]
+    # (-3.0 a 2.0). Conectarla tal cual rompería la normalización peor que
+    # el None actual. Pendiente: calcular %PBI cruzando con una serie de PBI
+    # trimestral (dataset 8.0/8.2) — requiere validar la metodología contra
+    # los % que publica Hacienda antes de usarla en el modelo. Mientras tanto
+    # se mantiene el fetch viejo, que falla con gracia (None, excluido del
+    # promedio) igual que antes.
     val, dt = _datos_gob_latest(DATOS_GOB_SERIES["fiscal"])
     data["resultado_fiscal"] = {"valor": val, "fecha": dt or ""}
  
@@ -278,10 +296,57 @@ def fetch_argentina_macro():
 
 DATOS_GOB_SERIES = {
     "ipc":       "148.3_INIVELNAL_DICI_M_26",
-    "desempleo": "41.1_DESO_TOTAL_D_L_29",
-    "balanza":   "185.1_EXPOIM_TOTAL_D_M_26",
-    "fiscal":    "28.3_RFPFSPN_D_0_M_36",
+    "desempleo": "41.1_DESO_TOTAL_D_L_29",   # DEPRECADO jul-2026, ver DATOS_GOB_CSV
+    "balanza":   "185.1_EXPOIM_TOTAL_D_M_26",  # DEPRECADO jul-2026, ver DATOS_GOB_CSV
+    "fiscal":    "28.3_RFPFSPN_D_0_M_36",    # también deprecado, sin reemplazo aún (ver nota en fetch_argentina_macro)
 }
+
+# Reemplazos vía descarga CSV directa (infra.datos.gob.ar) — más robustos que
+# el endpoint de series por ID opaco, que INDEC/Mecon deprecaron sin aviso
+# para varias series (hallazgo jul-2026). Confirmados en vivo, con datos
+# frescos, al momento de este fix.
+DATOS_GOB_CSV = {
+    "desempleo": {
+        "url": ("https://infra.datos.gob.ar/catalog/sspm/dataset/45/distribution/"
+                "45.2/download/tasa-desempleo-valores-trimestrales.csv"),
+        "column": "eph_continua_tasa_desempleo_total",
+        "multiplier": 100.0,  # la serie viene como fracción (0.078 = 7.8%)
+    },
+    "balanza": {
+        "url": ("https://infra.datos.gob.ar/catalog/sspm/dataset/74/distribution/"
+                "74.3/download/intercambio-comercial-argentino-mensual.csv"),
+        "column": "ica_saldo_comercial",
+        "multiplier": 1.0,  # ya viene en millones de USD, sin conversión
+    },
+}
+
+
+def _datos_gob_csv_latest(url, column, multiplier=1.0):
+    """Obtiene el último valor no nulo de una columna en un CSV de datos.gob.ar,
+    descargado directo de infra.datos.gob.ar (distribución completa) en vez de
+    pedir una serie puntual por ID opaco al endpoint /series/api/series/.
+    Ese endpoint por ID dejó de resolver varias series sin aviso (ver nota
+    jul-2026); la descarga por distribución es más estable porque solo
+    depende del nombre de columna, no de un identificador interno versionado.
+    """
+    try:
+        r = requests.get(url, timeout=20, headers={"User-Agent": "InversionesBursatiles/1.0"})
+        r.raise_for_status()
+        import io
+        df = pd.read_csv(io.StringIO(r.text))
+        if column not in df.columns:
+            logger.warning(f"datos.gob.ar CSV: columna '{column}' no encontrada en {url}")
+            return None, None
+        serie = df[["indice_tiempo", column]].dropna()
+        if serie.empty:
+            return None, None
+        last = serie.iloc[-1]
+        val = float(last[column]) * multiplier
+        fecha = str(last["indice_tiempo"])
+        return round(val, 2), fecha
+    except Exception as e:
+        logger.warning(f"datos.gob.ar CSV error [{column}]: {e}")
+        return None, None
 
 
 def _datos_gob_latest(series_id, n=3):
