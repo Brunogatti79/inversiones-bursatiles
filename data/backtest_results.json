@@ -1,10 +1,10 @@
 {
-  "generated": "2026-07-22T21:03:51.325337",
-  "total_trades": 603,
-  "days_history": 14,
+  "generated": "2026-07-23T10:24:12.746954",
+  "total_trades": 670,
+  "days_history": 15,
   "by_signal": {
     "🟡 NEUTRAL/ESPERAR": {
-      "count": 355,
+      "count": 395,
       "h5d": {
         "samples": 248,
         "win_rate": 0.44,
@@ -18,19 +18,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 204,
-        "avg_ret": -0.21,
-        "win_rate": 0.417,
-        "target_hits": 85,
-        "stop_hits": 119,
+        "samples": 215,
+        "avg_ret": -0.09,
+        "win_rate": 0.433,
+        "target_hits": 93,
+        "stop_hits": 122,
         "time_exits": 0,
-        "pct_target": 41.7,
-        "pct_stop": 58.3,
+        "pct_target": 43.3,
+        "pct_stop": 56.7,
         "pct_time": 0.0
       }
     },
     "🟢 COMPRA": {
-      "count": 143,
+      "count": 158,
       "h5d": {
         "samples": 103,
         "win_rate": 0.476,
@@ -44,19 +44,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 76,
-        "avg_ret": -1.05,
-        "win_rate": 0.329,
-        "target_hits": 25,
-        "stop_hits": 51,
+        "samples": 81,
+        "avg_ret": -0.99,
+        "win_rate": 0.333,
+        "target_hits": 27,
+        "stop_hits": 54,
         "time_exits": 0,
-        "pct_target": 32.9,
-        "pct_stop": 67.1,
+        "pct_target": 33.3,
+        "pct_stop": 66.7,
         "pct_time": 0.0
       }
     },
     "🟠 VENTA PARCIAL": {
-      "count": 101,
+      "count": 113,
       "h5d": {
         "samples": 79,
         "win_rate": 0.468,
@@ -70,14 +70,14 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 32,
-        "avg_ret": -2.9,
-        "win_rate": 0.219,
+        "samples": 34,
+        "avg_ret": -2.92,
+        "win_rate": 0.206,
         "target_hits": 7,
-        "stop_hits": 25,
+        "stop_hits": 27,
         "time_exits": 0,
-        "pct_target": 21.9,
-        "pct_stop": 78.1,
+        "pct_target": 20.6,
+        "pct_stop": 79.4,
         "pct_time": 0.0
       }
     },
@@ -110,7 +110,7 @@
   },
   "by_market": {
     "MERVAL": {
-      "count": 180,
+      "count": 200,
       "h5d": {
         "samples": 120,
         "win_rate": 0.367,
@@ -124,19 +124,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 116,
-        "avg_ret": -0.18,
-        "win_rate": 0.362,
-        "target_hits": 42,
-        "stop_hits": 74,
+        "samples": 124,
+        "avg_ret": -0.01,
+        "win_rate": 0.387,
+        "target_hits": 48,
+        "stop_hits": 76,
         "time_exits": 0,
-        "pct_target": 36.2,
-        "pct_stop": 63.8,
+        "pct_target": 38.7,
+        "pct_stop": 61.3,
         "pct_time": 0.0
       }
     },
     "BOVESPA": {
-      "count": 153,
+      "count": 170,
       "h5d": {
         "samples": 102,
         "win_rate": 0.402,
@@ -150,19 +150,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 89,
-        "avg_ret": -0.6,
-        "win_rate": 0.371,
-        "target_hits": 33,
-        "stop_hits": 56,
+        "samples": 92,
+        "avg_ret": -0.62,
+        "win_rate": 0.37,
+        "target_hits": 34,
+        "stop_hits": 58,
         "time_exits": 0,
-        "pct_target": 37.1,
-        "pct_stop": 62.9,
+        "pct_target": 37.0,
+        "pct_stop": 63.0,
         "pct_time": 0.0
       }
     },
     "SP500": {
-      "count": 270,
+      "count": 300,
       "h5d": {
         "samples": 210,
         "win_rate": 0.533,
@@ -176,21 +176,21 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 110,
-        "avg_ret": -1.15,
-        "win_rate": 0.4,
-        "target_hits": 44,
-        "stop_hits": 66,
+        "samples": 117,
+        "avg_ret": -1.08,
+        "win_rate": 0.402,
+        "target_hits": 47,
+        "stop_hits": 70,
         "time_exits": 0,
-        "pct_target": 40.0,
-        "pct_stop": 60.0,
+        "pct_target": 40.2,
+        "pct_stop": 59.8,
         "pct_time": 0.0
       }
     }
   },
   "by_sector": {
     "MATERIALES": {
-      "count": 81,
+      "count": 90,
       "h5d": {
         "samples": 56,
         "win_rate": 0.446,
@@ -204,19 +204,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 30,
-        "avg_ret": 0.09,
-        "win_rate": 0.367,
-        "target_hits": 11,
+        "samples": 33,
+        "avg_ret": 0.39,
+        "win_rate": 0.424,
+        "target_hits": 14,
         "stop_hits": 19,
         "time_exits": 0,
-        "pct_target": 36.7,
-        "pct_stop": 63.3,
+        "pct_target": 42.4,
+        "pct_stop": 57.6,
         "pct_time": 0.0
       }
     },
     "TELECOM": {
-      "count": 9,
+      "count": 10,
       "h5d": {
         "samples": 6,
         "win_rate": 0.833,
@@ -242,7 +242,7 @@
       }
     },
     "FINANCIERO": {
-      "count": 135,
+      "count": 150,
       "h5d": {
         "samples": 95,
         "win_rate": 0.558,
@@ -256,19 +256,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 68,
-        "avg_ret": 0.95,
-        "win_rate": 0.515,
+        "samples": 70,
+        "avg_ret": 0.83,
+        "win_rate": 0.5,
         "target_hits": 35,
-        "stop_hits": 33,
+        "stop_hits": 35,
         "time_exits": 0,
-        "pct_target": 51.5,
-        "pct_stop": 48.5,
+        "pct_target": 50.0,
+        "pct_stop": 50.0,
         "pct_time": 0.0
       }
     },
     "CONSUMO": {
-      "count": 90,
+      "count": 100,
       "h5d": {
         "samples": 65,
         "win_rate": 0.323,
@@ -282,19 +282,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 33,
-        "avg_ret": -4.34,
-        "win_rate": 0.03,
+        "samples": 36,
+        "avg_ret": -4.3,
+        "win_rate": 0.028,
         "target_hits": 1,
-        "stop_hits": 32,
+        "stop_hits": 35,
         "time_exits": 0,
-        "pct_target": 3.0,
-        "pct_stop": 97.0,
+        "pct_target": 2.8,
+        "pct_stop": 97.2,
         "pct_time": 0.0
       }
     },
     "UTILITIES": {
-      "count": 36,
+      "count": 40,
       "h5d": {
         "samples": 24,
         "win_rate": 0.208,
@@ -308,19 +308,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 30,
-        "avg_ret": -0.21,
-        "win_rate": 0.367,
-        "target_hits": 11,
+        "samples": 31,
+        "avg_ret": 0.06,
+        "win_rate": 0.387,
+        "target_hits": 12,
         "stop_hits": 19,
         "time_exits": 0,
-        "pct_target": 36.7,
-        "pct_stop": 63.3,
+        "pct_target": 38.7,
+        "pct_stop": 61.3,
         "pct_time": 0.0
       }
     },
     "INDUSTRIAL": {
-      "count": 45,
+      "count": 50,
       "h5d": {
         "samples": 33,
         "win_rate": 0.0,
@@ -334,11 +334,11 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 41,
-        "avg_ret": -4.66,
+        "samples": 43,
+        "avg_ret": -4.63,
         "win_rate": 0.0,
         "target_hits": 0,
-        "stop_hits": 41,
+        "stop_hits": 43,
         "time_exits": 0,
         "pct_target": 0.0,
         "pct_stop": 100.0,
@@ -346,7 +346,7 @@
       }
     },
     "SALUD": {
-      "count": 45,
+      "count": 50,
       "h5d": {
         "samples": 34,
         "win_rate": 0.294,
@@ -372,7 +372,7 @@
       }
     },
     "ENERGÍA": {
-      "count": 63,
+      "count": 70,
       "h5d": {
         "samples": 45,
         "win_rate": 0.867,
@@ -386,19 +386,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 56,
-        "avg_ret": 3.25,
-        "win_rate": 0.804,
-        "target_hits": 45,
+        "samples": 62,
+        "avg_ret": 3.38,
+        "win_rate": 0.823,
+        "target_hits": 51,
         "stop_hits": 11,
         "time_exits": 0,
-        "pct_target": 80.4,
-        "pct_stop": 19.6,
+        "pct_target": 82.3,
+        "pct_stop": 17.7,
         "pct_time": 0.0
       }
     },
     "INMOBILIARIO": {
-      "count": 27,
+      "count": 30,
       "h5d": {
         "samples": 18,
         "win_rate": 0.333,
@@ -424,7 +424,7 @@
       }
     },
     "TECNOLOGÍA": {
-      "count": 72,
+      "count": 80,
       "h5d": {
         "samples": 56,
         "win_rate": 0.589,
@@ -438,14 +438,14 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 20,
-        "avg_ret": -5.83,
-        "win_rate": 0.05,
+        "samples": 21,
+        "avg_ret": -5.7,
+        "win_rate": 0.048,
         "target_hits": 1,
-        "stop_hits": 19,
+        "stop_hits": 20,
         "time_exits": 0,
-        "pct_target": 5.0,
-        "pct_stop": 95.0,
+        "pct_target": 4.8,
+        "pct_stop": 95.2,
         "pct_time": 0.0
       }
     }
@@ -455,17 +455,17 @@
     "note": "Sin datos de predictor aún"
   },
   "stop_target": {
-    "samples": 315,
+    "samples": 333,
     "by_exit_type": {
       "target": {
-        "count": 119,
-        "pct": 37.8,
-        "avg_ret": 5.28
+        "count": 129,
+        "pct": 38.7,
+        "avg_ret": 5.23
       },
       "stop": {
-        "count": 196,
-        "pct": 62.2,
-        "avg_ret": -4.23
+        "count": 204,
+        "pct": 61.3,
+        "avg_ret": -4.21
       }
     },
     "avg_days_to_exit": 3.0
@@ -475,36 +475,36 @@
   "signal_summary": [
     {
       "signal": "🟡 NEUTRAL/ESPERAR",
-      "n": 355,
+      "n": 395,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
       "sharpe_21d": null,
       "max_drawdown": null,
-      "pct_target_hit": 41.7,
-      "pct_stop_hit": 58.3
+      "pct_target_hit": 43.3,
+      "pct_stop_hit": 56.7
     },
     {
       "signal": "🟢 COMPRA",
-      "n": 143,
+      "n": 158,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
       "sharpe_21d": null,
       "max_drawdown": null,
-      "pct_target_hit": 32.9,
-      "pct_stop_hit": 67.1
+      "pct_target_hit": 33.3,
+      "pct_stop_hit": 66.7
     },
     {
       "signal": "🟠 VENTA PARCIAL",
-      "n": 101,
+      "n": 113,
       "win_rate_21d": null,
       "avg_ret_21d": null,
       "expected_value": null,
       "sharpe_21d": null,
       "max_drawdown": null,
-      "pct_target_hit": 21.9,
-      "pct_stop_hit": 78.1
+      "pct_target_hit": 20.6,
+      "pct_stop_hit": 79.4
     },
     {
       "signal": "⭐ COMPRA FUERTE",
@@ -520,7 +520,7 @@
   ],
   "by_consenso": {
     "V1↑/V2↓ buen activo, mal timing": {
-      "count": 16,
+      "count": 17,
       "h5d": {
         "samples": 15,
         "win_rate": 0.333,
@@ -546,7 +546,7 @@
       }
     },
     "Consenso": {
-      "count": 546,
+      "count": 608,
       "h5d": {
         "samples": 385,
         "win_rate": 0.442,
@@ -560,19 +560,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 285,
-        "avg_ret": -0.66,
-        "win_rate": 0.361,
-        "target_hits": 103,
-        "stop_hits": 182,
+        "samples": 302,
+        "avg_ret": -0.58,
+        "win_rate": 0.371,
+        "target_hits": 112,
+        "stop_hits": 190,
         "time_exits": 0,
-        "pct_target": 36.1,
-        "pct_stop": 63.9,
+        "pct_target": 37.1,
+        "pct_stop": 62.9,
         "pct_time": 0.0
       }
     },
     "V1↓/V2↑ activo débil, buen entry": {
-      "count": 41,
+      "count": 45,
       "h5d": {
         "samples": 32,
         "win_rate": 0.688,
@@ -586,21 +586,21 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 23,
-        "avg_ret": 0.65,
-        "win_rate": 0.652,
-        "target_hits": 15,
+        "samples": 24,
+        "avg_ret": 0.87,
+        "win_rate": 0.667,
+        "target_hits": 16,
         "stop_hits": 8,
         "time_exits": 0,
-        "pct_target": 65.2,
-        "pct_stop": 34.8,
+        "pct_target": 66.7,
+        "pct_stop": 33.3,
         "pct_time": 0.0
       }
     }
   },
   "consenso_vs_no": {
     "Sin consenso": {
-      "count": 57,
+      "count": 62,
       "h5d": {
         "samples": 47,
         "win_rate": 0.574,
@@ -614,19 +614,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 30,
-        "avg_ret": -0.46,
-        "win_rate": 0.533,
-        "target_hits": 16,
+        "samples": 31,
+        "avg_ret": -0.25,
+        "win_rate": 0.548,
+        "target_hits": 17,
         "stop_hits": 14,
         "time_exits": 0,
-        "pct_target": 53.3,
-        "pct_stop": 46.7,
+        "pct_target": 54.8,
+        "pct_stop": 45.2,
         "pct_time": 0.0
       }
     },
     "Consenso": {
-      "count": 546,
+      "count": 608,
       "h5d": {
         "samples": 385,
         "win_rate": 0.442,
@@ -640,21 +640,21 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 285,
-        "avg_ret": -0.66,
-        "win_rate": 0.361,
-        "target_hits": 103,
-        "stop_hits": 182,
+        "samples": 302,
+        "avg_ret": -0.58,
+        "win_rate": 0.371,
+        "target_hits": 112,
+        "stop_hits": 190,
         "time_exits": 0,
-        "pct_target": 36.1,
-        "pct_stop": 63.9,
+        "pct_target": 37.1,
+        "pct_stop": 62.9,
         "pct_time": 0.0
       }
     }
   },
   "by_confidence_label": {
     "🟡 Media": {
-      "count": 183,
+      "count": 200,
       "h5d": {
         "samples": 131,
         "win_rate": 0.435,
@@ -668,19 +668,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 93,
-        "avg_ret": -0.41,
-        "win_rate": 0.387,
-        "target_hits": 36,
-        "stop_hits": 57,
+        "samples": 97,
+        "avg_ret": -0.26,
+        "win_rate": 0.402,
+        "target_hits": 39,
+        "stop_hits": 58,
         "time_exits": 0,
-        "pct_target": 38.7,
-        "pct_stop": 61.3,
+        "pct_target": 40.2,
+        "pct_stop": 59.8,
         "pct_time": 0.0
       }
     },
     "🟠 Baja": {
-      "count": 353,
+      "count": 394,
       "h5d": {
         "samples": 252,
         "win_rate": 0.44,
@@ -694,19 +694,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 193,
-        "avg_ret": -0.56,
-        "win_rate": 0.373,
-        "target_hits": 72,
-        "stop_hits": 121,
+        "samples": 202,
+        "avg_ret": -0.51,
+        "win_rate": 0.381,
+        "target_hits": 77,
+        "stop_hits": 125,
         "time_exits": 0,
-        "pct_target": 37.3,
-        "pct_stop": 62.7,
+        "pct_target": 38.1,
+        "pct_stop": 61.9,
         "pct_time": 0.0
       }
     },
     "🟢 Alta": {
-      "count": 49,
+      "count": 55,
       "h5d": {
         "samples": 36,
         "win_rate": 0.694,
@@ -720,19 +720,19 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 20,
-        "avg_ret": 0.34,
-        "win_rate": 0.5,
-        "target_hits": 10,
-        "stop_hits": 10,
+        "samples": 24,
+        "avg_ret": -0.06,
+        "win_rate": 0.458,
+        "target_hits": 11,
+        "stop_hits": 13,
         "time_exits": 0,
-        "pct_target": 50.0,
-        "pct_stop": 50.0,
+        "pct_target": 45.8,
+        "pct_stop": 54.2,
         "pct_time": 0.0
       }
     },
     "🔴 Muy baja": {
-      "count": 18,
+      "count": 21,
       "h5d": {
         "samples": 13,
         "win_rate": 0.308,
@@ -746,14 +746,14 @@
       "h10d": null,
       "h21d": null,
       "stop_target": {
-        "samples": 9,
-        "avg_ret": -6.77,
-        "win_rate": 0.111,
-        "target_hits": 1,
+        "samples": 10,
+        "avg_ret": -5.48,
+        "win_rate": 0.2,
+        "target_hits": 2,
         "stop_hits": 8,
         "time_exits": 0,
-        "pct_target": 11.1,
-        "pct_stop": 88.9,
+        "pct_target": 20.0,
+        "pct_stop": 80.0,
         "pct_time": 0.0
       }
     }
