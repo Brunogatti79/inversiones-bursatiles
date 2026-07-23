@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-22T21:04:08.463955",
-  "last_run_utc": "2026-07-23T00:04:08.464031",
-  "last_success": "2026-07-22T21:04:08.463955",
+  "last_run": "2026-07-23T10:24:28.249805",
+  "last_run_utc": "2026-07-23T13:24:28.249836",
+  "last_success": "2026-07-23T10:24:28.249805",
   "consecutive_failures": 0,
   "duration_history": [
-    34.6,
     71.0,
     37.2,
     36.8,
@@ -13,50 +12,21 @@
     42.0,
     59.0,
     40.5,
-    39.8
+    39.8,
+    91.5
   ],
-  "duration_avg_sec": 56.1,
-  "duration_p95_sec": 107.6,
-  "duration_last_sec": 39.8,
+  "duration_avg_sec": 60.7,
+  "duration_p95_sec": 110.5,
+  "duration_last_sec": 91.5,
   "signals_count": 67,
   "buy_signals": 5,
-  "sell_signals": 10,
-  "neutral_signals": 52,
+  "sell_signals": 11,
+  "neutral_signals": 51,
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 56/100), correlación moderada entre mercados. BOVESPA en modo idiosincr",
   "validacion_nivel": "WARNING",
   "runs_log": [
-    {
-      "ts": "2026-07-15",
-      "success": true,
-      "duration": 72.7
-    },
-    {
-      "ts": "2026-07-15",
-      "success": true,
-      "duration": 38.1
-    },
-    {
-      "ts": "2026-07-15",
-      "success": true,
-      "duration": 33.9
-    },
-    {
-      "ts": "2026-07-15",
-      "success": true,
-      "duration": 79.1
-    },
-    {
-      "ts": "2026-07-15",
-      "success": true,
-      "duration": 39.9
-    },
-    {
-      "ts": "2026-07-15",
-      "success": true,
-      "duration": 98.7
-    },
     {
       "ts": "2026-07-16",
       "success": true,
@@ -201,21 +171,26 @@
       "ts": "2026-07-22",
       "success": true,
       "duration": 39.8
+    },
+    {
+      "ts": "2026-07-23",
+      "success": true,
+      "duration": 91.5
     }
   ],
-  "pipeline_runs_today": 6,
-  "pipeline_runs_week": 35,
-  "optimized_weights_age_h": 0.0,
+  "pipeline_runs_today": 1,
+  "pipeline_runs_week": 30,
+  "optimized_weights_age_h": 0.1,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 68.0,
+  "global_confidence_score": 60.8,
   "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
   "optimized_weights_days": 11,
-  "exposure_factor_shadow": 1.056,
+  "exposure_factor_shadow": 0.898,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
     "MERVAL",
@@ -223,8 +198,8 @@
     "SP500"
   ],
   "backtest_ev_21d": null,
-  "backtest_total_trades": 603,
+  "backtest_total_trades": 670,
   "predictor_dir_acc": null,
   "predictor_mae": null,
-  "backtest_generated": "2026-07-22"
+  "backtest_generated": "2026-07-23"
 }
