@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-07-23 14:05",
+  "last_updated": "2026-07-23 15:18",
   "capital_usd_ref": 9263.04,
   "capital_usd": 8703.68,
   "positions": [
@@ -365,6 +365,26 @@
       "valor_actual_ars": 611200.0,
       "rend_pct": 0.15,
       "precio_metodo": "merval_signal_ccl"
+    },
+    {
+      "ticker": "TSLA",
+      "nombre": "Tesla",
+      "mercado": "SP500",
+      "moneda": "USD",
+      "precio_compra": 26.36,
+      "precio_compra_usd": 26.36,
+      "precio_actual_usd": 26.36,
+      "cantidad": 19,
+      "valor_inicial_usd": 500.84,
+      "valor_actual_usd": 500.84,
+      "rend_usd": 0,
+      "fecha_compra": "2026-07-23",
+      "stop_loss": 348.02,
+      "target": 417.69,
+      "stop_metodo": "atr_nyse_aplicado_a_cedear_close_proxy",
+      "precio_fuente": "SP500_CSV",
+      "ratio_cedear": 1.0,
+      "notas": "Compra 2026-07-23 via Dashboard — SP500_CSV"
     }
   ],
   "reglas": {
