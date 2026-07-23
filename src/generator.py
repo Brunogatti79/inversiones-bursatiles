@@ -196,6 +196,12 @@ def _build_oportunidades(signals, price_data):
             'pred_direction_agree': s.get('pred_direction_agree', False),
             # ── Opportunity Score (40% pred_21d + 35% R/R + 25% confianza) ──
             'opportunity_score': opp_score,
+            # ── Feature importance (roadmap externo #6, jul-2026) ──────────
+            # Ya se calculaba en analyzer.py (factor_contrib/factor_dominante)
+            # y se persistía en tracker.py, pero nunca se mostraba en ningún
+            # lado del dashboard -- solo faltaba exponerlo.
+            'factor_contrib':   s.get('factor_contrib', {}),
+            'factor_dominante': s.get('factor_dominante', ''),
         })
     # Ranking por opportunity_score descendente
     fichas.sort(key=lambda f: -f['opportunity_score'])
@@ -418,6 +424,7 @@ def generate_dashboard(
     import json as _json, os as _os
     _health = {}
     _backtest = {}
+    _perf_history = []
     try:
         if _os.path.exists("data/health_metrics.json"):
             with open("data/health_metrics.json") as _hf:
@@ -425,6 +432,9 @@ def generate_dashboard(
         if _os.path.exists("data/backtest_results.json"):
             with open("data/backtest_results.json") as _bf:
                 _backtest = _json.load(_bf)
+        if _os.path.exists("data/model_performance_history.json"):
+            with open("data/model_performance_history.json") as _pf:
+                _perf_history = _json.load(_pf)
     except Exception:
         pass
     hl_sla       = _health.get("sla_status", "UNKNOWN")
@@ -549,6 +559,107 @@ def generate_dashboard(
                 f'de las veces · 🛑 cortó por stop <b style="color:#e5e5e5">{_pct_stop:.0f}%</b> de las veces</span>'
             )
 
+        # Target/stop por mercado (roadmap externo #7): mismo split que arriba
+        # pero desagregado -- puede aparecer algo interesante tipo "SP500 más
+        # target, MERVAL más stop" que justifique exit models distintos por
+        # mercado (ya existen multiplicadores ATR distintos por mercado en
+        # exit_model.py, esto ayuda a validar si van en la dirección correcta).
+        _mkt_exit_parts = []
+        for _m in _mkt_order:
+            _st_m = (_by_mkt.get(_m) or {}).get("stop_target") or {}
+            _pt_m, _ps_m = _st_m.get("pct_target"), _st_m.get("pct_stop")
+            if _pt_m is not None and _ps_m is not None:
+                _mkt_exit_parts.append(f'{_m} 🎯{_pt_m:.0f}%/🛑{_ps_m:.0f}%')
+        mc_exits_by_market_line = (
+            f'<span style="color:#888">Por mercado: {" · ".join(_mkt_exit_parts)}</span>'
+            if _mkt_exit_parts else ""
+        )
+
+        # Stability score (roadmap externo #9): compara la corrida más
+        # reciente contra la más cercana a 7 días atrás en
+        # model_performance_history.json -- detecta degradación del modelo
+        # antes de que sea evidente a ojo. Requiere el fix de log_model_run()
+        # de hoy (antes, win_rate/expected_value quedaban en null siempre),
+        # así que recién empieza a acumular desde esta sesión en adelante.
+        mc_stability_html = ""
+        try:
+            _valid_perf = sorted(
+                [h for h in _perf_history if (h.get("by_market") or {})],
+                key=lambda h: h.get("date", "")
+            )
+            if len(_valid_perf) >= 2:
+                _today_entry = _valid_perf[-1]
+                _today_date = datetime.strptime(_today_entry["date"], "%Y-%m-%d")
+                _week_candidates = [
+                    h for h in _valid_perf[:-1]
+                    if (_today_date - datetime.strptime(h["date"], "%Y-%m-%d")).days >= 5
+                ]
+                if _week_candidates:
+                    _week_entry = _week_candidates[-1]
+                    _stab_parts = []
+                    for _m in _mkt_order:
+                        _wr_today = (_today_entry.get("by_market", {}).get(_m) or {}).get("win_rate")
+                        _wr_week = (_week_entry.get("by_market", {}).get(_m) or {}).get("win_rate")
+                        if _wr_today is not None and _wr_week is not None:
+                            _delta_pp = (_wr_today - _wr_week) * 100
+                            _arrow = "▲" if _delta_pp > 2 else "▼" if _delta_pp < -2 else "●"
+                            _color = "#4ade80" if _delta_pp > 2 else "#f87171" if _delta_pp < -2 else "#888"
+                            _stab_parts.append(
+                                f'<span style="color:{_color}">{_m} {_arrow} {_delta_pp:+.0f}pp WR</span>'
+                            )
+                    if _stab_parts:
+                        mc_stability_html = (
+                            '<div style="margin-top:6px;font-size:10.5px;display:flex;gap:12px;flex-wrap:wrap">'
+                            f'<span style="color:#666">📈 Estabilidad (vs. ~1 semana atrás, {_week_entry["date"]}):</span>'
+                            + "".join(_stab_parts) + '</div>'
+                        )
+        except Exception:
+            pass
+        if not mc_stability_html:
+            mc_stability_html = (
+                '<div style="margin-top:6px;font-size:10px;color:#555;font-style:italic">'
+                '📈 Estabilidad semana a semana: aún no hay suficiente historia con datos reales '
+                '(el fix que lo habilita se shippeó hoy).</div>'
+            )
+
+        # Comparación entre versiones del modelo (roadmap externo #10):
+        # expone compare_versions() de model_version.py, pensada justo para
+        # responder "¿la mejora propuesta funcionó?" con datos reales una vez
+        # que haya suficientes corridas en ambas versiones.
+        from src.model_version import MODEL_VERSION as _MC_MODEL_VERSION
+        mc_version_html = ""
+        try:
+            from src.model_version import compare_versions as _compare_versions
+            _versions_seen = []
+            for _h in sorted(_perf_history, key=lambda x: x.get("date", "")):
+                _v = _h.get("version")
+                if _v and (not _versions_seen or _versions_seen[-1] != _v):
+                    _versions_seen.append(_v)
+            if len(_versions_seen) >= 2:
+                _v_prev, _v_curr = _versions_seen[-2], _versions_seen[-1]
+                _cmp = _compare_versions(_v_prev, _v_curr)
+                _m1 = _cmp["version_1"]["metrics"] or {}
+                _m2 = _cmp["version_2"]["metrics"] or {}
+                _parts = []
+                for _m in _mkt_order:
+                    _wr1 = (_m1.get(_m) or {}).get("win_rate_avg")
+                    _wr2 = (_m2.get(_m) or {}).get("win_rate_avg")
+                    if _wr1 is not None and _wr2 is not None:
+                        _parts.append(f'{_m}: v{_v_prev} {_wr1:.0f}% → v{_v_curr} {_wr2:.0f}% WR')
+                if _parts:
+                    mc_version_html = (
+                        '<div style="margin-top:6px;font-size:10.5px;color:#888">'
+                        f'🔀 {" · ".join(_parts)}</div>'
+                    )
+        except Exception:
+            pass
+        if not mc_version_html:
+            mc_version_html = (
+                f'<div style="margin-top:6px;font-size:10px;color:#555;font-style:italic">'
+                f'🔀 Comparación entre versiones del modelo: aún sin suficientes corridas reales '
+                f'para comparar contra v{_MC_MODEL_VERSION} (el fix que lo habilita se shippeó hoy).</div>'
+            )
+
         mc_days_hist = _backtest.get("days_history", 0)
         mc_n_trades  = _backtest.get("total_trades", 0)
         mc_disclaimer = ""
@@ -595,8 +706,12 @@ def generate_dashboard(
             '<div style="margin-top:10px;padding-top:8px;border-top:1px solid #1c1c1c;font-size:11px;color:#999;'
             'display:flex;flex-wrap:wrap;gap:16px">'
             f'{mc_exits_line}</div>'
+            '<div style="margin-top:4px;font-size:10.5px">'
+            f'{mc_exits_by_market_line}</div>'
             '<div style="margin-top:6px;font-size:11px;display:flex;flex-wrap:wrap;gap:16px">'
             f'{mc_best_sector_line}{mc_worst_sector_line}</div>'
+            f'{mc_stability_html}'
+            f'{mc_version_html}'
             f'{mc_disclaimer}'
             '</div>'
         )
@@ -2107,6 +2222,26 @@ function showOpFicha(ticker){{
           '<span class="op-sc-name" style="font-weight:700;color:#fff">SCORE FINAL</span>'+
           '<div><span class="op-sc-val" style="font-size:18px;color:'+sc2+'">'+fn(f.score_final,1)+'</span>'+
           '<div class="op-sc-bar"><div class="op-sc-fill" style="width:'+f.score_final+'%;background:'+sc2+'"></div></div></div></div>'+
+        (f.factor_contrib && Object.keys(f.factor_contrib).length ? (function(){{
+          var fc=f.factor_contrib;
+          var total=(fc.macro||0)+(fc.tecnico||0)+(fc.fundamental||0)+(fc.sector||0);
+          var labels={{macro:'Macro',tecnico:'Técnico',fundamental:'Fundamental',sector:'Sector'}};
+          var colors={{macro:'#fbbf24',tecnico:'#5ba3ff',fundamental:'#bc8cff',sector:'#4ade80'}};
+          var dom=f.factor_dominante?labels[f.factor_dominante]:'—';
+          var html='<div style="margin-top:6px;padding-top:8px;border-top:1px solid #1a1a2e">'+
+            '<div style="font-size:10px;color:#666;margin-bottom:5px">🧩 Qué pesó más en este score — <b style="color:#ccc">'+dom+'</b> domina</div>';
+          ['macro','tecnico','fundamental','sector'].forEach(function(k){{
+            var v=fc[k]||0;
+            var pct=total>0?(v/total*100):0;
+            html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'+
+              '<span style="font-size:9px;color:#888;width:64px;flex-shrink:0">'+labels[k]+'</span>'+
+              '<div style="flex:1;background:#111115;border-radius:3px;height:6px;overflow:hidden">'+
+                '<div style="width:'+pct.toFixed(0)+'%;height:100%;background:'+colors[k]+'"></div></div>'+
+              '<span style="font-size:9px;color:#aaa;width:30px;text-align:right;flex-shrink:0">'+pct.toFixed(0)+'%</span>'+
+            '</div>';
+          }});
+          return html+'</div>';
+        }})() : '')+
         '<div class="op-techbox">'+
           '<span>RSI <b style="color:'+(f.rsi<40?'#4ade80':f.rsi>65?'#f87171':'#fbbf24')+'">'+fn(f.rsi,1)+'</b></span>'+
           '<span>Mom <b style="color:'+rc(f.momentum)+'">'+fp(f.momentum)+'</b></span>'+
