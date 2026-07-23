@@ -24,6 +24,8 @@ from src.backtester import (
     _quantile_split,
     _confidence_quantile_breakdown,
     _ranking_quantile_breakdown,
+    _best_ret,
+    _confidence_calibration_table,
     _aggregate_by,
     _build_trades,
 )
@@ -375,3 +377,85 @@ class TestBuildTradesNewFields:
         assert "UNKNOWN" in grouped
         assert "Sin consenso" not in grouped
 
+
+# ── _best_ret / calibración de confianza (fix 23/07/2026, roadmap externo #9) ──
+
+class TestBestRet:
+    """
+    _quantile_split() (y por lo tanto confidence_quantiles/ranking_top_vs_rest)
+    dependía exclusivamente de ret_21d -- devolvía 0 muestras durante todo el
+    período en que la historia real no llega a 21 días. _best_ret() elige el
+    horizonte más largo disponible (21d > 10d > 5d), mismo criterio que el
+    resto del sistema (panel del dashboard, log_model_run()).
+    """
+
+    def test_prioriza_21d_si_esta_disponible(self):
+        t = {"ret_5d": 1.0, "ret_10d": 2.0, "ret_21d": 3.0}
+        assert _best_ret(t) == (21, 3.0)
+
+    def test_cae_a_10d_si_no_hay_21d(self):
+        t = {"ret_5d": 1.0, "ret_10d": 2.0, "ret_21d": None}
+        assert _best_ret(t) == (10, 2.0)
+
+    def test_cae_a_5d_si_solo_eso_hay(self):
+        """Caso real de esta sesión: con 15 días de historia, ningún trade
+        tiene ret_21d/ret_10d todavía -- sin este fallback, confidence_quantiles
+        y ranking_top_vs_rest quedaban en 0 muestras."""
+        t = {"ret_5d": 1.0, "ret_10d": None, "ret_21d": None}
+        assert _best_ret(t) == (5, 1.0)
+
+    def test_sin_ningun_retorno_devuelve_none(self):
+        t = {"ret_5d": None, "ret_10d": None, "ret_21d": None}
+        assert _best_ret(t) == (None, None)
+
+    def test_quantile_split_ya_no_depende_solo_de_ret_21d(self):
+        """Regresión directa del bug: con SOLO ret_5d poblado (como pasa con
+        poca historia real), _quantile_split ya no debería devolver 0
+        muestras -- antes del fix, esto habría dado samples=0."""
+        valid = [{"ret_5d": float(i), "ret_10d": None, "ret_21d": None, "score": i}
+                 for i in range(20)]
+        result = _quantile_split(valid, "score")
+        assert result["samples"] == 20
+        assert result["top_20pct"]["count"] == 4
+
+
+class TestConfidenceCalibrationTable:
+
+    def test_pocas_muestras_devuelve_nota_no_crashea(self):
+        trades = [{"confidence_score": 50, "ret_5d": 1.0}] * 5
+        result = _confidence_calibration_table(trades)
+        assert "note" in result
+        assert result["samples"] == 5
+
+    def test_relacion_monotona_se_detecta_como_true(self):
+        """Confianza y retorno perfectamente correlacionados -> monótona."""
+        trades = [{"confidence_score": float(i), "ret_5d": float(i) - 50}
+                  for i in range(30)]
+        result = _confidence_calibration_table(trades)
+        assert result["monotona"] is True
+        assert len(result["quintiles"]) == 5
+
+    def test_relacion_no_monotona_se_detecta_como_false(self):
+        """Quintil 3 'fuera de orden' respecto al quintil 2 -- WR: 0%, 80%,
+        20%, 80%, 100%. Debe marcarse como no monótona."""
+        rets_por_quintil = [
+            [-5, -5, -5, -5, -5],
+            [3, 3, 3, 3, -3],
+            [2, -2, -2, -2, -2],
+            [3, 3, 3, 3, -3],
+            [4, 4, 4, 4, 4],
+        ]
+        trades, conf = [], 10
+        for grupo in rets_por_quintil:
+            for ret in grupo:
+                trades.append({"confidence_score": conf, "ret_5d": ret})
+                conf += 1
+        result = _confidence_calibration_table(trades)
+        assert result["monotona"] is False
+
+    def test_filtra_trades_sin_confidence_score_o_sin_retorno(self):
+        trades = [{"confidence_score": None, "ret_5d": 1.0}] * 5
+        trades += [{"confidence_score": 50, "ret_5d": None, "ret_10d": None, "ret_21d": None}] * 5
+        trades += [{"confidence_score": float(i), "ret_5d": float(i)} for i in range(20)]
+        result = _confidence_calibration_table(trades)
+        assert result["samples"] == 20

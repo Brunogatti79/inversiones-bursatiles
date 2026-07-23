@@ -40,6 +40,61 @@ HORIZONS = [5, 10, 21]
 # Entrypoint principal
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _confidence_calibration_table(trades: list) -> dict:
+    """
+    Calibración de confianza (roadmap externo #9, jul-2026): parte los
+    trades en 5 quintiles por confidence_score numérico y calcula WR/EV
+    por quintil, con un chequeo explícito de monotonía.
+
+    Diferencia con confidence_quantiles (top/bottom 20%): eso responde
+    "¿los extremos se distinguen entre sí?" -- esto responde una pregunta
+    más específica y más dura: "¿la relación es CONSISTENTE en todo el
+    rango, o solo en los extremos?". Un score puede distinguir bien el
+    20% mejor del 20% peor y aun así no ser monótono en el medio (ej.
+    quintil 3 con peor WR que el quintil 2) -- eso indicaría que el score
+    numérico no está bien calibrado en su rango medio, aunque separe bien
+    los extremos. Esta es la pregunta que hace falta para decir "el
+    confidence score está aprobado" en un sentido más riguroso.
+    """
+    valid = [t for t in trades
+             if t.get("confidence_score") is not None and _best_ret(t)[1] is not None]
+    n = len(valid)
+    if n < 15:
+        return {"samples": n, "note": "Necesita ≥15 trades con confidence_score para 5 quintiles confiables"}
+
+    sorted_t = sorted(valid, key=lambda t: t["confidence_score"])
+    quintiles = np.array_split(sorted_t, 5)  # de menor a mayor confianza
+
+    buckets = []
+    for i, q in enumerate(quintiles):
+        q = list(q)
+        rets_horizontes = [_best_ret(t) for t in q]
+        rets = [r for _, r in rets_horizontes if r is not None]
+        horizontes_usados = sorted({h for h, r in rets_horizontes if r is not None}, reverse=True)
+        m = _metrics_from_rets(rets) or {}
+        vals = [t["confidence_score"] for t in q]
+        buckets.append({
+            "quintil":               i + 1,
+            "rango_confianza":       [round(min(vals), 1), round(max(vals), 1)] if vals else None,
+            "count":                 len(q),
+            "win_rate":              m.get("win_rate"),
+            "expected_value":        m.get("expected_value"),
+            "horizontes_mezclados":  horizontes_usados if len(horizontes_usados) > 1 else None,
+        })
+
+    wrs = [b["win_rate"] for b in buckets if b.get("win_rate") is not None]
+    monotona = all(wrs[i] <= wrs[i + 1] for i in range(len(wrs) - 1)) if len(wrs) >= 2 else None
+
+    return {
+        "samples":   n,
+        "quintiles": buckets,
+        "monotona":  monotona,
+        "nota": ("true = a mayor confianza, mayor win rate en TODO el rango (deseable) | "
+                 "false = hay al menos un quintil fuera de orden, revisar calibración | "
+                 "null = muy pocos quintiles con datos todavía para evaluar"),
+    }
+
+
 def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
     """
     Ejecuta backtesting sobre el historial de señales.
@@ -100,6 +155,7 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         "consenso_vs_no":         _aggregate_by(trades, "consenso_binario"),
         "by_confidence_label":    _aggregate_by(trades, "confidence_label"),
         "confidence_quantiles":   _confidence_quantile_breakdown(trades),
+        "confidence_calibration": _confidence_calibration_table(trades),
         "ranking_top_vs_rest":    _ranking_quantile_breakdown(trades),
     }
 
@@ -485,11 +541,38 @@ def _top_bottom(trades: list, top: bool = True) -> list:
     ]
 
 
+def _best_ret(trade: dict) -> tuple:
+    """
+    Helper compartido (fix 23/07/2026, roadmap externo #9): elige el
+    horizonte más largo disponible por trade (21d > 10d > 5d) -- mismo
+    criterio que ya se usa en el panel del dashboard y en
+    log_model_run()/model_version.py. Antes, _quantile_split() dependía
+    exclusivamente de "ret_21d", así que confidence_quantiles y
+    ranking_top_vs_rest devolvían 0 muestras durante todo el período en
+    que la historia real todavía no llega a 21 días -- que es
+    precisamente cuando más útil sería tener un primer chequeo de
+    calibración, aunque sea preliminar a 5 días.
+    """
+    for h in (21, 10, 5):
+        r = trade.get(f"ret_{h}d")
+        if r is not None:
+            return h, r
+    return None, None
+
+
 def _quantile_split(valid: list, score_key: str, top_pct: float = 0.20) -> dict | None:
     """
     Helper compartido: ordena `valid` por `score_key` y separa
     top_pct / bottom_pct / medio. Reutilizado por confidence_quantiles y
     ranking_top_vs_rest -- misma lógica, distinta columna de score.
+
+    FIX 23/07/2026: usa el retorno del horizonte más largo disponible por
+    trade (ver _best_ret()) en vez de depender solo de ret_21d -- con poca
+    historia esto puede mezclar horizontes distintos dentro del mismo
+    bucket (algunos trades a 5d, otros a 21d si ya los tienen). Se
+    documenta explícitamente en el output (`horizontes_mezclados`) para
+    que no se lea como una comparación 100% homogénea todavía -- se
+    homogeniza sola a 21d en cuanto haya suficiente historia real.
     """
     n = len(valid)
     if n < 10:
@@ -503,9 +586,12 @@ def _quantile_split(valid: list, score_key: str, top_pct: float = 0.20) -> dict 
     middle = sorted_t[cut:-cut] if n > 2 * cut else []
 
     def _bucket(group):
-        rets = [t["ret_21d"] for t in group if t.get("ret_21d") is not None]
+        rets_horizontes = [_best_ret(t) for t in group]
+        rets = [r for _, r in rets_horizontes if r is not None]
+        horizontes_usados = sorted({h for h, r in rets_horizontes if r is not None}, reverse=True)
         m = _metrics_from_rets(rets) or {"samples": 0}
         m["count"] = len(group)
+        m["horizontes_mezclados"] = horizontes_usados if len(horizontes_usados) > 1 else None
         if group:
             vals = [t[score_key] for t in group]
             m[f"{score_key}_range"] = [round(min(vals), 1), round(max(vals), 1)]
@@ -529,7 +615,7 @@ def _confidence_quantile_breakdown(trades: list) -> dict:
     con nada real.
     """
     valid = [t for t in trades
-             if t.get("confidence_score") is not None and t.get("ret_21d") is not None]
+             if t.get("confidence_score") is not None and _best_ret(t)[1] is not None]
     return _quantile_split(valid, "confidence_score") or {"samples": 0}
 
 
@@ -541,7 +627,7 @@ def _ranking_quantile_breakdown(trades: list) -> dict:
     que confidence_quantiles, sobre la columna 'ranking'.
     """
     valid = [t for t in trades
-             if t.get("ranking") not in (None, 0) and t.get("ret_21d") is not None]
+             if t.get("ranking") not in (None, 0) and _best_ret(t)[1] is not None]
     return _quantile_split(valid, "ranking") or {"samples": 0}
 
 
