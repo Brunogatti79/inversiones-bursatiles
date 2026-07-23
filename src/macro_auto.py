@@ -757,6 +757,38 @@ def _compute_market_confidence(range_keys_used, raw_history, n_expected=9):
     }
 
 
+def _check_rango_sano(var_name, mercado, valor, peor, mejor, margen=1.0):
+    """
+    Data Quality Layer (roadmap externo #2): flaguea un valor crudo que llegó
+    pero está sospechosamente fuera de cualquier rango plausible -- no el
+    rango de normalización (peor/mejor, que son los extremos "calibrados"
+    para el score 0-100), sino un margen más ancho alrededor de esos extremos
+    (por defecto, el mismo ancho del rango otra vez para cada lado). Un valor
+    fuera de ESTE margen más ancho probablemente no es "un mes malo", es un
+    dato roto: cambio de unidad no avisado, typo en la fuente, columna
+    equivocada, etc.
+
+    No cambia el score (_normalize/_normalize_adaptive lo siguen clampeando
+    igual que siempre) -- esto es solo para dejar un registro explícito de
+    "este dato pinta raro" en vez de un clamp silencioso a 0/100.
+
+    Devuelve None si está OK, o un dict describiendo la anomalía.
+    """
+    lo, hi = (peor, mejor) if peor <= mejor else (mejor, peor)
+    ancho = abs(hi - lo) or 1.0
+    limite_bajo = lo - ancho * margen
+    limite_alto = hi + ancho * margen
+    if valor < limite_bajo or valor > limite_alto:
+        return {
+            "mercado": mercado,
+            "variable": var_name,
+            "valor": valor,
+            "rango_esperado": [lo, hi],
+            "limite_sano": [round(limite_bajo, 2), round(limite_alto, 2)],
+        }
+    return None
+
+
 def compute_macro_scores(arg_data, bra_data, usa_data):
     """
     Calcula scores macro normalizados por país.
@@ -764,6 +796,14 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
     """
     timestamp = datetime.now().isoformat()
     detalles = {"ARG": {}, "BRA": {}, "USA": {}}
+    # Data Quality Layer (roadmap externo #2, jul-2026): detectar valores
+    # crudos que llegaron pero están sospechosamente fuera de cualquier rango
+    # plausible (ej. desempleo=45%, o un cambio de unidad no avisado tipo
+    # USD -> miles USD). No reemplaza el clampeo de _normalize()/_normalize_
+    # adaptive() -- eso sigue igual, el score no se rompe -- pero deja un
+    # registro explícito para que no pase desapercibido, a diferencia de un
+    # clamp silencioso a 0/100.
+    anomalias_macro = []
     raw_history = _load_raw_history()
     raw_today = {}
  
@@ -785,6 +825,10 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         val = arg_data.get(var_name, {}).get("valor")
         if val is not None:
             peor, mejor = RANGES[range_key]
+            anomalia = _check_rango_sano(var_name, "ARG", val, peor, mejor)
+            if anomalia:
+                anomalias_macro.append(anomalia)
+                logger.warning(f"[data_quality] ARG.{var_name}={val} fuera de rango sano {anomalia['limite_sano']}")
             s = _normalize_adaptive(range_key, val, peor, mejor, raw_history)
             if invert:
                 s = 100.0 - s
@@ -812,6 +856,10 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         val = bra_data.get(var_name, {}).get("valor")
         if val is not None:
             peor, mejor = RANGES[range_key]
+            anomalia = _check_rango_sano(var_name, "BRA", val, peor, mejor)
+            if anomalia:
+                anomalias_macro.append(anomalia)
+                logger.warning(f"[data_quality] BRA.{var_name}={val} fuera de rango sano {anomalia['limite_sano']}")
             s = _normalize_adaptive(range_key, val, peor, mejor, raw_history)
             if invert:
                 s = 100.0 - s
@@ -840,6 +888,10 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         val = usa_data.get(var_name, {}).get("valor")
         if val is not None:
             peor, mejor = RANGES[range_key]
+            anomalia = _check_rango_sano(var_name, "USA", val, peor, mejor)
+            if anomalia:
+                anomalias_macro.append(anomalia)
+                logger.warning(f"[data_quality] USA.{var_name}={val} fuera de rango sano {anomalia['limite_sano']}")
             s = _normalize_adaptive(range_key, val, peor, mejor, raw_history)
             if invert:
                 s = 100.0 - s
@@ -870,7 +922,23 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
             "USA": len(usa_scores),
         },
         "detalles": detalles,
+        "anomalias_macro": anomalias_macro,
     }
+
+    # Data Quality Layer (roadmap externo #2): snapshot liviano por corrida,
+    # separado de macro_auto_cache.json (que es debugging interno y ni
+    # siquiera se persiste a GitHub). Este si se persiste -- ver
+    # github_persistence.push_file() en fetch_all_macro()/pipeline.py.
+    try:
+        os.makedirs("data", exist_ok=True)
+        with open("data/data_quality.json", "w") as f:
+            json.dump({
+                "timestamp": timestamp,
+                "variables_obtenidas": result["variables_obtenidas"],
+                "anomalias": anomalias_macro,
+            }, f, ensure_ascii=False, indent=2, default=str)
+    except Exception as e:
+        logger.warning(f"No se pudo guardar data/data_quality.json: {e}")
  
     # Cache para debugging y fallback
     try:
