@@ -757,24 +757,36 @@ def _compute_market_confidence(range_keys_used, raw_history, n_expected=9):
     }
 
 
-def _check_rango_sano(var_name, mercado, valor, peor, mejor, margen=1.0):
+def _check_rango_sano(var_name, mercado, valor, peor, mejor, raw_history=None, range_key=None, margen=1.0):
     """
     Data Quality Layer (roadmap externo #2): flaguea un valor crudo que llegó
     pero está sospechosamente fuera de cualquier rango plausible -- no el
-    rango de normalización (peor/mejor, que son los extremos "calibrados"
-    para el score 0-100), sino un margen más ancho alrededor de esos extremos
-    (por defecto, el mismo ancho del rango otra vez para cada lado). Un valor
-    fuera de ESTE margen más ancho probablemente no es "un mes malo", es un
-    dato roto: cambio de unidad no avisado, typo en la fuente, columna
-    equivocada, etc.
+    rango de normalización (peor/mejor), sino un margen más ancho alrededor.
 
-    No cambia el score (_normalize/_normalize_adaptive lo siguen clampeando
-    igual que siempre) -- esto es solo para dejar un registro explícito de
-    "este dato pinta raro" en vez de un clamp silencioso a 0/100.
+    IMPORTANTE (encontrado 23/07/2026 al probar esto con datos reales): varias
+    variables (empezando por arg_tc) ya superaron MIN_OBS_FOR_PERCENTILE y
+    _normalize_adaptive() las normaliza por percentil sobre el historial real,
+    NO contra el rango fijo (peor/mejor) -- que puede quedar stale sin que el
+    score se vea afectado (ej. arg_tc: rango fijo calibrado para 70-150,
+    dólar real ~1480 desde hace rato, pero el score sigue siendo un percentil
+    sano ~28 porque compara contra sí mismo, no contra 70-150). Si este check
+    siguiera comparando solo contra peor/mejor, marcaría arg_tc como anomalía
+    TODOS los días -- una falsa alarma permanente que le resta valor a toda
+    la capa (si todo es anomalía, nada lo es). Por eso, si hay suficiente
+    historial real para esta variable, el rango sano se deriva del propio
+    historial (min/max observado ± margen) en vez del rango fijo -- mismo
+    criterio de "confío en el dato reciente, no en la calibración original"
+    que ya usa _normalize_adaptive() para el score.
 
     Devuelve None si está OK, o un dict describiendo la anomalía.
     """
-    lo, hi = (peor, mejor) if peor <= mejor else (mejor, peor)
+    valores_hist = [v for v in (raw_history or {}).get(range_key, []) if v is not None] if range_key else []
+    if len(valores_hist) >= MIN_OBS_FOR_PERCENTILE:
+        lo, hi = min(valores_hist), max(valores_hist)
+        modo = "adaptativo (historial real)"
+    else:
+        lo, hi = (peor, mejor) if peor <= mejor else (mejor, peor)
+        modo = "fijo (RANGES)"
     ancho = abs(hi - lo) or 1.0
     limite_bajo = lo - ancho * margen
     limite_alto = hi + ancho * margen
@@ -783,7 +795,8 @@ def _check_rango_sano(var_name, mercado, valor, peor, mejor, margen=1.0):
             "mercado": mercado,
             "variable": var_name,
             "valor": valor,
-            "rango_esperado": [lo, hi],
+            "modo_comparado": modo,
+            "rango_esperado": [round(lo, 2), round(hi, 2)],
             "limite_sano": [round(limite_bajo, 2), round(limite_alto, 2)],
         }
     return None
@@ -825,7 +838,7 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         val = arg_data.get(var_name, {}).get("valor")
         if val is not None:
             peor, mejor = RANGES[range_key]
-            anomalia = _check_rango_sano(var_name, "ARG", val, peor, mejor)
+            anomalia = _check_rango_sano(var_name, "ARG", val, peor, mejor, raw_history=raw_history, range_key=range_key)
             if anomalia:
                 anomalias_macro.append(anomalia)
                 logger.warning(f"[data_quality] ARG.{var_name}={val} fuera de rango sano {anomalia['limite_sano']}")
@@ -856,7 +869,7 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         val = bra_data.get(var_name, {}).get("valor")
         if val is not None:
             peor, mejor = RANGES[range_key]
-            anomalia = _check_rango_sano(var_name, "BRA", val, peor, mejor)
+            anomalia = _check_rango_sano(var_name, "BRA", val, peor, mejor, raw_history=raw_history, range_key=range_key)
             if anomalia:
                 anomalias_macro.append(anomalia)
                 logger.warning(f"[data_quality] BRA.{var_name}={val} fuera de rango sano {anomalia['limite_sano']}")
@@ -888,7 +901,7 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         val = usa_data.get(var_name, {}).get("valor")
         if val is not None:
             peor, mejor = RANGES[range_key]
-            anomalia = _check_rango_sano(var_name, "USA", val, peor, mejor)
+            anomalia = _check_rango_sano(var_name, "USA", val, peor, mejor, raw_history=raw_history, range_key=range_key)
             if anomalia:
                 anomalias_macro.append(anomalia)
                 logger.warning(f"[data_quality] USA.{var_name}={val} fuera de rango sano {anomalia['limite_sano']}")
