@@ -151,8 +151,12 @@ def execute_compra(
         # en vez de None hardcodeado. Devuelve (None, None, motivo) si no
         # hay datos confiables todavía (ver risk_engine.py) — se guarda el
         # motivo en la posición para que sea visible por qué no tiene stop.
+        # FIX 23/07/2026: faltaba pasar ratio_cedear acá -- mismo bug que se
+        # encontró en backfill_missing_stops (ver risk_engine.py), pero esta
+        # es la ruta por la que TSLA terminó con un stop_loss=348.02 mal
+        # calculado en producción (ratio real TSLA=15:1, nunca se aplicó).
         stop_usd, target_usd, stop_metodo = risk_engine.compute_initial_stop_target(
-            ticker, mercado, precio_fuente
+            ticker, mercado, precio_fuente, ratio_cedear=ratio_cedear
         )
 
         new_pos = {

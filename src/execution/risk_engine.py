@@ -86,6 +86,7 @@ def compute_initial_stop_target(
     ccl: float = None,
     brl_usd: float = None,
     signal: dict = None,
+    ratio_cedear: float = 1.0,
 ) -> tuple:
     """
     Devuelve (stop_loss_usd, target_usd, metodo) para una posición, a
@@ -130,16 +131,28 @@ def compute_initial_stop_target(
         # Matiz importante: atr_stop_native viene calculado sobre la serie
         # de precios NYSE (sp500_cierres.csv), no sobre la serie del CEDEAR
         # en BYMA -- son dos instrumentos distintos del mismo activo
-        # subyacente. Se usa el ATR en USD-NYSE directo como nivel de stop
-        # en USD, asumiendo que el rango de movimiento diario en dólares es
-        # razonablemente similar entre ambas plazas (ambas reflejan la
-        # misma empresa) -- el spread CCL/MEP que separa NYSE de CEDEAR es
-        # un factor macro de movimiento más lento, no agrega ruido de corto
-        # plazo comparable al ATR. Es una aproximación razonable, no un
-        # cálculo exacto sobre la volatilidad real del CEDEAR en BYMA.
-        stop_usd   = round(atr_stop_native, 6)
-        target_usd = round(atr_target_native, 6)
-        return stop_usd, target_usd, f"atr_nyse_aplicado_a_cedear_{atr_metodo}"
+        # subyacente.
+        #
+        # FIX 23/07/2026 (hallazgo real al correr /backfill_stops): esta
+        # rama NO dividía por el ratio de conversión CEDEAR -- le asignaba
+        # a COPX (CEDEAR de $5.79) un stop de $75.83 directo del ATR de
+        # NYSE, 13x el precio real. El "ratio_cedear" guardado en
+        # portfolio.json tampoco servía para corregirlo: es un campo
+        # vestigial de un enfoque de pricing YA DESCARTADO (ver
+        # pricing_engine.py docstring, "nyse_usd × ratio_cedear" dio
+        # rendimientos absurdos y se reemplazó por precio real de
+        # data912.com) -- sus valores no coinciden con los ratios oficiales
+        # de BYMA (confirmado contra la tabla oficial actualizada 3/2/2026;
+        # ningún ticker coincidía, ej. GOOGL guardado=1.0 vs oficial=58,
+        # PBR guardado=22.69 vs oficial=1). Se corrigieron los valores en
+        # portfolio.json a los oficiales de BYMA (ver ratio_cedear que
+        # llega acá) y ahora sí se usa para convertir el ATR de escala NYSE
+        # a escala CEDEAR: un CEDEAR vale (precio NYSE / ratio), así que su
+        # stop/target en la misma escala es (ATR_nyse / ratio).
+        ratio = ratio_cedear if ratio_cedear and ratio_cedear > 0 else 1.0
+        stop_usd   = round(atr_stop_native / ratio, 6)
+        target_usd = round(atr_target_native / ratio, 6)
+        return stop_usd, target_usd, f"atr_nyse_div_ratio{ratio:g}_{atr_metodo}"
 
     else:
         return None, None, "fuente_desconocida"
@@ -182,7 +195,8 @@ def backfill_missing_stops(portfolio: dict, dry_run: bool = True) -> list:
             "SP500_CSV"
         )
         stop_usd, target_usd, metodo = compute_initial_stop_target(
-            ticker, mercado, precio_fuente, ccl=ccl, brl_usd=brl_usd
+            ticker, mercado, precio_fuente, ccl=ccl, brl_usd=brl_usd,
+            ratio_cedear=pos.get("ratio_cedear", 1.0),
         )
 
         if stop_usd is None:

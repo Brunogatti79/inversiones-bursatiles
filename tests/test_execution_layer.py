@@ -233,15 +233,36 @@ class TestComputeInitialStopTarget:
     def test_cedear_ahora_si_asigna_stop_en_usd(self):
         """FIX 26/06/2026 (sesión 2): el pricing CEDEAR ahora tiene fuente
         real (data912), así que se habilita el stop/target -- calculado
-        sobre el ATR de la señal NYSE, aplicado directo en USD (ver
-        docstring del módulo para el detalle de la aproximación)."""
+        sobre el ATR de la señal NYSE. Con ratio_cedear=1.0 (default, ej.
+        un ticker verdaderamente 1:1 como PBR) el valor numérico no cambia,
+        aunque el método ahora se llama distinto (ver test de abajo para
+        el caso con ratio != 1, que es donde estaba el bug real)."""
         signal = {"atr_stop": 25.0, "atr_target": 30.0, "atr_metodo": "close_proxy"}
         stop, target, metodo = risk_engine.compute_initial_stop_target(
             "GLOB", "SP500", "SP500_CSV", signal=signal,
         )
         assert stop == 25.0
         assert target == 30.0
-        assert metodo == "atr_nyse_aplicado_a_cedear_close_proxy"
+        assert metodo == "atr_nyse_div_ratio1_close_proxy"
+
+    def test_cedear_con_ratio_real_divide_correctamente(self):
+        """FIX 23/07/2026: bug real encontrado corriendo /backfill_stops en
+        producción -- esta rama NO dividía por el ratio de conversión
+        CEDEAR, asignándole a COPX (CEDEAR ~$5.79) un stop de $75.83 (ATR
+        de NYSE sin escalar), 13x el precio real. Con el ratio oficial de
+        BYMA (14:1 para COPX, confirmado contra la tabla oficial actualizada
+        3/2/2026) el stop/target ahora quedan en la escala correcta del
+        CEDEAR, encerrando el precio real."""
+        signal = {"atr_stop": 75.83, "atr_target": 90.5, "atr_metodo": "close_proxy"}
+        stop, target, metodo = risk_engine.compute_initial_stop_target(
+            "COPX", "SP500", "SP500_CSV", signal=signal, ratio_cedear=14.0,
+        )
+        precio_real_cedear = 5.79
+        assert stop < precio_real_cedear < target, (
+            f"El stop/target debería encerrar el precio real del CEDEAR: "
+            f"stop={stop}, precio={precio_real_cedear}, target={target}"
+        )
+        assert metodo == "atr_nyse_div_ratio14_close_proxy"
 
 
 class TestBackfillMissingStops:
