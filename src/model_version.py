@@ -509,12 +509,37 @@ def current_version() -> dict:
     return {"version": MODEL_VERSION, "changelog": CHANGELOG}
 
 
+def _best_horizon_metrics(entry):
+    """Elige el horizonte más largo con muestra disponible (21d > 10d > 5d) de
+    una entrada de by_market/by_sector/etc en backtest_results.json. Reutiliza
+    el mismo criterio que el panel "Conclusiones del Modelo" del dashboard
+    (generator.py) para que ambos lean la misma noción de "mejor dato
+    disponible hoy"."""
+    if not isinstance(entry, dict):
+        return None, {}
+    for hz, key in (("21d", "h21d"), ("10d", "h10d"), ("5d", "h5d")):
+        h = entry.get(key)
+        if isinstance(h, dict) and h.get("samples", 0) > 0:
+            return hz, h
+    return None, {}
+
+
 def log_model_run(backtest_results: dict = None):
     """
     Guarda un snapshot de {versión activa + métricas de backtest del día} en
     data/model_performance_history.json. Llamar 1x por run, después de
     backtester.run_backtest(), para tener trazabilidad real entre versión de
     código y resultado medible.
+
+    FIX 23/07/2026: esta función leía v.get("win_rate")/v.get("expected_value")
+    directo de cada entrada de by_market, asumiendo una estructura plana. La
+    estructura real (confirmada contra backtest_results.json en producción)
+    anida las métricas por horizonte -- v["h5d"]["win_rate"], v["h21d"][...],
+    etc, con "avg_ret" (no "avg_ret_21d") como nombre de campo -- así que esta
+    función escribió `null` en TODAS las corridas desde que existe (31/31
+    entradas históricas revisadas, todas en null), y compare_versions() nunca
+    produjo un número real en la práctica. Corregido para usar el horizonte
+    más largo disponible (mismo criterio que el panel del dashboard).
     """
     from src.github_persistence import load_json, save_json
 
@@ -525,13 +550,15 @@ def log_model_run(backtest_results: dict = None):
     for mkt, v in (backtest_results.get("by_market") or {}).items():
         if not isinstance(v, dict):
             continue
+        hz, h = _best_horizon_metrics(v)
         by_market_clean[mkt] = {
-            "n": v.get("n"),
-            "win_rate": v.get("win_rate"),
-            "avg_ret_21d": v.get("avg_ret_21d"),
-            "expected_value": v.get("expected_value"),
-            "sharpe": v.get("sharpe"),
-            "max_drawdown": v.get("max_drawdown"),
+            "n": v.get("count"),
+            "horizon": hz,
+            "win_rate": h.get("win_rate"),
+            "avg_ret": h.get("avg_ret"),
+            "expected_value": h.get("expected_value"),
+            "sharpe": h.get("sharpe"),
+            "max_drawdown": h.get("max_drawdown"),
         }
 
     snapshot = {
