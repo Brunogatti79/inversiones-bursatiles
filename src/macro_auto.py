@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 CACHE_PATH = "data/macro_auto_cache.json"
 LAST_KNOWN_PATH = "data/macro_last_known.json"
+DATA_QUALITY_HISTORY_PATH = "data/data_quality_history.json"
  
 # ─────────────────────────────────────────────
 # FRED (USA) — Federal Reserve Economic Data
@@ -306,6 +307,60 @@ DATOS_GOB_SERIES = {
 # el endpoint de series por ID opaco, que INDEC/Mecon deprecaron sin aviso
 # para varias series (hallazgo jul-2026). Confirmados en vivo, con datos
 # frescos, al momento de este fix.
+FALLBACK_HISTORY_PATH = "data/fallback_usage_history.json"
+
+
+def _log_fallback_usage(key: str, fuente: str):
+    """
+    Observabilidad del fallback (roadmap externo #4, jul-2026): registra,
+    por variable y por día, si la corrida de hoy usó la fuente primaria,
+    cayó al último valor conocido (secundaria), o se quedó sin dato.
+
+    Por qué importa: si una variable usa el fallback el 40% del tiempo, la
+    fuente primaria está rota de forma recurrente -- aunque el sistema
+    siga funcionando sin errores visibles, porque el fallback lo está
+    tapando. Sin este registro, ese patrón pasa desapercibido.
+
+    Dedupe por día: reruns del mismo día no deberían sumar entradas
+    extra -- se pisa la entrada de hoy, no se acumula.
+    """
+    from src.github_persistence import load_json, save_json
+
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    hist = load_json(FALLBACK_HISTORY_PATH, default={})
+    hist.setdefault(key, [])
+    hist[key] = [e for e in hist[key] if e.get("date") != hoy]
+    hist[key].append({"date": hoy, "fuente": fuente})
+    hist[key] = hist[key][-90:]  # ~3 meses de historial
+    save_json(FALLBACK_HISTORY_PATH, hist, message=f"auto: fallback_usage {key} {hoy}")
+
+
+def fallback_usage_stats(key: str, dias: int = 30) -> dict:
+    """
+    % de corridas que usaron fuente primaria vs. secundaria vs. sin dato,
+    en los últimos `dias` días, para una variable. Pensado para un futuro
+    panel ("IPC ARG: primary 92% / fallback 8%") -- hoy expone el cálculo,
+    el dashboard puede consumirlo cuando se decida mostrarlo.
+    """
+    from src.github_persistence import load_json
+
+    hist = load_json(FALLBACK_HISTORY_PATH, default={}).get(key, [])
+    cutoff = (datetime.now() - timedelta(days=dias)).strftime("%Y-%m-%d")
+    recientes = [e for e in hist if e.get("date", "") >= cutoff]
+    n = len(recientes)
+    if n == 0:
+        return {"samples": 0}
+    primary = sum(1 for e in recientes if e.get("fuente") == "primary")
+    secondary = sum(1 for e in recientes if e.get("fuente") == "secondary")
+    sin_dato = sum(1 for e in recientes if e.get("fuente") == "sin_dato")
+    return {
+        "samples": n,
+        "primary_pct": round(primary / n * 100, 1),
+        "secondary_pct": round(secondary / n * 100, 1),
+        "sin_dato_pct": round(sin_dato / n * 100, 1),
+    }
+
+
 def _with_last_known_fallback(key, fetch_fn):
     """
     Redundancia PRIMARY -> SECONDARY (roadmap externo #3, jul-2026): envuelve
@@ -343,12 +398,14 @@ def _with_last_known_fallback(key, fetch_fn):
     if val is not None:
         cache[key] = {"valor": val, "fecha": fecha, "guardado_en": datetime.now().strftime("%Y-%m-%d")}
         save_json(LAST_KNOWN_PATH, cache, message=f"auto: macro_last_known {key} {datetime.now().strftime('%Y-%m-%d')}")
+        _log_fallback_usage(key, "primary")
         return val, fecha
 
     # Fetch primario falló -- probar el último valor conocido
     cached = cache.get(key)
     if not cached:
         logger.warning(f"[fallback] {key}: fetch primario falló y no hay valor cacheado -- queda en None")
+        _log_fallback_usage(key, "sin_dato")
         return None, None
 
     try:
@@ -360,10 +417,12 @@ def _with_last_known_fallback(key, fetch_fn):
     if antiguedad_dias > MAX_STALE_DAYS:
         logger.warning(f"[fallback] {key}: fetch primario falló y el último valor cacheado tiene "
                         f"{antiguedad_dias} días (> {MAX_STALE_DAYS}) -- demasiado viejo, queda en None")
+        _log_fallback_usage(key, "sin_dato")
         return None, None
 
     logger.warning(f"[fallback] {key}: fetch primario falló, usando último valor conocido "
                     f"({cached['valor']}, cacheado hace {antiguedad_dias} días)")
+    _log_fallback_usage(key, "secondary")
     return cached["valor"], cached.get("fecha", "")
 
 
@@ -1007,20 +1066,33 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         "anomalias_macro": anomalias_macro,
     }
 
-    # Data Quality Layer (roadmap externo #2): snapshot liviano por corrida,
-    # separado de macro_auto_cache.json (que es debugging interno y ni
-    # siquiera se persiste a GitHub). Este si se persiste -- ver
-    # github_persistence.push_file() en fetch_all_macro()/pipeline.py.
+    # Data Quality Layer (roadmap externo #2, corregido 24/07/2026): antes
+    # esto escribía data/data_quality.json local con open() directo -- no
+    # persistía entre redeploys de Railway (a diferencia de
+    # macro_last_known.json, que sí usa github_persistence) y solo
+    # guardaba el snapshot de la última corrida, no un historial. Una
+    # revisión externa lo marcó como "estás descartando la capa de calidad
+    # de datos más valiosa que construiste" -- correcto: sin historial no
+    # se puede medir frecuencia de anomalías, series más problemáticas, ni
+    # degradación de proveedores en el tiempo. Ahora se persiste como
+    # historial (data/data_quality_history.json), un registro por día
+    # (dedupe si el pipeline corre varias veces el mismo día), últimos ~90
+    # días.
     try:
-        os.makedirs("data", exist_ok=True)
-        with open("data/data_quality.json", "w") as f:
-            json.dump({
-                "timestamp": timestamp,
-                "variables_obtenidas": result["variables_obtenidas"],
-                "anomalias": anomalias_macro,
-            }, f, ensure_ascii=False, indent=2, default=str)
+        from src.github_persistence import load_json as _dq_load, save_json as _dq_save
+        hoy = datetime.now().strftime("%Y-%m-%d")
+        dq_hist = _dq_load(DATA_QUALITY_HISTORY_PATH, default=[])
+        dq_hist = [e for e in dq_hist if e.get("date") != hoy]
+        dq_hist.append({
+            "date": hoy,
+            "timestamp": timestamp,
+            "variables_obtenidas": result["variables_obtenidas"],
+            "anomalias": anomalias_macro,
+        })
+        dq_hist = dq_hist[-90:]
+        _dq_save(DATA_QUALITY_HISTORY_PATH, dq_hist, message=f"auto: data_quality {hoy}")
     except Exception as e:
-        logger.warning(f"No se pudo guardar data/data_quality.json: {e}")
+        logger.warning(f"No se pudo guardar {DATA_QUALITY_HISTORY_PATH}: {e}")
  
     # Cache para debugging y fallback
     try:

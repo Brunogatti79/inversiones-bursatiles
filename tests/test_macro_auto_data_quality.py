@@ -278,3 +278,134 @@ class TestResultadoFiscalPctPbi:
 
         pct, fecha = ma._resultado_fiscal_pct_pbi()
         assert (pct, fecha) == (None, None)
+
+
+# ─────────────────────────────────────────────────────────────
+# Observabilidad del fallback (roadmap externo #4, jul-2026)
+# ─────────────────────────────────────────────────────────────
+
+class TestFallbackUsageObservability:
+    """
+    _with_last_known_fallback() ya resolvía el problema de continuidad
+    (PRIMARY -> SECONDARY), pero una revisión externa señaló que faltaba
+    poder medir, por variable, qué % del tiempo depende del fallback -- si
+    una serie usa el fallback 40% del tiempo, la fuente primaria está rota
+    de forma recurrente aunque el sistema siga funcionando sin errores
+    visibles. _log_fallback_usage()/fallback_usage_stats() cubren eso.
+    """
+
+    def test_fetch_exitoso_registra_primary(self, _in_memory_persistence):
+        ma._with_last_known_fallback("ipc", lambda: (2.1, "2026-07-24"))
+        hist = _in_memory_persistence[ma.FALLBACK_HISTORY_PATH]["ipc"]
+        assert hist[-1]["fuente"] == "primary"
+
+    def test_fallback_a_cache_registra_secondary(self, _in_memory_persistence):
+        ma._with_last_known_fallback("ipc", lambda: (2.1, "2026-07-24"))
+        # simular que la entrada de fallback quedó de "ayer" para que la de
+        # hoy no la pise por el dedupe-por-día
+        ayer = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        _in_memory_persistence[ma.FALLBACK_HISTORY_PATH]["ipc"][-1]["date"] = ayer
+        _in_memory_persistence[ma.LAST_KNOWN_PATH]["ipc"]["guardado_en"] = ayer
+
+        ma._with_last_known_fallback("ipc", lambda: (None, None))
+        hist = _in_memory_persistence[ma.FALLBACK_HISTORY_PATH]["ipc"]
+        assert hist[-1]["fuente"] == "secondary"
+
+    def test_sin_dato_ni_cache_registra_sin_dato(self, _in_memory_persistence):
+        ma._with_last_known_fallback("variable_nueva", lambda: (None, None))
+        hist = _in_memory_persistence[ma.FALLBACK_HISTORY_PATH]["variable_nueva"]
+        assert hist[-1]["fuente"] == "sin_dato"
+
+    def test_dedupe_por_dia_no_duplica_entradas(self, _in_memory_persistence):
+        """Varias corridas el mismo día no deberían sumar entradas extra al
+        historial -- se pisa la de hoy, no se acumula."""
+        ma._with_last_known_fallback("ipc", lambda: (2.1, "2026-07-24"))
+        ma._with_last_known_fallback("ipc", lambda: (2.2, "2026-07-24"))
+        ma._with_last_known_fallback("ipc", lambda: (2.3, "2026-07-24"))
+        hist = _in_memory_persistence[ma.FALLBACK_HISTORY_PATH]["ipc"]
+        assert len(hist) == 1
+
+    def test_fallback_usage_stats_calcula_porcentajes(self, _in_memory_persistence):
+        hoy = datetime.now().strftime("%Y-%m-%d")
+        _in_memory_persistence[ma.FALLBACK_HISTORY_PATH] = {
+            "ipc": [
+                {"date": hoy, "fuente": "primary"},
+                {"date": hoy, "fuente": "secondary"},
+            ]
+        }
+        # dedupe interno de _with_last_known_fallback no aplica acá porque
+        # sembramos el historial directo -- fallback_usage_stats solo lee
+        stats = ma.fallback_usage_stats("ipc", dias=30)
+        assert stats["samples"] == 2
+
+    def test_fallback_usage_stats_sin_historial_devuelve_cero_muestras(self):
+        stats = ma.fallback_usage_stats("variable_nunca_vista", dias=30)
+        assert stats == {"samples": 0}
+
+    def test_fallback_usage_stats_respeta_ventana_de_dias(self, _in_memory_persistence):
+        """Entradas más viejas que la ventana pedida no deberían contar."""
+        vieja = (datetime.now() - timedelta(days=100)).strftime("%Y-%m-%d")
+        reciente = datetime.now().strftime("%Y-%m-%d")
+        _in_memory_persistence[ma.FALLBACK_HISTORY_PATH] = {
+            "ipc": [
+                {"date": vieja, "fuente": "secondary"},
+                {"date": reciente, "fuente": "primary"},
+            ]
+        }
+        stats = ma.fallback_usage_stats("ipc", dias=30)
+        assert stats["samples"] == 1
+        assert stats["primary_pct"] == 100.0
+
+
+# ─────────────────────────────────────────────────────────────
+# Persistencia del historial de calidad de datos (roadmap externo #2)
+# ─────────────────────────────────────────────────────────────
+
+class TestDataQualityHistoryPersistence:
+    """
+    compute_macro_scores() escribía data/data_quality.json local con
+    open() directo -- no persistía entre redeploys de Railway y solo
+    guardaba el snapshot de la última corrida. Ahora usa
+    github_persistence (data/data_quality_history.json), acumulando un
+    registro por día.
+    """
+
+    def _macro_data_minima(self, desempleo=7.8, tipo_cambio=1487.0):
+        arg = {k: {"valor": v} for k, v in {
+            "tasa_tamar": 29.0, "riesgo_pais": 700, "reservas": 26500,
+            "tipo_cambio": tipo_cambio, "brecha": 10, "ipc": 2.1,
+            "desempleo": desempleo, "balanza_comercial": 500, "resultado_fiscal": 0.4,
+        }.items()}
+        bra = {k: {"valor": v} for k, v in {
+            "selic": 10.5, "riesgo_pais": 200, "ipca": 4.5, "desempleo": 7.0,
+            "reservas": 300000, "brl_usd": 5.4, "deuda_pib": 75, "pmi": 52,
+        }.items()}
+        usa = {k: {"valor": v} for k, v in {
+            "fed_funds": 4.5, "cpi": 3.0, "unemployment": 4.1, "gdp_growth": 2.0,
+            "consumer_conf": 70, "pce_core": 2.8, "hy_spread": 350, "dxy": 100,
+        }.items()}
+        return arg, bra, usa
+
+    def test_primera_corrida_crea_una_entrada(self, _in_memory_persistence):
+        arg, bra, usa = self._macro_data_minima()
+        ma.compute_macro_scores(arg, bra, usa)
+        hist = _in_memory_persistence[ma.DATA_QUALITY_HISTORY_PATH]
+        assert len(hist) == 1
+        assert "anomalias" in hist[0]
+        assert "variables_obtenidas" in hist[0]
+
+    def test_anomalia_real_queda_registrada_en_el_historial(self, _in_memory_persistence):
+        """Caso de la revisión externa: desempleo=45% debe aparecer en el
+        historial persistente, no solo en el log."""
+        arg, bra, usa = self._macro_data_minima(desempleo=45.0)
+        ma.compute_macro_scores(arg, bra, usa)
+        hist = _in_memory_persistence[ma.DATA_QUALITY_HISTORY_PATH]
+        variables_anomalas = [a["variable"] for a in hist[0]["anomalias"]]
+        assert "desempleo" in variables_anomalas
+
+    def test_correr_dos_veces_el_mismo_dia_no_duplica_entrada(self, _in_memory_persistence):
+        arg, bra, usa = self._macro_data_minima()
+        ma.compute_macro_scores(arg, bra, usa)
+        ma.compute_macro_scores(arg, bra, usa)
+        hist = _in_memory_persistence[ma.DATA_QUALITY_HISTORY_PATH]
+        assert len(hist) == 1
