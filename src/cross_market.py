@@ -84,6 +84,11 @@ def compute_cross_market_context(
         "regime": "NEUTRAL",
         "sp500_trend": "LATERAL",
         "sp500_trend_score": 50.0,
+        "market_trends": {
+            "MERVAL":  {"trend": "LATERAL", "score": 50.0},
+            "BOVESPA": {"trend": "LATERAL", "score": 50.0},
+            "SP500":   {"trend": "LATERAL", "score": 50.0},
+        },
         "correlations": {"merval_sp500": 0, "bovespa_sp500": 0, "merval_bovespa": 0, "avg": 0},
         "divergence": {"merval_diverge": False, "bovespa_diverge": False, "global_divergence": False},
         "score_adjustments": {"MERVAL": 0.0, "BOVESPA": 0.0, "SP500": 0.0},
@@ -115,8 +120,17 @@ def compute_cross_market_context(
             logger.info(f"[cross_market] Datos insuficientes: {len(combined)} días")
             return fallback
 
-        # 1. Tendencia SP500
+        # 1. Tendencia SP500 (global, ya existía)
         sp_trend_score, sp_trend_label = _trend_score(sp_serie)
+
+        # 1b. Tendencia por país (roadmap externo #8, jul-2026: "regime
+        # detection", Bull/Neutral/Bear por mercado -- no para operar, para
+        # interpretar señales). _trend_score() ya era genérica y ya se
+        # llamaba sobre sp_serie; mv_serie/bv_serie ya estaban cargadas acá
+        # mismo para el cálculo de correlación, solo faltaba llamarla
+        # también sobre ellas.
+        mv_trend_score, mv_trend_label = _trend_score(mv_serie)
+        bv_trend_score, bv_trend_label = _trend_score(bv_serie)
 
         # 2. Correlaciones rolling (último valor)
         tail = combined.tail(CORR_WINDOW * 2)
@@ -161,6 +175,15 @@ def compute_cross_market_context(
             "regime":           regime,
             "sp500_trend":      sp_trend_label,
             "sp500_trend_score": round(sp_trend_score, 1),
+            # Regime detection por país (roadmap externo #8) -- Bull/Neutral/
+            # Bear locales, distintos del "regime" global (que es sobre SP500
+            # + correlación, y se usa para ajustar el score macro). Esto es
+            # descriptivo/interpretativo, no se usa todavía para ajustar nada.
+            "market_trends": {
+                "MERVAL":  {"trend": mv_trend_label, "score": round(mv_trend_score, 1)},
+                "BOVESPA": {"trend": bv_trend_label, "score": round(bv_trend_score, 1)},
+                "SP500":   {"trend": sp_trend_label, "score": round(sp_trend_score, 1)},
+            },
             "correlations":     correlations,
             "divergence":       divergence,
             "score_adjustments": adjustments,

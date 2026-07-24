@@ -184,3 +184,54 @@ class TestComputeCrossMarketContext:
             {"merval": "MERVAL", "bovespa": "BOVESPA", "sp500": "SP500"}
         )
         assert result["score_adjustments"]["SP500"] == 0.0
+
+    def test_market_trends_incluye_los_3_mercados(self):
+        """Roadmap externo #8 (jul-2026): regime detection por país -- antes
+        _trend_score() solo se llamaba sobre sp_serie, aunque mv_serie/
+        bv_serie ya estaban cargadas acá mismo para el cálculo de
+        correlación. market_trends expone tendencia local independiente
+        por mercado, distinta del "regime" global (que es sobre SP500)."""
+        mv = self._make_df(col="MERVAL")
+        bv = self._make_df(col="BOVESPA")
+        sp = self._make_df(col="SP500")
+        result = compute_cross_market_context(
+            mv, bv, sp,
+            {"merval": "MERVAL", "bovespa": "BOVESPA", "sp500": "SP500"}
+        )
+        assert "market_trends" in result
+        for mkt in ("MERVAL", "BOVESPA", "SP500"):
+            assert mkt in result["market_trends"]
+            assert result["market_trends"][mkt]["trend"] in ("ALCISTA", "BAJISTA", "LATERAL")
+            assert 0 <= result["market_trends"][mkt]["score"] <= 100
+
+    def test_market_trends_distingue_mercados_con_tendencias_distintas(self):
+        """Con MERVAL en tendencia clara alcista y BOVESPA clara bajista,
+        no deberían quedar pegados al mismo label -- eso pasaría si
+        siguiera usando solo el trend de SP500 para todos."""
+        np.random.seed(7)
+        n = 300
+        merval_prices = 100 * np.cumprod(1 + np.random.normal(0.006, 0.008, n))
+        bovespa_prices = 100 * np.cumprod(1 + np.random.normal(-0.006, 0.008, n))
+        sp500_prices = 100 * np.cumprod(1 + np.random.normal(0.0, 0.008, n))
+        mv = pd.DataFrame({"MERVAL": merval_prices})
+        bv = pd.DataFrame({"BOVESPA": bovespa_prices})
+        sp = pd.DataFrame({"SP500": sp500_prices})
+
+        result = compute_cross_market_context(
+            mv, bv, sp,
+            {"merval": "MERVAL", "bovespa": "BOVESPA", "sp500": "SP500"}
+        )
+        assert result["market_trends"]["MERVAL"]["trend"] == "ALCISTA"
+        assert result["market_trends"]["BOVESPA"]["trend"] == "BAJISTA"
+
+    def test_fallback_tambien_incluye_market_trends(self):
+        """El fallback (datos insuficientes) debe tener la misma forma que
+        el resultado normal, para que un consumidor no reviente por
+        KeyError si cae en ese camino."""
+        result = compute_cross_market_context(
+            pd.DataFrame(), pd.DataFrame(), pd.DataFrame(),
+            {"merval": "", "bovespa": "", "sp500": ""}
+        )
+        assert "market_trends" in result
+        for mkt in ("MERVAL", "BOVESPA", "SP500"):
+            assert mkt in result["market_trends"]
