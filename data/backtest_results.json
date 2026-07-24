@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-24T14:11:58.433862",
+  "generated": "2026-07-24T15:45:02.340964",
   "total_trades": 737,
   "days_history": 16,
   "by_signal": {
@@ -1119,6 +1119,165 @@
     ],
     "monotona": false,
     "nota": "true = a mayor confianza, mayor win rate en TODO el rango (deseable) | false = hay al menos un quintil fuera de orden, revisar calibración | null = muy pocos quintiles con datos todavía para evaluar"
+  },
+  "confidence_calibration_curve": {
+    "status": "ok",
+    "samples": 536,
+    "rango_confidence_score": [
+      13.6,
+      90.9
+    ],
+    "curva": [
+      {
+        "confidence_score": 13.6,
+        "p_ganar_calibrada": 0.0
+      },
+      {
+        "confidence_score": 22.2,
+        "p_ganar_calibrada": 0.136
+      },
+      {
+        "confidence_score": 30.8,
+        "p_ganar_calibrada": 0.233
+      },
+      {
+        "confidence_score": 39.4,
+        "p_ganar_calibrada": 0.233
+      },
+      {
+        "confidence_score": 48.0,
+        "p_ganar_calibrada": 0.414
+      },
+      {
+        "confidence_score": 56.5,
+        "p_ganar_calibrada": 0.448
+      },
+      {
+        "confidence_score": 65.1,
+        "p_ganar_calibrada": 0.607
+      },
+      {
+        "confidence_score": 73.7,
+        "p_ganar_calibrada": 0.607
+      },
+      {
+        "confidence_score": 82.3,
+        "p_ganar_calibrada": 0.723
+      },
+      {
+        "confidence_score": 90.9,
+        "p_ganar_calibrada": 0.723
+      }
+    ],
+    "correlacion_score_crudo_vs_resultado": 0.149,
+    "metodo": "isotonic_regression_pava"
+  },
+  "attribution_by_factor": {
+    "fundamental": {
+      "count": 403,
+      "h5d": {
+        "samples": 289,
+        "win_rate": 0.439,
+        "avg_ret": -0.34,
+        "avg_win": 2.99,
+        "avg_loss": 2.95,
+        "expected_value": -0.34,
+        "sharpe": -0.09,
+        "max_drawdown": -78.67
+      },
+      "h10d": {
+        "samples": 36,
+        "win_rate": 0.611,
+        "avg_ret": 1.54,
+        "avg_win": 4.86,
+        "avg_loss": 3.67,
+        "expected_value": 1.54,
+        "sharpe": 0.31,
+        "max_drawdown": -11.93
+      },
+      "h21d": null,
+      "stop_target": {
+        "samples": 298,
+        "avg_ret": 0.68,
+        "win_rate": 0.487,
+        "target_hits": 145,
+        "stop_hits": 153,
+        "time_exits": 0,
+        "pct_target": 48.7,
+        "pct_stop": 51.3,
+        "pct_time": 0.0
+      }
+    },
+    "tecnico": {
+      "count": 323,
+      "h5d": {
+        "samples": 239,
+        "win_rate": 0.506,
+        "avg_ret": -0.31,
+        "avg_win": 2.98,
+        "avg_loss": 3.69,
+        "expected_value": -0.31,
+        "sharpe": -0.07,
+        "max_drawdown": -70.79
+      },
+      "h10d": {
+        "samples": 30,
+        "win_rate": 0.467,
+        "avg_ret": -0.71,
+        "avg_win": 4.46,
+        "avg_loss": 5.23,
+        "expected_value": -0.71,
+        "sharpe": -0.1,
+        "max_drawdown": -43.42
+      },
+      "h21d": null,
+      "stop_target": {
+        "samples": 156,
+        "avg_ret": -2.25,
+        "win_rate": 0.353,
+        "target_hits": 55,
+        "stop_hits": 101,
+        "time_exits": 0,
+        "pct_target": 35.3,
+        "pct_stop": 64.7,
+        "pct_time": 0.0
+      }
+    },
+    "macro": {
+      "count": 11,
+      "h5d": {
+        "samples": 8,
+        "win_rate": 0.125,
+        "avg_ret": -1.33,
+        "avg_win": 0.2,
+        "avg_loss": 1.55,
+        "expected_value": -1.33,
+        "sharpe": -1.01,
+        "max_drawdown": -10.44
+      },
+      "h10d": {
+        "samples": 1,
+        "win_rate": 1.0,
+        "avg_ret": 1.45,
+        "avg_win": 1.45,
+        "avg_loss": 0.0,
+        "expected_value": 1.45,
+        "sharpe": 0.0,
+        "max_drawdown": 0.0
+      },
+      "h21d": null,
+      "stop_target": {
+        "samples": 5,
+        "avg_ret": -2.39,
+        "win_rate": 0.2,
+        "target_hits": 1,
+        "stop_hits": 4,
+        "time_exits": 0,
+        "pct_target": 20.0,
+        "pct_stop": 80.0,
+        "pct_time": 0.0
+      }
+    }
   },
   "ranking_top_vs_rest": {
     "samples": 536,
