@@ -745,6 +745,80 @@ def _normalize_adaptive(range_key, valor, peor, mejor, raw_history):
     return max(0.0, min(100.0, (rank / n) * 100.0))
 
 
+def feature_health_score(range_key: str, ventana_reciente: int = 10) -> dict:
+    """
+    Feature drift monitoring (roadmap externo #5, jul-2026): compara la
+    distribución RECIENTE de una variable macro contra su distribución
+    HISTÓRICA, para detectar corrimientos estructurales que el sistema no
+    vería de otra forma -- sin errores, sin None, sin warning, pero con la
+    distribución de base cambiada. Ejemplo del caso que motiva esto:
+    arg_fiscal podría pasar de moverse entre -1/+1 durante 2 años a
+    moverse entre +5/+8 de golpe -- el pipeline sigue corriendo sin
+    problemas, _normalize_adaptive() sigue devolviendo un score 0-100
+    válido, pero la variable ya no significa lo mismo que antes.
+
+    Métrica: z-score de la media reciente respecto a media/desvío
+    históricos -- simple y estándar, más confiable que un test estadístico
+    más sofisticado (KS-test, etc.) dado el poco historial real disponible
+    hoy (ver limitación abajo).
+
+    LIMITACIÓN CONOCIDA: data/macro_raw_history.json guarda una lista plana
+    deduplicada por valor (ver _update_raw_history()), SIN timestamp por
+    observación. Esto significa que "ventana reciente" es "las últimas N
+    observaciones distintas", no "los últimos N días" -- para una variable
+    que cambia a diario (ej. tipo_cambio) eso es ~N días, pero para una
+    mensual (ej. IPC) son ~N meses. No hay forma de tener ventanas de
+    calendario comparables entre variables sin agregar timestamps al
+    historial (tarea aparte, no incluida acá).
+    """
+    raw_history = _load_raw_history()
+    valores = [v for v in raw_history.get(range_key, []) if v is not None]
+    n = len(valores)
+
+    if n < MIN_OBS_FOR_PERCENTILE:
+        return {
+            "status": "insuficiente_historia",
+            "samples": n,
+            "nota": f"Necesita ≥{MIN_OBS_FOR_PERCENTILE} observaciones para un chequeo de drift confiable (hoy: {n})",
+        }
+
+    ventana = max(1, min(ventana_reciente, n // 3))  # nunca más de 1/3 de la historia como "reciente"
+    reciente = valores[-ventana:]
+    historico = valores[:-ventana]
+
+    media_hist = float(np.mean(historico))
+    std_hist = float(np.std(historico))
+    media_reciente = float(np.mean(reciente))
+
+    z = 0.0 if std_hist == 0 else (media_reciente - media_hist) / std_hist
+
+    if abs(z) >= 2.5:
+        status = "drift_fuerte"
+    elif abs(z) >= 1.5:
+        status = "drift_moderado"
+    else:
+        status = "estable"
+
+    return {
+        "status": status,
+        "z_score": round(z, 2),
+        "media_historica": round(media_hist, 3),
+        "std_historica": round(std_hist, 3),
+        "media_reciente": round(media_reciente, 3),
+        "samples_historicos": len(historico),
+        "samples_recientes": len(reciente),
+    }
+
+
+def feature_health_report() -> dict:
+    """Corre feature_health_score() para todas las variables con historial
+    acumulado -- pensado para un futuro panel de diagnóstico o para
+    revisarlo puntualmente; hoy expone el cálculo, no se muestra todavía
+    en ningún dashboard."""
+    raw_history = _load_raw_history()
+    return {k: feature_health_score(k) for k in raw_history.keys()}
+
+
 def _load_raw_history() -> dict:
     from src.github_persistence import load_json
     return load_json(RAW_HISTORY_PATH, default={})

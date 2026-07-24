@@ -409,3 +409,71 @@ class TestDataQualityHistoryPersistence:
         ma.compute_macro_scores(arg, bra, usa)
         hist = _in_memory_persistence[ma.DATA_QUALITY_HISTORY_PATH]
         assert len(hist) == 1
+
+
+# ─────────────────────────────────────────────────────────────
+# Feature drift monitoring (roadmap externo #5, jul-2026)
+# ─────────────────────────────────────────────────────────────
+
+class TestFeatureHealthScore:
+    """
+    feature_health_score() detecta corrimientos estructurales en una
+    variable macro (media reciente vs. histórica) que no generan ningún
+    error, None, o warning -- el sistema sigue funcionando, pero la
+    distribución de base cambió. Validado, de paso, contra un hallazgo
+    real de esta sesión: usa_cpi/usa_pce tenían 35 observaciones
+    corruptas (nivel de índice ~300, en vez de %YoY ~3-9 que espera
+    RANGES) mezcladas con 2 observaciones correctas -- exactamente el tipo
+    de drift silencioso que esta función existe para detectar.
+    """
+
+    def _seed_history(self, monkeypatch, valores: dict):
+        store = {ma.RAW_HISTORY_PATH: valores}
+        monkeypatch.setattr(gp, "load_json", lambda path, default=None: store.get(path, default))
+        monkeypatch.setattr(gp, "save_json", lambda path, data, message=None: store.update({path: data}) or True)
+        return store
+
+    def test_variable_estable_no_marca_drift(self, monkeypatch):
+        self._seed_history(monkeypatch, {"var_estable": [1.0, -1.0] * 20})
+        r = ma.feature_health_score("var_estable")
+        assert r["status"] == "estable"
+
+    def test_drift_fuerte_se_detecta(self, monkeypatch):
+        """Caso de ejemplo de la revisión externa: arg_fiscal pasa de
+        moverse entre -1/+1 a moverse entre +5/+8 de golpe."""
+        historico = [-1.0 + (i % 3) * 0.5 for i in range(30)]
+        reciente = [5.5, 6.0, 6.5, 7.0, 7.5, 6.8, 5.9, 6.2, 7.1, 6.4]
+        self._seed_history(monkeypatch, {"arg_fiscal_test": historico + reciente})
+        r = ma.feature_health_score("arg_fiscal_test", ventana_reciente=10)
+        assert r["status"] == "drift_fuerte"
+        assert r["z_score"] > 2.5
+
+    def test_insuficiente_historia_no_crashea(self, monkeypatch):
+        self._seed_history(monkeypatch, {"nueva": [1.0, 2.0, 3.0]})
+        r = ma.feature_health_score("nueva")
+        assert r["status"] == "insuficiente_historia"
+        assert r["samples"] == 3
+
+    def test_variable_sin_historial_no_crashea(self, monkeypatch):
+        self._seed_history(monkeypatch, {})
+        r = ma.feature_health_score("no_existe")
+        assert r["status"] == "insuficiente_historia"
+        assert r["samples"] == 0
+
+    def test_desvio_cero_no_produce_division_por_cero(self, monkeypatch):
+        """Todos los valores históricos idénticos -> std=0 -- no debería
+        crashear con ZeroDivisionError."""
+        self._seed_history(monkeypatch, {"constante": [5.0] * 30})
+        r = ma.feature_health_score("constante")
+        assert r["z_score"] == 0.0
+        assert r["status"] == "estable"
+
+    def test_report_cubre_todas_las_variables_con_historial(self, monkeypatch):
+        self._seed_history(monkeypatch, {
+            "var_a": [1.0, -1.0] * 20,
+            "var_b": [1.0, 2.0],
+        })
+        report = ma.feature_health_report()
+        assert set(report.keys()) == {"var_a", "var_b"}
+        assert report["var_a"]["status"] == "estable"
+        assert report["var_b"]["status"] == "insuficiente_historia"
