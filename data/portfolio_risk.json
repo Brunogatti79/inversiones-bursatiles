@@ -1,0 +1,472 @@
+{
+  "correlaciones": {
+    "status": "ok",
+    "tickers_con_datos": 17,
+    "tickers_sin_datos": 0,
+    "ventana_dias": 60,
+    "matriz": {
+      "CEPU.BA": {
+        "CEPU.BA": 1.0,
+        "COME.BA": 0.738,
+        "IRSA.BA": 0.624,
+        "TRAN.BA": 0.325,
+        "COPX": 0.147,
+        "EWZ": 0.117,
+        "GLOB": -0.066,
+        "HAPV3.SA": 0.181,
+        "IBB": -0.023,
+        "MSFT": 0.011,
+        "PBR": -0.015,
+        "RIO": 0.198,
+        "GGAL.BA": 0.753,
+        "GOOGL": 0.072,
+        "EDN.BA": 0.814,
+        "BMA.BA": 0.741,
+        "TSLA": 0.14
+      },
+      "COME.BA": {
+        "CEPU.BA": 0.738,
+        "COME.BA": 1.0,
+        "IRSA.BA": 0.577,
+        "TRAN.BA": 0.36,
+        "COPX": 0.113,
+        "EWZ": -0.016,
+        "GLOB": -0.011,
+        "HAPV3.SA": -0.013,
+        "IBB": -0.102,
+        "MSFT": 0.125,
+        "PBR": -0.103,
+        "RIO": 0.086,
+        "GGAL.BA": 0.627,
+        "GOOGL": 0.118,
+        "EDN.BA": 0.746,
+        "BMA.BA": 0.659,
+        "TSLA": 0.22
+      },
+      "IRSA.BA": {
+        "CEPU.BA": 0.624,
+        "COME.BA": 0.577,
+        "IRSA.BA": 1.0,
+        "TRAN.BA": 0.362,
+        "COPX": 0.182,
+        "EWZ": 0.128,
+        "GLOB": -0.081,
+        "HAPV3.SA": -0.028,
+        "IBB": -0.025,
+        "MSFT": -0.113,
+        "PBR": 0.049,
+        "RIO": 0.226,
+        "GGAL.BA": 0.746,
+        "GOOGL": 0.241,
+        "EDN.BA": 0.702,
+        "BMA.BA": 0.683,
+        "TSLA": 0.249
+      },
+      "TRAN.BA": {
+        "CEPU.BA": 0.325,
+        "COME.BA": 0.36,
+        "IRSA.BA": 0.362,
+        "TRAN.BA": 1.0,
+        "COPX": 0.061,
+        "EWZ": 0.015,
+        "GLOB": -0.102,
+        "HAPV3.SA": -0.238,
+        "IBB": -0.066,
+        "MSFT": -0.265,
+        "PBR": 0.0,
+        "RIO": 0.085,
+        "GGAL.BA": 0.238,
+        "GOOGL": 0.215,
+        "EDN.BA": 0.368,
+        "BMA.BA": 0.277,
+        "TSLA": 0.138
+      },
+      "COPX": {
+        "CEPU.BA": 0.147,
+        "COME.BA": 0.113,
+        "IRSA.BA": 0.182,
+        "TRAN.BA": 0.061,
+        "COPX": 1.0,
+        "EWZ": 0.545,
+        "GLOB": -0.133,
+        "HAPV3.SA": 0.022,
+        "IBB": 0.234,
+        "MSFT": -0.047,
+        "PBR": -0.137,
+        "RIO": 0.877,
+        "GGAL.BA": 0.129,
+        "GOOGL": 0.277,
+        "EDN.BA": 0.18,
+        "BMA.BA": 0.107,
+        "TSLA": 0.505
+      },
+      "EWZ": {
+        "CEPU.BA": 0.117,
+        "COME.BA": -0.016,
+        "IRSA.BA": 0.128,
+        "TRAN.BA": 0.015,
+        "COPX": 0.545,
+        "EWZ": 1.0,
+        "GLOB": 0.034,
+        "HAPV3.SA": 0.181,
+        "IBB": 0.214,
+        "MSFT": -0.068,
+        "PBR": 0.245,
+        "RIO": 0.554,
+        "GGAL.BA": 0.165,
+        "GOOGL": 0.2,
+        "EDN.BA": 0.075,
+        "BMA.BA": 0.195,
+        "TSLA": 0.213
+      },
+      "GLOB": {
+        "CEPU.BA": -0.066,
+        "COME.BA": -0.011,
+        "IRSA.BA": -0.081,
+        "TRAN.BA": -0.102,
+        "COPX": -0.133,
+        "EWZ": 0.034,
+        "GLOB": 1.0,
+        "HAPV3.SA": -0.072,
+        "IBB": -0.036,
+        "MSFT": 0.571,
+        "PBR": 0.075,
+        "RIO": -0.114,
+        "GGAL.BA": -0.002,
+        "GOOGL": -0.013,
+        "EDN.BA": 0.08,
+        "BMA.BA": -0.043,
+        "TSLA": -0.194
+      },
+      "HAPV3.SA": {
+        "CEPU.BA": 0.181,
+        "COME.BA": -0.013,
+        "IRSA.BA": -0.028,
+        "TRAN.BA": -0.238,
+        "COPX": 0.022,
+        "EWZ": 0.181,
+        "GLOB": -0.072,
+        "HAPV3.SA": 1.0,
+        "IBB": -0.155,
+        "MSFT": 0.11,
+        "PBR": 0.276,
+        "RIO": 0.037,
+        "GGAL.BA": 0.118,
+        "GOOGL": 0.006,
+        "EDN.BA": -0.003,
+        "BMA.BA": 0.179,
+        "TSLA": 0.034
+      },
+      "IBB": {
+        "CEPU.BA": -0.023,
+        "COME.BA": -0.102,
+        "IRSA.BA": -0.025,
+        "TRAN.BA": -0.066,
+        "COPX": 0.234,
+        "EWZ": 0.214,
+        "GLOB": -0.036,
+        "HAPV3.SA": -0.155,
+        "IBB": 1.0,
+        "MSFT": -0.079,
+        "PBR": -0.271,
+        "RIO": 0.229,
+        "GGAL.BA": -0.018,
+        "GOOGL": 0.211,
+        "EDN.BA": 0.008,
+        "BMA.BA": -0.12,
+        "TSLA": 0.104
+      },
+      "MSFT": {
+        "CEPU.BA": 0.011,
+        "COME.BA": 0.125,
+        "IRSA.BA": -0.113,
+        "TRAN.BA": -0.265,
+        "COPX": -0.047,
+        "EWZ": -0.068,
+        "GLOB": 0.571,
+        "HAPV3.SA": 0.11,
+        "IBB": -0.079,
+        "MSFT": 1.0,
+        "PBR": -0.096,
+        "RIO": -0.16,
+        "GGAL.BA": 0.075,
+        "GOOGL": 0.041,
+        "EDN.BA": 0.12,
+        "BMA.BA": 0.054,
+        "TSLA": -0.038
+      },
+      "PBR": {
+        "CEPU.BA": -0.015,
+        "COME.BA": -0.103,
+        "IRSA.BA": 0.049,
+        "TRAN.BA": 0.0,
+        "COPX": -0.137,
+        "EWZ": 0.245,
+        "GLOB": 0.075,
+        "HAPV3.SA": 0.276,
+        "IBB": -0.271,
+        "MSFT": -0.096,
+        "PBR": 1.0,
+        "RIO": -0.093,
+        "GGAL.BA": -0.109,
+        "GOOGL": -0.216,
+        "EDN.BA": -0.12,
+        "BMA.BA": -0.031,
+        "TSLA": -0.226
+      },
+      "RIO": {
+        "CEPU.BA": 0.198,
+        "COME.BA": 0.086,
+        "IRSA.BA": 0.226,
+        "TRAN.BA": 0.085,
+        "COPX": 0.877,
+        "EWZ": 0.554,
+        "GLOB": -0.114,
+        "HAPV3.SA": 0.037,
+        "IBB": 0.229,
+        "MSFT": -0.16,
+        "PBR": -0.093,
+        "RIO": 1.0,
+        "GGAL.BA": 0.197,
+        "GOOGL": 0.339,
+        "EDN.BA": 0.2,
+        "BMA.BA": 0.201,
+        "TSLA": 0.404
+      },
+      "GGAL.BA": {
+        "CEPU.BA": 0.753,
+        "COME.BA": 0.627,
+        "IRSA.BA": 0.746,
+        "TRAN.BA": 0.238,
+        "COPX": 0.129,
+        "EWZ": 0.165,
+        "GLOB": -0.002,
+        "HAPV3.SA": 0.118,
+        "IBB": -0.018,
+        "MSFT": 0.075,
+        "PBR": -0.109,
+        "RIO": 0.197,
+        "GGAL.BA": 1.0,
+        "GOOGL": 0.273,
+        "EDN.BA": 0.818,
+        "BMA.BA": 0.91,
+        "TSLA": 0.182
+      },
+      "GOOGL": {
+        "CEPU.BA": 0.072,
+        "COME.BA": 0.118,
+        "IRSA.BA": 0.241,
+        "TRAN.BA": 0.215,
+        "COPX": 0.277,
+        "EWZ": 0.2,
+        "GLOB": -0.013,
+        "HAPV3.SA": 0.006,
+        "IBB": 0.211,
+        "MSFT": 0.041,
+        "PBR": -0.216,
+        "RIO": 0.339,
+        "GGAL.BA": 0.273,
+        "GOOGL": 1.0,
+        "EDN.BA": 0.153,
+        "BMA.BA": 0.229,
+        "TSLA": 0.421
+      },
+      "EDN.BA": {
+        "CEPU.BA": 0.814,
+        "COME.BA": 0.746,
+        "IRSA.BA": 0.702,
+        "TRAN.BA": 0.368,
+        "COPX": 0.18,
+        "EWZ": 0.075,
+        "GLOB": 0.08,
+        "HAPV3.SA": -0.003,
+        "IBB": 0.008,
+        "MSFT": 0.12,
+        "PBR": -0.12,
+        "RIO": 0.2,
+        "GGAL.BA": 0.818,
+        "GOOGL": 0.153,
+        "EDN.BA": 1.0,
+        "BMA.BA": 0.785,
+        "TSLA": 0.138
+      },
+      "BMA.BA": {
+        "CEPU.BA": 0.741,
+        "COME.BA": 0.659,
+        "IRSA.BA": 0.683,
+        "TRAN.BA": 0.277,
+        "COPX": 0.107,
+        "EWZ": 0.195,
+        "GLOB": -0.043,
+        "HAPV3.SA": 0.179,
+        "IBB": -0.12,
+        "MSFT": 0.054,
+        "PBR": -0.031,
+        "RIO": 0.201,
+        "GGAL.BA": 0.91,
+        "GOOGL": 0.229,
+        "EDN.BA": 0.785,
+        "BMA.BA": 1.0,
+        "TSLA": 0.121
+      },
+      "TSLA": {
+        "CEPU.BA": 0.14,
+        "COME.BA": 0.22,
+        "IRSA.BA": 0.249,
+        "TRAN.BA": 0.138,
+        "COPX": 0.505,
+        "EWZ": 0.213,
+        "GLOB": -0.194,
+        "HAPV3.SA": 0.034,
+        "IBB": 0.104,
+        "MSFT": -0.038,
+        "PBR": -0.226,
+        "RIO": 0.404,
+        "GGAL.BA": 0.182,
+        "GOOGL": 0.421,
+        "EDN.BA": 0.138,
+        "BMA.BA": 0.121,
+        "TSLA": 1.0
+      }
+    },
+    "pares_mas_correlacionados": [
+      {
+        "par": [
+          "GGAL.BA",
+          "BMA.BA"
+        ],
+        "correlacion": 0.91
+      },
+      {
+        "par": [
+          "COPX",
+          "RIO"
+        ],
+        "correlacion": 0.877
+      },
+      {
+        "par": [
+          "GGAL.BA",
+          "EDN.BA"
+        ],
+        "correlacion": 0.818
+      },
+      {
+        "par": [
+          "CEPU.BA",
+          "EDN.BA"
+        ],
+        "correlacion": 0.814
+      },
+      {
+        "par": [
+          "EDN.BA",
+          "BMA.BA"
+        ],
+        "correlacion": 0.785
+      },
+      {
+        "par": [
+          "CEPU.BA",
+          "GGAL.BA"
+        ],
+        "correlacion": 0.753
+      },
+      {
+        "par": [
+          "COME.BA",
+          "EDN.BA"
+        ],
+        "correlacion": 0.746
+      },
+      {
+        "par": [
+          "IRSA.BA",
+          "GGAL.BA"
+        ],
+        "correlacion": 0.746
+      },
+      {
+        "par": [
+          "CEPU.BA",
+          "BMA.BA"
+        ],
+        "correlacion": 0.741
+      },
+      {
+        "par": [
+          "CEPU.BA",
+          "COME.BA"
+        ],
+        "correlacion": 0.738
+      }
+    ]
+  },
+  "var_parametrico": {
+    "status": "ok",
+    "confidence": 0.95,
+    "horizon_days": 1,
+    "var_pct": 2.0,
+    "var_usd": 179.7,
+    "valor_portfolio_cubierto_usd": 8982.63,
+    "valor_portfolio_total_usd": 8982.63,
+    "pct_portfolio_cubierto": 100.0,
+    "tickers_con_datos": 17,
+    "tickers_sin_datos": 0,
+    "metodo": "parametrico_varianza_covarianza",
+    "nota": "VaR paramétrico, no histórico (ver limitación en el docstring del módulo). Cubre el 100.0% del valor del portfolio (posiciones con ≥60 días de historia de precios)."
+  },
+  "exposicion": {
+    "status": "ok",
+    "valor_total_usd": 8982.63,
+    "por_mercado": {
+      "SP500": {
+        "valor_usd": 4455.12,
+        "pct": 49.6
+      },
+      "MERVAL": {
+        "valor_usd": 3696.79,
+        "pct": 41.2
+      },
+      "BOVESPA": {
+        "valor_usd": 830.72,
+        "pct": 9.2
+      }
+    },
+    "por_sector": {
+      "SALUD": {
+        "valor_usd": 1892.12,
+        "pct": 21.1
+      },
+      "MATERIALES": {
+        "valor_usd": 1487.75,
+        "pct": 16.6
+      },
+      "UTILITIES": {
+        "valor_usd": 1216.21,
+        "pct": 13.5
+      },
+      "ENERGÍA": {
+        "valor_usd": 1175.69,
+        "pct": 13.1
+      },
+      "FINANCIERO": {
+        "valor_usd": 950.17,
+        "pct": 10.6
+      },
+      "CONSUMO": {
+        "valor_usd": 875.08,
+        "pct": 9.7
+      },
+      "TECNOLOGÍA": {
+        "valor_usd": 860.63,
+        "pct": 9.6
+      },
+      "INMOBILIARIO": {
+        "valor_usd": 524.98,
+        "pct": 5.8
+      }
+    }
+  },
+  "generated": "2026-07-24T15:45:11.784377"
+}
