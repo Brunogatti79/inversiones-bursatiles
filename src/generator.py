@@ -897,6 +897,7 @@ def generate_dashboard(
     .page{{padding:16px}}
     .op-fgrid{{grid-template-columns:1fr}}
     .radar-card{{flex-direction:column;align-items:flex-start}}
+    .pano-sistema-card{{width:100%;justify-content:center}}
   }}
 /* ── FORMULARIO OPERACIONES ── */
 #op-form-grid{{display:grid;grid-template-columns:2fr 1fr 1.2fr 1.2fr auto;gap:12px;align-items:end}}
@@ -1010,7 +1011,7 @@ def generate_dashboard(
   {macro_panel_html}
   <!-- ── Health & Backtest metrics ── -->
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 18px;align-items:center">
-    <div style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:8px 14px;display:flex;gap:8px;align-items:center">
+    <div class="pano-sistema-card" style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:8px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <span style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Sistema</span>
       <span style="font-size:12px;font-weight:700;color:{hl_sla_color};background:{hl_sla_color}22;padding:2px 8px;border-radius:4px">{hl_sla}</span>
       <span style="font-size:11px;color:#555">|</span>
