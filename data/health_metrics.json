@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-24T15:45:21.103040",
-  "last_run_utc": "2026-07-24T18:45:21.103070",
-  "last_success": "2026-07-24T15:45:21.103040",
+  "last_run": "2026-07-24T16:15:04.032686",
+  "last_run_utc": "2026-07-24T19:15:04.032747",
+  "last_success": "2026-07-24T16:15:04.032686",
   "consecutive_failures": 0,
   "duration_history": [
-    168.0,
     206.4,
     89.5,
     90.9,
@@ -13,11 +12,12 @@
     73.5,
     107.8,
     54.7,
-    90.9
+    90.9,
+    100.1
   ],
-  "duration_avg_sec": 92.4,
+  "duration_avg_sec": 98.3,
   "duration_p95_sec": 187.2,
-  "duration_last_sec": 90.9,
+  "duration_last_sec": 100.1,
   "signals_count": 67,
   "buy_signals": 6,
   "sell_signals": 9,
@@ -216,12 +216,17 @@
       "ts": "2026-07-24",
       "success": true,
       "duration": 90.9
+    },
+    {
+      "ts": "2026-07-24",
+      "success": true,
+      "duration": 100.1
     }
   ],
-  "pipeline_runs_today": 3,
-  "pipeline_runs_week": 38,
-  "optimized_weights_age_h": 0.1,
-  "optimized_weights_mode": "sensitivity",
+  "pipeline_runs_today": 4,
+  "pipeline_runs_week": 39,
+  "optimized_weights_age_h": 0.0,
+  "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
@@ -229,14 +234,10 @@
   "global_confidence_score": 65.4,
   "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
-  "optimized_weights_days": 11,
+  "optimized_weights_days": 16,
   "exposure_factor_shadow": 0.908,
-  "optimized_weights_is_synthetic": true,
-  "optimized_weights_synthetic_markets": [
-    "MERVAL",
-    "BOVESPA",
-    "SP500"
-  ],
+  "optimized_weights_is_synthetic": false,
+  "optimized_weights_synthetic_markets": [],
   "backtest_ev_21d": null,
   "backtest_total_trades": 737,
   "predictor_dir_acc": null,
