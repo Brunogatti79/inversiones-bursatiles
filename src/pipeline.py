@@ -603,7 +603,7 @@ def run_pipeline():
             logger.warning(f"Weight optimizer no crítico — continuando: {e_wo}")
         # ──────────────────────────────────────────────────────────────────────
 
-        from src.tracker import check_portfolio_alerts, update_portfolio_usd
+        from src.tracker import check_portfolio_alerts, update_portfolio_usd, log_portfolio_value_history
         portfolio_alerts = check_portfolio_alerts(all_signals)
         # Actualizar precios USD del portfolio con precios vigentes + CCL
         try:
@@ -614,6 +614,13 @@ def run_pipeline():
             logger.info(f"BRL/USD pasado a portfolio: {_brl_usd}")
             update_portfolio_usd(all_signals, brl_usd_ext=float(_brl_usd) if _brl_usd else 0.0)
             logger.info("Portfolio USD actualizado correctamente")
+            # Logging diario de valor total (roadmap externo #8): base para
+            # un drawdown real del portfolio en el futuro -- ver docstring
+            # de log_portfolio_value_history() en tracker.py.
+            try:
+                log_portfolio_value_history()
+            except Exception as e_pvh:
+                logger.warning(f"log_portfolio_value_history falló (no crítico): {e_pvh}")
         except Exception as e:
             import traceback
             logger.error(f"update_portfolio_usd falló: {e}\n{traceback.format_exc()}")

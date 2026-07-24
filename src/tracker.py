@@ -444,6 +444,115 @@ def check_portfolio_alerts(signals: list[dict]) -> list[dict]:
 
 
 
+PORTFOLIO_VALUE_HISTORY_PATH = "data/portfolio_value_history.json"
+
+
+def log_portfolio_value_history() -> dict | None:
+    """
+    Logging diario de valor del portfolio (roadmap externo #8, jul-2026):
+    guarda el valor total del portfolio (USD y ARS) día a día, para poder
+    calcular en el futuro un drawdown REAL del sistema -- no el proxy
+    sintético que ya calcula backtester.py (curva de equity armada con
+    retornos de señales tratadas como si se ejecutaran en secuencia, sin
+    fechas de calendario ni posiciones concurrentes reales).
+
+    Se llama después de update_portfolio_usd() en pipeline.py, para leer
+    precios ya frescos. Dedupe por día: reruns del mismo día pisan la
+    entrada de hoy en vez de acumular duplicados.
+
+    Sin este log no hay drawdown real posible -- no se puede reconstruir
+    el pasado que no se registró. El primer resultado útil (varias semanas
+    de curva) va a tardar en llegar, mismo patrón que otros históricos de
+    esta sesión (model_performance_history.json, macro_raw_history.json).
+    """
+    if not os.path.exists(PORTFOLIO_PATH):
+        return None
+    try:
+        with open(PORTFOLIO_PATH) as f:
+            portfolio = json.load(f)
+    except Exception as e:
+        logger.warning(f"log_portfolio_value_history: no se pudo leer {PORTFOLIO_PATH}: {e}")
+        return None
+
+    positions = portfolio.get("positions", [])
+    valor_total_usd = sum(p.get("valor_actual_usd", 0) or 0 for p in positions)
+    valor_total_ars = sum(p.get("valor_actual_ars", 0) or 0 for p in positions)
+    valor_inicial_usd = sum(p.get("valor_inicial_usd", 0) or 0 for p in positions)
+
+    entry = {
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "timestamp": datetime.now().isoformat(),
+        "n_posiciones": len(positions),
+        "valor_total_usd": round(valor_total_usd, 2),
+        "valor_total_ars": round(valor_total_ars, 2),
+        "valor_inicial_usd": round(valor_inicial_usd, 2),
+        "rend_pct": round((valor_total_usd / valor_inicial_usd - 1) * 100, 2) if valor_inicial_usd else None,
+    }
+
+    from src.github_persistence import load_json, save_json
+    hist = load_json(PORTFOLIO_VALUE_HISTORY_PATH, default=[])
+    hist = [e for e in hist if e.get("date") != entry["date"]]  # dedupe por día
+    hist.append(entry)
+    hist.sort(key=lambda e: e.get("date", ""))
+    save_json(PORTFOLIO_VALUE_HISTORY_PATH, hist,
+              message=f"auto: portfolio_value {entry['date']}")
+    return entry
+
+
+def compute_real_drawdown(dias: int = None) -> dict:
+    """
+    Drawdown real del portfolio a partir de log_portfolio_value_history().
+    A diferencia del proxy de backtester.py, esto SÍ usa fechas de
+    calendario reales y el valor total real del portfolio día a día -- una
+    vez que haya suficiente historia acumulada (esto recién empieza a
+    registrarse hoy).
+    """
+    from src.github_persistence import load_json
+    hist = load_json(PORTFOLIO_VALUE_HISTORY_PATH, default=[])
+    if dias:
+        cutoff = (datetime.now() - timedelta(days=dias)).strftime("%Y-%m-%d")
+        hist = [e for e in hist if e.get("date", "") >= cutoff]
+
+    if len(hist) < 5:
+        return {
+            "status": "insuficiente_historia",
+            "samples": len(hist),
+            "nota": "Necesita varias semanas de historial diario para un drawdown real confiable",
+        }
+
+    valores = [e["valor_total_usd"] for e in hist if e.get("valor_total_usd") is not None]
+    if len(valores) < 5:
+        return {"status": "insuficiente_historia", "samples": len(valores)}
+
+    peak = valores[0]
+    max_dd = 0.0
+    peak_date = hist[0]["date"]
+    trough_date = hist[0]["date"]
+    peak_at_trough = peak
+    for e in hist:
+        v = e.get("valor_total_usd")
+        if v is None:
+            continue
+        if v > peak:
+            peak = v
+            peak_date = e["date"]
+        dd = (v - peak) / peak * 100 if peak else 0.0
+        if dd < max_dd:
+            max_dd = dd
+            trough_date = e["date"]
+            peak_at_trough = peak
+
+    return {
+        "status": "ok",
+        "samples": len(valores),
+        "max_drawdown_pct": round(max_dd, 2),
+        "peak_previo_al_valle": round(peak_at_trough, 2),
+        "fecha_pico": peak_date,
+        "fecha_valle": trough_date,
+        "valor_actual_usd": valores[-1],
+    }
+
+
 def update_portfolio_usd(signals: list[dict] = None, brl_usd_ext: float = 0.0) -> None:
     """
     Recalcula precios actuales del portfolio y los persiste + pushea a GitHub.
