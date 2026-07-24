@@ -95,6 +95,92 @@ def _confidence_calibration_table(trades: list) -> dict:
     }
 
 
+def _isotonic_calibration_curve(trades: list, min_samples: int = 30) -> dict:
+    """
+    Calibración probabilística (roadmap externo "Institucional PRO",
+    jul-2026): en vez de asumir que confidence_score es monótono --ya
+    confirmado que NO lo es, ver _confidence_calibration_table(), quintil
+    4 rompe la tendencia-- ajusta una curva NO-DECRECIENTE de P(ganar) en
+    función de confidence_score vía regresión isotónica (PAVA:
+    Pool-Adjacent-Violators Algorithm). Esto "absorbe" la no-monotonía en
+    vez de fingir que no existe: donde el dato crudo dice que confianza 60
+    gana menos que confianza 55, la curva isotónica los pool-ea a un valor
+    intermedio común, en vez de reportar una probabilidad que baja al
+    subir la confianza (lo cual no tendría sentido para un usuario).
+
+    Por qué ahora y no "esperar más historia": el problema encontrado es
+    de FORMA de la relación, no de tamaño de muestra -- con 536 trades ya
+    hay señal suficiente para un primer ajuste razonable, y la calibración
+    isotónica es precisamente la herramienta estándar para este caso (no
+    asume una forma paramétrica, solo que la relación debería ser
+    no-decreciente, que es la única premisa que confidence_score necesita
+    para ser útil).
+
+    Devuelve una curva serializable en JSON (no el modelo sklearn en sí)
+    -- ver calibrated_win_probability() para usarla después.
+    """
+    try:
+        from sklearn.isotonic import IsotonicRegression
+    except ImportError:
+        return {"status": "sklearn_no_disponible"}
+
+    valid = [t for t in trades if t.get("confidence_score") is not None and _best_ret(t)[1] is not None]
+    n = len(valid)
+    if n < min_samples:
+        return {
+            "status": "insuficiente_historia",
+            "samples": n,
+            "nota": f"Necesita ≥{min_samples} trades con confidence_score + retorno para un ajuste isotónico razonable",
+        }
+
+    X = np.array([float(t["confidence_score"]) for t in valid])
+    y = np.array([1.0 if _best_ret(t)[1] > 0 else 0.0 for t in valid])  # binario: ganó/perdió
+
+    iso = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip")
+    iso.fit(X, y)
+
+    # Curva en 10 puntos representativos del rango observado (serializable)
+    puntos_x = np.linspace(float(X.min()), float(X.max()), 10)
+    puntos_y = iso.predict(puntos_x)
+    curva = [
+        {"confidence_score": round(float(px), 1), "p_ganar_calibrada": round(float(py), 3)}
+        for px, py in zip(puntos_x, puntos_y)
+    ]
+
+    # Correlación del score crudo contra el resultado binario -- una forma
+    # simple de cuantificar "cuánta información real tiene el score",
+    # independiente de si es monótono o no.
+    correlacion = float(np.corrcoef(X, y)[0, 1]) if len(set(X.tolist())) > 1 else None
+
+    return {
+        "status": "ok",
+        "samples": n,
+        "rango_confidence_score": [round(float(X.min()), 1), round(float(X.max()), 1)],
+        "curva": curva,
+        "correlacion_score_crudo_vs_resultado": round(correlacion, 3) if correlacion is not None else None,
+        "metodo": "isotonic_regression_pava",
+    }
+
+
+def calibrated_win_probability(confidence_score: float, curva: list) -> float | None:
+    """
+    Interpola sobre una curva ya calculada por _isotonic_calibration_curve()
+    (el campo "curva" de su resultado) para estimar P(ganar) para un
+    confidence_score arbitrario -- pensado para usarse después, desde el
+    dashboard o desde cualquier otro lugar que solo tenga el JSON guardado
+    en backtest_results.json, sin necesitar reentrenar nada.
+    """
+    if not curva:
+        return None
+    xs = [p["confidence_score"] for p in curva]
+    ys = [p["p_ganar_calibrada"] for p in curva]
+    if confidence_score <= xs[0]:
+        return ys[0]
+    if confidence_score >= xs[-1]:
+        return ys[-1]
+    return float(np.interp(confidence_score, xs, ys))
+
+
 def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
     """
     Ejecuta backtesting sobre el historial de señales.
@@ -156,6 +242,8 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         "by_confidence_label":    _aggregate_by(trades, "confidence_label"),
         "confidence_quantiles":   _confidence_quantile_breakdown(trades),
         "confidence_calibration": _confidence_calibration_table(trades),
+        "confidence_calibration_curve": _isotonic_calibration_curve(trades),
+        "attribution_by_factor": _aggregate_by(trades, "factor_dominante"),
         "ranking_top_vs_rest":    _ranking_quantile_breakdown(trades),
     }
 
@@ -257,6 +345,14 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
             confidence_score  = entry.get("confidence_score")
             confidence_label  = entry.get("confidence_label", "") or ""
             ranking           = entry.get("ranking", 0)
+            # ── Attribution engine (roadmap externo "Institucional PRO", jul-2026) ──
+            # factor_dominante ya se calculaba en analyzer.py y se persistía en
+            # tracker.py desde el 23/07 (roadmap externo #6), pero nunca había
+            # llegado al backtester -- sin esto no se puede responder "¿el modelo
+            # gana/pierde según qué factor domina la señal?". Mismo criterio que
+            # consenso/confidence_score: entradas viejas sin el campo se manejan
+            # como ausentes ("UNKNOWN"), no como una categoría falsa.
+            factor_dominante  = entry.get("factor_dominante", "") or ""
 
             if not signal or precio_entry <= 0 or not ticker:
                 continue
@@ -286,6 +382,7 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
                                      else None),
                 "confidence_score": confidence_score,
                 "confidence_label": confidence_label or "UNKNOWN",
+                "factor_dominante": factor_dominante or "UNKNOWN",
             }
 
             # Retornos hold-to-horizon

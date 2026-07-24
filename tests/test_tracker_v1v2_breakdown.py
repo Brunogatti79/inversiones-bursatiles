@@ -139,3 +139,37 @@ class TestV1V2BreakdownPersistence:
         entry = next(iter(history.values()))[0]
         total_contrib = sum(entry["factor_contrib"].values())
         assert abs(total_contrib - sig["score_final"]) < 20  # mismo orden de magnitud
+
+
+class TestMarketTrendAuditTrail:
+    """
+    Roadmap externo "Institucional PRO" (24/07/2026, walk-forward acumulado
+    / paper trading audit trail): market_trend/cross_market_regime se
+    calculaban en cross_market.py (regime detection por país, sesión
+    anterior) pero nunca quedaban grabados en la señal individual -- sin
+    esto, en 6 meses no hay forma de reconstruir "¿el modelo funcionaba
+    peor cuando el mercado local estaba en tendencia bajista?", porque el
+    contexto de régimen en el momento de la señal no había quedado
+    registrado. Se agrega en pipeline.py (donde ya se calculaba
+    cross_market) y se persiste acá.
+    """
+
+    def test_market_trend_se_persiste(self):
+        sig = _signal(market_trend="ALCISTA", market_trend_score=62.7,
+                       cross_market_regime="RISK_ON")
+        tracker.update_history([sig])
+        history = json.loads(open(tracker.HISTORY_PATH).read())
+        entry = next(iter(history.values()))[0]
+        assert entry["market_trend"] == "ALCISTA"
+        assert entry["market_trend_score"] == 62.7
+        assert entry["cross_market_regime"] == "RISK_ON"
+
+    def test_señal_vieja_sin_market_trend_no_crashea(self):
+        """Entradas sin estos campos (señales de antes de este fix) deben
+        caer en None, no romper la persistencia."""
+        sig = _signal()  # sin market_trend/cross_market_regime
+        tracker.update_history([sig])
+        history = json.loads(open(tracker.HISTORY_PATH).read())
+        entry = next(iter(history.values()))[0]
+        assert entry["market_trend"] is None
+        assert entry["cross_market_regime"] is None

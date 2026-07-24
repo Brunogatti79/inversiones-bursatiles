@@ -95,6 +95,11 @@ def update_history(signals: list[dict], max_days: int = 60):
             "model_version":       s.get("model_version", ""),
             "feature_set":         s.get("feature_set", ""),
             "data_completeness":   s.get("data_completeness"),
+            # ── Audit trail inmutable: régimen al momento de emisión (roadmap
+            # externo "Institucional PRO", jul-2026) ────────────────────────
+            "market_trend":        s.get("market_trend"),
+            "market_trend_score":  s.get("market_trend_score"),
+            "cross_market_regime": s.get("cross_market_regime"),
         }
         for s in signals
     ]

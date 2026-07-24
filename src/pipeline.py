@@ -306,6 +306,21 @@ def run_pipeline():
                                          xlsx_signals=xlsx_signals, fund_scores=fund_scores)
         all_signals = signals_merval + signals_bovespa + signals_sp500
         all_signals.sort(key=lambda x: x["score_final"], reverse=True)
+
+        # ── Audit trail inmutable por señal (roadmap externo "Institucional
+        # PRO", jul-2026): market_trends (regime detection por país, jul-2026)
+        # se calculaba en cross_market.py pero nunca quedaba grabado en cada
+        # señal individual -- solo se usaba de forma agregada. Sin esto, en 6
+        # meses no hay forma de responder "¿el modelo funcionaba peor cuando
+        # el mercado local estaba en tendencia bajista?" porque el contexto
+        # de régimen en el momento de la señal no quedó registrado. Mismo
+        # criterio que data_completeness/model_version: se graba en el
+        # momento de emisión, no se puede reconstruir después.
+        for _s in all_signals:
+            _mt = cross_market.get("market_trends", {}).get(_s.get("mercado"), {})
+            _s["market_trend"] = _mt.get("trend")
+            _s["market_trend_score"] = _mt.get("score")
+            _s["cross_market_regime"] = cross_market.get("regime", "NEUTRAL")
  
         # 4b. PREDICCIONES ENSEMBLE (5d / 10d / 21d)
         logger.info("4b/8 Generando predicciones ensemble...")

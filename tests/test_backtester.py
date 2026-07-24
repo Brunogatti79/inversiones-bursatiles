@@ -26,6 +26,8 @@ from src.backtester import (
     _ranking_quantile_breakdown,
     _best_ret,
     _confidence_calibration_table,
+    _isotonic_calibration_curve,
+    calibrated_win_probability,
     _aggregate_by,
     _build_trades,
 )
@@ -459,3 +461,133 @@ class TestConfidenceCalibrationTable:
         trades += [{"confidence_score": float(i), "ret_5d": float(i)} for i in range(20)]
         result = _confidence_calibration_table(trades)
         assert result["samples"] == 20
+
+
+# ── Calibración probabilística + attribution engine (roadmap "Institucional PRO", 24/07/2026) ──
+
+class TestIsotonicCalibrationCurve:
+    """
+    _isotonic_calibration_curve() responde al hallazgo real de esta sesión
+    (confidence_calibration con monotona=False, quintil 4 rompiendo la
+    tendencia: WR 33%/52%/50%/39%/62%) -- en vez de esperar más historia
+    para que "se resuelva solo", ajusta una curva no-decreciente vía
+    regresión isotónica, que es la herramienta correcta quando el problema
+    es de FORMA de la relación, no de tamaño de muestra.
+    """
+
+    def test_pocas_muestras_devuelve_nota_no_crashea(self):
+        trades = [{"confidence_score": 50, "ret_5d": 1.0}] * 10
+        r = _isotonic_calibration_curve(trades, min_samples=30)
+        assert r["status"] == "insuficiente_historia"
+        assert r["samples"] == 10
+
+    def test_curva_es_no_decreciente_incluso_con_dato_crudo_no_monotono(self):
+        """Reproduce el hallazgo real: 5 grupos con WR 33/52/50/39/62% en
+        confianza creciente -- el dato crudo NO es monótono (39 < 50), pero
+        la curva calibrada debe serlo siempre, por construcción."""
+        import random
+        random.seed(42)
+        rangos = [
+            (28.3, 48.0, 0.33), (48.0, 51.1, 0.521), (51.1, 53.9, 0.50),
+            (54.7, 64.8, 0.394), (64.8, 90.8, 0.624),
+        ]
+        trades = []
+        for lo, hi, wr in rangos:
+            for _ in range(94):
+                conf = random.uniform(lo, hi)
+                gano = random.random() < wr
+                ret = random.uniform(0.5, 5.0) if gano else random.uniform(-5.0, -0.5)
+                trades.append({"confidence_score": conf, "ret_5d": ret})
+
+        r = _isotonic_calibration_curve(trades)
+        assert r["status"] == "ok"
+        ps = [p["p_ganar_calibrada"] for p in r["curva"]]
+        assert all(ps[i] <= ps[i + 1] for i in range(len(ps) - 1)), \
+            "la curva calibrada debe ser no-decreciente por construcción, aunque el dato crudo no lo sea"
+
+    def test_todos_los_valores_iguales_no_crashea(self):
+        """Sin varianza en confidence_score -- correlación indefinida, no
+        debería romper el cálculo."""
+        trades = [{"confidence_score": 50.0, "ret_5d": (1.0 if i % 2 == 0 else -1.0)}
+                  for i in range(40)]
+        r = _isotonic_calibration_curve(trades)
+        assert r["status"] == "ok"
+        assert r["correlacion_score_crudo_vs_resultado"] is None
+
+
+class TestCalibratedWinProbability:
+
+    def test_interpola_entre_puntos_de_la_curva(self):
+        curva = [
+            {"confidence_score": 30.0, "p_ganar_calibrada": 0.2},
+            {"confidence_score": 70.0, "p_ganar_calibrada": 0.8},
+        ]
+        p = calibrated_win_probability(50.0, curva)
+        assert abs(p - 0.5) < 0.01  # punto medio, interpolación lineal
+
+    def test_clampea_fuera_de_rango(self):
+        curva = [
+            {"confidence_score": 30.0, "p_ganar_calibrada": 0.2},
+            {"confidence_score": 70.0, "p_ganar_calibrada": 0.8},
+        ]
+        assert calibrated_win_probability(10.0, curva) == 0.2
+        assert calibrated_win_probability(90.0, curva) == 0.8
+
+    def test_curva_vacia_devuelve_none(self):
+        assert calibrated_win_probability(50.0, []) is None
+
+
+class TestAttributionByFactor:
+    """factor_dominante ya se calculaba en analyzer.py (jul-2026) pero
+    nunca había llegado al backtester -- sin esto no se puede responder
+    '¿el modelo gana/pierde según qué factor domina la señal?'."""
+
+    def test_distingue_factores_con_resultados_distintos(self):
+        trades = (
+            [{"factor_dominante": "macro", "ret_5d": 3.0} for _ in range(20)]
+            + [{"factor_dominante": "tecnico", "ret_5d": -3.0} for _ in range(20)]
+        )
+        attrib = _aggregate_by(trades, "factor_dominante")
+        assert attrib["macro"]["h5d"]["win_rate"] == 1.0
+        assert attrib["tecnico"]["h5d"]["win_rate"] == 0.0
+
+    def test_factor_dominante_ausente_cae_en_unknown(self):
+        trades = [{"ret_5d": 1.0}] * 5  # sin factor_dominante en absoluto
+        attrib = _aggregate_by(trades, "factor_dominante")
+        assert "UNKNOWN" in attrib
+        assert attrib["UNKNOWN"]["count"] == 5
+
+
+class TestBuildTradesFactorDominante:
+    """Confirma que _build_trades() ahora propaga factor_dominante desde
+    signals_history.json hasta el trade final (antes no lo hacía)."""
+
+    def test_factor_dominante_se_propaga_desde_signals_history(self):
+        history = {
+            "2026-07-01": [{
+                "ticker": "GGAL.BA", "signal": "🟢 COMPRA", "precio": 100.0,
+                "atr_stop": 90.0, "atr_target": 120.0, "sector": "Financiero",
+                "mercado": "MERVAL", "factor_dominante": "fundamental",
+            }],
+        }
+        price_index = {
+            "GGAL.BA": {f"2026-07-{d:02d}": 100.0 + d for d in range(1, 15)}
+        }
+        trades = _build_trades(history, ["2026-07-01"] + [f"2026-07-{d:02d}" for d in range(2, 15)], price_index)
+        assert len(trades) == 1
+        assert trades[0]["factor_dominante"] == "fundamental"
+
+    def test_factor_dominante_ausente_cae_en_unknown_no_crashea(self):
+        history = {
+            "2026-07-01": [{
+                "ticker": "GGAL.BA", "signal": "🟢 COMPRA", "precio": 100.0,
+                "atr_stop": 90.0, "atr_target": 120.0, "sector": "Financiero",
+                "mercado": "MERVAL",
+                # sin factor_dominante -- entrada "vieja"
+            }],
+        }
+        price_index = {
+            "GGAL.BA": {f"2026-07-{d:02d}": 100.0 + d for d in range(1, 15)}
+        }
+        trades = _build_trades(history, ["2026-07-01"] + [f"2026-07-{d:02d}" for d in range(2, 15)], price_index)
+        assert trades[0]["factor_dominante"] == "UNKNOWN"
