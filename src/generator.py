@@ -504,12 +504,19 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list) -> str
         )
 
 
-def _render_macro_panel(signals: list) -> str:
+def _render_macro_panel(signals: list, extra_html: str = "") -> str:
     """
     Panel de score macro por mercado + delta semanal (Panorama). Extraído
     de generate_dashboard() el 24/07/2026 (refactor de generator.py,
     roadmap externo #7) -- sin cambio de comportamiento, verificado con
     diff byte a byte del HTML generado antes/después.
+
+    `extra_html` (agregado 24/07/2026, ajuste de layout pedido por Bruno):
+    se inserta como 4to elemento dentro de la misma fila (.macro-mini-row,
+    ya flex+wrap) junto a las 3 tarjetas de macro -- pensado para la
+    tarjeta "Sistema", que antes compartía fila con "Conclusiones del
+    Modelo" y en pantallas angostas la empujaba/comprimía. Vacío por
+    default para no romper ningún otro caller.
     """
     # ── Score Macro por mercado + delta semanal (Panorama) ───────────────
     def _macro_score_for(_mercado):
@@ -569,6 +576,7 @@ def _render_macro_panel(signals: list) -> str:
         + _macro_mini_card("🇦🇷", "Macro MERVAL",  macro_now["MERVAL"],  macro_delta["MERVAL"])
         + _macro_mini_card("🇧🇷", "Macro BOVESPA", macro_now["BOVESPA"], macro_delta["BOVESPA"])
         + _macro_mini_card("🇺🇸", "Macro S&amp;P 500", macro_now["SP500"], macro_delta["SP500"])
+        + extra_html
         + '</div>'
     )
 
@@ -708,8 +716,6 @@ def generate_dashboard(
     b_day  = index_stats.get("bovespa", {}).get("ret_dia", None)
     s_day  = index_stats.get("sp500",   {}).get("ret_dia", None)
 
-    macro_panel_html = _render_macro_panel(signals)
-
     # ── Cross-market (Fase 1/4) ──────────────────────────────────────────
     _cm         = index_stats.get("cross_market", {})
     cm_regime   = _cm.get("regime", "NEUTRAL")
@@ -744,6 +750,28 @@ def generate_dashboard(
     hl_dur       = _health.get("duration_last_sec", 0)
     hl_buy       = _health.get("buy_signals", 0)
     hl_sla_color = {"OK": "#4ade80", "WARNING": "#fbbf24", "CRITICAL": "#f87171"}.get(hl_sla, "#888")
+
+    # Tarjeta "Sistema" -- ajuste de layout pedido por Bruno (24/07/2026):
+    # antes compartía fila con "Conclusiones del Modelo" y en pantallas
+    # angostas la empujaba/comprimía. Ahora se suma como 4to elemento a la
+    # misma fila que las 3 tarjetas de macro (.macro-mini-row, ya flex+wrap),
+    # y "Conclusiones del Modelo" pasa a tener su propia fila completa abajo.
+    sistema_html = (
+        '<div class="pano-sistema-card" style="background:#0d0d14;border:1px solid #222;'
+        'border-radius:8px;padding:8px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+        '<span style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;'
+        'letter-spacing:.5px">Sistema</span>'
+        f'<span style="font-size:12px;font-weight:700;color:{hl_sla_color};background:{hl_sla_color}22;'
+        f'padding:2px 8px;border-radius:4px">{hl_sla}</span>'
+        '<span style="font-size:11px;color:#555">|</span>'
+        f'<span style="font-size:11px;color:#666">Runs hoy: <b style="color:#aaa">{hl_runs}</b></span>'
+        '<span style="font-size:11px;color:#555">|</span>'
+        f'<span style="font-size:11px;color:#666">Dur: <b style="color:#aaa">{hl_dur:.0f}s</b></span>'
+        '<span style="font-size:11px;color:#555">|</span>'
+        f'<span style="font-size:11px;color:#666">Compras: <b style="color:#4ade80">{hl_buy}</b></span>'
+        '</div>'
+    )
+    macro_panel_html = _render_macro_panel(signals, extra_html=sistema_html)
 
     model_conclusions_html = _render_model_conclusions_panel(_backtest, _perf_history)
 
@@ -1009,18 +1037,8 @@ def generate_dashboard(
     </div>
   </div>
   {macro_panel_html}
-  <!-- ── Health & Backtest metrics ── -->
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 18px;align-items:center">
-    <div class="pano-sistema-card" style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:8px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <span style="font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Sistema</span>
-      <span style="font-size:12px;font-weight:700;color:{hl_sla_color};background:{hl_sla_color}22;padding:2px 8px;border-radius:4px">{hl_sla}</span>
-      <span style="font-size:11px;color:#555">|</span>
-      <span style="font-size:11px;color:#666">Runs hoy: <b style="color:#aaa">{hl_runs}</b></span>
-      <span style="font-size:11px;color:#555">|</span>
-      <span style="font-size:11px;color:#666">Dur: <b style="color:#aaa">{hl_dur:.0f}s</b></span>
-      <span style="font-size:11px;color:#555">|</span>
-      <span style="font-size:11px;color:#666">Compras: <b style="color:#4ade80">{hl_buy}</b></span>
-    </div>
+  <!-- ── Conclusiones del Modelo -- fila propia, ya no comparte con Sistema (ajuste de layout 24/07/2026) ── -->
+  <div style="margin:12px 0 18px">
     {model_conclusions_html}
   </div>
 
