@@ -166,8 +166,23 @@ def _calc_kelly_weights(buy_signals: list[dict], backtest: dict, regime_factor: 
 
     regime_factor: multiplicador de incertidumbre sistémica (Prioridad 5,
     roadmap externo, 25/06/2026) -- LOW vol=1.10, NORMAL=1.00, HIGH vol=0.75.
+
+    FIX 24/07/2026: (1) usa el mejor horizonte disponible en vez de h21d
+    hardcodeado -- ver docstring de _get_backtest_metrics_best_horizon()
+    para el porqué. (2) Blendea el win_rate del bucket (por tipo de señal/
+    mercado, agregado) con la probabilidad calibrada isotónicamente para
+    el confidence_score PUNTUAL de esta señal (roadmap "Institucional PRO"
+    -- calibración construida el 24/07 pero hasta este fix quedaba
+    calculada y guardada sin usarse en ninguna decisión real). El bucket
+    da "cómo le fue en promedio a este tipo de señal"; la curva calibrada
+    da "qué tan bien predice el confidence_score de ESTA señal en
+    particular" -- son dos fuentes de información distintas y
+    complementarias, no una reemplaza a la otra.
     """
+    from src.backtester import calibrated_win_probability
+
     weights = []
+    calibration_curve = ((backtest or {}).get("confidence_calibration_curve") or {}).get("curva")
 
     # Extraer métricas de backtest por señal/mercado
     by_signal = backtest.get("by_signal", {}) if backtest else {}
@@ -179,16 +194,25 @@ def _calc_kelly_weights(buy_signals: list[dict], backtest: dict, regime_factor: 
         score_v1   = float(sig.get("score_final", 0) or 0)
 
         # Buscar métricas en backtest (señal específica → mercado → fallback)
-        metrics = (
-            _get_backtest_metrics(by_signal, signal_key, horizon="h21d") or
-            _get_backtest_metrics(by_market, market, horizon="h21d") or
-            None
-        )
+        _, metrics = _get_backtest_metrics_best_horizon(by_signal, signal_key)
+        if metrics is None:
+            _, metrics = _get_backtest_metrics_best_horizon(by_market, market)
 
         if metrics and metrics.get("samples", 0) >= 5:
             win_rate = float(metrics["win_rate"])
             avg_win  = float(metrics["avg_win"])
             avg_loss = float(metrics["avg_loss"])
+
+            # Blend con la probabilidad calibrada isotónicamente para el
+            # confidence_score puntual de esta señal, si hay curva
+            # disponible (necesita ≥30 trades en el backtest para existir
+            # -- ver _isotonic_calibration_curve() en backtester.py).
+            confidence_score = sig.get("confidence_score")
+            if calibration_curve and confidence_score is not None:
+                p_calibrada = calibrated_win_probability(float(confidence_score), calibration_curve)
+                if p_calibrada is not None:
+                    win_rate = (win_rate + p_calibrada) / 2.0
+
             if avg_win > 0:
                 kelly_f = (win_rate * avg_win - (1 - win_rate) * avg_loss) / avg_win
             else:
@@ -225,6 +249,30 @@ def _get_backtest_metrics(group: dict, key: str, horizon: str) -> Optional[dict]
     if not h or h.get("samples", 0) < 5:
         return None
     return h
+
+
+def _get_backtest_metrics_best_horizon(group: dict, key: str) -> tuple:
+    """
+    FIX 24/07/2026 (hallazgo real, no teórico): _calc_kelly_weights() estaba
+    hardcodeado a horizon="h21d" -- con solo 16 días de historia real, h21d
+    sigue en null para TODO, así que Kelly caía siempre al fallback crudo
+    por score (kelly_f = (score-50)/250), ignorando por completo el
+    backtest real ya disponible a 5 y 10 días. Mismo patrón de bug ya
+    encontrado y corregido 3 veces esta sesión en otros módulos
+    (confidence_quantiles, ranking_top_vs_rest, log_model_run) -- acá vivía
+    sin corregir en el módulo que más importa (el que decide cuánto
+    capital poner en cada posición).
+
+    Elige el horizonte más largo con muestra disponible (21d > 10d > 5d),
+    igual criterio que _best_ret() en backtester.py.
+
+    Devuelve (horizonte_usado, metrics) o (None, None).
+    """
+    for horizon in ("h21d", "h10d", "h5d"):
+        m = _get_backtest_metrics(group, key, horizon)
+        if m is not None:
+            return horizon, m
+    return None, None
 
 
 # ── Risk Parity ─────────────────────────────────────────────────────────────
