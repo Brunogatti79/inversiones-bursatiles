@@ -138,6 +138,40 @@ def apply_prediction_override(signals: list[dict], predictor_health: dict = None
     return signals
 
 
+def _weight_optimizer_esta_stale(opt_path: str = "data/optimized_weights.json", max_age_hours: float = 20) -> bool:
+    """
+    FIX 24/07/2026 (hallazgo real, no teórico): antes se medía la antigüedad
+    con os.path.getmtime() -- la fecha de modificación del archivo EN EL
+    DISCO de Railway. El filesystem de Railway es efímero (ver arquitectura
+    v4 §3): en cada redeploy se re-sincroniza este archivo desde GitHub, lo
+    que le da una fecha local fresca aunque el CONTENIDO tenga días. Con los
+    redeploys frecuentes de una sesión de desarrollo activa, la antigüedad
+    medida por mtime nunca superaba las 20hs y el optimizer quedó sin correr
+    5 días a pesar de haber suficiente historia real para reoptimizar
+    (optimized_weights.json decía "generated": 2026-07-19 mientras el mtime
+    local decía 2026-07-22 -- 3 días de diferencia, todos los redeploys de
+    por medio). Ahora se lee el timestamp real desde adentro del JSON -- ese
+    sí sobrevive a los redeploys porque viene del contenido, no del
+    filesystem. Si no se puede leer, cae al mtime como antes (mejor una
+    señal imperfecta que ninguna).
+
+    Devuelve True si corresponde re-optimizar (archivo viejo o inexistente).
+    """
+    if not os.path.exists(opt_path):
+        return True
+    try:
+        with open(opt_path) as _owf:
+            _generated_str = json.load(_owf).get("generated")
+        if not _generated_str:
+            return True  # sin timestamp adentro -> tratar como viejo, re-optimizar
+        _generated_dt = datetime.fromisoformat(_generated_str)
+        _age = (datetime.now() - _generated_dt).total_seconds()
+    except Exception as _e_age:
+        logger.warning(f"No se pudo leer 'generated' de {opt_path}, usando mtime como fallback: {_e_age}")
+        _age = time.time() - os.path.getmtime(opt_path)
+    return _age > 3600 * max_age_hours
+
+
 def run_pipeline():
     tz       = pytz.timezone(TIMEZONE)
     start_ts = time.time()
@@ -601,15 +635,12 @@ def run_pipeline():
 
         # ── WEIGHT OPTIMIZER (Fase 2) ──────────────────────────────────────────
         # Corre solo 1 vez por día (la primera ejecución). Las siguientes usan
-        # los pesos guardados en data/optimized_weights.json.
+        # los pesos guardados en data/optimized_weights.json. Ver docstring de
+        # _weight_optimizer_esta_stale() para el fix del 24/07/2026 (bug real
+        # de mtime vs filesystem efímero de Railway).
         try:
             _opt_path = "data/optimized_weights.json"
-            _run_opt  = True
-            if os.path.exists(_opt_path):
-                import time as _time
-                _age = _time.time() - os.path.getmtime(_opt_path)
-                _run_opt = _age > 3600 * 20  # re-optimizar si tiene >20h
-            if _run_opt:
+            if _weight_optimizer_esta_stale(_opt_path):
                 run_weight_optimization(
                     price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
                     ticker_cols=ticker_cols,
