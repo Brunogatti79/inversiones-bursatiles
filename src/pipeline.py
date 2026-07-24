@@ -636,6 +636,33 @@ def run_pipeline():
                 log_portfolio_value_history()
             except Exception as e_pvh:
                 logger.warning(f"log_portfolio_value_history falló (no crítico): {e_pvh}")
+
+            # Portfolio Risk Engine (roadmap "Institucional PRO", 24/07/2026):
+            # correlaciones + VaR paramétrico + exposición por mercado/sector
+            # del portfolio actual. VaR paramétrico (no histórico) a
+            # propósito -- portfolio_value_history.json recién empieza a
+            # acumularse, no alcanza todavía para un VaR histórico confiable.
+            # Ver docstring de src/portfolio_risk.py para el detalle completo.
+            try:
+                from src.portfolio_risk import compute_portfolio_risk
+                from src.analyzer import SECTOR_MAP
+                from src.github_persistence import load_json as _pr_load, save_json as _pr_save
+                with open("data/portfolio.json") as _pf:
+                    _portfolio_fresh = json.load(_pf)
+                _risk = compute_portfolio_risk(
+                    _portfolio_fresh,
+                    {"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                    ticker_cols,
+                    sector_by_ticker=SECTOR_MAP,
+                )
+                _risk["generated"] = datetime.now().isoformat()
+                _pr_save("data/portfolio_risk.json", _risk, message=f"auto: portfolio_risk {datetime.now().strftime('%Y-%m-%d')}")
+                logger.info(
+                    f"Portfolio Risk: VaR95%1d={_risk['var_parametrico'].get('var_pct')}% "
+                    f"| correlaciones status={_risk['correlaciones'].get('status')}"
+                )
+            except Exception as e_risk:
+                logger.warning(f"Portfolio Risk Engine falló (no crítico): {e_risk}")
         except Exception as e:
             import traceback
             logger.error(f"update_portfolio_usd falló: {e}\n{traceback.format_exc()}")
