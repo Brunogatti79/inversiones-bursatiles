@@ -212,237 +212,17 @@ def _build_oportunidades(signals, price_data):
 # Dashboard HTML
 # ─────────────────────────────────────────────
  
-def generate_dashboard(
-    signals: list[dict],
-    index_stats: dict,
-    output_path: str,
-    run_date: str = "",
-    price_data: dict = None,
-    validacion: dict = None,
-    weights_provenance: dict = None,
-    exposure: dict = None,
-) -> str:
-    """Genera el HTML del dashboard y lo escribe en output_path."""
- 
-    # Construir fichas de oportunidades
-    fichas = []
-    if price_data:
-        try:
-            fichas = _build_oportunidades(signals, price_data)
-        except Exception as e:
-            logger.warning(f"No se pudieron generar fichas de oportunidades: {e}")
- 
-    # Banner de validación para el header
-    if validacion:
-        nivel_g = validacion.get("nivel_global", "OK")
-        if nivel_g == "ERROR":
-            banner_bg   = "#2b0a0a"
-            banner_bord = "#6b1a1a"
-            banner_icon = "🔴"
-            banner_txt  = "ALERTA — Datos con problemas de calidad"
-            banner_col  = "#f87171"
-        elif nivel_g == "WARNING":
-            banner_bg   = "#2b2000"
-            banner_bord = "#6b4a00"
-            banner_icon = "🟡"
-            banner_txt  = "Advertencia — Revisar frescura de datos"
-            banner_col  = "#fbbf24"
-        else:
-            banner_bg   = "#0a2b0a"
-            banner_bord = "#1a4a1a"
-            banner_icon = "🟢"
-            banner_txt  = "Datos OK"
-            banner_col  = "#4ade80"
- 
-        mercados_html = ""
-        for key, label in [("merval","MERVAL"), ("bovespa","BOVESPA"), ("sp500","S&P 500")]:
-            res = validacion.get("mercados", {}).get(key, {})
-            niv = res.get("nivel", "OK")
-            uf  = res.get("ultima_fecha", "—")
-            ic  = "🟢" if niv=="OK" else "🟡" if niv=="WARNING" else "🔴"
-            mercados_html += f'<span style="margin-right:16px">{ic} <b>{label}</b> <code style="font-size:11px">{uf}</code></span>'
- 
-        validacion_banner = f'''<div style="background:{banner_bg};border-bottom:1px solid {banner_bord};padding:8px 32px;font-size:12px;color:{banner_col};display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-  <span>{banner_icon} <b>{banner_txt}</b></span>
-  <span style="color:#666">|</span>
-  {mercados_html}
-</div>'''
-    else:
-        validacion_banner = ""
+def _render_model_conclusions_panel(_backtest: dict, _perf_history: list) -> str:
+    """
+    Panel "Conclusiones del Modelo" (Panorama) -- extraído de generate_dashboard()
+    el 24/07/2026 (refactor de generator.py, roadmap externo #7) para que sea
+    testeable en aislamiento y no siga creciendo dentro de una única función de
+    ~2670 líneas. Sin cambios de comportamiento respecto a la versión inline --
+    verificado con diff byte a byte del HTML generado antes/después del refactor.
 
-    # Banner de estado del sistema: pesos sintéticos + exposure total
-    # (Prioridad 1 / Exposure Total, 25/06/2026). Mismo patrón visual que
-    # validacion_banner arriba -- bloque Python autocontenido, no JS, para
-    # mantener el riesgo de tocar este archivo lo más bajo posible. Solo
-    # se muestra cuando hay algo que decir (pesos sintéticos o exposure<100%);
-    # si todo es normal, no agrega ruido visual.
-    status_parts = []
-    if weights_provenance and weights_provenance.get("is_synthetic"):
-        synth_mkts = [m for m, v in weights_provenance.get("markets", {}).items() if v.get("is_synthetic")]
-        mkts_txt = ", ".join(synth_mkts) if synth_mkts else "todos"
-        status_parts.append(
-            f'<span>🧪 <b>Pesos V1 sintéticos</b> '
-            f'<span style="color:#888">({weights_provenance.get("mode","?")}, '
-            f'{weights_provenance.get("days_history","?")}d real — {mkts_txt})</span></span>'
-        )
-    if exposure and exposure.get("exposure_factor") is not None and exposure["exposure_factor"] < 1.0:
-        status_parts.append(
-            f'<span>🧮 <b>Exposure Total: {exposure["exposure_factor"]*100:.0f}%</b> '
-            f'<span style="color:#888">(confianza {exposure.get("confidence_component",0)*100:.0f}% × '
-            f'régimen {exposure.get("regime_component",1)*100:.0f}%)</span></span>'
-        )
-
-    if status_parts:
-        system_status_banner = (
-            '<div style="background:#1a1500;border-bottom:1px solid #4a3a00;padding:8px 32px;'
-            'font-size:12px;color:#fbbf24;display:flex;align-items:center;gap:16px;flex-wrap:wrap">'
-            + '<span style="color:#666">|</span>'.join(status_parts) +
-            '</div>'
-        )
-    else:
-        system_status_banner = ""
-    
-    signals_json     = json.dumps(signals,     ensure_ascii=False)
-    index_stats_json = json.dumps(index_stats, ensure_ascii=False)
-    fichas_json      = json.dumps(fichas,      ensure_ascii=False, default=str)
-    railway_url      = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
-    if railway_url and not railway_url.startswith("http"):
-        railway_url = "https://" + railway_url
-    # Fallback a URL conocida si no hay env var
-    if not railway_url:
-        railway_url = "https://inversiones-bursatiles-production.up.railway.app"
-    # Portfolio data para la pestaña Portfolio
-    portfolio_json = "{}"
-    portfolio_alerts_json = "{}"
-    try:
-        import os as _os
-        _pf = "data/portfolio.json"
-        _pa = "data/portfolio_alerts.json"
-        if _os.path.exists(_pf):
-            with open(_pf) as _f:
-                portfolio_json = _f.read()
-        if _os.path.exists(_pa):
-            with open(_pa) as _f:
-                portfolio_alerts_json = _f.read()
-    except Exception as e:
-        logger.warning(f"Portfolio data no disponible: {e}")
- 
-    merval_labels  = index_stats.get("merval",  {}).get("monthly_labels", [])
-    merval_values  = index_stats.get("merval",  {}).get("monthly_values", [])
-    bovespa_labels = index_stats.get("bovespa", {}).get("monthly_labels", [])
-    bovespa_values = index_stats.get("bovespa", {}).get("monthly_values", [])
-    sp500_labels   = index_stats.get("sp500",   {}).get("monthly_labels", [])
-    sp500_values   = index_stats.get("sp500",   {}).get("monthly_values", [])
- 
-    m_ret  = index_stats.get("merval",  {}).get("ret_anual",  0)
-    b_ret  = index_stats.get("bovespa", {}).get("ret_anual",  0)
-    s_ret  = index_stats.get("sp500",   {}).get("ret_anual",  0)
-    m_act  = index_stats.get("merval",  {}).get("actual",     0)
-    b_act  = index_stats.get("bovespa", {}).get("actual",     0)
-    s_act  = index_stats.get("sp500",   {}).get("actual",     0)
-    m_vol  = index_stats.get("merval",  {}).get("volatilidad", 0)
-    b_vol  = index_stats.get("bovespa", {}).get("volatilidad", 0)
-    s_vol  = index_stats.get("sp500",   {}).get("volatilidad", 0)
-    m_day  = index_stats.get("merval",  {}).get("ret_dia", None)
-    b_day  = index_stats.get("bovespa", {}).get("ret_dia", None)
-    s_day  = index_stats.get("sp500",   {}).get("ret_dia", None)
-
-    # ── Score Macro por mercado + delta semanal (Panorama) ───────────────
-    def _macro_score_for(_mercado):
-        _vals = [s.get("score_macro") for s in signals
-                  if s.get("mercado") == _mercado and s.get("score_macro") is not None]
-        return round(sum(_vals) / len(_vals), 1) if _vals else None
-
-    macro_now = {
-        "MERVAL":  _macro_score_for("MERVAL"),
-        "BOVESPA": _macro_score_for("BOVESPA"),
-        "SP500":   _macro_score_for("SP500"),
-    }
-
-    macro_delta = {"MERVAL": None, "BOVESPA": None, "SP500": None}
-    try:
-        import json as _json_md, os as _os_md
-        from datetime import datetime as _dt_md, timedelta as _td_md
-        _hist_path = "data/macro_score_history.json"
-        if _os_md.path.exists(_hist_path):
-            with open(_hist_path, encoding="utf-8") as _hf_md:
-                _hist = _json_md.load(_hf_md)
-            _target = (_dt_md.now() - _td_md(days=7)).date()
-            _ref = None
-            for _entry in sorted(_hist, key=lambda h: h.get("date", "")):
-                try:
-                    _ed = _dt_md.strptime(_entry["date"], "%Y-%m-%d").date()
-                except Exception:
-                    continue
-                if _ed <= _target:
-                    _ref = _entry  # se queda con el más cercano (sin pasarse) a 7 días atrás
-            if _ref:
-                for _mkt in ("MERVAL", "BOVESPA", "SP500"):
-                    if macro_now.get(_mkt) is not None and _ref.get(_mkt) is not None:
-                        macro_delta[_mkt] = round(macro_now[_mkt] - _ref[_mkt], 1)
-    except Exception as _e_md:
-        logger.warning(f"No se pudo calcular delta macro semanal: {_e_md}")
-
-    def _macro_mini_card(flag, label, score, delta):
-        if score is None:
-            return (f'<div class="macro-mini-card"><span class="macro-mini-flag">{flag}</span>'
-                     f'<span class="macro-mini-label">{label}</span>'
-                     f'<span class="macro-mini-val" style="color:#666">—</span></div>')
-        color = "#4ade80" if score >= 58 else "#fbbf24" if score >= 45 else "#f87171"
-        if delta is None:
-            delta_html = '<span class="macro-mini-delta" style="color:#555">Δ7d —</span>'
-        else:
-            dcolor = "#4ade80" if delta > 0 else "#f87171" if delta < 0 else "#888"
-            dsign  = "+" if delta > 0 else ""
-            delta_html = f'<span class="macro-mini-delta" style="color:{dcolor}">Δ7d {dsign}{delta:.1f}</span>'
-        return (f'<div class="macro-mini-card"><span class="macro-mini-flag">{flag}</span>'
-                 f'<span class="macro-mini-label">{label}</span>'
-                 f'<span class="macro-mini-val" style="color:{color}">{score:.0f}</span>'
-                 f'{delta_html}</div>')
-
-    macro_panel_html = (
-        '<div class="macro-mini-row">'
-        + _macro_mini_card("🇦🇷", "Macro MERVAL",  macro_now["MERVAL"],  macro_delta["MERVAL"])
-        + _macro_mini_card("🇧🇷", "Macro BOVESPA", macro_now["BOVESPA"], macro_delta["BOVESPA"])
-        + _macro_mini_card("🇺🇸", "Macro S&amp;P 500", macro_now["SP500"], macro_delta["SP500"])
-        + '</div>'
-    )
-
-    # ── Cross-market (Fase 1/4) ──────────────────────────────────────────
-    _cm         = index_stats.get("cross_market", {})
-    cm_regime   = _cm.get("regime", "NEUTRAL")
-    cm_sp_trend = _cm.get("sp500_trend", "—")
-    cm_sp_score = _cm.get("sp500_trend_score", 50)
-    cm_adj_mv   = _cm.get("score_adjustments", {}).get("MERVAL", 0)
-    cm_adj_bv   = _cm.get("score_adjustments", {}).get("BOVESPA", 0)
-    cm_narrative= _cm.get("narrative", "Sin datos de contexto cross-market aún.")
-    cm_corr_sp_mv = _cm.get("correlations", {}).get("merval_sp500", 0)
-    cm_corr_sp_bv = _cm.get("correlations", {}).get("bovespa_sp500", 0)
-    cm_regime_color = {"RISK_ON": "#4ade80", "RISK_OFF": "#f87171"}.get(cm_regime, "#fbbf24")
-
-    # ── Health / Backtest (Fase 3) ────────────────────────────────────────
-    import json as _json, os as _os
-    _health = {}
-    _backtest = {}
-    _perf_history = []
-    try:
-        if _os.path.exists("data/health_metrics.json"):
-            with open("data/health_metrics.json") as _hf:
-                _health = _json.load(_hf)
-        if _os.path.exists("data/backtest_results.json"):
-            with open("data/backtest_results.json") as _bf:
-                _backtest = _json.load(_bf)
-        if _os.path.exists("data/model_performance_history.json"):
-            with open("data/model_performance_history.json") as _pf:
-                _perf_history = _json.load(_pf)
-    except Exception:
-        pass
-    hl_sla       = _health.get("sla_status", "UNKNOWN")
-    hl_runs      = _health.get("pipeline_runs_today", 0)
-    hl_dur       = _health.get("duration_last_sec", 0)
-    hl_buy       = _health.get("buy_signals", 0)
-    hl_sla_color = {"OK": "#4ade80", "WARNING": "#fbbf24", "CRITICAL": "#f87171"}.get(hl_sla, "#888")
-
+    Recibe explícitamente lo que necesita (_backtest, _perf_history) en vez de
+    depender de variables de closure de generate_dashboard().
+    """
     # ── Conclusiones del Modelo (a partir de backtest_results.json) ──────
     # Elige el horizonte más largo con muestra disponible (21d > 10d > 5d),
     # así el panel se vuelve más sólido solo, sin tocar código, a medida
@@ -715,12 +495,257 @@ def generate_dashboard(
             f'{mc_disclaimer}'
             '</div>'
         )
+        return model_conclusions_html
     except Exception as _e_mc:
         logger.warning(f"No se pudo armar el panel de Conclusiones del Modelo: {_e_mc}")
-        model_conclusions_html = (
+        return (
             '<div style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:10px 14px;flex:1;min-width:280px">'
             '<span style="font-size:11px;color:#666">📊 Conclusiones del Modelo: sin datos disponibles aún</span></div>'
         )
+
+
+def _render_macro_panel(signals: list) -> str:
+    """
+    Panel de score macro por mercado + delta semanal (Panorama). Extraído
+    de generate_dashboard() el 24/07/2026 (refactor de generator.py,
+    roadmap externo #7) -- sin cambio de comportamiento, verificado con
+    diff byte a byte del HTML generado antes/después.
+    """
+    # ── Score Macro por mercado + delta semanal (Panorama) ───────────────
+    def _macro_score_for(_mercado):
+        _vals = [s.get("score_macro") for s in signals
+                  if s.get("mercado") == _mercado and s.get("score_macro") is not None]
+        return round(sum(_vals) / len(_vals), 1) if _vals else None
+
+    macro_now = {
+        "MERVAL":  _macro_score_for("MERVAL"),
+        "BOVESPA": _macro_score_for("BOVESPA"),
+        "SP500":   _macro_score_for("SP500"),
+    }
+
+    macro_delta = {"MERVAL": None, "BOVESPA": None, "SP500": None}
+    try:
+        import json as _json_md, os as _os_md
+        from datetime import datetime as _dt_md, timedelta as _td_md
+        _hist_path = "data/macro_score_history.json"
+        if _os_md.path.exists(_hist_path):
+            with open(_hist_path, encoding="utf-8") as _hf_md:
+                _hist = _json_md.load(_hf_md)
+            _target = (_dt_md.now() - _td_md(days=7)).date()
+            _ref = None
+            for _entry in sorted(_hist, key=lambda h: h.get("date", "")):
+                try:
+                    _ed = _dt_md.strptime(_entry["date"], "%Y-%m-%d").date()
+                except Exception:
+                    continue
+                if _ed <= _target:
+                    _ref = _entry  # se queda con el más cercano (sin pasarse) a 7 días atrás
+            if _ref:
+                for _mkt in ("MERVAL", "BOVESPA", "SP500"):
+                    if macro_now.get(_mkt) is not None and _ref.get(_mkt) is not None:
+                        macro_delta[_mkt] = round(macro_now[_mkt] - _ref[_mkt], 1)
+    except Exception as _e_md:
+        logger.warning(f"No se pudo calcular delta macro semanal: {_e_md}")
+
+    def _macro_mini_card(flag, label, score, delta):
+        if score is None:
+            return (f'<div class="macro-mini-card"><span class="macro-mini-flag">{flag}</span>'
+                     f'<span class="macro-mini-label">{label}</span>'
+                     f'<span class="macro-mini-val" style="color:#666">—</span></div>')
+        color = "#4ade80" if score >= 58 else "#fbbf24" if score >= 45 else "#f87171"
+        if delta is None:
+            delta_html = '<span class="macro-mini-delta" style="color:#555">Δ7d —</span>'
+        else:
+            dcolor = "#4ade80" if delta > 0 else "#f87171" if delta < 0 else "#888"
+            dsign  = "+" if delta > 0 else ""
+            delta_html = f'<span class="macro-mini-delta" style="color:{dcolor}">Δ7d {dsign}{delta:.1f}</span>'
+        return (f'<div class="macro-mini-card"><span class="macro-mini-flag">{flag}</span>'
+                 f'<span class="macro-mini-label">{label}</span>'
+                 f'<span class="macro-mini-val" style="color:{color}">{score:.0f}</span>'
+                 f'{delta_html}</div>')
+
+    return (
+        '<div class="macro-mini-row">'
+        + _macro_mini_card("🇦🇷", "Macro MERVAL",  macro_now["MERVAL"],  macro_delta["MERVAL"])
+        + _macro_mini_card("🇧🇷", "Macro BOVESPA", macro_now["BOVESPA"], macro_delta["BOVESPA"])
+        + _macro_mini_card("🇺🇸", "Macro S&amp;P 500", macro_now["SP500"], macro_delta["SP500"])
+        + '</div>'
+    )
+
+
+def generate_dashboard(
+    signals: list[dict],
+    index_stats: dict,
+    output_path: str,
+    run_date: str = "",
+    price_data: dict = None,
+    validacion: dict = None,
+    weights_provenance: dict = None,
+    exposure: dict = None,
+) -> str:
+    """Genera el HTML del dashboard y lo escribe en output_path."""
+ 
+    # Construir fichas de oportunidades
+    fichas = []
+    if price_data:
+        try:
+            fichas = _build_oportunidades(signals, price_data)
+        except Exception as e:
+            logger.warning(f"No se pudieron generar fichas de oportunidades: {e}")
+ 
+    # Banner de validación para el header
+    if validacion:
+        nivel_g = validacion.get("nivel_global", "OK")
+        if nivel_g == "ERROR":
+            banner_bg   = "#2b0a0a"
+            banner_bord = "#6b1a1a"
+            banner_icon = "🔴"
+            banner_txt  = "ALERTA — Datos con problemas de calidad"
+            banner_col  = "#f87171"
+        elif nivel_g == "WARNING":
+            banner_bg   = "#2b2000"
+            banner_bord = "#6b4a00"
+            banner_icon = "🟡"
+            banner_txt  = "Advertencia — Revisar frescura de datos"
+            banner_col  = "#fbbf24"
+        else:
+            banner_bg   = "#0a2b0a"
+            banner_bord = "#1a4a1a"
+            banner_icon = "🟢"
+            banner_txt  = "Datos OK"
+            banner_col  = "#4ade80"
+ 
+        mercados_html = ""
+        for key, label in [("merval","MERVAL"), ("bovespa","BOVESPA"), ("sp500","S&P 500")]:
+            res = validacion.get("mercados", {}).get(key, {})
+            niv = res.get("nivel", "OK")
+            uf  = res.get("ultima_fecha", "—")
+            ic  = "🟢" if niv=="OK" else "🟡" if niv=="WARNING" else "🔴"
+            mercados_html += f'<span style="margin-right:16px">{ic} <b>{label}</b> <code style="font-size:11px">{uf}</code></span>'
+ 
+        validacion_banner = f'''<div style="background:{banner_bg};border-bottom:1px solid {banner_bord};padding:8px 32px;font-size:12px;color:{banner_col};display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+  <span>{banner_icon} <b>{banner_txt}</b></span>
+  <span style="color:#666">|</span>
+  {mercados_html}
+</div>'''
+    else:
+        validacion_banner = ""
+
+    # Banner de estado del sistema: pesos sintéticos + exposure total
+    # (Prioridad 1 / Exposure Total, 25/06/2026). Mismo patrón visual que
+    # validacion_banner arriba -- bloque Python autocontenido, no JS, para
+    # mantener el riesgo de tocar este archivo lo más bajo posible. Solo
+    # se muestra cuando hay algo que decir (pesos sintéticos o exposure<100%);
+    # si todo es normal, no agrega ruido visual.
+    status_parts = []
+    if weights_provenance and weights_provenance.get("is_synthetic"):
+        synth_mkts = [m for m, v in weights_provenance.get("markets", {}).items() if v.get("is_synthetic")]
+        mkts_txt = ", ".join(synth_mkts) if synth_mkts else "todos"
+        status_parts.append(
+            f'<span>🧪 <b>Pesos V1 sintéticos</b> '
+            f'<span style="color:#888">({weights_provenance.get("mode","?")}, '
+            f'{weights_provenance.get("days_history","?")}d real — {mkts_txt})</span></span>'
+        )
+    if exposure and exposure.get("exposure_factor") is not None and exposure["exposure_factor"] < 1.0:
+        status_parts.append(
+            f'<span>🧮 <b>Exposure Total: {exposure["exposure_factor"]*100:.0f}%</b> '
+            f'<span style="color:#888">(confianza {exposure.get("confidence_component",0)*100:.0f}% × '
+            f'régimen {exposure.get("regime_component",1)*100:.0f}%)</span></span>'
+        )
+
+    if status_parts:
+        system_status_banner = (
+            '<div style="background:#1a1500;border-bottom:1px solid #4a3a00;padding:8px 32px;'
+            'font-size:12px;color:#fbbf24;display:flex;align-items:center;gap:16px;flex-wrap:wrap">'
+            + '<span style="color:#666">|</span>'.join(status_parts) +
+            '</div>'
+        )
+    else:
+        system_status_banner = ""
+    
+    signals_json     = json.dumps(signals,     ensure_ascii=False)
+    index_stats_json = json.dumps(index_stats, ensure_ascii=False)
+    fichas_json      = json.dumps(fichas,      ensure_ascii=False, default=str)
+    railway_url      = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+    if railway_url and not railway_url.startswith("http"):
+        railway_url = "https://" + railway_url
+    # Fallback a URL conocida si no hay env var
+    if not railway_url:
+        railway_url = "https://inversiones-bursatiles-production.up.railway.app"
+    # Portfolio data para la pestaña Portfolio
+    portfolio_json = "{}"
+    portfolio_alerts_json = "{}"
+    try:
+        import os as _os
+        _pf = "data/portfolio.json"
+        _pa = "data/portfolio_alerts.json"
+        if _os.path.exists(_pf):
+            with open(_pf) as _f:
+                portfolio_json = _f.read()
+        if _os.path.exists(_pa):
+            with open(_pa) as _f:
+                portfolio_alerts_json = _f.read()
+    except Exception as e:
+        logger.warning(f"Portfolio data no disponible: {e}")
+ 
+    merval_labels  = index_stats.get("merval",  {}).get("monthly_labels", [])
+    merval_values  = index_stats.get("merval",  {}).get("monthly_values", [])
+    bovespa_labels = index_stats.get("bovespa", {}).get("monthly_labels", [])
+    bovespa_values = index_stats.get("bovespa", {}).get("monthly_values", [])
+    sp500_labels   = index_stats.get("sp500",   {}).get("monthly_labels", [])
+    sp500_values   = index_stats.get("sp500",   {}).get("monthly_values", [])
+ 
+    m_ret  = index_stats.get("merval",  {}).get("ret_anual",  0)
+    b_ret  = index_stats.get("bovespa", {}).get("ret_anual",  0)
+    s_ret  = index_stats.get("sp500",   {}).get("ret_anual",  0)
+    m_act  = index_stats.get("merval",  {}).get("actual",     0)
+    b_act  = index_stats.get("bovespa", {}).get("actual",     0)
+    s_act  = index_stats.get("sp500",   {}).get("actual",     0)
+    m_vol  = index_stats.get("merval",  {}).get("volatilidad", 0)
+    b_vol  = index_stats.get("bovespa", {}).get("volatilidad", 0)
+    s_vol  = index_stats.get("sp500",   {}).get("volatilidad", 0)
+    m_day  = index_stats.get("merval",  {}).get("ret_dia", None)
+    b_day  = index_stats.get("bovespa", {}).get("ret_dia", None)
+    s_day  = index_stats.get("sp500",   {}).get("ret_dia", None)
+
+    macro_panel_html = _render_macro_panel(signals)
+
+    # ── Cross-market (Fase 1/4) ──────────────────────────────────────────
+    _cm         = index_stats.get("cross_market", {})
+    cm_regime   = _cm.get("regime", "NEUTRAL")
+    cm_sp_trend = _cm.get("sp500_trend", "—")
+    cm_sp_score = _cm.get("sp500_trend_score", 50)
+    cm_adj_mv   = _cm.get("score_adjustments", {}).get("MERVAL", 0)
+    cm_adj_bv   = _cm.get("score_adjustments", {}).get("BOVESPA", 0)
+    cm_narrative= _cm.get("narrative", "Sin datos de contexto cross-market aún.")
+    cm_corr_sp_mv = _cm.get("correlations", {}).get("merval_sp500", 0)
+    cm_corr_sp_bv = _cm.get("correlations", {}).get("bovespa_sp500", 0)
+    cm_regime_color = {"RISK_ON": "#4ade80", "RISK_OFF": "#f87171"}.get(cm_regime, "#fbbf24")
+
+    # ── Health / Backtest (Fase 3) ────────────────────────────────────────
+    import json as _json, os as _os
+    _health = {}
+    _backtest = {}
+    _perf_history = []
+    try:
+        if _os.path.exists("data/health_metrics.json"):
+            with open("data/health_metrics.json") as _hf:
+                _health = _json.load(_hf)
+        if _os.path.exists("data/backtest_results.json"):
+            with open("data/backtest_results.json") as _bf:
+                _backtest = _json.load(_bf)
+        if _os.path.exists("data/model_performance_history.json"):
+            with open("data/model_performance_history.json") as _pf:
+                _perf_history = _json.load(_pf)
+    except Exception:
+        pass
+    hl_sla       = _health.get("sla_status", "UNKNOWN")
+    hl_runs      = _health.get("pipeline_runs_today", 0)
+    hl_dur       = _health.get("duration_last_sec", 0)
+    hl_buy       = _health.get("buy_signals", 0)
+    hl_sla_color = {"OK": "#4ade80", "WARNING": "#fbbf24", "CRITICAL": "#f87171"}.get(hl_sla, "#888")
+
+    model_conclusions_html = _render_model_conclusions_panel(_backtest, _perf_history)
 
 
     # ── Registro de Oportunidades (para medir efectividad real del proyecto) ──

@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
 import pytest
 
-from src.generator import generate_dashboard
+from src.generator import generate_dashboard, _render_model_conclusions_panel, _render_macro_panel
 
 
 def _signal(**overrides):
@@ -180,3 +180,78 @@ class TestBackwardCompatibility:
         assert os.path.exists(_basic_args["output_path"])
         html = open(_basic_args["output_path"]).read()
         assert _html_structurally_intact(html)
+
+
+class TestRenderModelConclusionsPanel:
+    """
+    _render_model_conclusions_panel() fue extraída de generate_dashboard()
+    el 24/07/2026 (refactor de generator.py, roadmap externo #7) para que
+    sea testeable en aislamiento -- antes vivía inline dentro de una única
+    función de ~2670 líneas y no se podía probar sin pasar por
+    generate_dashboard() entero. Verificado sin cambio de comportamiento
+    con diff byte a byte del HTML generado antes/después del refactor.
+    """
+
+    def test_backtest_vacio_no_crashea_y_muestra_panel_con_ceros(self):
+        """Un dict vacío no dispara el except (todos los .get() caen en su
+        default) -- corre el camino normal, con 0 operaciones/0 días."""
+        html = _render_model_conclusions_panel({}, [])
+        assert "Conclusiones del Modelo" in html
+        assert "0 operaciones evaluadas" in html
+
+    def test_backtest_none_dispara_fallback_gracioso(self):
+        """None sí rompe los .get() internos -- debe caer al except y
+        devolver el mensaje de fallback, no propagar la excepción."""
+        html = _render_model_conclusions_panel(None, [])
+        assert "Conclusiones del Modelo" in html
+        assert "sin datos disponibles" in html
+
+    def test_backtest_real_muestra_operaciones_evaluadas(self):
+        backtest = {
+            "total_trades": 100, "days_history": 10,
+            "by_confidence_label": {
+                "🟢 Alta": {"h5d": {"samples": 20, "win_rate": 0.7, "expected_value": 1.5}}
+            },
+            "by_consenso": {}, "by_market": {}, "by_sector": {}, "stop_target": {},
+        }
+        html = _render_model_conclusions_panel(backtest, [])
+        assert "100 operaciones evaluadas" in html
+        assert "10 días de historia" in html
+
+    def test_disclaimer_aparece_con_pocos_dias_de_historia(self):
+        backtest = {"total_trades": 50, "days_history": 5, "by_confidence_label": {},
+                     "by_consenso": {}, "by_market": {}, "by_sector": {}, "stop_target": {}}
+        html = _render_model_conclusions_panel(backtest, [])
+        assert "días de historia todavía no hay retornos a 21 ruedas" in html
+
+    def test_no_crashea_con_perf_history_malformado(self):
+        """perf_history con entradas sin 'date' o sin 'by_market' no debería
+        romper el panel -- debe caer al mensaje de 'aún no hay suficiente
+        historia' en vez de propagar la excepción."""
+        html = _render_model_conclusions_panel({}, [{"version": "4.9"}, {}])
+        assert "Conclusiones del Modelo" in html
+
+
+class TestRenderMacroPanel:
+    """
+    _render_macro_panel() fue extraída de generate_dashboard() el
+    24/07/2026 (mismo refactor que _render_model_conclusions_panel) --
+    ahora testeable en aislamiento, sin pasar por generate_dashboard()
+    entero ni por el disco (data/macro_score_history.json).
+    """
+
+    def test_sin_señales_devuelve_panel_con_guiones(self):
+        html = _render_macro_panel([])
+        assert "Macro MERVAL" in html
+        assert "Macro BOVESPA" in html
+        assert "Macro S&amp;P 500" in html
+
+    def test_promedia_score_macro_por_mercado(self):
+        signals = [
+            {"mercado": "MERVAL", "score_macro": 60.0},
+            {"mercado": "MERVAL", "score_macro": 70.0},
+            {"mercado": "BOVESPA", "score_macro": 40.0},
+        ]
+        html = _render_macro_panel(signals)
+        assert ">65<" in html  # promedio de 60 y 70 para MERVAL
+        assert ">40<" in html  # BOVESPA
