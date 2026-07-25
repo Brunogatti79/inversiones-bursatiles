@@ -818,20 +818,20 @@
       "BOVESPA": {
         "n": 187,
         "horizon": "10d",
-        "win_rate": 0.588,
-        "avg_ret": 0.77,
-        "expected_value": 0.77,
-        "sharpe": 0.15,
-        "max_drawdown": -11.93
+        "win_rate": 0.5,
+        "avg_ret": -0.28,
+        "expected_value": -0.28,
+        "sharpe": -0.05,
+        "max_drawdown": -40.58
       },
       "SP500": {
         "n": 330,
         "horizon": "10d",
-        "win_rate": 0.467,
-        "avg_ret": -0.71,
-        "expected_value": -0.71,
-        "sharpe": -0.1,
-        "max_drawdown": -43.42
+        "win_rate": 0.492,
+        "avg_ret": -0.64,
+        "expected_value": -0.64,
+        "sharpe": -0.09,
+        "max_drawdown": -73.48
       }
     },
     "predictor_accuracy": null
