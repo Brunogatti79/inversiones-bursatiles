@@ -1,23 +1,44 @@
 {
-  "generated": "2026-07-26T17:36:51.873087",
-  "days_history": 18,
-  "mode": "walk_forward",
+  "generated": "2026-07-27T14:23:56.504609",
+  "days_history": 1,
+  "mode": "sensitivity",
   "MERVAL": {
-    "macro": 0.35,
-    "tecnico": 0.25,
+    "macro": 0.2,
+    "tecnico": 0.15,
     "sector": 0.1,
-    "fundamental": 0.3
+    "fundamental": 0.55,
+    "ev_21d": 7.77,
+    "win_rate_21d": 0.556,
+    "avg_ret_21d": 7.77,
+    "sharpe_21d": 0.34,
+    "samples": 459,
+    "n_real_entries": 0,
+    "n_replay_entries": 594
   },
   "BOVESPA": {
-    "macro": 0.25,
-    "tecnico": 0.35,
+    "macro": 0.35,
+    "tecnico": 0.2,
     "sector": 0.1,
-    "fundamental": 0.3
+    "fundamental": 0.35,
+    "ev_21d": 3.39,
+    "win_rate_21d": 0.617,
+    "avg_ret_21d": 3.39,
+    "sharpe_21d": 0.29,
+    "samples": 60,
+    "n_real_entries": 0,
+    "n_replay_entries": 644
   },
   "SP500": {
-    "macro": 0.2,
-    "tecnico": 0.3,
+    "macro": 0.35,
+    "tecnico": 0.35,
     "sector": 0.1,
-    "fundamental": 0.4
+    "fundamental": 0.2,
+    "ev_21d": 5.97,
+    "win_rate_21d": 0.923,
+    "avg_ret_21d": 5.97,
+    "sharpe_21d": 0.7,
+    "samples": 13,
+    "n_real_entries": 0,
+    "n_replay_entries": 1092
   }
 }
