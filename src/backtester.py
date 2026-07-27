@@ -245,6 +245,12 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         "confidence_calibration_curve": _isotonic_calibration_curve(trades),
         "attribution_by_factor": _aggregate_by(trades, "factor_dominante"),
         "ranking_top_vs_rest":    _ranking_quantile_breakdown(trades),
+        # Pedido de Bruno (27/07/2026): cruce real confidence_label × signal
+        # -- antes solo existían por separado (by_confidence_label, by_signal),
+        # que no alcanzan para saber si "Alta + COMPRA" rinde distinto que
+        # "Alta" en general o "COMPRA" en general. Sin esto, cualquier regla
+        # de decisión que combine ambos campos se basaba en intuición.
+        "confidence_x_signal":    _aggregate_cross(trades, "confidence_label", "signal"),
     }
 
     # Guardar
@@ -518,7 +524,57 @@ def _aggregate_by(trades: list, group_key: str) -> dict:
     return result
 
 
+def _aggregate_cross(trades: list, key1: str, key2: str, min_cell_samples: int = 5) -> dict:
+    """
+    Cruce de 2 claves (ej. confidence_label × signal) -- pedido real de
+    Bruno (27/07/2026): los desgloses marginales (by_confidence_label,
+    by_signal) por separado no alcanzan para saber si "Alta + COMPRA" rinde
+    distinto que "Alta" en general o que "COMPRA" en general. Sin este
+    cruce, cualquier regla de decisión que combine ambos campos (como la
+    que Bruno quiere fijar) se basa en una intuición, no en el dato real.
+
+    Celdas con menos de min_cell_samples trades quedan marcadas
+    explícitamente con "muestra_insuficiente": True en vez de mostrar un
+    win_rate que sería puro ruido -- evita que una celda de 2 trades con
+    100% de acierto se lea como una señal fuerte.
+    """
+    groups: dict[tuple, list] = {}
+    for t in trades:
+        k1 = t.get(key1, "UNKNOWN") or "UNKNOWN"
+        k2 = t.get(key2, "UNKNOWN") or "UNKNOWN"
+        groups.setdefault((k1, k2), []).append(t)
+
+    result = {}
+    for (k1, k2), gtrades in groups.items():
+        entry = {"count": len(gtrades), "muestra_insuficiente": len(gtrades) < min_cell_samples}
+
+        for h in HORIZONS:
+            rets = [t[f"ret_{h}d"] for t in gtrades if t.get(f"ret_{h}d") is not None]
+            entry[f"h{h}d"] = _metrics_from_rets(rets)
+
+        st_trades = [t for t in gtrades if t.get("st_exit_type") not in (None, "no_data", "pending")]
+        if st_trades:
+            st_rets     = [t["st_ret"] for t in st_trades if t.get("st_ret") is not None]
+            hits_target = sum(1 for t in st_trades if t["st_exit_type"] == "target")
+            hits_stop   = sum(1 for t in st_trades if t["st_exit_type"] == "stop")
+            n           = len(st_trades)
+            entry["stop_target"] = {
+                "samples":   n,
+                "avg_ret":   round(float(np.mean(st_rets)), 2) if st_rets else None,
+                "win_rate":  round(len([r for r in st_rets if r > 0]) / len(st_rets), 3) if st_rets else None,
+                "pct_target": round(hits_target / n * 100, 1),
+                "pct_stop":   round(hits_stop   / n * 100, 1),
+            }
+
+        result.setdefault(k1, {})[k2] = entry
+
+    return result
+
+
 def _metrics_from_rets(rets: list) -> dict | None:
+
+
+
     """Calcula métricas estándar desde lista de retornos. Retorna None si vacío."""
     if not rets:
         return None

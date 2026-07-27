@@ -130,8 +130,49 @@ def update_history(signals: list[dict], max_days: int = 60):
 def _push_signals_history_to_github():
     """Pushea signals_history.json a GitHub. Sin esto, backtester.py/weight_optimizer.py
     nunca acumulan mas de un dia de historia porque Railway redeploya (y borra el
-    filesystem efimero) en cada push automatico del dashboard."""
-    from src.github_persistence import push_file
+    filesystem efimero) en cada push automatico del dashboard.
+
+    Guard agregado 27/07/2026 (incidente real): si el sync de arranque falla
+    silenciosamente para este archivo específico justo después de un
+    redeploy (visto en producción: 2 pushes de código muy seguidos -- 9
+    minutos de diferencia -- dispararon redeploys de Railway solapados, y
+    el container arrancó con signals_history.json vacío), update_history()
+    no tiene forma de saber que "debería" haber 18 días -- simplemente ve
+    un archivo local vacío y arranca de cero. El resultado empobrecido se
+    pushea igual, pisando 18 días reales con 1.
+
+    Antes de pushear, comparamos el conteo de días local contra lo que YA
+    hay en GitHub. Si el local tiene sospechosamente menos días que el
+    remoto (más de 2 de diferencia -- una purga normal por max_days nunca
+    debería tirar más de 1 día por corrida), NO confiamos en el local:
+    fusionamos remoto + local antes de pushear, para no destruir historia
+    real. Si fetch_remote_json falla (no se puede verificar), seguimos con
+    el comportamiento de siempre -- preferible a bloquear el pipeline por
+    esto."""
+    from src.github_persistence import push_file, fetch_remote_json
+
+    try:
+        with open(HISTORY_PATH, encoding="utf-8") as f:
+            local_history = json.load(f)
+    except Exception:
+        local_history = {}
+
+    remote_history = fetch_remote_json(HISTORY_PATH)
+    if isinstance(remote_history, dict) and len(remote_history) - len(local_history) > 2:
+        logger.warning(
+            f"[signals_history] Local tiene {len(local_history)} días pero GitHub tiene "
+            f"{len(remote_history)} -- posible pérdida de sync tras un redeploy. "
+            f"Fusionando remoto + local antes de pushear (no se descarta nada real)."
+        )
+        merged = dict(remote_history)
+        merged.update(local_history)  # el local (más nuevo) gana en fechas solapadas
+        try:
+            with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+                json.dump(merged, f, ensure_ascii=False, indent=1)
+            logger.info(f"[signals_history] Recuperado: {len(merged)} días tras la fusión")
+        except Exception as e:
+            logger.error(f"[signals_history] No se pudo escribir el merge de recuperación: {e}")
+
     push_file(HISTORY_PATH, f"auto: signals_history {datetime.now().strftime('%Y-%m-%d %H:%M')}")
  
  

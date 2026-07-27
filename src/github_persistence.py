@@ -32,6 +32,39 @@ MAX_RETRIES = 3
 BACKOFF_BASE = 1.5  # segundos: 1.5, 2.25, 3.375...
 
 
+def fetch_remote_json(path: str):
+    """
+    Lee el JSON que hay HOY en GitHub para `path`, SIN tocar el archivo
+    local (a diferencia de pull_file, que sobreescribe el disco). Pensado
+    para comparar "lo que tengo en memoria/local antes de pushear" contra
+    "lo que ya está publicado", y así detectar sincronizaciones que
+    fallaron a mitad de camino antes de que el push las convierta en
+    pérdida de datos permanente (ver guard en tracker._push_signals_history_to_github,
+    incidente real 27/07/2026: 18 días de signals_history.json se perdieron
+    porque el sync de arranque falló silenciosamente para ese archivo
+    específico tras 2 redeploys de Railway muy seguidos).
+
+    Devuelve None si el archivo no existe en GitHub todavía, no es JSON
+    válido, o falla la request -- el caller debe tratar None como "no se
+    pudo verificar", no como "está vacío de verdad".
+    """
+    import requests
+
+    token, headers = _headers()
+    if not token:
+        return None
+    try:
+        url = f"https://api.github.com/repos/{REPO}/contents/{path}"
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return None
+        content = base64.b64decode(r.json()["content"]).decode("utf-8")
+        return json.loads(content)
+    except Exception as e:
+        logger.warning(f"[github_persistence] No se pudo leer remoto {path} para comparar: {e}")
+        return None
+
+
 def _headers():
     token = os.environ.get("GH_TOKEN", "")
     return token, {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}

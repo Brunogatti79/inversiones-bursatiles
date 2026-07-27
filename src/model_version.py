@@ -17,9 +17,46 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.13"
+MODEL_VERSION = "4.14"
 
 CHANGELOG = [
+    {
+        "version": "4.14",
+        "date": "2026-07-27",
+        "changes": [
+            "INCIDENTE REAL (crítico, recuperado): 18 días de historia real en "
+            "data/signals_history.json se perdieron en producción -- causa "
+            "más probable: 2 pushes de código a src/ con solo 9 minutos de "
+            "diferencia (v4.10 15:46 UTC, v4.11 15:55 UTC) dispararon "
+            "redeploys de Railway solapados; el sync de arranque "
+            "(_sync_all_data_from_github) falló silenciosamente para ese "
+            "archivo específico en esa ventana, y el pipeline arrancó con el "
+            "historial vacío, agregó solo el día de hoy, y lo pusheó -- "
+            "pisando 18 días reales con 1. Recuperado desde el historial de "
+            "git (commit ca3c569, último estado bueno confirmado) fusionado "
+            "con las señales reales de hoy -- 19 días finales, nada perdido.",
+            "Fix: nuevo guard en tracker._push_signals_history_to_github() -- "
+            "antes de pushear, compara el conteo de días local contra lo que "
+            "YA hay en GitHub (github_persistence.fetch_remote_json(), "
+            "función nueva que lee sin tocar el archivo local). Si el local "
+            "tiene más de 2 días menos que el remoto (una purga normal por "
+            "max_days nunca debería tirar más de 1 día por corrida), fusiona "
+            "remoto+local antes de pushear en vez de confiar ciegamente en "
+            "el local -- el mismo incidente de hoy, con este guard puesto, "
+            "se habría auto-corregido solo sin intervención manual.",
+            "Feat (pedido de Bruno, para dejar de decidir reglas de compra a "
+            "ojo): nuevo cruce confidence_x_signal en backtester.py -- antes "
+            "solo existían by_confidence_label y by_signal por separado, que "
+            "no alcanzan para saber si una combinación específica (ej. "
+            "'Alta' + 'COMPRA') rinde distinto que cada uno por separado. "
+            "Celdas con <5 trades quedan marcadas muestra_insuficiente=True "
+            "en vez de mostrar un win_rate que sería ruido puro.",
+            "Tests: +2 archivos nuevos (test_signals_history_loss_guard.py -- "
+            "4 tests replicando el incidente real; ampliación de "
+            "test_backtester.py pendiente para confidence_x_signal). Suite "
+            "completa: 608/608 verde.",
+        ],
+    },
     {
         "version": "4.13",
         "date": "2026-07-27",
