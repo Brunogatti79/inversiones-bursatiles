@@ -1,6 +1,16 @@
 {
-  "version": "4.11",
+  "version": "4.12",
   "changelog": [
+    {
+      "version": "4.12",
+      "date": "2026-07-27",
+      "changes": [
+        "Fix: atr_metodo, vol_regime_mercado y v2_regime_mult (agregados a analyzer.py en v4.10/v4.11) no se persistían en signals_history.json -- tracker.update_history() tiene un allowlist explícito de campos (para no inflar el historial) y no se había actualizado al agregar esos 2 fixes. La señal en vivo SIEMPRE los calculó bien; solo faltaba copiarlos al historial.",
+        "Encontrado auditando la primera corrida real end-to-end post-deploy de v4.10/v4.11 (commit d06b2f0, 27/07/2026 17:38 UTC): los 67 registros de ese día tenían atr_metodo=None y vol_regime_mercado=None pese a que download_status.json ya confirmaba ohlc=true para los 3 mercados -- el dato real estaba, el historial no lo guardaba.",
+        "Mismo commit real que confirmó, de paso, que el fix de CEDEAR (v4.11) funcionó en producción: download_status.json pasó de CEDEAR ok=false a ok=true, success=true en los 4 mercados.",
+        "Tests: +1 archivo nuevo (test_tracker_ohlc_regime_fields.py, 5 tests) fijando estos 3 campos en el historial y su default seguro ante señales incompletas. Suite completa: 599/599 verde."
+      ]
+    },
     {
       "version": "4.11",
       "date": "2026-07-27",
