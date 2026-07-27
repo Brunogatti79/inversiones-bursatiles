@@ -17,9 +17,61 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.10"
+MODEL_VERSION = "4.11"
 
 CHANGELOG = [
+    {
+        "version": "4.11",
+        "date": "2026-07-27",
+        "changes": [
+            "Feat (roadmap externo P6, revisión de otra IA sobre v17): High/Low "
+            "REALES para ATR/ADX, en vez del proxy close-only vigente desde la "
+            "v4.7/v4.9(ADX). yf.Ticker(...).history() SIEMPRE trajo High/Low "
+            "junto con Close -- el código los descartaba sin usarlos, no hacía "
+            "falta cambiar de fuente de datos ni pedir nada extra a Yahoo "
+            "(cero requests adicionales, cero riesgo nuevo de rate limit).",
+            "scripts/download_data.py: download_single()/download_market() "
+            "ahora devuelven también High/Low, guardados en 2 archivos NUEVOS "
+            "y SEPARADOS por mercado -- data/{merval,bovespa,sp500}_high.csv y "
+            "_low.csv. El CSV de cierres de siempre (_cierres.csv) queda "
+            "EXACTAMENTE IGUAL -- decisión de diseño explícita para no tocar "
+            "el esquema '1 columna = 1 ticker' que downloader.py/analyzer.py/"
+            "data_validator.py/generator.py ya asumen sobre ese archivo (la "
+            "alternativa evaluada -- agregar columnas _High/_Low al mismo CSV "
+            "-- hubiera roto validar_integridad() en data_validator.py, que "
+            "cuenta columnas esperadas por mercado).",
+            "src/downloader.py: nueva load_ohlc_extra() carga estos 2 archivos "
+            "nuevos por mercado, completamente APARTE del dict que devuelve "
+            "download_all() -- compute_volatility_regime(), "
+            "weight_optimizer._build_price_index() y validar_todos() siguen "
+            "recibiendo exactamente lo mismo que antes, cero riesgo de romper "
+            "esos 3 consumidores. Degrada a None por mercado si el archivo no "
+            "existe todavía -- caso ESPERADO hasta que se aplique el punto "
+            "siguiente.",
+            "src/analyzer.py: nueva _resolve_high_low() reemplaza la vieja "
+            "derivación col.replace('Close','High') (que nunca funcionó en "
+            "producción -- ver docstring histórico de _adx()/_atr(), los CSV "
+            "reales no tienen 'Close' en el nombre de columna) por un lookup "
+            "directo en ohlc_extra. Exige ≥20 observaciones reales tras "
+            "reindexar antes de usarlas -- si un ticker no tiene historia "
+            "suficiente en el High/Low real (ej. agregado hace poco), cae "
+            "solo, sin romper el resto de la corrida.",
+            "PENDIENTE CRÍTICO, no accionable por Claude: "
+            ".github/workflows/download_data.yml necesita agregar los 6 "
+            "archivos nuevos a la línea 'git add' para que GitHub Actions los "
+            "commitee -- requiere scope 'workflow' que el GH_TOKEN actual NO "
+            "tiene (mismo límite ya documentado desde v3/v4). Sin ese cambio "
+            "manual, scripts/download_data.py genera los archivos localmente "
+            "en cada corrida de Actions pero NUNCA quedan en el repo -- la "
+            "feature completa queda inerte (analyzer.py sigue en "
+            "atr_metodo='close_proxy' para siempre) hasta que Bruno haga ese "
+            "único cambio de línea en la UI de GitHub.",
+            "Tests: +3 archivos nuevos (test_download_data_ohlc.py -- "
+            "download_single/download_market con yfinance mockeado, sin red "
+            "real; test_downloader_ohlc_extra.py; "
+            "test_analyzer_ohlc_resolve.py). Suite completa: 593/593 verde.",
+        ],
+    },
     {
         "version": "4.10",
         "date": "2026-07-27",

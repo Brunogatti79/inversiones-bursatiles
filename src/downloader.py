@@ -298,4 +298,63 @@ def save_csvs(data: dict, output_dir: str = "data") -> dict:
         paths[market] = path
         logger.info(f"Guardado: {path} ({len(df)} filas)")
     return paths
+
+
+# ─────────────────────────────────────────────
+# High/Low reales (Fix 27/07/2026, roadmap externo P6)
+# ─────────────────────────────────────────────
+
+def _load_ohlc_csv(market: str, kind: str, data_dir: str) -> pd.DataFrame | None:
+    """
+    Carga data/{market}_{kind}.csv (kind ∈ {"high","low"}) generado por
+    scripts/download_data.py. Devuelve None si el archivo no existe todavía
+    (ej. GitHub Actions no corrió aún después de este cambio, o el workflow
+    .yml no fue actualizado manualmente para commitear estos archivos nuevos
+    -- requiere scope 'workflow' que el GH_TOKEN actual no tiene) -- nunca
+    levanta excepción hacia el caller, para que analyze_market() pueda seguir
+    funcionando con el proxy close-only de siempre si esto falta.
+    """
+    path = os.path.join(data_dir, f"{market.lower()}_{kind}.csv")
+    if not os.path.exists(path):
+        return None
+    try:
+        df = pd.read_csv(path, sep=";", decimal=",", index_col=0,
+                         encoding="utf-8-sig", thousands=" ")
+        df.index = pd.to_datetime(df.index)
+        df.index.name = "Fecha"
+        for col in df.columns:
+            df[col] = (
+                df[col].astype(str)
+                .str.replace(" ", "", regex=False)
+                .str.replace(",", ".", regex=False)
+            )
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+        df = df.sort_index().dropna(how="all")
+        if df.empty:
+            return None
+        return df
+    except Exception as e:
+        logger.warning(f"[{market}] Error leyendo {kind}.csv (no crítico, se usa proxy close-only): {e}")
+        return None
+
+
+def load_ohlc_extra(data_dir: str = "data") -> dict:
+    """
+    Carga High/Low reales para los 3 mercados si están disponibles, SEPARADO
+    del dict que devuelve download_all() a propósito -- ver docstring de
+    _load_ohlc_csv(). validar_todos()/compute_volatility_regime()/
+    _build_price_index() siguen recibiendo exactamente el dict de siempre
+    ({"merval": df, "bovespa": df, "sp500": df}, solo Close); esto es un
+    canal aparte que solo consume analyze_market() para ATR/ADX reales.
+
+    Returns:
+        {"MERVAL": {"high": df|None, "low": df|None}, "BOVESPA": {...}, "SP500": {...}}
+    """
+    result = {}
+    for market in ("MERVAL", "BOVESPA", "SP500"):
+        result[market] = {
+            "high": _load_ohlc_csv(market, "high", data_dir),
+            "low":  _load_ohlc_csv(market, "low", data_dir),
+        }
+    return result
  

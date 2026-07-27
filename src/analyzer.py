@@ -255,6 +255,43 @@ def _volume_confirmation(volume_series, price_series, lookback=5):
         return 50.0
  
  
+def _resolve_high_low(col, df_12m, ohlc_extra):
+    """
+    Fix 27/07/2026 (roadmap externo P6): resuelve High/Low para un ticker,
+    priorizando datos REALES cargados aparte (ohlc_extra, generado desde
+    scripts/download_data.py -- merval/bovespa/sp500_high.csv y _low.csv,
+    ver downloader.load_ohlc_extra()) por sobre el viejo intento de derivar
+    la columna con col.replace('Close','High') -- ese intento nunca funcionó
+    en producción porque los CSV de cierres reales no tienen "Close" en el
+    nombre de columna (usan el nombre de la empresa), ver docstring de
+    _adx()/_atr(). Se deja como segundo intento por si algún día cambia el
+    formato del CSV principal, es gratis y no hace daño.
+
+    ohlc_extra: {"high": df|None, "low": df|None} (ver
+    downloader.load_ohlc_extra()) -- None si no se pasó o si
+    scripts/download_data.py todavía no generó estos archivos (ej. el
+    workflow .yml no fue actualizado manualmente para commitearlos).
+
+    Devuelve (high_series, low_series) recortadas al mismo índice que
+    df_12m, o (None, None) si no hay datos reales disponibles -- el caller
+    ya sabe caer al proxy close-only en ese caso.
+    """
+    high_df = (ohlc_extra or {}).get("high")
+    low_df  = (ohlc_extra or {}).get("low")
+    if high_df is not None and low_df is not None and col in high_df.columns and col in low_df.columns:
+        high_s = high_df[col].reindex(df_12m.index)
+        low_s  = low_df[col].reindex(df_12m.index)
+        if high_s.notna().sum() >= 20 and low_s.notna().sum() >= 20:
+            return high_s, low_s
+
+    # Segundo intento (histórico, casi siempre no-op — ver docstring arriba)
+    high_col = col.replace('Close', 'High') if 'Close' in str(col) else None
+    low_col  = col.replace('Close', 'Low')  if 'Close' in str(col) else None
+    high_s = df_12m[high_col] if high_col and high_col in df_12m.columns else None
+    low_s  = df_12m[low_col]  if low_col  and low_col  in df_12m.columns else None
+    return high_s, low_s
+
+
 def _atr(high_series, low_series, close_series, period=14):
     """
     ATR (Average True Range).
@@ -751,7 +788,7 @@ def _consenso(signal_v1, signal_v2, score_v1, score_v2):
  
 def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
                    xlsx_signals: dict = None, fund_scores: dict = None,
-                   vol_regime: dict = None) -> list[dict]:
+                   vol_regime: dict = None, ohlc_extra: dict = None) -> list[dict]:
     if df is None or df.empty or len(df) < 5:
         logger.warning(f"[{market}] DataFrame vacío, saltando análisis")
         return []
@@ -958,12 +995,10 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         # Volatility score y ADX (Fase 2)
         vol_score = _volatility_score(serie)
         # Fix 29/06/2026: antes esto era 50.0 SIEMPRE (mismo bug que tenía
-        # _atr) — ver docstring de _adx(). Ahora usa el mismo proxy close-only
-        # que ATR cuando no hay High/Low real, en vez de quedar en el default.
-        high_col_adx = col.replace('Close', 'High') if 'Close' in str(col) else None
-        low_col_adx  = col.replace('Close', 'Low')  if 'Close' in str(col) else None
-        high_s_adx = df_12m[high_col_adx] if high_col_adx and high_col_adx in df_12m.columns else None
-        low_s_adx  = df_12m[low_col_adx]  if low_col_adx  and low_col_adx  in df_12m.columns else None
+        # _atr) — ver docstring de _adx(). Fix 27/07/2026: ahora usa OHLC
+        # real si scripts/download_data.py lo generó (ver _resolve_high_low),
+        # con el mismo proxy close-only de siempre como fallback.
+        high_s_adx, low_s_adx = _resolve_high_low(col, df_12m, ohlc_extra)
         try:
             adx_val, adx_score, adx_metodo = _adx(high_s_adx, low_s_adx, serie)
         except Exception:
@@ -985,10 +1020,8 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
  
         # ATR para stops dinámicos
         # Fix 26/06/2026: antes esto era 0.0 SIEMPRE — ver docstring de _atr().
-        high_col = col.replace('Close', 'High') if 'Close' in str(col) else None
-        low_col = col.replace('Close', 'Low') if 'Close' in str(col) else None
-        high_s = df_12m[high_col] if high_col and high_col in df_12m.columns else None
-        low_s  = df_12m[low_col]  if low_col  and low_col  in df_12m.columns else None
+        # Fix 27/07/2026: OHLC real si está disponible, ver _resolve_high_low.
+        high_s, low_s = _resolve_high_low(col, df_12m, ohlc_extra)
         try:
             atr_val, atr_metodo = _atr(high_s, low_s, serie)
         except Exception:

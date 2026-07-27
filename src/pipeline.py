@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 import pytz
  
-from src.downloader     import download_all, save_csvs, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
+from src.downloader     import download_all, save_csvs, load_ohlc_extra, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
 from src.analyzer       import (analyze_market, detect_signal_changes, save_signals, get_index_stats)
 from src.macro_loader   import load_xlsx_signals
 from src.macro_auto     import fetch_all_macro, get_cached_macro
@@ -186,6 +186,16 @@ def run_pipeline():
         merval_df  = data["merval"]
         bovespa_df = data["bovespa"]
         sp500_df   = data["sp500"]
+
+        # Fix 27/07/2026 (roadmap externo P6): High/Low reales, cargados
+        # APARTE del dict 'data' de siempre a propósito -- ver docstring de
+        # downloader.load_ohlc_extra(). validar_todos()/compute_volatility_regime()/
+        # weight_optimizer._build_price_index() más abajo siguen recibiendo
+        # exactamente 'data' sin modificar. None por mercado si
+        # scripts/download_data.py todavía no generó estos archivos (ej. el
+        # workflow .yml no fue actualizado para commitearlos) -- analyze_market
+        # cae al proxy close-only de siempre en ese caso, no rompe nada.
+        ohlc_extra = load_ohlc_extra(data_dir=DATA_DIR)
  
         # 1b. VALIDACIÓN DE DATOS ─────────────────────────────────────────────
         logger.info("1b/8 Validando consistencia de datos...")
@@ -334,13 +344,13 @@ def run_pipeline():
 
         signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS,
                                          xlsx_signals=xlsx_signals, fund_scores=fund_scores,
-                                         vol_regime=vol_regime)
+                                         vol_regime=vol_regime, ohlc_extra=ohlc_extra.get("MERVAL"))
         signals_bovespa = analyze_market(bovespa_df, "BOVESPA", BOVESPA_TICKERS,
                                          xlsx_signals=xlsx_signals, fund_scores=fund_scores,
-                                         vol_regime=vol_regime)
+                                         vol_regime=vol_regime, ohlc_extra=ohlc_extra.get("BOVESPA"))
         signals_sp500   = analyze_market(sp500_df,   "SP500",   SP500_TICKERS,
                                          xlsx_signals=xlsx_signals, fund_scores=fund_scores,
-                                         vol_regime=vol_regime)
+                                         vol_regime=vol_regime, ohlc_extra=ohlc_extra.get("SP500"))
         all_signals = signals_merval + signals_bovespa + signals_sp500
         all_signals.sort(key=lambda x: x["score_final"], reverse=True)
 
