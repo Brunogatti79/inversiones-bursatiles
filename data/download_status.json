@@ -1,26 +1,28 @@
 {
-  "timestamp_utc": "2026-07-24 23:59 UTC",
+  "timestamp_utc": "2026-07-27 17:18 UTC",
   "markets": {
     "MERVAL": {
       "rows": 272,
-      "last_date": "2026-07-23",
-      "ok": true
+      "last_date": "2026-07-24",
+      "ok": true,
+      "ohlc": true
     },
     "BOVESPA": {
-      "rows": 275,
+      "rows": 274,
       "last_date": "2026-07-24",
-      "ok": true
+      "ok": true,
+      "ohlc": true
     },
     "SP500": {
-      "rows": 275,
+      "rows": 274,
       "last_date": "2026-07-24",
-      "ok": true
+      "ok": true,
+      "ohlc": true
     },
     "CEDEAR": {
-      "rows": 272,
-      "last_date": "2026-07-24",
-      "ok": true
+      "ok": false,
+      "error": "'tuple' object has no attribute 'name'"
     }
   },
-  "success": true
+  "success": false
 }
