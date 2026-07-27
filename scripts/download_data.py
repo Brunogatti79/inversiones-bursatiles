@@ -263,7 +263,7 @@ def download_market_no_index(tickers, market_name):
     total = len(tickers)
     logger.info(f"[{market_name}] Descargando {total} tickers...")
     for i, (ticker, name) in enumerate(tickers.items()):
-        serie = download_single(ticker, start, end, market_name)
+        serie, _, _ = download_single(ticker, start, end, market_name)
         if serie is not None:
             serie.name = name
             series_list.append(serie)

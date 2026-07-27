@@ -118,3 +118,26 @@ def test_save_csv_usa_sufijo_correcto(tmp_path, monkeypatch):
     assert path_high.endswith("merval_high.csv")
     assert path_low.endswith("merval_low.csv")
     assert os.path.exists(path_cierres) and os.path.exists(path_high) and os.path.exists(path_low)
+
+
+def test_download_market_no_index_no_rompe_con_el_nuevo_return_de_3_tuplas(monkeypatch):
+    """
+    Regresión real encontrada en producción el 27/07/2026: download_single()
+    pasó a devolver (serie, serie_high, serie_low) para MERVAL/BOVESPA/SP500,
+    pero download_market_no_index() (usado para CEDEARs) seguía haciendo
+    'serie = download_single(...)' sin desempaquetar -- serie terminaba
+    siendo la tupla completa, y 'serie.name = name' reventaba con
+    "'tuple' object has no attribute 'name'". CEDEAR quedó marcado
+    ok=False en download_status.json de una corrida real. Este test evita
+    que se repita si algún día se vuelve a tocar download_single().
+    """
+    hist = _mock_hist(n=30, seed=4)
+    monkeypatch.setattr(dd.yf, "Ticker", lambda ticker: _FakeTicker(hist))
+    monkeypatch.setattr(dd.time, "sleep", lambda *a, **kw: None)
+
+    tickers = {"MELI": "MercadoLibre", "GLOB": "Globant"}
+    df = dd.download_market_no_index(tickers, "CEDEAR")
+
+    assert df is not None
+    assert set(df.columns) == {"MercadoLibre", "Globant"}
+    assert len(df) == len(hist)
