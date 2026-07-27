@@ -17,9 +17,40 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.12"
+MODEL_VERSION = "4.13"
 
 CHANGELOG = [
+    {
+        "version": "4.13",
+        "date": "2026-07-27",
+        "changes": [
+            "Fix/Feat (pedido de Bruno, dashboard): había una confusión real "
+            "entre 2 métricas de confianza distintas -- pred_confidence "
+            "(columna 🎯 de la tabla, solo la confianza del predictor sobre su "
+            "propio pronóstico de precio) y confidence_score (0-100, 5 "
+            "factores: 35% acuerdo predictor+dirección, 25% alineación de "
+            "timeframes, 20% quality checks, 10% consistencia V1/V2, 10% "
+            "régimen de volatilidad -- el que realmente determina las "
+            "etiquetas Alta/Media/Baja/Muy baja del panel 'Por confianza del "
+            "modelo'). confidence_score se calculaba para cada señal pero "
+            "nunca llegaba a ninguna tabla ni ficha por ticker -- solo existía "
+            "el panel agregado.",
+            "generator.py: nueva columna 'Conf.' en la tabla de señales "
+            "(TBL_COLS + celda), con tooltip explicando los 5 factores y "
+            "aclarando explícitamente que NO es lo mismo que la columna 🎯. "
+            "Fallback seguro ('—') si una señal no trae confidence_label.",
+            "generator.py: el panel 'Por confianza del modelo' ahora muestra "
+            "el rango numérico real de cada bucket junto al nombre -- "
+            "'🟢 Confianza Alta (≥75)', '🟡 Confianza Media (55-74)', "
+            "'🟠 Confianza Baja (35-54)', '🔴 Confianza Muy baja (<35)' -- "
+            "tomados de los umbrales hardcodeados en confidence_score.py "
+            "(_label), no inventados.",
+            "Tests: +1 archivo nuevo (test_generator_confidence_column.py, 5 "
+            "tests) validado además con generate_dashboard() real (usando el "
+            "backtest_results.json real del repo) + node --check sobre el JS "
+            "extraído del HTML generado. Suite completa: 604/604 verde.",
+        ],
+    },
     {
         "version": "4.12",
         "date": "2026-07-27",
