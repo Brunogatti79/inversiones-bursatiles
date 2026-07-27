@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-27T17:32:03.443166",
-  "last_run_utc": "2026-07-27T20:32:03.443202",
-  "last_success": "2026-07-27T17:32:03.443166",
+  "last_run": "2026-07-27T18:12:47.200640",
+  "last_run_utc": "2026-07-27T21:12:47.200727",
+  "last_success": "2026-07-27T18:12:47.200640",
   "consecutive_failures": 0,
   "duration_history": [
-    72.3,
     48.1,
     52.4,
     99.9,
@@ -13,15 +12,16 @@
     171.3,
     112.5,
     42.4,
-    123.4
+    123.4,
+    46.2
   ],
-  "duration_avg_sec": 121.0,
+  "duration_avg_sec": 116.9,
   "duration_p95_sec": 297.9,
-  "duration_last_sec": 123.4,
+  "duration_last_sec": 46.2,
   "signals_count": 67,
   "buy_signals": 12,
-  "sell_signals": 10,
-  "neutral_signals": 45,
+  "sell_signals": 9,
+  "neutral_signals": 46,
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 44/100), correlación moderada entre mercados. BOVESPA en modo idiosincr",
@@ -241,11 +241,16 @@
       "ts": "2026-07-27",
       "success": true,
       "duration": 123.4
+    },
+    {
+      "ts": "2026-07-27",
+      "success": true,
+      "duration": 46.2
     }
   ],
-  "pipeline_runs_today": 5,
-  "pipeline_runs_week": 43,
-  "optimized_weights_age_h": 0.2,
+  "pipeline_runs_today": 6,
+  "pipeline_runs_week": 44,
+  "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
