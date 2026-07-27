@@ -1,6 +1,27 @@
 {
-  "version": "4.9",
+  "version": "4.11",
   "changelog": [
+    {
+      "version": "4.11",
+      "date": "2026-07-27",
+      "changes": [
+        "Feat (roadmap externo P6, revisión de otra IA sobre v17): High/Low REALES para ATR/ADX, en vez del proxy close-only vigente desde la v4.7/v4.9(ADX). yf.Ticker(...).history() SIEMPRE trajo High/Low junto con Close -- el código los descartaba sin usarlos, no hacía falta cambiar de fuente de datos ni pedir nada extra a Yahoo (cero requests adicionales, cero riesgo nuevo de rate limit).",
+        "scripts/download_data.py: download_single()/download_market() ahora devuelven también High/Low, guardados en 2 archivos NUEVOS y SEPARADOS por mercado -- data/{merval,bovespa,sp500}_high.csv y _low.csv. El CSV de cierres de siempre (_cierres.csv) queda EXACTAMENTE IGUAL -- decisión de diseño explícita para no tocar el esquema '1 columna = 1 ticker' que downloader.py/analyzer.py/data_validator.py/generator.py ya asumen sobre ese archivo (la alternativa evaluada -- agregar columnas _High/_Low al mismo CSV -- hubiera roto validar_integridad() en data_validator.py, que cuenta columnas esperadas por mercado).",
+        "src/downloader.py: nueva load_ohlc_extra() carga estos 2 archivos nuevos por mercado, completamente APARTE del dict que devuelve download_all() -- compute_volatility_regime(), weight_optimizer._build_price_index() y validar_todos() siguen recibiendo exactamente lo mismo que antes, cero riesgo de romper esos 3 consumidores. Degrada a None por mercado si el archivo no existe todavía -- caso ESPERADO hasta que se aplique el punto siguiente.",
+        "src/analyzer.py: nueva _resolve_high_low() reemplaza la vieja derivación col.replace('Close','High') (que nunca funcionó en producción -- ver docstring histórico de _adx()/_atr(), los CSV reales no tienen 'Close' en el nombre de columna) por un lookup directo en ohlc_extra. Exige ≥20 observaciones reales tras reindexar antes de usarlas -- si un ticker no tiene historia suficiente en el High/Low real (ej. agregado hace poco), cae solo, sin romper el resto de la corrida.",
+        "PENDIENTE CRÍTICO, no accionable por Claude: .github/workflows/download_data.yml necesita agregar los 6 archivos nuevos a la línea 'git add' para que GitHub Actions los commitee -- requiere scope 'workflow' que el GH_TOKEN actual NO tiene (mismo límite ya documentado desde v3/v4). Sin ese cambio manual, scripts/download_data.py genera los archivos localmente en cada corrida de Actions pero NUNCA quedan en el repo -- la feature completa queda inerte (analyzer.py sigue en atr_metodo='close_proxy' para siempre) hasta que Bruno haga ese único cambio de línea en la UI de GitHub.",
+        "Tests: +3 archivos nuevos (test_download_data_ohlc.py -- download_single/download_market con yfinance mockeado, sin red real; test_downloader_ohlc_extra.py; test_analyzer_ohlc_resolve.py). Suite completa: 593/593 verde."
+      ]
+    },
+    {
+      "version": "4.10",
+      "date": "2026-07-27",
+      "changes": [
+        "Feat (roadmap externo P4, revisión de otra IA sobre v17): régimen de volatilidad DE MERCADO (compute_volatility_regime en volatility_regime.py -- HIGH/NORMAL/LOW por MERVAL/BOVESPA/SP500 en conjunto, distinto del vol_score POR ACTIVO que ya usaba _adaptive_aq_es_weights desde la v4.2) ahora ajusta Score V2 -- antes este régimen solo tocaba Kelly (portfolio_optimizer) y confidence_score, el scoring en sí nunca lo veía. Magnitud decidida por Bruno: suave, mismo espíritu que la penalización multi-timeframe ya existente -- V2_REGIME_MULT = {HIGH: 0.90, NORMAL: 1.00, LOW: 1.05} en analyzer.py. Persistido en cada señal como vol_regime_mercado/v2_regime_mult para auditoría. Fallback a NORMAL (x1.00, sin cambio de comportamiento) si vol_regime no llega -- no rompe una corrida si volatility_regime.py falló ese día.",
+        "Fix (roadmap externo P3, misma revisión): el ensemble del predictor ponderaba cada submodelo SOLO por la confianza que ese modelo reporta de sí mismo, nunca por qué tan bien predijo en la realidad. Con 2016 observaciones reales de predictor_validation.json a la fecha de este fix: holt_winters accuracy 52.0%/correlación 0.156, gradient_boosting 47.6%/0.012, linear_baseline 50.1%/-0.096 (correlación NEGATIVA -- peor que ruido). Decisión explícita de Bruno: linear_baseline pasa a peso 0 (excluido del ensemble -- ensemble() ya ignora pairs con confianza <=0); holt_winters y gradient_boosting quedan ponderados por su correlación real, normalizada contra el mejor de los dos (holt_winters no pierde confianza global -- factor 1.0 -- gradient_boosting queda en ~0.077, proporcional a lo poco que aporta hoy). random_forest no se toca -- ya en confianza 0 mientras ENABLE_RF_PREDICTOR=false (decisión aparte de Bruno, sin cambios). Nuevo campo reliability_weights en cada predicción para auditoría. Los valores crudos por submodelo en submodels (usados por predictor_validation.py para medir accuracy independiente) NO se tocan -- solo se pondera la confianza que entra al ensemble, para no contaminar la propia validación con el peso que le puso el fix.",
+        "Tests: +2 archivos nuevos (test_v2_regime_adjustment.py, test_predictor_reliability_weights.py), suite completa verificada 565→(ver conteo tras el commit) verde, sin regresiones en analyzer/predictor/weight_optimizer."
+      ]
+    },
     {
       "version": "4.9",
       "date": "2026-07-23",
