@@ -1,6 +1,45 @@
 {
-  "version": "4.12",
+  "version": "4.16",
   "changelog": [
+    {
+      "version": "4.16",
+      "date": "2026-07-27",
+      "changes": [
+        "Feat (instrucción permanente, pedido de Bruno): \"a partir de los resultados, que el modelo vaya aprendiendo -- veamos qué posibilidades se pueden ir poniendo a la luz en el dashboard para ir mejorando\". Implementado como mecanismo real, no solo como intención documentada: backtester._detect_pattern_discoveries() compara el cruce confidence_x_signal (v4.14) de cada corrida contra la anterior (snapshot persistido en data/pattern_discovery_log.json) y detecta 2 eventos sin intervención manual: 'nueva_evidencia' (una combinación que antes no tenía muestra suficiente ahora sí la tiene -- candidata a exponerse como badge, igual que se hizo a mano hoy con Alta+Compra) y 'cambio_de_signo' (una combinación ya validada cambió de signo en su expected_value -- alerta para revisar, no para actuar solo).",
+        "generator.py: nuevo banner '🔎 Patrones nuevos detectados esta corrida' en el panel 'Conclusiones del Modelo' (Panorama), mostrando cada evento nuevo con su n/resultado real. Ausente (sin romper nada) cuando no hay novedades esa corrida.",
+        "start_server.py: pattern_discovery_log.json agregado a la lista de sync -- sin esto se perdería en cada redeploy, mismo patrón que el resto de los archivos de estado.",
+        "Tests: +1 archivo nuevo (test_pattern_discovery.py, 12 tests -- detección pura + banner end-to-end). Suite completa: 631/631 verde."
+      ]
+    },
+    {
+      "version": "4.15",
+      "date": "2026-07-27",
+      "changes": [
+        "Feat (pedido de Bruno, regla de compra validada por datos): \"comprar cuando confianza Alta + Compra/Compra Fuerte, siempre que la historia diga que se gana\" -- implementado sin asumir que COMPRA FUERTE rinde igual que COMPRA solo porque ambas son señales de compra. Nueva _estado_regla_compra() en generator.py chequea la celda REAL de confidence_x_signal (backtester.py v4.14) para CADA combinación por separado: validada (muestra suficiente + EV histórico positivo) / no_valida (muestra suficiente + EV negativo, aunque sea Alta+Compra) / sin_evidencia (todavía sin casos reales de esa combinación específica) / no_aplica (no es Compra/Compra Fuerte, o no es Alta).",
+        "Badge visual ✅/🔵/⚠️ agregado a la celda 'Conf.' de la tabla de señales (v4.13), con tooltip mostrando n/acierto/resultado reales de esa combinación. Con los 19 días de historia recuperados hoy (v4.14): Alta+COMPRA valida con n=41-60, 63-93% de acierto, EV +0.95%/+2.74% -- la mejor celda de toda la matriz. Alta+COMPRA FUERTE queda en sin_evidencia (0 casos reales todavía, no hay que asumir que rinde igual).",
+        "Tests: +1 archivo nuevo (test_regla_compra_validada.py, 11 tests -- lógica pura + integración end-to-end con generate_dashboard() real, validado con node --check sobre el JS extraído). Suite completa: 619/619 verde."
+      ]
+    },
+    {
+      "version": "4.14",
+      "date": "2026-07-27",
+      "changes": [
+        "INCIDENTE REAL (crítico, recuperado): 18 días de historia real en data/signals_history.json se perdieron en producción -- causa más probable: 2 pushes de código a src/ con solo 9 minutos de diferencia (v4.10 15:46 UTC, v4.11 15:55 UTC) dispararon redeploys de Railway solapados; el sync de arranque (_sync_all_data_from_github) falló silenciosamente para ese archivo específico en esa ventana, y el pipeline arrancó con el historial vacío, agregó solo el día de hoy, y lo pusheó -- pisando 18 días reales con 1. Recuperado desde el historial de git (commit ca3c569, último estado bueno confirmado) fusionado con las señales reales de hoy -- 19 días finales, nada perdido.",
+        "Fix: nuevo guard en tracker._push_signals_history_to_github() -- antes de pushear, compara el conteo de días local contra lo que YA hay en GitHub (github_persistence.fetch_remote_json(), función nueva que lee sin tocar el archivo local). Si el local tiene más de 2 días menos que el remoto (una purga normal por max_days nunca debería tirar más de 1 día por corrida), fusiona remoto+local antes de pushear en vez de confiar ciegamente en el local -- el mismo incidente de hoy, con este guard puesto, se habría auto-corregido solo sin intervención manual.",
+        "Feat (pedido de Bruno, para dejar de decidir reglas de compra a ojo): nuevo cruce confidence_x_signal en backtester.py -- antes solo existían by_confidence_label y by_signal por separado, que no alcanzan para saber si una combinación específica (ej. 'Alta' + 'COMPRA') rinde distinto que cada uno por separado. Celdas con <5 trades quedan marcadas muestra_insuficiente=True en vez de mostrar un win_rate que sería ruido puro.",
+        "Tests: +2 archivos nuevos (test_signals_history_loss_guard.py -- 4 tests replicando el incidente real; ampliación de test_backtester.py pendiente para confidence_x_signal). Suite completa: 608/608 verde."
+      ]
+    },
+    {
+      "version": "4.13",
+      "date": "2026-07-27",
+      "changes": [
+        "Fix/Feat (pedido de Bruno, dashboard): había una confusión real entre 2 métricas de confianza distintas -- pred_confidence (columna 🎯 de la tabla, solo la confianza del predictor sobre su propio pronóstico de precio) y confidence_score (0-100, 5 factores: 35% acuerdo predictor+dirección, 25% alineación de timeframes, 20% quality checks, 10% consistencia V1/V2, 10% régimen de volatilidad -- el que realmente determina las etiquetas Alta/Media/Baja/Muy baja del panel 'Por confianza del modelo'). confidence_score se calculaba para cada señal pero nunca llegaba a ninguna tabla ni ficha por ticker -- solo existía el panel agregado.",
+        "generator.py: nueva columna 'Conf.' en la tabla de señales (TBL_COLS + celda), con tooltip explicando los 5 factores y aclarando explícitamente que NO es lo mismo que la columna 🎯. Fallback seguro ('—') si una señal no trae confidence_label.",
+        "generator.py: el panel 'Por confianza del modelo' ahora muestra el rango numérico real de cada bucket junto al nombre -- '🟢 Confianza Alta (≥75)', '🟡 Confianza Media (55-74)', '🟠 Confianza Baja (35-54)', '🔴 Confianza Muy baja (<35)' -- tomados de los umbrales hardcodeados en confidence_score.py (_label), no inventados.",
+        "Tests: +1 archivo nuevo (test_generator_confidence_column.py, 5 tests) validado además con generate_dashboard() real (usando el backtest_results.json real del repo) + node --check sobre el JS extraído del HTML generado. Suite completa: 604/604 verde."
+      ]
+    },
     {
       "version": "4.12",
       "date": "2026-07-27",
