@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-27T14:24:10.706461",
-  "last_run_utc": "2026-07-27T17:24:10.706492",
-  "last_success": "2026-07-27T14:24:10.706461",
+  "last_run": "2026-07-27T14:38:34.401432",
+  "last_run_utc": "2026-07-27T17:38:34.401477",
+  "last_success": "2026-07-27T14:38:34.401432",
   "consecutive_failures": 0,
   "duration_history": [
-    54.7,
     90.9,
     100.1,
     91.7,
@@ -13,19 +12,20 @@
     52.4,
     99.9,
     424.5,
-    92.6
+    92.6,
+    171.3
   ],
-  "duration_avg_sec": 112.3,
-  "duration_p95_sec": 266.1,
-  "duration_last_sec": 92.6,
+  "duration_avg_sec": 118.0,
+  "duration_p95_sec": 297.9,
+  "duration_last_sec": 171.3,
   "signals_count": 67,
-  "buy_signals": 12,
-  "sell_signals": 10,
+  "buy_signals": 13,
+  "sell_signals": 9,
   "neutral_signals": 45,
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 44/100), correlación moderada entre mercados. BOVESPA en modo idiosincr",
-  "validacion_nivel": "OK",
+  "validacion_nivel": "WARNING",
   "runs_log": [
     {
       "ts": "2026-07-20",
@@ -221,21 +221,26 @@
       "ts": "2026-07-27",
       "success": true,
       "duration": 92.6
+    },
+    {
+      "ts": "2026-07-27",
+      "success": true,
+      "duration": 171.3
     }
   ],
-  "pipeline_runs_today": 1,
-  "pipeline_runs_week": 39,
+  "pipeline_runs_today": 2,
+  "pipeline_runs_week": 40,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 43.2,
-  "global_confidence_label": "🟠 Baja",
+  "global_confidence_score": 56.5,
+  "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
   "optimized_weights_days": 1,
-  "exposure_factor_shadow": 0.464,
+  "exposure_factor_shadow": 0.73,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
     "MERVAL",
