@@ -100,6 +100,17 @@ def update_history(signals: list[dict], max_days: int = 60):
             "market_trend":        s.get("market_trend"),
             "market_trend_score":  s.get("market_trend_score"),
             "cross_market_regime": s.get("cross_market_regime"),
+            # ── Fix 27/07/2026 (roadmap externo P4/P6): estos campos ya
+            # estaban en la señal en vivo (analyzer.py, v4.10/v4.11) pero
+            # faltaba agregarlos acá -- sin esto, signals_history.json (la
+            # fuente real de backtester.py/weight_optimizer.py) nunca iba a
+            # poder confirmar el efecto real de esos dos fixes, quedaban
+            # siempre en None pese a que analyzer.py sí los calculaba bien.
+            # Encontrado auditando la primera corrida real post-deploy
+            # (27/07/2026 17:38 UTC) -- ver model_version.py v4.12.
+            "atr_metodo":          s.get("atr_metodo", ""),
+            "vol_regime_mercado":  s.get("vol_regime_mercado", ""),
+            "v2_regime_mult":      s.get("v2_regime_mult", 1.0),
         }
         for s in signals
     ]
