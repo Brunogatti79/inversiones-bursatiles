@@ -15,6 +15,70 @@ from datetime import datetime, date
 
 logger = logging.getLogger(__name__)
 
+# ── Reliability weights (27/07/2026, roadmap externo P3) ───────────────────────
+# El ensemble ponderaba cada submodelo SOLO por la confianza que ese modelo
+# reporta de sí mismo (ancho de intervalo de Holt-Winters, CV score de GBR,
+# etc.) — nunca por qué tan bien predijo en la realidad. predictor_validation.py
+# ya mide esto (2016 observaciones a la fecha de este cambio): holt_winters
+# accuracy 52.0%/correlación 0.156, gradient_boosting 47.6%/0.012, linear_baseline
+# 50.1%/-0.096 (correlación NEGATIVA — peor que ruido). Decisión explícita de
+# Bruno (27/07/2026): linear_baseline pasa a peso 0 (se excluye del ensemble,
+# ensemble() ya ignora automáticamente pairs con confianza <=0); holt_winters y
+# gradient_boosting quedan ponderados por su correlación real, normalizada
+# contra el mejor de los dos (así el mejor modelo no pierde confianza global,
+# y el más débil aporta en proporción a lo poco que realmente aporta).
+# random_forest no se toca acá — ya en confianza 0 mientras ENABLE_RF_PREDICTOR
+# esté en false (decisión aparte de Bruno).
+VALIDATION_PATH = "data/predictor_validation.json"
+_RELIABILITY_CACHE: dict = None
+
+
+def _load_reliability_weights() -> dict:
+    """
+    Devuelve un multiplicador (0-1) por submodelo para aplicar sobre su
+    confianza auto-reportada, derivado de la correlación GLOBAL real en
+    data/predictor_validation.json. Fallback a 1.0 en todos (sin cambio de
+    comportamiento respecto a antes de este fix) si el archivo no existe
+    todavía, no tiene la forma esperada, o falla la lectura — para no romper
+    una corrida si predictor_validation.py todavía no corrió ni una vez.
+    """
+    default = {"holt_winters": 1.0, "gradient_boosting": 1.0, "linear_baseline": 1.0}
+    try:
+        with open(VALIDATION_PATH) as f:
+            data = json.load(f)
+    except Exception:
+        return default
+
+    if not isinstance(data, dict):
+        return default
+    glob = data.get("global") or {}
+    corr_hw  = (glob.get("holt_winters") or {}).get("correlation")
+    corr_gbr = (glob.get("gradient_boosting") or {}).get("correlation")
+    if corr_hw is None or corr_gbr is None:
+        return default
+
+    corr_hw  = max(0.0, float(corr_hw))
+    corr_gbr = max(0.0, float(corr_gbr))
+    best = max(corr_hw, corr_gbr) or 1.0
+
+    return {
+        "holt_winters":      round(corr_hw / best, 3),
+        "gradient_boosting": round(corr_gbr / best, 3),
+        "linear_baseline":   0.0,  # decisión explícita 27/07/2026: correlación negativa, se excluye
+    }
+
+
+def _get_reliability_weights() -> dict:
+    """Cachea _load_reliability_weights() a nivel de módulo — se llama una vez
+    por ticker (78 veces por corrida); no tiene sentido releer el archivo cada
+    vez dentro del mismo proceso de pipeline."""
+    global _RELIABILITY_CACHE
+    if _RELIABILITY_CACHE is None:
+        _RELIABILITY_CACHE = _load_reliability_weights()
+        logger.info(f"Predictor reliability weights (real, no auto-reportada): {_RELIABILITY_CACHE}")
+    return _RELIABILITY_CACHE
+
+
 # ── Cache ──────────────────────────────────────────────────────────────────────
 CACHE_PATH = "data/pred_cache.json"
 _CACHE: dict = {}
@@ -411,6 +475,19 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
         ln5,  conf_ln5  = _linear_baseline(arr, 5,  context=context)
         ln21, conf_ln21 = _linear_baseline(arr, 21, context=context)
 
+        # Mejora 27/07/2026: ponderar cada submodelo por su precisión REAL
+        # validada (correlación global en predictor_validation.json), no solo
+        # por la confianza que cada uno reporta de sí mismo — ver docstring de
+        # _load_reliability_weights(). linear_baseline queda en 0 (excluido);
+        # ensemble() ya ignora automáticamente pairs con confianza <=0.
+        _rel = _get_reliability_weights()
+        conf_hw5  = round(conf_hw5  * _rel["holt_winters"], 4)
+        conf_hw21 = round(conf_hw21 * _rel["holt_winters"], 4)
+        conf_gb5  = round(conf_gb5  * _rel["gradient_boosting"], 4)
+        conf_gb21 = round(conf_gb21 * _rel["gradient_boosting"], 4)
+        conf_ln5  = round(conf_ln5  * _rel["linear_baseline"], 4)
+        conf_ln21 = round(conf_ln21 * _rel["linear_baseline"], 4)
+
         # ── Ensemble ponderado por confianza (generalizado a N modelos)
         def ensemble(*pairs):
             """pairs: lista de (valor, confianza). Ignora automáticamente los
@@ -441,6 +518,9 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
         else:
             rf10, conf_rf10 = 0.0, 0.0
         ln10, conf_ln10 = _linear_baseline(arr, 10, context=context)
+        conf_hw10 = round(conf_hw10 * _rel["holt_winters"], 4)
+        conf_gb10 = round(conf_gb10 * _rel["gradient_boosting"], 4)
+        conf_ln10 = round(conf_ln10 * _rel["linear_baseline"], 4)
         p10, c10 = ensemble((hw10, conf_hw10), (gb10, conf_gb10), (rf10, conf_rf10), (ln10, conf_ln10))
 
         # Target precio a 21d
@@ -460,6 +540,7 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
             "pred_confidence": conf_global,
             "pred_signal":     sig,
             "pred_method":     "ensemble",
+            "reliability_weights": _rel,
         })
 
         if include_submodels:

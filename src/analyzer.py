@@ -111,7 +111,18 @@ LIQUIDITY_PENALTY_THRESHOLD = {
     "SP500": 50_000_000,
 }
 LIQUIDITY_PENALTY_FACTOR = 0.85
- 
+
+# Mejora 27/07/2026 (roadmap externo P4): régimen de volatilidad DE MERCADO
+# (compute_volatility_regime en volatility_regime.py — HIGH/NORMAL/LOW por
+# MERVAL/BOVESPA/SP500 en conjunto) ajusta Score V2. Antes este régimen solo
+# tocaba Kelly (portfolio_optimizer) y confidence_score — el scoring V1/V2 en
+# sí nunca lo veía. Distinto de _adaptive_aq_es_weights() de más abajo, que ya
+# existía (mejora 2.2) pero usa vol_score del ACTIVO individual, no el régimen
+# del mercado en conjunto — señales complementarias, no duplicadas.
+# Magnitud decidida por Bruno (27/07/2026): suave, mismo espíritu que la
+# penalización multi-timeframe ya existente (×0.80/×0.90/×0.93).
+V2_REGIME_MULT = {"HIGH": 0.90, "NORMAL": 1.00, "LOW": 1.05}
+
 # Ponderaciones AQ/ES por mercado
 MARKET_WEIGHTS = {
     "MERVAL":  {"aq_weight": 0.60, "es_weight": 0.40},
@@ -739,7 +750,8 @@ def _consenso(signal_v1, signal_v2, score_v1, score_v2):
 # ─────────────────────────────────────────────
  
 def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
-                   xlsx_signals: dict = None, fund_scores: dict = None) -> list[dict]:
+                   xlsx_signals: dict = None, fund_scores: dict = None,
+                   vol_regime: dict = None) -> list[dict]:
     if df is None or df.empty or len(df) < 5:
         logger.warning(f"[{market}] DataFrame vacío, saltando análisis")
         return []
@@ -958,6 +970,15 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             adx_val, adx_score, adx_metodo = 0.0, 50.0, "error"
  
         sf_v2 = _score_final_v2(aq, es, market, vol_score)
+
+        # Mejora 27/07/2026: régimen de volatilidad DE MERCADO ajusta Score V2
+        # (ver docstring de V2_REGIME_MULT). Fallback a NORMAL (×1.00, sin
+        # cambio de comportamiento) si vol_regime no llegó o no tiene este
+        # mercado — no debe romper una corrida si volatility_regime.py falló.
+        market_vol_regime = (vol_regime or {}).get(market, {}).get("regime", "NORMAL")
+        v2_regime_mult = V2_REGIME_MULT.get(market_vol_regime, 1.00)
+        sf_v2 = round(sf_v2 * v2_regime_mult, 1)
+
         sig_v2 = _signal_v2(sf_v2)
         rank_acc = _ranking_accionable(sf_v2, aq, rr_norm, vol_score)
         v2_w = _adaptive_aq_es_weights(market, vol_score)
@@ -1043,6 +1064,8 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             "aq_weight_used": v2_w["aq_weight"],
             "es_weight_used": v2_w["es_weight"],
             "score_final_v2": sf_v2,
+            "vol_regime_mercado": market_vol_regime,
+            "v2_regime_mult": v2_regime_mult,
             "signal_v2": sig_v2,
             "ranking_accionable": rank_acc,
             # ── Mejoras adicionales ──

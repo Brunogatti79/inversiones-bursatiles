@@ -17,9 +17,53 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.9"
+MODEL_VERSION = "4.10"
 
 CHANGELOG = [
+    {
+        "version": "4.10",
+        "date": "2026-07-27",
+        "changes": [
+            "Feat (roadmap externo P4, revisión de otra IA sobre v17): régimen de "
+            "volatilidad DE MERCADO (compute_volatility_regime en "
+            "volatility_regime.py -- HIGH/NORMAL/LOW por MERVAL/BOVESPA/SP500 en "
+            "conjunto, distinto del vol_score POR ACTIVO que ya usaba "
+            "_adaptive_aq_es_weights desde la v4.2) ahora ajusta Score V2 -- antes "
+            "este régimen solo tocaba Kelly (portfolio_optimizer) y "
+            "confidence_score, el scoring en sí nunca lo veía. Magnitud decidida "
+            "por Bruno: suave, mismo espíritu que la penalización multi-timeframe "
+            "ya existente -- V2_REGIME_MULT = {HIGH: 0.90, NORMAL: 1.00, LOW: "
+            "1.05} en analyzer.py. Persistido en cada señal como "
+            "vol_regime_mercado/v2_regime_mult para auditoría. Fallback a NORMAL "
+            "(x1.00, sin cambio de comportamiento) si vol_regime no llega -- no "
+            "rompe una corrida si volatility_regime.py falló ese día.",
+            "Fix (roadmap externo P3, misma revisión): el ensemble del predictor "
+            "ponderaba cada submodelo SOLO por la confianza que ese modelo "
+            "reporta de sí mismo, nunca por qué tan bien predijo en la realidad. "
+            "Con 2016 observaciones reales de predictor_validation.json a la "
+            "fecha de este fix: holt_winters accuracy 52.0%/correlación 0.156, "
+            "gradient_boosting 47.6%/0.012, linear_baseline 50.1%/-0.096 "
+            "(correlación NEGATIVA -- peor que ruido). Decisión explícita de "
+            "Bruno: linear_baseline pasa a peso 0 (excluido del ensemble -- "
+            "ensemble() ya ignora pairs con confianza <=0); holt_winters y "
+            "gradient_boosting quedan ponderados por su correlación real, "
+            "normalizada contra el mejor de los dos (holt_winters no pierde "
+            "confianza global -- factor 1.0 -- gradient_boosting queda en "
+            "~0.077, proporcional a lo poco que aporta hoy). random_forest no se "
+            "toca -- ya en confianza 0 mientras ENABLE_RF_PREDICTOR=false "
+            "(decisión aparte de Bruno, sin cambios). Nuevo campo "
+            "reliability_weights en cada predicción para auditoría. Los valores "
+            "crudos por submodelo en submodels (usados por "
+            "predictor_validation.py para medir accuracy independiente) NO se "
+            "tocan -- solo se pondera la confianza que entra al ensemble, para "
+            "no contaminar la propia validación con el peso que le puso el "
+            "fix.",
+            "Tests: +2 archivos nuevos (test_v2_regime_adjustment.py, "
+            "test_predictor_reliability_weights.py), suite completa verificada "
+            "565→(ver conteo tras el commit) verde, sin regresiones en analyzer/"
+            "predictor/weight_optimizer.",
+        ],
+    },
     {
         "version": "4.9",
         "date": "2026-07-23",

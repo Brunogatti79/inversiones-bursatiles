@@ -333,11 +333,14 @@ def run_pipeline():
         logger.info("3/8 Calculando señales...")
 
         signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS,
-                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores)
+                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores,
+                                         vol_regime=vol_regime)
         signals_bovespa = analyze_market(bovespa_df, "BOVESPA", BOVESPA_TICKERS,
-                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores)
+                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores,
+                                         vol_regime=vol_regime)
         signals_sp500   = analyze_market(sp500_df,   "SP500",   SP500_TICKERS,
-                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores)
+                                         xlsx_signals=xlsx_signals, fund_scores=fund_scores,
+                                         vol_regime=vol_regime)
         all_signals = signals_merval + signals_bovespa + signals_sp500
         all_signals.sort(key=lambda x: x["score_final"], reverse=True)
 
