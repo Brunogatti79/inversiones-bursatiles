@@ -459,8 +459,42 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list) -> str
                 f'Se vuelven más sólidos a medida que se acumula historia real.</div>'
             )
 
+        # ── Patrones nuevos detectados (instrucción permanente, pedido de
+        # Bruno 27/07/2026): backtester._detect_pattern_discoveries() ya
+        # comparó esta corrida contra la anterior -- acá solo se muestra lo
+        # que encontró, sin volver a calcular nada.
+        _discoveries = _backtest.get("pattern_discoveries_nuevas", []) or []
+        _discoveries_html = ""
+        if _discoveries:
+            _items = []
+            for _ev in _discoveries[:6]:  # cap visual -- no inundar el panel
+                if _ev["tipo"] == "nueva_evidencia":
+                    _ev_str = f'{_ev["ev"]:+.1f}%' if _ev.get("ev") is not None else "—"
+                    _items.append(
+                        f'<div style="font-size:10px;color:#c084fc;margin-bottom:2px">'
+                        f'🆕 <b>{_ev["combinacion"]}</b> ya junta muestra suficiente '
+                        f'(n={_ev["n"]}, resultado {_ev_str}) — evaluar si conviene '
+                        f'exponerlo en el dashboard.</div>'
+                    )
+                elif _ev["tipo"] == "cambio_de_signo":
+                    _items.append(
+                        f'<div style="font-size:10px;color:#fbbf24;margin-bottom:2px">'
+                        f'🔀 <b>{_ev["combinacion"]}</b> cambió de signo: '
+                        f'{_ev["ev_antes"]:+.1f}% → {_ev["ev_ahora"]:+.1f}% '
+                        f'(n={_ev["n"]}) — revisar si sigue siendo válido.</div>'
+                    )
+            _discoveries_html = (
+                '<div style="background:#141020;border:1px solid #3a2a5c;border-radius:6px;'
+                'padding:8px 12px;margin-bottom:10px">'
+                '<div style="font-size:11px;color:#c084fc;font-weight:700;margin-bottom:4px">'
+                '🔎 Patrones nuevos detectados esta corrida</div>'
+                + "".join(_items) +
+                '</div>'
+            )
+
         model_conclusions_html = (
             '<div style="background:#0d0d14;border:1px solid #222;border-radius:8px;padding:12px 16px;flex:1;min-width:280px">'
+            f'{_discoveries_html}'
             '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:4px">'
             '<span style="font-size:12px;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:.5px">'
             '📊 Conclusiones del Modelo</span>'

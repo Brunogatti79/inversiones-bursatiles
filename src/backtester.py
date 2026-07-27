@@ -181,6 +181,90 @@ def calibrated_win_probability(confidence_score: float, curva: list) -> float | 
     return float(np.interp(confidence_score, xs, ys))
 
 
+def _cell_summary(cell: dict) -> dict | None:
+    """Resume una celda de un cruce (ej. confidence_x_signal) al horizonte
+    con más muestra real disponible. Devuelve None si la celda no existe."""
+    if not cell:
+        return None
+    h5  = cell.get("h5d") or {}
+    h10 = cell.get("h10d") or {}
+    n5, n10 = h5.get("samples") or 0, h10.get("samples") or 0
+    best = h5 if n5 >= n10 else h10
+    return {"n": best.get("samples") or 0, "ev": best.get("expected_value")}
+
+
+def _detect_pattern_discoveries(cross: dict, path: str = "data/pattern_discovery_log.json",
+                                 min_samples: int = 15) -> list[dict]:
+    """
+    Instrucción permanente (pedido de Bruno, 27/07/2026): "a partir de los
+    resultados, que el modelo vaya aprendiendo -- veamos qué posibilidades
+    se pueden ir poniendo a la luz en el dashboard para ir mejorando".
+    Este es el mecanismo real detrás de eso, no solo una intención en un
+    documento: compara el cruce confidence_x_signal de ESTA corrida contra
+    el snapshot de la corrida anterior (persistido acá mismo) y detecta 2
+    eventos dignos de revisión humana, sin esperar a que alguien vaya a
+    buscarlos a mano (como se hizo hoy con Alta+Compra, a pulmón):
+
+      - "nueva_evidencia": una combinación que antes NO tenía muestra
+        suficiente (<min_samples en su mejor horizonte) ahora sí la tiene
+        -- candidata a exponerse en el dashboard (ej. un badge, como
+        _estado_regla_compra en generator.py) si además su resultado es
+        bueno.
+      - "cambio_de_signo": una combinación que ya tenía muestra suficiente
+        cambió de signo en su expected_value -- un patrón que rendía bien
+        podría haber dejado de hacerlo, o viceversa. Alerta para revisar,
+        no para actuar solo.
+
+    Devuelve SOLO los eventos NUEVOS de esta corrida (no el historial
+    completo) -- generator.py los usa para el banner "🔎 Patrones nuevos"
+    en Panorama. El log completo (con snapshot + histórico acotado a 200
+    eventos) queda persistido en `path` vía github_persistence, igual que
+    el resto de los archivos que necesitan sobrevivir a un redeploy.
+    """
+    from src.github_persistence import load_json, save_json
+
+    log = load_json(path, default={"eventos": [], "_ultimo_snapshot": {}})
+    prev_snapshot = log.get("_ultimo_snapshot", {})
+
+    nuevos_eventos = []
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    for conf_label, signals in (cross or {}).items():
+        for sig, cell in signals.items():
+            key = f"{conf_label} + {sig}"
+            cur = _cell_summary(cell)
+            if cur is None or cur["n"] < min_samples:
+                continue  # todavía sin evidencia suficiente esta corrida -- nada que reportar
+
+            prev = prev_snapshot.get(key)
+            if prev is None or prev.get("n", 0) < min_samples:
+                nuevos_eventos.append({
+                    "fecha": now, "tipo": "nueva_evidencia", "combinacion": key,
+                    "n": cur["n"], "ev": cur["ev"],
+                })
+            elif prev.get("ev") is not None and cur["ev"] is not None:
+                if (prev["ev"] > 0) != (cur["ev"] > 0):
+                    nuevos_eventos.append({
+                        "fecha": now, "tipo": "cambio_de_signo", "combinacion": key,
+                        "ev_antes": prev["ev"], "ev_ahora": cur["ev"], "n": cur["n"],
+                    })
+
+    nuevo_snapshot = {}
+    for conf_label, signals in (cross or {}).items():
+        for sig, cell in signals.items():
+            cur = _cell_summary(cell)
+            if cur is not None:
+                nuevo_snapshot[f"{conf_label} + {sig}"] = cur
+
+    log["_ultimo_snapshot"] = nuevo_snapshot
+    if nuevos_eventos:
+        log.setdefault("eventos", []).extend(nuevos_eventos)
+        log["eventos"] = log["eventos"][-200:]  # cap -- no crecer sin límite
+
+    save_json(path, log, message=f"auto: pattern_discovery {now}")
+    return nuevos_eventos
+
+
 def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
     """
     Ejecuta backtesting sobre el historial de señales.
@@ -252,6 +336,10 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         # de decisión que combine ambos campos se basaba en intuición.
         "confidence_x_signal":    _aggregate_cross(trades, "confidence_label", "signal"),
     }
+
+    results["pattern_discoveries_nuevas"] = _detect_pattern_discoveries(
+        results["confidence_x_signal"]
+    )
 
     # Guardar
     os.makedirs("data", exist_ok=True)

@@ -477,6 +477,10 @@ def _sync_all_data_from_github():
             "historical_replay.json",     # fix 24/06: antes se perdía en cada redeploy
             "system_confidence.json",     # mejora 4.3: confidence global + kill switch
             "predictor_validation.json",  # Prioridad 3: predictor vs baselines (desde el día 1)
+            "pattern_discovery_log.json",   # v4.16: snapshot + histórico de nuevos_evidencia/
+                                             # cambio_de_signo del cruce confidence_x_signal --
+                                             # el mecanismo real de "el modelo va aprendiendo,
+                                             # mostralo en el dashboard" (pedido de Bruno).
             "kill_switch_history.json",     # Prioridad 2: bitácora append-only del kill switch
             "kill_switch_validation.json",  # Prioridad 2: validación retroactiva vs precios
             "download_status.json",         # gap heredado de v4.0 (§8.1/#8 lista v9) -- se

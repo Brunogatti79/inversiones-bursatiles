@@ -17,9 +17,39 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.15"
+MODEL_VERSION = "4.16"
 
 CHANGELOG = [
+    {
+        "version": "4.16",
+        "date": "2026-07-27",
+        "changes": [
+            "Feat (instrucción permanente, pedido de Bruno): \"a partir de "
+            "los resultados, que el modelo vaya aprendiendo -- veamos qué "
+            "posibilidades se pueden ir poniendo a la luz en el dashboard "
+            "para ir mejorando\". Implementado como mecanismo real, no solo "
+            "como intención documentada: backtester._detect_pattern_"
+            "discoveries() compara el cruce confidence_x_signal (v4.14) de "
+            "cada corrida contra la anterior (snapshot persistido en "
+            "data/pattern_discovery_log.json) y detecta 2 eventos sin "
+            "intervención manual: 'nueva_evidencia' (una combinación que "
+            "antes no tenía muestra suficiente ahora sí la tiene -- "
+            "candidata a exponerse como badge, igual que se hizo a mano hoy "
+            "con Alta+Compra) y 'cambio_de_signo' (una combinación ya "
+            "validada cambió de signo en su expected_value -- alerta para "
+            "revisar, no para actuar solo).",
+            "generator.py: nuevo banner '🔎 Patrones nuevos detectados esta "
+            "corrida' en el panel 'Conclusiones del Modelo' (Panorama), "
+            "mostrando cada evento nuevo con su n/resultado real. Ausente "
+            "(sin romper nada) cuando no hay novedades esa corrida.",
+            "start_server.py: pattern_discovery_log.json agregado a la "
+            "lista de sync -- sin esto se perdería en cada redeploy, mismo "
+            "patrón que el resto de los archivos de estado.",
+            "Tests: +1 archivo nuevo (test_pattern_discovery.py, 12 tests -- "
+            "detección pura + banner end-to-end). Suite completa: 631/631 "
+            "verde.",
+        ],
+    },
     {
         "version": "4.15",
         "date": "2026-07-27",
