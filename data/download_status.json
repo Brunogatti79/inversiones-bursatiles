@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-07-27 17:18 UTC",
+  "timestamp_utc": "2026-07-27 17:31 UTC",
   "markets": {
     "MERVAL": {
       "rows": 272,
@@ -14,15 +14,16 @@
       "ohlc": true
     },
     "SP500": {
-      "rows": 274,
-      "last_date": "2026-07-24",
+      "rows": 273,
+      "last_date": "2026-07-23",
       "ok": true,
       "ohlc": true
     },
     "CEDEAR": {
-      "ok": false,
-      "error": "'tuple' object has no attribute 'name'"
+      "rows": 272,
+      "last_date": "2026-07-24",
+      "ok": true
     }
   },
-  "success": false
+  "success": true
 }
