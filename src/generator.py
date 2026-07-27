@@ -588,6 +588,61 @@ def _render_macro_panel(signals: list, extra_html: str = "") -> str:
     )
 
 
+def _estado_regla_compra(signal_v2: str, confidence_label, conf_x_signal: dict,
+                          min_samples: int = 15) -> tuple:
+    """
+    Evalúa si una señal cumple la regla de compra que Bruno pidió validar
+    con datos reales (27/07/2026): "COMPRA o COMPRA FUERTE + confianza Alta,
+    siempre que la historia diga que se gana". A propósito NO asume que
+    COMPRA FUERTE rinde igual que COMPRA solo porque ambas son señales de
+    compra -- chequea la celda REAL de confidence_x_signal (backtester.py,
+    v4.14) para cada combinación por separado.
+
+    Devuelve (estado, detalle):
+      "no_aplica"      -- la señal no es COMPRA/COMPRA FUERTE, o la
+                          confianza no es Alta. No es una mala señal, la
+                          regla simplemente no aplica acá.
+      "sin_evidencia"  -- SÍ es COMPRA/COMPRA FUERTE + Alta, pero esa
+                          combinación específica todavía no tiene muestra
+                          suficiente en el historial real (ej. COMPRA
+                          FUERTE + Alta, que a la fecha de este fix no
+                          tenía ni un solo caso real). No se descarta, pero
+                          tampoco se puede afirmar que rinde bien todavía.
+      "validada"       -- hay muestra real suficiente Y el expected_value
+                          histórico de esa combinación específica es
+                          positivo.
+      "no_valida"      -- hay muestra real suficiente pero el resultado
+                          histórico de esa combinación específica es
+                          negativo -- aunque sea "Alta + Compra", los datos
+                          dicen que no conviene.
+
+    detalle: None, o {"n": muestras, "wr": win_rate, "ev": expected_value}
+    del horizonte con más muestra real disponible entre h5d/h10d.
+    """
+    if confidence_label != "🟢 Alta" or signal_v2 not in ("🟢 COMPRA", "⭐ COMPRA FUERTE"):
+        return ("no_aplica", None)
+
+    cell = (conf_x_signal or {}).get(confidence_label, {}).get(signal_v2)
+    if not cell:
+        return ("sin_evidencia", None)
+
+    h5  = cell.get("h5d") or {}
+    h10 = cell.get("h10d") or {}
+    n5  = h5.get("samples") or 0
+    n10 = h10.get("samples") or 0
+
+    if cell.get("muestra_insuficiente") or (n5 < min_samples and n10 < min_samples):
+        return ("sin_evidencia", {"n": cell.get("count", 0)})
+
+    best = h5 if n5 >= n10 else h10
+    ev = best.get("expected_value")
+    detalle = {"n": best.get("samples"), "wr": best.get("win_rate"), "ev": ev}
+
+    if ev is not None and ev > 0:
+        return ("validada", detalle)
+    return ("no_valida", detalle)
+
+
 def generate_dashboard(
     signals: list[dict],
     index_stats: dict,
@@ -607,6 +662,30 @@ def generate_dashboard(
             fichas = _build_oportunidades(signals, price_data)
         except Exception as e:
             logger.warning(f"No se pudieron generar fichas de oportunidades: {e}")
+ 
+    # ── Regla de compra validada por datos (pedido de Bruno, 27/07/2026) ────
+    # "Comprar cuando confianza Alta + Compra/Compra Fuerte, siempre que la
+    # historia diga que se gana" -- explícitamente NO asumir que COMPRA
+    # FUERTE rinde igual que COMPRA solo porque las dos son señales de
+    # compra: se chequea la celda REAL del cruce confidence_x_signal
+    # (backtester.py, agregado en v4.14) para CADA combinación por
+    # separado. Carga propia y aislada de backtest_results.json acá (en vez
+    # de esperar a donde se carga _backtest más abajo para el panel
+    # agregado) porque signals_json se serializa ANTES de ese punto.
+    try:
+        with open("data/backtest_results.json") as _cxf:
+            _conf_x_signal = json.load(_cxf).get("confidence_x_signal", {})
+    except Exception:
+        _conf_x_signal = {}
+ 
+    for _s in signals:
+        _estado, _detalle = _estado_regla_compra(
+            _s.get("signal_v2") or _s.get("signal", ""),
+            _s.get("confidence_label"),
+            _conf_x_signal,
+        )
+        _s["regla_compra_estado"] = _estado
+        _s["regla_compra_detalle"] = _detalle
  
     # Banner de validación para el header
     if validacion:
@@ -1366,6 +1445,30 @@ function sigColor(s){{
   if(s.indexOf('VENTA P')>=0)       return '#fb923c';
   return '#f87171';
 }}
+
+// Badge de "regla de compra validada por datos" (pedido de Bruno, 27/07/2026):
+// COMPRA/COMPRA FUERTE + confianza Alta, chequeado contra el cruce real
+// confidence_x_signal (backtester.py v4.14) por analyzer.py/generator.py y
+// guardado por señal en s.regla_compra_estado -- ver _estado_regla_compra()
+// en el backend. NO es un cálculo del lado del cliente: acá solo se decide
+// cómo pintarlo.
+function _reglaBadge(s){{
+  var st=s.regla_compra_estado, d=s.regla_compra_detalle||{{}};
+  if(st==='validada'){{
+    var wr=d.wr!=null?Math.round(d.wr*100)+'%':'?';
+    var ev=d.ev!=null?((d.ev>=0?'+':'')+d.ev.toFixed(1)+'%'):'?';
+    return ' <span title="Regla validada con datos reales: n='+d.n+', acierto '+wr+', resultado promedio '+ev+'" style="cursor:help">✅</span>';
+  }}
+  if(st==='sin_evidencia'){{
+    return ' <span title="Cumple Compra/Compra Fuerte + Alta, pero todavía no hay suficientes casos reales de ESTA combinación específica para confirmar si rinde bien -- no descartar, pero tampoco asumir" style="cursor:help">🔵</span>';
+  }}
+  if(st==='no_valida'){{
+    var wr2=d.wr!=null?Math.round(d.wr*100)+'%':'?';
+    var ev2=d.ev!=null?((d.ev>=0?'+':'')+d.ev.toFixed(1)+'%'):'?';
+    return ' <span title="Es Compra/Compra Fuerte + Alta, pero el historial real de ESTA combinación da resultado negativo: n='+d.n+', acierto '+wr2+', resultado promedio '+ev2+'" style="cursor:help">⚠️</span>';
+  }}
+  return '';
+}}
  
 var tableSort={{}}; // tbId -> {{key, dir}} — estado de orden por tabla, persiste entre re-renders
 
@@ -1446,7 +1549,7 @@ rows.map(function(s){{
 var aq=s.asset_quality||0, es=s.entry_score||0, rr=s.rr_ratio||0, sv2=s.score_final_v2||s.score_final, ra=s.ranking_accionable||sv2, sig2=s.signal_v2||s.signal;
 var mktSep='';
 if(!market&&s.mercado!==lastMkt){{lastMkt=s.mercado;var fl=s.mercado==='MERVAL'?'🇦🇷':s.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';mktSep='<tr><td colspan="12" style="background:#111118;padding:8px 12px;font-weight:700;color:#5ba3ff;font-size:13px;border-bottom:2px solid #5ba3ff">'+fl+' '+s.mercado+'</td></tr>';}}
-return mktSep+'<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td>'+(s.confidence_label?'<td style="font-size:11px;font-weight:600;white-space:nowrap">'+s.confidence_label+'</td>':'<td style="color:#444">—</td>')+(s.pred_21d!=null?'<td style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-size:11px;font-weight:700">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</td>':'<td style="color:#444">—</td>')+(s.pred_confidence?'<td style="color:#a78bfa;font-size:11px">'+Math.round(s.pred_confidence*100)+'%</td>':'<td style="color:#444">—</td>')+(s.alignment_label?'<td style="font-size:10px;font-weight:700;color:'+(s.alignment_label.indexOf('TRIPLE')>=0?'#4ade80':s.alignment_label.indexOf('DOBLE')>=0?'#a78bfa':s.alignment_label.indexOf('CONFLICTO')>=0?'#f87171':'#666')+'">'+(s.alignment_label.indexOf('TRIPLE')>=0?'3✓':s.alignment_label.indexOf('DOBLE')>=0?'2✓':'?')+'</td>':'<td style="color:#444">—</td>')+(s.monthly_trend&&s.monthly_trend!=='SIN DATOS'?'<td style="color:'+(s.monthly_trend==='ALCISTA'?'#4ade80':s.monthly_trend==='BAJISTA'?'#f87171':'#fbbf24')+';font-size:12px;font-weight:700">'+(s.monthly_trend==='ALCISTA'?'▲':s.monthly_trend==='BAJISTA'?'▼':'●')+'</td>':'<td style="color:#444">—</td>')+'</tr>';}}).join('');}}
+return mktSep+'<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td>'+(s.confidence_label?'<td style="font-size:11px;font-weight:600;white-space:nowrap">'+s.confidence_label+_reglaBadge(s)+'</td>':'<td style="color:#444">—</td>')+(s.pred_21d!=null?'<td style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-size:11px;font-weight:700">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</td>':'<td style="color:#444">—</td>')+(s.pred_confidence?'<td style="color:#a78bfa;font-size:11px">'+Math.round(s.pred_confidence*100)+'%</td>':'<td style="color:#444">—</td>')+(s.alignment_label?'<td style="font-size:10px;font-weight:700;color:'+(s.alignment_label.indexOf('TRIPLE')>=0?'#4ade80':s.alignment_label.indexOf('DOBLE')>=0?'#a78bfa':s.alignment_label.indexOf('CONFLICTO')>=0?'#f87171':'#666')+'">'+(s.alignment_label.indexOf('TRIPLE')>=0?'3✓':s.alignment_label.indexOf('DOBLE')>=0?'2✓':'?')+'</td>':'<td style="color:#444">—</td>')+(s.monthly_trend&&s.monthly_trend!=='SIN DATOS'?'<td style="color:'+(s.monthly_trend==='ALCISTA'?'#4ade80':s.monthly_trend==='BAJISTA'?'#f87171':'#fbbf24')+';font-size:12px;font-weight:700">'+(s.monthly_trend==='ALCISTA'?'▲':s.monthly_trend==='BAJISTA'?'▼':'●')+'</td>':'<td style="color:#444">—</td>')+'</tr>';}}).join('');}}
 function buildStats(divId,marketKey){{
   var st=IDX[marketKey]||{{}};
   var d=document.getElementById(divId); if(!d) return;

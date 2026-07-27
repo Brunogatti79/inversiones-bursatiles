@@ -17,9 +17,38 @@ una entrada acá con la versión nueva.
 
 from datetime import datetime
 
-MODEL_VERSION = "4.14"
+MODEL_VERSION = "4.15"
 
 CHANGELOG = [
+    {
+        "version": "4.15",
+        "date": "2026-07-27",
+        "changes": [
+            "Feat (pedido de Bruno, regla de compra validada por datos): "
+            "\"comprar cuando confianza Alta + Compra/Compra Fuerte, siempre "
+            "que la historia diga que se gana\" -- implementado sin asumir "
+            "que COMPRA FUERTE rinde igual que COMPRA solo porque ambas son "
+            "señales de compra. Nueva _estado_regla_compra() en generator.py "
+            "chequea la celda REAL de confidence_x_signal (backtester.py "
+            "v4.14) para CADA combinación por separado: validada (muestra "
+            "suficiente + EV histórico positivo) / no_valida (muestra "
+            "suficiente + EV negativo, aunque sea Alta+Compra) / "
+            "sin_evidencia (todavía sin casos reales de esa combinación "
+            "específica) / no_aplica (no es Compra/Compra Fuerte, o no es "
+            "Alta).",
+            "Badge visual ✅/🔵/⚠️ agregado a la celda 'Conf.' de la tabla de "
+            "señales (v4.13), con tooltip mostrando n/acierto/resultado "
+            "reales de esa combinación. Con los 19 días de historia "
+            "recuperados hoy (v4.14): Alta+COMPRA valida con n=41-60, 63-93% "
+            "de acierto, EV +0.95%/+2.74% -- la mejor celda de toda la "
+            "matriz. Alta+COMPRA FUERTE queda en sin_evidencia (0 casos "
+            "reales todavía, no hay que asumir que rinde igual).",
+            "Tests: +1 archivo nuevo (test_regla_compra_validada.py, 11 "
+            "tests -- lógica pura + integración end-to-end con "
+            "generate_dashboard() real, validado con node --check sobre el "
+            "JS extraído). Suite completa: 619/619 verde.",
+        ],
+    },
     {
         "version": "4.14",
         "date": "2026-07-27",
