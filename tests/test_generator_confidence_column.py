@@ -44,6 +44,14 @@ def _signal(**overrides):
     return base
 
 
+@pytest.fixture(autouse=True)
+def _aislar_opportunities_log(tmp_path, monkeypatch):
+    """Higiene de tests (pedido de Bruno, 28/07/2026) -- ver mismo fixture
+    en test_generator_banners.py para el detalle completo."""
+    import src.opportunities_log as opportunities_log
+    monkeypatch.setattr(opportunities_log, "LOG_PATH", str(tmp_path / "opportunities_log.json"))
+
+
 @pytest.fixture
 def _basic_args(tmp_path):
     merval_df = pd.DataFrame({"INDICE MERVAL": [100, 101, 102]})

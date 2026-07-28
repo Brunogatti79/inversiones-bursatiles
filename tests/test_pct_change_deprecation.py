@@ -33,6 +33,22 @@ import pandas as pd
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _aislar_caches_reales(tmp_path, monkeypatch):
+    """Higiene de tests (pedido de Bruno, 28/07/2026): predict_ticker() y
+    compute_volatility_regime() escriben cache real con open() directo
+    (data/pred_cache.json, data/volatility_regime.json) -- sin redirigir
+    esto, la suite ensuciaba esos 2 archivos de producción en cada corrida."""
+    import src.predictor as predictor
+    import src.volatility_regime as volatility_regime
+    monkeypatch.setattr(predictor, "CACHE_PATH", str(tmp_path / "pred_cache.json"))
+    monkeypatch.setattr(predictor, "VALIDATION_PATH", str(tmp_path / "predictor_validation.json"))
+    monkeypatch.setattr(volatility_regime, "VOL_REGIME_PATH", str(tmp_path / "volatility_regime.json"))
+    predictor._CACHE = {}
+    predictor._CACHE_DATE = ""
+    predictor._RELIABILITY_CACHE = None
+
+
 def _clean_series(n=120, seed=0):
     rng = np.random.RandomState(seed)
     return pd.Series(100 + rng.randn(n).cumsum())

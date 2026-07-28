@@ -39,6 +39,19 @@ def _signal(**overrides):
     return base
 
 
+@pytest.fixture(autouse=True)
+def _aislar_opportunities_log(tmp_path, monkeypatch):
+    """Higiene de tests (pedido de Bruno, 28/07/2026): generate_dashboard()
+    llama internamente a log_opportunities(), que escribe en
+    data/opportunities_log.json (LOG_PATH hardcodeado en opportunities_log.py)
+    -- un efecto secundario de logging real, no HTML, que no tiene relación
+    con lo que testea este archivo. Sin este fixture, cada corrida de la
+    suite ensuciaba el repo real con datos de prueba en un archivo de
+    producción, que había que revertir a mano antes de cada commit."""
+    import src.opportunities_log as opportunities_log
+    monkeypatch.setattr(opportunities_log, "LOG_PATH", str(tmp_path / "opportunities_log.json"))
+
+
 @pytest.fixture
 def _basic_args(tmp_path):
     merval_df = pd.DataFrame({"INDICE MERVAL": [100, 101, 102]})

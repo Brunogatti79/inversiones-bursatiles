@@ -36,13 +36,18 @@ import src.github_persistence as gp
 # ─────────────────────────────────────────────────────────────
 
 @pytest.fixture(autouse=True)
-def _in_memory_persistence(monkeypatch):
+def _in_memory_persistence(monkeypatch, tmp_path):
     """
     Las 3 funciones bajo test hacen `from src.github_persistence import
     load_json, save_json` DENTRO del cuerpo de la función (no a nivel de
     módulo) -- monkeypatchear macro_auto.load_json no alcanzaría, hay que
     parchear los atributos reales de src.github_persistence, que es de
     donde se resuelve el import en cada llamada.
+
+    Higiene de tests (pedido de Bruno, 28/07/2026): además del store en
+    memoria de arriba, macro_auto.py cachea con open()/CACHE_PATH directo
+    (no pasa por github_persistence.save_json) -- sin redirigir CACHE_PATH
+    también, la suite seguía escribiendo data/macro_auto_cache.json real.
     """
     store = {}
 
@@ -55,6 +60,7 @@ def _in_memory_persistence(monkeypatch):
 
     monkeypatch.setattr(gp, "load_json", fake_load)
     monkeypatch.setattr(gp, "save_json", fake_save)
+    monkeypatch.setattr(ma, "CACHE_PATH", str(tmp_path / "macro_auto_cache.json"))
     return store
 
 

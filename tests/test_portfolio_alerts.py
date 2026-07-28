@@ -39,6 +39,15 @@ def _portfolio_with(pos: dict) -> dict:
     return {"positions": [base]}
 
 
+@pytest.fixture(autouse=True)
+def _aislar_alerts_path(tmp_path, monkeypatch):
+    """Higiene de tests (pedido de Bruno, 28/07/2026): check_portfolio_alerts()
+    escribe data/portfolio_alerts.json (ALERTS_PATH) además de leer
+    PORTFOLIO_PATH -- with_portfolio de abajo ya aislaba el primero pero no
+    este segundo, así que la suite seguía ensuciando el archivo real."""
+    monkeypatch.setattr(tracker, "ALERTS_PATH", str(tmp_path / "portfolio_alerts.json"))
+
+
 @pytest.fixture
 def with_portfolio(tmp_path, monkeypatch):
     def _setup(pos: dict):
