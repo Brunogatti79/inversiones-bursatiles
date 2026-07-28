@@ -149,13 +149,22 @@ def _build_oportunidades(signals, price_data):
             sin_grafico = True
 
         # ── Opportunity Score: 40% pred_21d + 35% R/R + 25% confianza ──
-        _pred21    = s.get('pred_21d') or 0
-        _conf      = s.get('pred_confidence') or 0
-        _rr_val    = min(5.0, s.get('rr_ratio') or rr or 0)
-        _pred_norm = min(100, max(0, (_pred21 + 15) / 30 * 100))  # -15%..+15% → 0..100
-        _rr_norm   = min(100, _rr_val / 5 * 100)                   # 0..5x     → 0..100
-        _conf_norm = _conf * 100                                    # 0..1      → 0..100
-        opp_score  = round(_pred_norm * 0.40 + _rr_norm * 0.35 + _conf_norm * 0.25, 1)
+        # Corrección (auditoría externa 28/07/2026, pedido de Bruno): el 25%
+        # de "confianza" usaba pred_confidence -- la confianza del predictor
+        # ARIMA/GBR SOLO sobre su propio pronóstico de precio, el mismo
+        # componente que la auditoría señaló con accuracy ~50% y correlación
+        # casi nula. Ahora usa confidence_score (confidence_score.py, 0-100):
+        # el compuesto real de 5 factores (predictor+alignment+consenso+
+        # quality+régimen) que SÍ está validado contra EV real en
+        # confidence_x_signal. Fallback a pred_confidence solo para
+        # entradas viejas que no tengan confidence_score calculado.
+        _pred21     = s.get('pred_21d') or 0
+        _conf_score = s.get('confidence_score')
+        _conf_norm  = _conf_score if _conf_score is not None else ((s.get('pred_confidence') or 0) * 100)
+        _rr_val     = min(5.0, s.get('rr_ratio') or rr or 0)
+        _pred_norm  = min(100, max(0, (_pred21 + 15) / 30 * 100))  # -15%..+15% → 0..100
+        _rr_norm    = min(100, _rr_val / 5 * 100)                   # 0..5x     → 0..100
+        opp_score   = round(_pred_norm * 0.40 + _rr_norm * 0.35 + _conf_norm * 0.25, 1)
 
         fichas.append({
             'ticker': ticker, 'empresa': empresa, 'market': market,
@@ -194,8 +203,16 @@ def _build_oportunidades(signals, price_data):
             'pred_confidence':  s.get('pred_confidence'),
             'pred_signal':      s.get('pred_signal', ''),
             'pred_direction_agree': s.get('pred_direction_agree', False),
-            # ── Opportunity Score (40% pred_21d + 35% R/R + 25% confianza) ──
+            # ── Opportunity Score (40% pred_21d + 35% R/R + 25% confidence_score) ──
             'opportunity_score': opp_score,
+            # ── Confianza compuesta + validación por historial (pedido de
+            # Bruno, 28/07/2026) -- antes ausentes de la ficha, por eso la
+            # tab Oportunidades no podía agrupar por Alta+validada como sí
+            # hacían las tablas de señales.
+            'confidence_label':     s.get('confidence_label'),
+            'confidence_score':     s.get('confidence_score'),
+            'regla_compra_estado':  s.get('regla_compra_estado'),
+            'regla_compra_detalle': s.get('regla_compra_detalle'),
             # ── Feature importance (roadmap externo #6, jul-2026) ──────────
             # Ya se calculaba en analyzer.py (factor_contrib/factor_dominante)
             # y se persistía en tracker.py, pero nunca se mostraba en ningún
@@ -203,8 +220,13 @@ def _build_oportunidades(signals, price_data):
             'factor_contrib':   s.get('factor_contrib', {}),
             'factor_dominante': s.get('factor_dominante', ''),
         })
-    # Ranking por opportunity_score descendente
-    fichas.sort(key=lambda f: -f['opportunity_score'])
+    # Ranking: regla_compra_estado (validada primero) y luego por
+    # opportunity_score descendente dentro de cada grupo -- pedido de
+    # Bruno (28/07/2026): que las combinaciones Alta+Compra ya validadas
+    # contra el historial real floten arriba, en vez de competir en pie
+    # de igualdad con señales sin ese respaldo.
+    _REGLA_RANK = {'validada': 0, 'sin_evidencia': 1, 'no_aplica': 2, 'no_valida': 3}
+    fichas.sort(key=lambda f: (_REGLA_RANK.get(f.get('regla_compra_estado'), 2), -f['opportunity_score']))
     return fichas
  
  
@@ -688,30 +710,27 @@ def generate_dashboard(
     exposure: dict = None,
 ) -> str:
     """Genera el HTML del dashboard y lo escribe en output_path."""
- 
-    # Construir fichas de oportunidades
-    fichas = []
-    if price_data:
-        try:
-            fichas = _build_oportunidades(signals, price_data)
-        except Exception as e:
-            logger.warning(f"No se pudieron generar fichas de oportunidades: {e}")
- 
+
     # ── Regla de compra validada por datos (pedido de Bruno, 27/07/2026) ────
     # "Comprar cuando confianza Alta + Compra/Compra Fuerte, siempre que la
     # historia diga que se gana" -- explícitamente NO asumir que COMPRA
     # FUERTE rinde igual que COMPRA solo porque las dos son señales de
     # compra: se chequea la celda REAL del cruce confidence_x_signal
     # (backtester.py, agregado en v4.14) para CADA combinación por
-    # separado. Carga propia y aislada de backtest_results.json acá (en vez
-    # de esperar a donde se carga _backtest más abajo para el panel
-    # agregado) porque signals_json se serializa ANTES de ese punto.
+    # separado.
+    #
+    # Movido ANTES de construir las fichas de Oportunidades (pedido de
+    # Bruno, 28/07/2026: "reordenar y agrupar en cada ventana" las
+    # combinaciones Alta+Compra validadas) -- _build_oportunidades()
+    # necesita leer regla_compra_estado/confidence_label de cada señal
+    # para poder agruparlas; antes se calculaba después, así que la tab
+    # Oportunidades nunca tenía ese dato disponible.
     try:
         with open("data/backtest_results.json") as _cxf:
             _conf_x_signal = json.load(_cxf).get("confidence_x_signal", {})
     except Exception:
         _conf_x_signal = {}
- 
+
     for _s in signals:
         _estado, _detalle = _estado_regla_compra(
             _s.get("signal_v2") or _s.get("signal", ""),
@@ -720,7 +739,15 @@ def generate_dashboard(
         )
         _s["regla_compra_estado"] = _estado
         _s["regla_compra_detalle"] = _detalle
- 
+
+    # Construir fichas de oportunidades
+    fichas = []
+    if price_data:
+        try:
+            fichas = _build_oportunidades(signals, price_data)
+        except Exception as e:
+            logger.warning(f"No se pudieron generar fichas de oportunidades: {e}")
+
     # Banner de validación para el header
     if validacion:
         nivel_g = validacion.get("nivel_global", "OK")
@@ -1093,6 +1120,7 @@ def generate_dashboard(
   <div class="tab"    onclick="sw('sp500',this)">S&amp;P 500</div>
   <div class="tab"    onclick="sw('oportunidades',this)">🎯 Oportunidades</div>
   <div class="tab"    onclick="sw('portfolio',this)">💼 Portfolio</div>
+  <div class="tab"    onclick="sw('conclusiones',this)">📊 Conclusiones</div>
 </div>
  
 <!-- PANORAMA -->
@@ -1226,7 +1254,7 @@ def generate_dashboard(
   <div style="font-size:12px;color:#666;margin-bottom:16px;background:#111115;border:1px solid #1a1a2e;border-radius:8px;padding:10px 14px;display:flex;gap:20px;flex-wrap:wrap">
     <span>📈 <b style="color:#4ade80">40% Predicción 21d</b> · retorno esperado ensemble</span>
     <span>⚖️ <b style="color:#fbbf24">35% R/R Ratio</b> · recompensa por unidad de riesgo</span>
-    <span>🎯 <b style="color:#a78bfa">25% Confianza</b> · certeza del predictor</span>
+    <span>🎯 <b style="color:#a78bfa">25% Confianza</b> · confianza compuesta del modelo</span>
     <span style="border-left:1px solid #333;padding-left:16px">Filtro: señal COMPRA · score ≥ 50 · top 25% universo</span>
   </div>
   <div id="op-rank-page">
@@ -1290,7 +1318,7 @@ def generate_dashboard(
   <div class="radar-criteria">
     <span>📈 <b style="color:#4ade80">40% Predicción 21d</b> — retorno esperado ensemble</span>
     <span>⚖️ <b style="color:#fbbf24">35% R/R Ratio</b> — recompensa por unidad de riesgo</span>
-    <span>🎯 <b style="color:#a78bfa">25% Confianza</b> — certeza del predictor</span>
+    <span>🎯 <b style="color:#a78bfa">25% Confianza</b> — confianza compuesta del modelo</span>
     <span style="color:#555">Filtro: señal COMPRA · score ≥ 50 · top 25% universo</span>
   </div>
   <div id="radar-block"></div>
@@ -1503,7 +1531,22 @@ function _reglaBadge(s){{
   }}
   return '';
 }}
- 
+
+// Prioridad de orden por regla de compra validada (pedido de Bruno,
+// 28/07/2026: "reordenar y agrupar en cada ventana" las combinaciones
+// Alta+Compra ya validadas contra el historial real). Reutilizado en
+// buildTable(), compras-block, radar-block y op-rg -- una sola fuente de
+// verdad para no repetir el mapeo en cada sort.
+//   validada (0)      -- Alta+Compra/Compra Fuerte con EV histórico positivo
+//   sin_evidencia (1) -- cumple Alta+Compra pero sin muestra suficiente aún
+//   no_aplica (2)     -- no es Alta+Compra/Compra Fuerte (default, sin cambio de orden)
+//   no_valida (3)     -- Alta+Compra pero el historial real da resultado negativo -- se hunde
+function reglaRank(s){{
+  var m={{'validada':0,'sin_evidencia':1,'no_aplica':2,'no_valida':3}};
+  var r=m[s.regla_compra_estado];
+  return r==null?2:r;
+}}
+
 var tableSort={{}}; // tbId -> {{key, dir}} — estado de orden por tabla, persiste entre re-renders
 
 var TBL_COLS=[
@@ -1561,6 +1604,7 @@ if(st){{
     if(!market){{var ma=mktOrder[a.mercado]||9,mb=mktOrder[b.mercado]||9;if(ma!==mb) return ma-mb;}}
     var sa=signalOrder[a.signal_v2||a.signal],sb=signalOrder[b.signal_v2||b.signal];
     if(sa==null)sa=2;if(sb==null)sb=2;if(sa!==sb)return sa-sb;
+    var rga=reglaRank(a),rgb=reglaRank(b); if(rga!==rgb) return rga-rgb;
     return (b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);
   }});
 }}
@@ -1583,7 +1627,8 @@ rows.map(function(s){{
 var aq=s.asset_quality||0, es=s.entry_score||0, rr=s.rr_ratio||0, sv2=s.score_final_v2||s.score_final, ra=s.ranking_accionable||sv2, sig2=s.signal_v2||s.signal;
 var mktSep='';
 if(!market&&s.mercado!==lastMkt){{lastMkt=s.mercado;var fl=s.mercado==='MERVAL'?'🇦🇷':s.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';mktSep='<tr><td colspan="12" style="background:#111118;padding:8px 12px;font-weight:700;color:#5ba3ff;font-size:13px;border-bottom:2px solid #5ba3ff">'+fl+' '+s.mercado+'</td></tr>';}}
-return mktSep+'<tr><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td>'+(s.confidence_label?'<td style="font-size:11px;font-weight:600;white-space:nowrap">'+s.confidence_label+_reglaBadge(s)+'</td>':'<td style="color:#444">—</td>')+(s.pred_21d!=null?'<td style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-size:11px;font-weight:700">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</td>':'<td style="color:#444">—</td>')+(s.pred_confidence?'<td style="color:#a78bfa;font-size:11px">'+Math.round(s.pred_confidence*100)+'%</td>':'<td style="color:#444">—</td>')+(s.alignment_label?'<td style="font-size:10px;font-weight:700;color:'+(s.alignment_label.indexOf('TRIPLE')>=0?'#4ade80':s.alignment_label.indexOf('DOBLE')>=0?'#a78bfa':s.alignment_label.indexOf('CONFLICTO')>=0?'#f87171':'#666')+'">'+(s.alignment_label.indexOf('TRIPLE')>=0?'3✓':s.alignment_label.indexOf('DOBLE')>=0?'2✓':'?')+'</td>':'<td style="color:#444">—</td>')+(s.monthly_trend&&s.monthly_trend!=='SIN DATOS'?'<td style="color:'+(s.monthly_trend==='ALCISTA'?'#4ade80':s.monthly_trend==='BAJISTA'?'#f87171':'#fbbf24')+';font-size:12px;font-weight:700">'+(s.monthly_trend==='ALCISTA'?'▲':s.monthly_trend==='BAJISTA'?'▼':'●')+'</td>':'<td style="color:#444">—</td>')+'</tr>';}}).join('');}}
+var rowStyle=s.regla_compra_estado==='validada'?' style="background:#0d1f14;box-shadow:inset 3px 0 0 #22c55e"':'';
+return mktSep+'<tr'+rowStyle+'><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td>'+(s.confidence_label?'<td style="font-size:11px;font-weight:600;white-space:nowrap">'+s.confidence_label+_reglaBadge(s)+'</td>':'<td style="color:#444">—</td>')+(s.pred_21d!=null?'<td style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-size:11px;font-weight:700">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</td>':'<td style="color:#444">—</td>')+(s.pred_confidence?'<td style="color:#a78bfa;font-size:11px">'+Math.round(s.pred_confidence*100)+'%</td>':'<td style="color:#444">—</td>')+(s.alignment_label?'<td style="font-size:10px;font-weight:700;color:'+(s.alignment_label.indexOf('TRIPLE')>=0?'#4ade80':s.alignment_label.indexOf('DOBLE')>=0?'#a78bfa':s.alignment_label.indexOf('CONFLICTO')>=0?'#f87171':'#666')+'">'+(s.alignment_label.indexOf('TRIPLE')>=0?'3✓':s.alignment_label.indexOf('DOBLE')>=0?'2✓':'?')+'</td>':'<td style="color:#444">—</td>')+(s.monthly_trend&&s.monthly_trend!=='SIN DATOS'?'<td style="color:'+(s.monthly_trend==='ALCISTA'?'#4ade80':s.monthly_trend==='BAJISTA'?'#f87171':'#fbbf24')+';font-size:12px;font-weight:700">'+(s.monthly_trend==='ALCISTA'?'▲':s.monthly_trend==='BAJISTA'?'▼':'●')+'</td>':'<td style="color:#444">—</td>')+'</tr>';}}).join('');}}
 function buildStats(divId,marketKey){{
   var st=IDX[marketKey]||{{}};
   var d=document.getElementById(divId); if(!d) return;
@@ -1746,9 +1791,16 @@ buildStats('merval-stats','merval'); buildStats('bovespa-stats','bovespa'); buil
  
 // ── OPPORTUNITY SCORE ──────────────────────────────────────────────────────
 // Fórmula institucional: 40% pred_21d + 35% R/R + 25% confianza
+// Corrección (auditoría externa 28/07/2026): el 25% de "confianza" usaba
+// pred_confidence (confianza del predictor ARIMA/GBR solo sobre su propio
+// pronóstico, accuracy ~50% medida en backtester). Ahora usa
+// confidence_score (compuesto de 5 factores, validado contra EV real en
+// confidence_x_signal) -- ver misma corrección espejada en Python
+// (_build_oportunidades). Fallback a pred_confidence*100 solo si una señal
+// vieja no trae confidence_score todavía.
 function computeOpportunityScore(s){{
   var pred21   = s.pred_21d!=null ? s.pred_21d : 0;
-  var conf     = s.pred_confidence!=null ? s.pred_confidence*100 : 0;
+  var conf     = s.confidence_score!=null ? s.confidence_score : (s.pred_confidence!=null ? s.pred_confidence*100 : 0);
   var rr       = s.rr_ratio!=null ? s.rr_ratio : 0;
   var predNorm = Math.min(100, Math.max(0, (pred21+15)/30*100));
   var rrNorm   = Math.min(100, rr/5*100);
@@ -1772,7 +1824,7 @@ var p75idx = Math.floor(allScores.length*0.75);
 var p75 = allScores[p75idx]||0;
 var ranked = buyUniverse
   .filter(function(s){{ return s.opp_score>=50 && s.opp_score>=p75; }})
-  .sort(function(a,b){{return b.opp_score-a.opp_score;}});
+  .sort(function(a,b){{var rga=reglaRank(a),rgb=reglaRank(b);if(rga!==rgb)return rga-rgb;return b.opp_score-a.opp_score;}});
 var radarHtml=ranked.length===0
   ? '<div style="text-align:center;padding:48px 20px;color:#555;font-size:14px">'+
     '<div style="font-size:36px;margin-bottom:12px">🔍</div>'+
@@ -1796,12 +1848,13 @@ var radarHtml=ranked.length===0
   var pred21=s.pred_21d!=null?s.pred_21d:0;
   var predNorm=Math.min(100,Math.max(0,(pred21+15)/30*100));
   var rrNorm=Math.min(100,(s.rr_ratio||0)/5*100);
-  var confNorm=(s.pred_confidence||0)*100;
+  var confNorm=s.confidence_score!=null?s.confidence_score:(s.pred_confidence||0)*100;
   var desglose='pred:'+(predNorm*0.40).toFixed(0)+' rr:'+(rrNorm*0.35).toFixed(0)+' conf:'+(confNorm*0.25).toFixed(0);
   return '<div class="radar-card" style="cursor:pointer" onclick="sw(&apos;oportunidades&apos;,document.querySelector(&apos;.tab[onclick*=oportunidades]&apos;));showOpFicha(&apos;'+s.ticker+'&apos;)">'+
     '<div class="radar-rank" style="font-size:'+(i<3?'32px':'24px')+'">#'+(i+1)+'</div>'+
     '<div class="radar-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">'+
     '<span class="radar-ticker">'+flagOf(s.mercado)+' '+s.ticker+'</span>'+
+    (s.confidence_label?'<span style="font-size:11px;font-weight:600;color:#999">'+s.confidence_label+_reglaBadge(s)+'</span>':'')+
     '<span style="font-size:12px;color:#666">'+s.empresa.substring(0,28)+'</span></div>'+
     '<div class="radar-metrics">'+
     '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+
@@ -1824,7 +1877,7 @@ var rb=document.getElementById('radar-block');
 if(rb) rb.innerHTML=radarHtml;
  
 // ── CONCLUSIONES: Compras confirmadas (PRIMERO) ──────────────────
-var compras=SIGNALS.filter(function(s){{var sig=s.signal_v2||s.signal;return sig.indexOf('COMPRA')>=0;}}).sort(function(a,b){{var mo={{'MERVAL':0,'BOVESPA':1,'SP500':2}};var ma=mo[a.mercado]||9,mb=mo[b.mercado]||9;if(ma!==mb)return ma-mb;var aF=(a.signal_v2||a.signal).indexOf('FUERTE')>=0?0:1,bF=(b.signal_v2||b.signal).indexOf('FUERTE')>=0?0:1;if(aF!==bF)return aF-bF;return(b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);}});
+var compras=SIGNALS.filter(function(s){{var sig=s.signal_v2||s.signal;return sig.indexOf('COMPRA')>=0;}}).sort(function(a,b){{var mo={{'MERVAL':0,'BOVESPA':1,'SP500':2}};var ma=mo[a.mercado]||9,mb=mo[b.mercado]||9;if(ma!==mb)return ma-mb;var aF=(a.signal_v2||a.signal).indexOf('FUERTE')>=0?0:1,bF=(b.signal_v2||b.signal).indexOf('FUERTE')>=0?0:1;if(aF!==bF)return aF-bF;var rga=reglaRank(a),rgb=reglaRank(b);if(rga!==rgb)return rga-rgb;return(b.ranking_accionable||b.score_final)-(a.ranking_accionable||a.score_final);}});
 var lastCMkt='';
 document.getElementById('compras-block').innerHTML=compras.length?compras.map(function(s,i){{
   var sig=s.signal_v2||s.signal;
@@ -1842,6 +1895,7 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
     '<div class="concl-title-row">'+
     '<span style="font-size:15px;font-weight:700;color:#4ade80">'+flagOf(s.mercado)+' '+icon+' '+sig+'</span>'+
     '<span style="font-size:15px;font-weight:700;color:#fff">'+s.ticker+'</span>'+
+    (s.confidence_label?'<span style="font-size:12px;font-weight:600;color:#999">'+s.confidence_label+_reglaBadge(s)+'</span>':'')+
     '<span style="font-size:12px;color:#888">'+s.empresa.substring(0,30)+'</span></div>'+
     '<div class="concl-metrics-row">'+
     '<span>Score: <b>'+s.score_final.toFixed(0)+'</b></span>'+
@@ -2193,7 +2247,7 @@ var fichasFiltradas=fichasScored
     var sig=f.signal_v2||f.signal||'';
     return sig.indexOf('COMPRA')>=0 && sig.indexOf('VENTA')<0 && f.opp_score>=50 && f.opp_score>=fp75;
   }})
-  .sort(function(a,b){{return b.opp_score-a.opp_score;}});
+  .sort(function(a,b){{var rga=reglaRank(a),rgb=reglaRank(b);if(rga!==rgb)return rga-rgb;return b.opp_score-a.opp_score;}});
 var opRg=document.getElementById('op-rg');
 // ── Tickers en fichasFiltradas (ya excluidos del ranking principal)
 var tickersEnRanking=fichasFiltradas.map(function(f){{return f.ticker;}});
@@ -2215,7 +2269,7 @@ if(fichasFiltradas.length===0){{
       row.appendChild(num);
       var main=document.createElement('div');
       main.className='op-main';
-      main.innerHTML='<div class="op-ticker">'+f.flag+' '+f.ticker+'</div>'+
+      main.innerHTML='<div class="op-ticker">'+f.flag+' '+f.ticker+(f.confidence_label?' <span style="font-size:11px;font-weight:600;color:#999">'+f.confidence_label+_reglaBadge(f)+'</span>':'')+'</div>'+
         '<div class="op-emp">'+f.empresa+' · '+f.market+'</div>'+
         '<div style="display:flex;align-items:center;gap:8px;margin-top:3px">'+
         '<div class="op-sbar" style="flex:1"><div class="op-sbarf" style="width:'+oppSc+'%;background:'+sc2+'"></div></div>'+
