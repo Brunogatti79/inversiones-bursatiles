@@ -9,6 +9,7 @@ Se llama desde pipeline.py después de analyzer.
  
 import json
 import os
+import time
 import logging
 from datetime import datetime, timedelta
  
@@ -146,10 +147,40 @@ def _push_signals_history_to_github():
     remoto (más de 2 de diferencia -- una purga normal por max_days nunca
     debería tirar más de 1 día por corrida), NO confiamos en el local:
     fusionamos remoto + local antes de pushear, para no destruir historia
-    real. Si fetch_remote_json falla (no se puede verificar), seguimos con
-    el comportamiento de siempre -- preferible a bloquear el pipeline por
-    esto."""
+    real.
+
+    Endurecido 28/07/2026 (RECURRENCIA real del mismo incidente: el guard de
+    arriba se instaló, y 65 minutos después el historial volvió a colapsar
+    de 19 días a 1 -- confirmado con `git log` completo, no una sospecha).
+    La hipótesis más probable, dado que la caída ocurrió justo después de
+    una ráfaga de pushes de código: fetch_remote_json() también falló esa
+    vez (rate limit / hiccup de red), y el comportamiento anterior ante esa
+    falla era "seguir como si nada" -- exactamente el mismo punto ciego que
+    el incidente original, solo que en la verificación en vez de en el
+    sync de arranque. Ahora:
+      1. Se reintenta fetch_remote_json hasta 3 veces con backoff corto
+         antes de darse por vencido (la mayoría de los rate limits de
+         GitHub se resuelven en segundos).
+      2. Si TODAS las verificaciones fallan Y el local tiene menos de
+         SUSPICIOUS_MIN_DAYS días (mismo umbral que usa run_backtest() para
+         considerar la historia "insuficiente" -- no es un número
+         arbitrario nuevo), NO se pushea. Se prioriza perder un ciclo de
+         datos nuevos (se recupera solo en la próxima corrida) por sobre el
+         riesgo de pisar historia real sin poder verificarla. Se loguea
+         como ERROR (antes quedaba en un warning fácil de perder en el
+         ruido de logs de Railway).
+      3. Si no se puede verificar pero el local YA tiene suficientes días
+         (≥ SUSPICIOUS_MIN_DAYS), se pushea igual -- no tiene sentido
+         bloquear la operación normal solo porque no se pudo hacer el
+         doble chequeo cuando el archivo ya se ve sano.
+
+    Devuelve True si se pusheó, False si se saltó el push a propósito.
+    """
     from src.github_persistence import push_file, fetch_remote_json
+
+    SUSPICIOUS_MIN_DAYS = 6  # mismo umbral que run_backtest() usa para "historia insuficiente"
+    FETCH_RETRIES = 3
+    FETCH_BACKOFF_SECONDS = 2
 
     try:
         with open(HISTORY_PATH, encoding="utf-8") as f:
@@ -157,7 +188,14 @@ def _push_signals_history_to_github():
     except Exception:
         local_history = {}
 
-    remote_history = fetch_remote_json(HISTORY_PATH)
+    remote_history = None
+    for attempt in range(1, FETCH_RETRIES + 1):
+        remote_history = fetch_remote_json(HISTORY_PATH)
+        if isinstance(remote_history, dict):
+            break
+        if attempt < FETCH_RETRIES:
+            time.sleep(FETCH_BACKOFF_SECONDS)
+
     if isinstance(remote_history, dict) and len(remote_history) - len(local_history) > 2:
         logger.warning(
             f"[signals_history] Local tiene {len(local_history)} días pero GitHub tiene "
@@ -173,8 +211,19 @@ def _push_signals_history_to_github():
         except Exception as e:
             logger.error(f"[signals_history] No se pudo escribir el merge de recuperación: {e}")
 
+    elif not isinstance(remote_history, dict) and len(local_history) < SUSPICIOUS_MIN_DAYS:
+        logger.error(
+            f"[signals_history] No se pudo verificar contra GitHub tras {FETCH_RETRIES} intentos "
+            f"Y el local tiene solo {len(local_history)} día(s) -- sospechosamente poco. "
+            f"NO se pushea este ciclo para no arriesgar pisar historia real sin poder confirmarlo. "
+            f"Se reintenta en la próxima corrida del pipeline."
+        )
+        return False
+
     push_file(HISTORY_PATH, f"auto: signals_history {datetime.now().strftime('%Y-%m-%d %H:%M')}")
- 
+    return True
+
+
  
 def compute_accuracy(history: dict) -> dict:
     """
