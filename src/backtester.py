@@ -335,9 +335,28 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         # "Alta" en general o "COMPRA" en general. Sin esto, cualquier regla
         # de decisión que combine ambos campos se basaba en intuición.
         "confidence_x_signal":    _aggregate_cross(trades, "confidence_label", "signal"),
+        # Auditoría externa (28/07/2026), punto 2: cruce de 3 vías -- "Alta +
+        # COMPRA" puede estar promediando un mercado malo con uno bueno.
+        # La mayoría de las celdas van a salir con muestra insuficiente con
+        # ~900 trades repartidos en 3 mercados -- eso es esperado, no un bug.
+        "confidence_x_signal_x_mercado": _aggregate_cross3(
+            trades, "confidence_label", "signal", "mercado"
+        ),
+        # Auditoría externa (28/07/2026), punto 3: ¿el predictor aporta valor
+        # marginal real, o el edge viene de otro lado del modelo? Compara EV
+        # real cuando el predictor confirma la señal vs. cuando la contradice.
+        "predictor_contribution": _predictor_contribution_analysis(trades),
     }
 
     results["pattern_discoveries_nuevas"] = _detect_pattern_discoveries(
+        results["confidence_x_signal"]
+    )
+
+    # Auditoría externa (28/07/2026), punto 4: Historical Edge Score --
+    # puntaje informativo por combinación, basado en el cruce confidence x
+    # signal ya calculado arriba. Ver docstring de la función: es SOLO
+    # diagnóstico, no toca ranking_accionable ni ninguna señal en vivo.
+    results["historical_edge_score"] = _compute_historical_edge_scores(
         results["confidence_x_signal"]
     )
 
@@ -659,11 +678,52 @@ def _aggregate_cross(trades: list, key1: str, key2: str, min_cell_samples: int =
     return result
 
 
+def _aggregate_cross3(trades: list, key1: str, key2: str, key3: str,
+                       min_cell_samples: int = 5) -> dict:
+    """
+    Cruce de 3 claves (confidence_label × signal × mercado) -- pedido
+    externo (auditoría 28/07/2026): "Alta + COMPRA" ya se sabe que rinde
+    bien en general, pero eso puede estar promediando un MERVAL malo con
+    un SP500 excelente. Sin este cruce no se puede saber si conviene
+    filtrar también por mercado antes de operar.
+
+    Con solo ~900 trades totales repartidos en 3 mercados x 5 niveles de
+    confianza x ~5 señales, la mayoría de las celdas de este cruce van a
+    tener muestra insuficiente por diseño -- eso es correcto y esperable,
+    no un bug: es la razón por la que este cruce se agrega como campo
+    adicional (para ir acumulando evidencia con "muestra_insuficiente"
+    explícito) y NO reemplaza a confidence_x_signal, que sigue siendo la
+    vista con muestra más confiable hoy.
+    """
+    groups: dict[tuple, list] = {}
+    for t in trades:
+        k1 = t.get(key1, "UNKNOWN") or "UNKNOWN"
+        k2 = t.get(key2, "UNKNOWN") or "UNKNOWN"
+        k3 = t.get(key3, "UNKNOWN") or "UNKNOWN"
+        groups.setdefault((k1, k2, k3), []).append(t)
+
+    result = {}
+    for (k1, k2, k3), gtrades in groups.items():
+        entry = {"count": len(gtrades), "muestra_insuficiente": len(gtrades) < min_cell_samples}
+
+        for h in HORIZONS:
+            rets = [t[f"ret_{h}d"] for t in gtrades if t.get(f"ret_{h}d") is not None]
+            entry[f"h{h}d"] = _metrics_from_rets(rets)
+
+        result.setdefault(k1, {}).setdefault(k2, {})[k3] = entry
+
+    return result
+
+
 def _metrics_from_rets(rets: list) -> dict | None:
+    """Calcula métricas estándar desde lista de retornos. Retorna None si vacío.
 
-
-
-    """Calcula métricas estándar desde lista de retornos. Retorna None si vacío."""
+    Incluye significancia estadística (auditoría externa 28/07/2026): un EV
+    positivo sobre pocas muestras puede ser ruido. p_value/IC95% responden
+    "¿es distinguible de cero?" -- profit_factor responde "¿cuánto gana por
+    cada unidad que pierde?", pregunta distinta de win_rate/EV. Ninguno de
+    estos campos reemplaza a los anteriores; se agregan al lado.
+    """
     if not rets:
         return None
 
@@ -685,16 +745,164 @@ def _metrics_from_rets(rets: list) -> dict | None:
     dd   = (cum - peak) / peak * 100
     mdd  = float(np.min(dd))
 
+    # Profit factor: ganancia bruta / pérdida bruta. No es lo mismo que EV --
+    # un sistema puede tener EV positivo con profit_factor bajo si gana
+    # seguido y poco, y pierde poco seguido pero fuerte una vez.
+    gross_profit = float(np.sum(wins)) if len(wins) > 0 else 0.0
+    gross_loss   = float(abs(np.sum(losses))) if len(losses) > 0 else 0.0
+    if gross_loss > 0:
+        profit_factor = round(gross_profit / gross_loss, 2)
+    elif gross_profit > 0:
+        profit_factor = None  # sin pérdidas en la muestra -- infinito no es informativo
+    else:
+        profit_factor = 0.0
+
+    # Significancia estadística: t-test de una muestra contra media=0.
+    # n<2 no permite calcular varianza -- se devuelve sin p_value/IC en vez
+    # de un valor engañoso.
+    p_value = None
+    ic95    = None
+    significativo_95 = False
+    n = len(arr)
+    if n >= 2 and std > 0:
+        try:
+            from scipy import stats as _stats
+            t_stat, p_value = _stats.ttest_1samp(arr, popmean=0.0)
+            p_value = round(float(p_value), 4)
+            sem     = std / np.sqrt(n)
+            t_crit  = _stats.t.ppf(0.975, df=n - 1)
+            margin  = float(t_crit * sem)
+            ic95    = [round(avg_ret - margin, 2), round(avg_ret + margin, 2)]
+            significativo_95 = bool(p_value < 0.05)
+        except Exception as e:
+            logger.warning(f"Backtester: no se pudo calcular significancia (n={n}): {e}")
+
     return {
-        "samples":         len(rets),
-        "win_rate":        round(wr, 3),
-        "avg_ret":         round(avg_ret, 2),
-        "avg_win":         round(avg_win, 2),
-        "avg_loss":        round(avg_los, 2),
-        "expected_value":  round(ev, 2),
-        "sharpe":          round(sharpe, 2),
-        "max_drawdown":    round(mdd, 2),
+        "samples":          len(rets),
+        "win_rate":         round(wr, 3),
+        "avg_ret":          round(avg_ret, 2),
+        "avg_win":          round(avg_win, 2),
+        "avg_loss":         round(avg_los, 2),
+        "expected_value":   round(ev, 2),
+        "sharpe":           round(sharpe, 2),
+        "max_drawdown":     round(mdd, 2),
+        "profit_factor":    profit_factor,
+        "p_value":          p_value,
+        "ic95":             ic95,
+        "significativo_95": significativo_95,
     }
+
+
+def _predictor_contribution_analysis(trades: list) -> dict:
+    """
+    Ablation práctica del predictor (auditoría externa 28/07/2026): la duda
+    de fondo no es "¿el predictor acierta la dirección?" (eso ya lo mide
+    _predictor_accuracy) sino "¿importa para el resultado real que el
+    predictor esté de acuerdo con la señal?". Se separan los trades en 3
+    grupos según si pred_21d confirma, contradice, o no hay dato del
+    predictor para esa señal, y se compara el EV/win_rate real de cada
+    grupo. Si "confirma" y "contradice" no se distinguen entre sí, es
+    evidencia de que el predictor no aporta valor marginal sobre lo que ya
+    aporta el resto del modelo (V1/V2/confianza) -- la sospecha concreta
+    que motivó este análisis.
+
+    No es un recomputo del confidence_score sin el término del predictor
+    (eso requeriría reconstruir el score completo desde componentes que hoy
+    no se persisten trade por trade) -- es la pregunta más directa que sí
+    se puede verificar con los datos que existen: ¿el resultado real
+    difiere según lo que dijo el predictor?
+    """
+    groups: dict[str, list] = {"confirma": [], "contradice": [], "sin_dato": []}
+    for t in trades:
+        signal  = t.get("signal", "") or ""
+        pred    = t.get("pred_21d")
+        is_buy  = "COMPRA" in signal
+        is_sell = "VENTA"  in signal
+        if pred is None or (not is_buy and not is_sell):
+            groups["sin_dato"].append(t)
+            continue
+        confirma = (is_buy and pred > 0) or (is_sell and pred < 0)
+        groups["confirma" if confirma else "contradice"].append(t)
+
+    result = {}
+    for label, gtrades in groups.items():
+        entry = {"count": len(gtrades)}
+        for h in HORIZONS:
+            rets = [t[f"ret_{h}d"] for t in gtrades if t.get(f"ret_{h}d") is not None]
+            entry[f"h{h}d"] = _metrics_from_rets(rets)
+        result[label] = entry
+
+    ev_confirma   = (result.get("confirma", {}).get("h21d") or {}).get("expected_value")
+    ev_contradice = (result.get("contradice", {}).get("h21d") or {}).get("expected_value")
+    delta = (round(ev_confirma - ev_contradice, 2)
+             if ev_confirma is not None and ev_contradice is not None else None)
+
+    result["_resumen"] = {
+        "ev_21d_confirma":   ev_confirma,
+        "ev_21d_contradice": ev_contradice,
+        "delta_ev_21d":      delta,
+        "nota": ("Si delta_ev_21d es chico o negativo, el predictor no está "
+                 "aportando valor marginal detectable sobre el resto del "
+                 "modelo con la muestra actual -- no concluir sin revisar "
+                 "antes el tamaño de muestra (count) de cada grupo."),
+    }
+    return result
+
+
+def _compute_historical_edge_scores(cross: dict, min_samples: int = 15) -> dict:
+    """
+    Historical Edge Score (propuesta externa, auditoría 28/07/2026):
+    puntaje INFORMATIVO 0-100 por combinación confidence_label × signal,
+    que resume qué tan bien respaldada está esa combinación por el
+    historial real (muestra, EV, significancia).
+
+    IMPORTANTE -- alcance deliberadamente acotado: esto es SOLO un campo
+    de diagnóstico en backtest_results.json / dashboard. NO se conecta al
+    ranking_accionable ni a ninguna decisión en vivo todavía. Conectarlo
+    (usarlo para pesar o filtrar señales reales) requiere validación
+    adicional fuera de muestra (walk-forward -- pendiente, roadmap punto 3
+    de la auditoría externa) y una decisión explícita de Bruno antes de
+    tocar señales reales. Mezclar "descubrir un patrón" con "operar ese
+    patrón" sin separar la ventana de datos es exactamente el riesgo de
+    sobreajuste que la auditoría externa señaló como el problema
+    estratégico más importante del sistema hoy.
+
+    Fórmula (heurística simple, sujeta a revisión):
+      - Sin muestra suficiente (n < min_samples en el mejor horizonte) → score None
+      - Base 50 (neutral)
+      - ± hasta 30pt según expected_value del mejor horizonte (6pt por cada 1% de EV)
+      - +15pt si significativo_95 es True
+      - +5pt si n >= 50
+      - Resultado clampeado a [0, 100]
+    """
+    result = {}
+    for conf_label, signals in (cross or {}).items():
+        for sig, cell in (signals or {}).items():
+            h5  = (cell or {}).get("h5d")  or {}
+            h10 = (cell or {}).get("h10d") or {}
+            best = h5 if (h5.get("samples") or 0) >= (h10.get("samples") or 0) else h10
+            n  = best.get("samples") or 0
+            ev = best.get("expected_value")
+            key = f"{conf_label} + {sig}"
+
+            if n < min_samples or ev is None:
+                result[key] = {"score": None, "n": n, "nota": "muestra insuficiente"}
+                continue
+
+            score = 50 + max(-30, min(30, ev * 6))
+            if best.get("significativo_95"):
+                score += 15
+            if n >= 50:
+                score += 5
+            score = round(max(0, min(100, score)), 1)
+
+            result[key] = {
+                "score":            score,
+                "n":                n,
+                "ev":               ev,
+                "significativo_95": bool(best.get("significativo_95", False)),
+            }
+    return result
 
 
 def _predictor_accuracy(trades: list) -> dict:
