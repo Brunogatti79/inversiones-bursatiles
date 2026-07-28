@@ -234,7 +234,7 @@ def _build_oportunidades(signals, price_data):
 # Dashboard HTML
 # ─────────────────────────────────────────────
  
-def _render_model_conclusions_panel(_backtest: dict, _perf_history: list) -> str:
+def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signals: list = None) -> str:
     """
     Panel "Conclusiones del Modelo" (Panorama) -- extraído de generate_dashboard()
     el 24/07/2026 (refactor de generator.py, roadmap externo #7) para que sea
@@ -244,6 +244,12 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list) -> str
 
     Recibe explícitamente lo que necesita (_backtest, _perf_history) en vez de
     depender de variables de closure de generate_dashboard().
+
+    `signals` (agregado 28/07/2026, pedido de Bruno): lista de señales del
+    día actual -- las estadísticas de _backtest son agregadas históricas
+    (¿qué tan bien le fue a "Alta" en general?), pero no dicen QUÉ tickers
+    están en esa categoría HOY. Parámetro opcional (default None) para no
+    romper los tests existentes que llaman a la función con 2 argumentos.
     """
     # ── Conclusiones del Modelo (a partir de backtest_results.json) ──────
     # Elige el horizonte más largo con muestra disponible (21d > 10d > 5d),
@@ -269,13 +275,33 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list) -> str
             return '<div style="font-size:9px;color:#f87171;margin-top:1px">▼ resultado negativo, a vigilar</div>'
         return '<div style="font-size:9px;color:#888;margin-top:1px">● dentro del ruido (muestra chica todavía)</div>'
 
-    def _mc_chip(label, entry, subtitle=None, min_n=15, border_color="#2a2a2a"):
+    _MC_FLAGS = {"MERVAL": "🇦🇷", "BOVESPA": "🇧🇷", "SP500": "🇺🇸"}
+
+    def _mc_ticker_badges(matching):
+        """Lista compacta de tickers de HOY que caen en una categoría dada.
+        Distinto de los conteos de _backtest (que son históricos/agregados):
+        esto responde "¿cuáles son, concretamente, ahora?"."""
+        if not matching:
+            return ('<div style="font-size:9.5px;color:#555;margin-top:6px;'
+                     'font-style:italic">Ningún ticker en esta categoría hoy</div>')
+        parts = []
+        for s in sorted(matching, key=lambda x: (x.get("mercado", ""), x.get("ticker", ""))):
+            fl  = _MC_FLAGS.get(s.get("mercado"), "")
+            sig = s.get("signal_v2") or s.get("signal", "")
+            parts.append(
+                f'<span style="display:inline-block;background:#1a1a22;border-radius:4px;'
+                f'padding:2px 7px;margin:3px 4px 0 0;font-size:10px;color:#ccc;white-space:nowrap">'
+                f'{fl} <b style="color:#fff">{s.get("ticker","")}</b> {sig}</span>'
+            )
+        return '<div style="margin-top:6px;line-height:2.1">' + "".join(parts) + '</div>'
+
+    def _mc_chip(label, entry, subtitle=None, min_n=15, border_color="#2a2a2a", extra_html=""):
         _hz, _h = _mc_best_h(entry)
         if not _h:
             return (f'<div style="background:#111116;border:1px solid #222;border-left:3px solid {border_color};'
                      f'border-radius:6px;padding:8px 12px">'
                      f'<div style="font-size:11px;color:#ccc;font-weight:700">{label}</div>'
-                     f'<div style="font-size:11px;color:#555;margin-top:4px">sin datos aún</div></div>')
+                     f'<div style="font-size:11px;color:#555;margin-top:4px">sin datos aún</div>{extra_html}</div>')
         _wr = _h.get("win_rate"); _ev = _h.get("expected_value"); _n = _h.get("samples", 0)
         _wr_str = f"{_wr:.0%}" if _wr is not None else "—"
         _ev_str = f"{_ev:+.1f}%" if _ev is not None else "—"
@@ -300,10 +326,13 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list) -> str
             f'de las veces</div>'
             f'<div style="font-size:11px;color:#999">Resultado promedio: <b style="color:{_ev_color}">{_ev_str}</b></div>'
             f'{_mc_materiality(_ev)}'
+            f'{extra_html}'
             f'</div>'
         )
 
     try:
+        _signals_today = signals or []
+
         _conf_colors = {"🟢 Alta": "#4ade80", "🟡 Media": "#fbbf24", "🟠 Baja": "#fb923c", "🔴 Muy baja": "#f87171"}
         # Fix 27/07/2026 (pedido de Bruno): agregar el rango numérico real de
         # cada bucket -- los umbrales están hardcodeados en confidence_score.py
@@ -316,8 +345,16 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list) -> str
                         "🟠 Baja": "🟠 Confianza Baja (35-54)", "🔴 Muy baja": "🔴 Confianza Muy baja (&lt;35)"}
         _by_conf = _backtest.get("by_confidence_label", {})
         _conf_order = ["🟢 Alta", "🟡 Media", "🟠 Baja", "🔴 Muy baja"]
+        # Pedido de Bruno (28/07/2026): listar los tickers de HOY en Alta y
+        # Media confianza -- los conteos de arriba son históricos agregados,
+        # esto es "cuáles, concretamente, ahora". Acotado a Alta/Media (lo
+        # que pidió) -- Baja/Muy baja quedan sin la lista para no saturar el
+        # panel con lo que en general no es accionable.
+        _conf_ticker_labels = {"🟢 Alta", "🟡 Media"}
         mc_chips_conf = "".join(
-            _mc_chip(_conf_names[_l], _by_conf.get(_l), border_color=_conf_colors[_l])
+            _mc_chip(_conf_names[_l], _by_conf.get(_l), border_color=_conf_colors[_l],
+                     extra_html=(_mc_ticker_badges([s for s in _signals_today if s.get("confidence_label") == _l])
+                                 if _l in _conf_ticker_labels else ""))
             for _l in _conf_order if _l in _by_conf
         )
 
@@ -329,8 +366,14 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list) -> str
         }
         _cons_keys = sorted(_by_cons.keys(),
                              key=lambda k: (k != "Consenso", -_by_cons[k].get("count", 0)))
+        # Pedido de Bruno (28/07/2026): listar tickers de HOY en "Consenso" y
+        # "Activo débil, buen timing" -- mismo criterio que arriba, acotado a
+        # las 2 categorías que pidió.
+        _cons_ticker_keys = {"Consenso", "V1↓/V2↑ activo débil, buen entry"}
         mc_chips_cons = "".join(
-            _mc_chip(_cons_meta.get(_k, (_k, None))[0], _by_cons[_k], subtitle=_cons_meta.get(_k, (_k, None))[1])
+            _mc_chip(_cons_meta.get(_k, (_k, None))[0], _by_cons[_k], subtitle=_cons_meta.get(_k, (_k, None))[1],
+                     extra_html=(_mc_ticker_badges([s for s in _signals_today if s.get("consenso") == _k])
+                                 if _k in _cons_ticker_keys else ""))
             for _k in _cons_keys
         )
 
@@ -920,7 +963,7 @@ def generate_dashboard(
     )
     macro_panel_html = _render_macro_panel(signals, extra_html=sistema_html)
 
-    model_conclusions_html = _render_model_conclusions_panel(_backtest, _perf_history)
+    model_conclusions_html = _render_model_conclusions_panel(_backtest, _perf_history, signals)
 
 
     # ── Registro de Oportunidades (para medir efectividad real del proyecto) ──
