@@ -742,6 +742,60 @@ def _estado_regla_compra(signal_v2: str, confidence_label, conf_x_signal: dict,
     return ("no_valida", detalle)
 
 
+def _render_history_depth_banner(path: str = "data/signals_history.json") -> str:
+    """
+    Banner de profundidad de historial (pedido de Bruno, 28/07/2026, tras
+    el incidente real de pérdida de signals_history.json -- colapsó 2
+    veces en menos de 24hs: 18 días → 1 el 27/07, se recuperó, y volvió a
+    caer de 19 a 1 esa misma noche). Muestra cuántos días de historia hay
+    acumulados HOY, para que una caída futura sea visible de un vistazo en
+    el dashboard, en vez de descubrirse auditando el repo a mano como pasó
+    hoy.
+
+    Lee directo de signals_history.json (no de backtest_results.json,
+    que puede quedar desactualizado varios días -- exactamente lo que
+    pasó en este incidente: el backtest se congeló mostrando datos de
+    hace 2 días mientras el historial real ya había colapsado).
+
+    Umbrales (no inventados -- son los mismos que ya usa el código real
+    en otros lugares, no números nuevos elegidos para este banner):
+      <  6 días  -- 🔴 Crítico: run_backtest() ni siquiera calcula nada
+                    por debajo de este umbral (mismo SUSPICIOUS_MIN_DAYS
+                    que usa el guard en tracker.py)
+      6-14 días  -- 🟡 Acumulando: hay backtest, pero la mayoría de las
+                    combinaciones confidence_label × signal todavía no
+                    llegan a min_samples=15
+      15-20 días -- 🟡 Cerca: combinaciones comunes ya tienen muestra,
+                    pero el horizonte 21d todavía no existe para ninguna
+                    señal (necesita 21 días de precios futuros)
+      >= 21 días -- 🟢 Completo: el horizonte 21d ya tiene datos reales
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            history = json.load(f)
+        n_dias = len(history)
+    except Exception:
+        return ""  # sin archivo todavía -- no mostrar un banner roto
+
+    if n_dias < 6:
+        icon, color, bg, bord, label = "🔴", "#f87171", "#2b0a0a", "#6b1a1a", "Crítico"
+    elif n_dias < 15:
+        icon, color, bg, bord, label = "🟡", "#fbbf24", "#2b2000", "#6b4a00", "Acumulando"
+    elif n_dias < 21:
+        icon, color, bg, bord, label = "🟡", "#fbbf24", "#2b2000", "#6b4a00", "Cerca del horizonte 21d"
+    else:
+        icon, color, bg, bord, label = "🟢", "#4ade80", "#0a2b0a", "#1a4a1a", "Completo"
+
+    plural = "s" if n_dias != 1 else ""
+    return (
+        f'<div style="background:{bg};border-bottom:1px solid {bord};padding:8px 32px;'
+        f'font-size:12px;color:{color};display:flex;align-items:center;gap:8px">'
+        f'<span>{icon} <b>Historial acumulado: {n_dias} día{plural}</b> '
+        f'<span style="color:#888">({label})</span></span>'
+        f'</div>'
+    )
+
+
 def generate_dashboard(
     signals: list[dict],
     index_stats: dict,
@@ -860,7 +914,12 @@ def generate_dashboard(
         )
     else:
         system_status_banner = ""
-    
+
+    # ── Banner de profundidad de historial (pedido de Bruno, 28/07/2026) ───
+    # Ver docstring de _render_history_depth_banner para el detalle
+    # completo del incidente que motivó esto.
+    history_depth_banner = _render_history_depth_banner()
+
     signals_json     = json.dumps(signals,     ensure_ascii=False)
     index_stats_json = json.dumps(index_stats, ensure_ascii=False)
     fichas_json      = json.dumps(fichas,      ensure_ascii=False, default=str)
@@ -1155,7 +1214,7 @@ def generate_dashboard(
   </div>
   <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>Modelo v2.0 — Asset Quality(50%Macro+30%Fundamental+20%Sectorial) · Entry Score(60%Técnico+25%Riesgo/Retorno+15%Dist.Máximo)</div>
 </div>
-{validacion_banner}{system_status_banner}
+{validacion_banner}{system_status_banner}{history_depth_banner}
 <div class="tabs">
   <div class="tab on" onclick="sw('panorama',this)">Panorama</div>
   <div class="tab"    onclick="sw('merval',this)">MERVAL</div>
