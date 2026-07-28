@@ -265,6 +265,106 @@ def _detect_pattern_discoveries(cross: dict, path: str = "data/pattern_discovery
     return nuevos_eventos
 
 
+def _walk_forward_validate_patterns(history: dict, sorted_dates: list, price_index: dict,
+                                     split_ratio: float = 0.7, min_samples: int = 15,
+                                     min_validation_samples: int = 5) -> dict:
+    """
+    Walk-forward sobre los patrones de confidence_x_signal (auditoría externa
+    28/07/2026, punto 5 del roadmap: "separar ventana de descubrimiento de
+    ventana de validación" -- distinto del walk-forward que ya tiene
+    weight_optimizer.py, que optimiza los PESOS del score V1, no valida si
+    un patrón de confianza x señal es real o ruido).
+
+    Por qué hace falta además de lo que ya existe: confidence_x_signal
+    (más arriba en este archivo) y _detect_pattern_discoveries() usan y
+    comparan TODA la historia disponible de una sola vez -- "Alta + COMPRA
+    rinde +0.95% con n=41" es una afirmación sobre la MISMA muestra donde
+    se la descubrió. Es exactamente el riesgo que señaló la auditoría
+    externa como el más grave del proyecto: no hay forma de saber, con ese
+    número solo, si es un edge real o sobreajuste a esos 41 casos
+    puntuales. Esta función corta la historia en 2 ventanas CRONOLÓGICAS
+    (nunca al azar -- mezclar fechas destruye la naturaleza temporal del
+    test y volvería a mezclar pasado con futuro): la primera porción
+    (`split_ratio`, 70% por defecto) es "descubrimiento" -- ahí se mide qué
+    combinaciones tienen buen EV. La porción final es "validación" -- se
+    recalcula la MISMA combinación usando solo esos trades, nunca vistos
+    al momento de descubrirla, y se compara el signo del EV.
+
+    Estados posibles por combinación:
+      - "confirmado": mismo signo de EV en descubrimiento y en validación
+        fuera de muestra -- la evidencia más fuerte que el sistema puede
+        dar hoy de que un patrón es real.
+      - "no_confirmado": el EV cambió de signo fuera de muestra -- señal de
+        alerta, no de descarte automático (la ventana de validación suele
+        ser chica).
+      - "sin_datos_validacion": la ventana de validación no tiene muestra
+        suficiente para esa combinación todavía.
+
+    Con la historia real todavía chica (incidente signals_history.json,
+    28/07/2026 -- ver notas de sesión), esta función va a devolver
+    mayormente "sin_datos_validacion". Es el resultado correcto y honesto:
+    no hay overfitting posible en un resultado que dice "no hay suficiente
+    historia para confirmar nada todavía". El valor de tenerla lista ahora
+    es que empieza a producir evidencia real sin tocar código de nuevo en
+    cuanto la historia crezca.
+    """
+    n_dates = len(sorted_dates)
+    split_idx = int(n_dates * split_ratio)
+    dates_discovery  = sorted_dates[:split_idx]
+    dates_validation = sorted_dates[split_idx:]
+
+    if len(dates_discovery) < 2 or len(dates_validation) < 1:
+        return {
+            "status": "sin_datos_suficientes",
+            "n_dias_total": n_dates,
+            "n_dias_descubrimiento": len(dates_discovery),
+            "n_dias_validacion": len(dates_validation),
+            "combinaciones": {},
+        }
+
+    trades_discovery  = _build_trades(history, dates_discovery, price_index)
+    trades_validation = _build_trades(history, dates_validation, price_index)
+
+    cross_discovery  = _aggregate_cross(trades_discovery,  "confidence_label", "signal")
+    cross_validation = _aggregate_cross(trades_validation, "confidence_label", "signal")
+
+    combinaciones = {}
+    for conf_label, signals in cross_discovery.items():
+        for sig, cell_disc in signals.items():
+            disc_summary = _cell_summary(cell_disc)
+            if disc_summary is None or disc_summary["n"] < min_samples:
+                continue  # ni siquiera hay patrón que valga la pena validar
+
+            key = f"{conf_label} + {sig}"
+            cell_val = (cross_validation.get(conf_label) or {}).get(sig)
+            val_summary = _cell_summary(cell_val) if cell_val else None
+
+            if (val_summary is None or val_summary["n"] < min_validation_samples
+                    or val_summary["ev"] is None or disc_summary["ev"] is None):
+                combinaciones[key] = {
+                    "descubrimiento": disc_summary,
+                    "validacion": val_summary,
+                    "estado": "sin_datos_validacion",
+                }
+                continue
+
+            mismo_signo = (disc_summary["ev"] > 0) == (val_summary["ev"] > 0)
+            combinaciones[key] = {
+                "descubrimiento": disc_summary,
+                "validacion": val_summary,
+                "estado": "confirmado" if mismo_signo else "no_confirmado",
+            }
+
+    return {
+        "status": "ok",
+        "n_dias_total": n_dates,
+        "n_dias_descubrimiento": len(dates_discovery),
+        "n_dias_validacion": len(dates_validation),
+        "split_ratio": split_ratio,
+        "combinaciones": combinaciones,
+    }
+
+
 def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
     """
     Ejecuta backtesting sobre el historial de señales.
@@ -359,6 +459,19 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
     results["historical_edge_score"] = _compute_historical_edge_scores(
         results["confidence_x_signal"]
     )
+
+    # Auditoría externa (28/07/2026), punto 5 del roadmap: walk-forward real
+    # sobre los patrones (distinto del walk-forward que ya tiene
+    # weight_optimizer.py, que valida PESOS no PATRONES). Envuelto aparte
+    # -- no debe tumbar el resto de results si algo falla con historia real
+    # todavía chica o irregular.
+    try:
+        results["walk_forward_validation"] = _walk_forward_validate_patterns(
+            history, sorted_dates, price_index
+        )
+    except Exception as e_wf:
+        logger.warning(f"Backtester: walk-forward validation no crítico — continuando: {e_wf}")
+        results["walk_forward_validation"] = {"status": "error", "combinaciones": {}}
 
     # Guardar
     os.makedirs("data", exist_ok=True)
