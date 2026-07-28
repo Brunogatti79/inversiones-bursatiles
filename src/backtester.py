@@ -365,6 +365,83 @@ def _walk_forward_validate_patterns(history: dict, sorted_dates: list, price_ind
     }
 
 
+def _rank_discovered_rules(cross: dict, walk_forward: dict = None,
+                            recent_events: list = None, min_samples: int = 15) -> list[dict]:
+    """
+    Meta-backtester (auditoría externa 28/07/2026, punto 6 del roadmap):
+    "construiría una capa que rankee automáticamente: Regla, N, EV, Sharpe,
+    Drawdown, Estabilidad, Cambio reciente -- y genere un ranking".
+
+    Por qué hace falta esto además de confidence_x_signal y
+    _detect_pattern_discoveries: hoy cada combinación se mira por separado
+    (una celda del cruce, o un evento aislado del log de descubrimiento).
+    A medida que el sistema empiece a producir más combinaciones con
+    evidencia (por mercado, por régimen, etc. -- roadmap del punto 2 en
+    adelante), no hay forma de comparar cuál es la MEJOR regla disponible
+    hoy sin juntarlas todas en una sola tabla ordenada.
+
+    Deliberadamente NO inventa un score único 0-100 que mezcle todo en un
+    número opaco (mismo criterio que _compute_historical_edge_scores):
+    devuelve una tabla con todas las columnas visibles, ordenada por
+    prioridad explícita y auditable:
+      1. Estado de walk-forward (confirmado primero, no_confirmado último
+         -- la evidencia fuera de muestra pesa más que cualquier otra
+         columna, es la que distingue un edge real de sobreajuste)
+      2. Expected Value descendente
+      3. Tamaño de muestra descendente (como desempate)
+
+    `walk_forward` es el dict que devuelve _walk_forward_validate_patterns
+    (opcional -- si no se pasa, todas las reglas quedan "no_evaluado", no
+    se inventa un estado). `recent_events` es la lista que devuelve
+    _detect_pattern_discoveries EN ESTA CORRIDA (no relee el log de disco
+    de nuevo -- ya se calculó una vez en run_backtest(), reusarlo evita
+    una lectura redundante de github_persistence).
+    """
+    wf_combos = (walk_forward or {}).get("combinaciones", {})
+    recent_keys = {ev.get("combinacion") for ev in (recent_events or [])}
+
+    _ESTADO_RANK = {"confirmado": 0, "sin_datos_validacion": 1, "no_evaluado": 2, "no_confirmado": 3}
+
+    rules = []
+    for conf_label, signals in (cross or {}).items():
+        for sig, cell in (signals or {}).items():
+            resumen = _cell_summary(cell)
+            if resumen is None or resumen["n"] < min_samples:
+                continue
+            key = f"{conf_label} + {sig}"
+
+            # Traer sharpe/drawdown/profit_factor del MISMO horizonte que
+            # _cell_summary usó para n/ev -- mezclar métricas de horizontes
+            # distintos en una misma fila sería engañoso.
+            h5, h10 = (cell or {}).get("h5d") or {}, (cell or {}).get("h10d") or {}
+            n5, n10 = h5.get("samples") or 0, h10.get("samples") or 0
+            best, horizonte = (h5, "5d") if n5 >= n10 else (h10, "10d")
+
+            wf_entry = wf_combos.get(key)
+            estado_wf = wf_entry.get("estado") if wf_entry else "no_evaluado"
+
+            rules.append({
+                "regla":               key,
+                "n":                   resumen["n"],
+                "horizonte":           horizonte,
+                "ev":                  resumen["ev"],
+                "win_rate":            best.get("win_rate"),
+                "sharpe":              best.get("sharpe"),
+                "max_drawdown":        best.get("max_drawdown"),
+                "profit_factor":       best.get("profit_factor"),
+                "significativo_95":    bool(best.get("significativo_95", False)),
+                "walk_forward_estado": estado_wf,
+                "cambio_reciente":     key in recent_keys,
+            })
+
+    rules.sort(key=lambda r: (
+        _ESTADO_RANK.get(r["walk_forward_estado"], 2),
+        -(r["ev"] if r["ev"] is not None else -999.0),
+        -r["n"],
+    ))
+    return rules
+
+
 def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
     """
     Ejecuta backtesting sobre el historial de señales.
@@ -472,6 +549,20 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
     except Exception as e_wf:
         logger.warning(f"Backtester: walk-forward validation no crítico — continuando: {e_wf}")
         results["walk_forward_validation"] = {"status": "error", "combinaciones": {}}
+
+    # Auditoría externa (28/07/2026), punto 6 del roadmap: meta-backtester --
+    # ranking único de todas las reglas descubiertas (N, EV, Sharpe,
+    # Drawdown, estado de walk-forward, si tuvo evento reciente), en vez de
+    # tener que ir a mirar cada combinación por separado.
+    try:
+        results["ranked_rules"] = _rank_discovered_rules(
+            results["confidence_x_signal"],
+            walk_forward=results.get("walk_forward_validation"),
+            recent_events=results.get("pattern_discoveries_nuevas"),
+        )
+    except Exception as e_rr:
+        logger.warning(f"Backtester: ranked_rules no crítico — continuando: {e_rr}")
+        results["ranked_rules"] = []
 
     # Guardar
     os.makedirs("data", exist_ok=True)
