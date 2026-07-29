@@ -1456,6 +1456,9 @@ def get_ccl_data(max_age_hours: float = 4.0) -> dict:
         "fecha":  "",
         "error":  "CCL no disponible (cache vencido y fetch en vivo a Ámbito falló)",
     }
+
+
+def get_cached_macro():
     """Lee el último cache de macro como fallback."""
     try:
         if os.path.exists(CACHE_PATH):
