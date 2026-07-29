@@ -213,13 +213,41 @@ class TestPullFile:
         assert gp.pull_file(str(tmp_path / "f.json")) is False
 
     def test_success_writes_decoded_content_and_creates_parent_dirs(self, with_token, monkeypatch, tmp_path):
+        """FIX 29/07/2026: pull_file() ahora prueba raw.githubusercontent.com
+        primero (ver github_persistence.py) -- este test fuerza un miss ahí
+        (404) para ejercitar específicamente el fallback a Contents API,
+        que es lo que el test original quería cubrir."""
         content = json.dumps({"hola": "mundo"})
         b64_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
-        monkeypatch.setattr(requests, "get", lambda *a, **k: FakeResponse(200, {"content": b64_content}))
+
+        def _fake_get(url, *a, **k):
+            if "raw.githubusercontent.com" in url:
+                return FakeResponse(404)
+            return FakeResponse(200, {"content": b64_content})
+
+        monkeypatch.setattr(requests, "get", _fake_get)
 
         target = tmp_path / "nested" / "dir" / "f.json"
         assert gp.pull_file(str(target)) is True
         assert json.loads(target.read_text()) == {"hola": "mundo"}
+
+    def test_success_via_raw_githubusercontent_primary_path(self, with_token, monkeypatch, tmp_path):
+        """FIX 29/07/2026 (incidente real): raw.githubusercontent.com es
+        ahora la vía primaria porque la Contents API omite 'content' para
+        archivos >1MB (signals_history.json, 1.27MB, confirmado en
+        producción) -- este test cubre ese camino feliz específico, no solo
+        el fallback."""
+        payload = json.dumps({"hola": "mundo desde raw"})
+
+        def _fake_get(url, *a, **k):
+            assert "raw.githubusercontent.com" in url, "no debería llegar a la Contents API si raw responde 200"
+            return FakeResponse(200, text=payload)
+
+        monkeypatch.setattr(requests, "get", _fake_get)
+
+        target = tmp_path / "f.json"
+        assert gp.pull_file(str(target)) is True
+        assert json.loads(target.read_text()) == {"hola": "mundo desde raw"}
 
 
 # ── save_json / load_json ────────────────────────────────────────────────

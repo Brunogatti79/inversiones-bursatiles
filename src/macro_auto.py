@@ -247,11 +247,30 @@ def fetch_argentina_macro():
     # posiciones reales. Fuente de CCL confirmada explícitamente con Bruno:
     # Ámbito (mercados.ambito.com/dolar/cl/variacion) -- la misma que ya
     # se pedía acá, ahora persistida en vez de tirada.
+    # FIX 29/07/2026 (incidente real, mismo día del fix de CCL de arriba):
+    # este fetch puede devolver un número parseado correctamente como
+    # float pero con un orden de magnitud absurdo (se vio en producción:
+    # 118.18 contra un fallback histórico de 1487.0 -- ~12.6x de
+    # diferencia), sin que ninguna excepción lo marque. persistirlo así
+    # infló el precio USD de toda la cartera MERVAL. Mismo patrón que
+    # get_brl_usd() ya usa (banda 3-10) -- acá con una banda deliberadamente
+    # amplia porque el ARS puede seguir devaluándose con el tiempo; lo que
+    # se busca filtrar es un error de orden de magnitud, no validar el
+    # nivel exacto.
+    CCL_PLAUSIBLE_MIN, CCL_PLAUSIBLE_MAX = 300.0, 6000.0
+
     try:
         r = requests.get("https://mercados.ambito.com/dolar/cl/variacion", timeout=10, headers={"User-Agent": "InversionesBursatiles/1.0"})
         if r.status_code == 200:
             ccl_data = r.json()
             ccl = float(str(ccl_data.get("compra", "0")).replace(".", "").replace(",", "."))
+            if ccl > 0 and not (CCL_PLAUSIBLE_MIN <= ccl <= CCL_PLAUSIBLE_MAX):
+                logger.warning(
+                    f"[macro_auto] CCL fetcheado ({ccl}) fuera de rango plausible "
+                    f"({CCL_PLAUSIBLE_MIN}-{CCL_PLAUSIBLE_MAX}) -- se descarta, no "
+                    f"se persiste ni se usa para brecha."
+                )
+                ccl = 0.0
             oficial = data.get("tipo_cambio", {}).get("valor") or 1
             if oficial > 0 and ccl > 0:
                 brecha = round(((ccl / oficial) - 1) * 100, 1)
@@ -1453,6 +1472,17 @@ def get_ccl_data(max_age_hours: float = 4.0) -> dict:
         if r.status_code == 200:
             ccl_data = r.json()
             ccl = float(str(ccl_data.get("compra", "0")).replace(".", "").replace(",", "."))
+            # FIX 29/07/2026: mismo guard de plausibilidad que el bloque de
+            # fetch_argentina_macro -- ver comentario ahí para el detalle
+            # del incidente. Un valor implausible acá NO se persiste (evita
+            # pisar un cache previo sano con basura) y esta función cae al
+            # "no disponible" explícito de más abajo en vez de fingir éxito.
+            if ccl > 0 and not (300.0 <= ccl <= 6000.0):
+                logger.warning(
+                    f"[macro_auto] get_ccl_data: CCL fetcheado ({ccl}) fuera de "
+                    f"rango plausible -- se descarta, no se persiste."
+                )
+                ccl = 0.0
             if ccl > 0:
                 _persist_ccl_cache(ccl, fuente="ambito")
                 return {

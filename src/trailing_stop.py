@@ -176,12 +176,24 @@ def apply_trailing_stops(all_signals: list[dict]) -> list[dict]:
 
 
 def _get_ccl() -> float:
-    """Lee CCL del cache."""
+    """Lee CCL del cache. Rechaza valores fuera de rango plausible (FIX
+    29/07/2026, mismo incidente que pricing_engine.get_ccl(): un CCL
+    corrupto acá infla/desinfla directamente el unrealized_R usado para
+    mover trailing stops reales -- más motivo todavía para no confiar en
+    cualquier número positivo sin chequear orden de magnitud."""
+    CCL_PLAUSIBLE_MIN, CCL_PLAUSIBLE_MAX = 300.0, 6000.0
     try:
         ccl_path = "data/ccl_cache.json"
         if os.path.exists(ccl_path):
             with open(ccl_path) as f:
-                return float(json.load(f).get("compra", 0) or 0)
+                ccl = float(json.load(f).get("compra", 0) or 0)
+            if CCL_PLAUSIBLE_MIN <= ccl <= CCL_PLAUSIBLE_MAX:
+                return ccl
+            if ccl > 0:
+                logger.warning(
+                    f"[trailing_stop] CCL cacheado ({ccl}) fuera de rango "
+                    f"plausible -- se ignora para no distorsionar unrealized_R."
+                )
     except Exception:
         pass
     return 0.0

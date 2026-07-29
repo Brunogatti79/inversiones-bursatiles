@@ -49,6 +49,8 @@ SLA_CRITICAL_HOURS = 14   # crítico si >14h (saltó 2 ventanas + margen)
 MAX_DURATION_HIST  = 10   # cantidad de duraciones a conservar
 CCL_CACHE_PATH     = "data/ccl_cache.json"
 CCL_STALE_MINUTES  = 240  # 4h -- mismo umbral que macro_auto.get_ccl_data() usa para el cache
+CCL_PLAUSIBLE_MIN  = 300.0   # mismo rango que pricing_engine.py/macro_auto.py -- ver ahí el detalle del incidente
+CCL_PLAUSIBLE_MAX  = 6000.0
 
 
 # ── Entrypoint desde pipeline ───────────────────────────────────────────────
@@ -327,6 +329,14 @@ def _check_ccl_status() -> dict:
 
         if not valor or float(valor) <= 0:
             status = "SIN_VALOR"
+        elif not (CCL_PLAUSIBLE_MIN <= float(valor) <= CCL_PLAUSIBLE_MAX):
+            # FIX 29/07/2026 (incidente real, mismo día): sin este chequeo,
+            # un CCL de 118.18 (contra un fallback histórico de 1487.0)
+            # reportaba "OK" acá mientras inflaba ~12.6x el precio USD de
+            # toda la cartera MERVAL -- el semáforo tiene que reflejar que
+            # el número es sospechoso, no solo que el archivo existe y
+            # tiene algo mayor a cero adentro.
+            status = "IMPLAUSIBLE"
         elif age_min > CCL_STALE_MINUTES:
             status = "STALE"
         else:

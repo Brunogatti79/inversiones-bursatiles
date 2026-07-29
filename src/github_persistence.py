@@ -44,6 +44,24 @@ def fetch_remote_json(path: str):
     porque el sync de arranque falló silenciosamente para ese archivo
     específico tras 2 redeploys de Railway muy seguidos).
 
+    FIX 29/07/2026 (incidente real, distinto del de arriba pero en el mismo
+    archivo): la Contents API de GitHub omite el campo "content" para
+    archivos mayores a 1MB -- signals_history.json cruzó ese umbral (1.27MB
+    confirmado) y esta función empezó a fallar en el 100% de los intentos,
+    no de forma intermitente. Como el guard de tracker.py interpreta un
+    fetch fallido como "no se puede verificar" y bloquea el push cuando el
+    local se ve sospechoso, el resultado fue el mismo síntoma visible que
+    el incidente de junio -- pero la causa esta vez no era un redeploy
+    solapado, era un límite de tamaño de la API. Se usa
+    raw.githubusercontent.com como fuente primaria (sin el límite de 1MB de
+    la Contents API; el repo es público así que no requiere auth), con la
+    Contents API como fallback para el caso de que raw esté momentáneamente
+    caído. Trade-off aceptado: raw.githubusercontent.com puede tener unos
+    minutos de lag de CDN tras un push muy reciente -- aceptable acá porque
+    esta función se usa para un chequeo de sanidad antes de pushear, no
+    para reconstruir datos que no se pueden permitir estar desactualizados
+    por minutos.
+
     Devuelve None si el archivo no existe en GitHub todavía, no es JSON
     válido, o falla la request -- el caller debe tratar None como "no se
     pudo verificar", no como "está vacío de verdad".
@@ -53,6 +71,15 @@ def fetch_remote_json(path: str):
     token, headers = _headers()
     if not token:
         return None
+
+    try:
+        raw_url = f"https://raw.githubusercontent.com/{REPO}/main/{path}"
+        r = requests.get(raw_url, timeout=15)
+        if r.status_code == 200:
+            return json.loads(r.text)
+    except Exception as e:
+        logger.warning(f"[github_persistence] raw.githubusercontent falló para {path}, probando Contents API: {e}")
+
     try:
         url = f"https://api.github.com/repos/{REPO}/contents/{path}"
         r = requests.get(url, headers=headers, timeout=10)
@@ -129,12 +156,32 @@ def push_file(path: str, message: str = None) -> bool:
 
 
 def pull_file(path: str) -> bool:
-    """Descarga `path` fresco de GitHub al filesystem local. Para usar al arrancar Railway."""
+    """Descarga `path` fresco de GitHub al filesystem local. Para usar al arrancar Railway.
+
+    FIX 29/07/2026: mismo incidente y mismo motivo que fetch_remote_json()
+    -- ver su docstring para el detalle. Esta función es la que corre en
+    sync_all_at_startup(), así que su falla silenciosa para archivos >1MB
+    es la causa real de por qué el container arrancaba sin
+    signals_history.json restaurado, no un problema de red transitorio.
+    """
     import requests
 
     token, headers = _headers()
     if not token:
         return False
+
+    try:
+        raw_url = f"https://raw.githubusercontent.com/{REPO}/main/{path}"
+        r = requests.get(raw_url, timeout=15)
+        if r.status_code == 200:
+            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(r.text)
+            logger.info(f"[github_persistence] {path} sincronizado desde GitHub (raw)")
+            return True
+    except Exception as e:
+        logger.warning(f"[github_persistence] raw.githubusercontent falló para {path}, probando Contents API: {e}")
+
     try:
         url = f"https://api.github.com/repos/{REPO}/contents/{path}"
         r = requests.get(url, headers=headers, timeout=10)
@@ -144,7 +191,7 @@ def pull_file(path: str) -> bool:
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
-        logger.info(f"[github_persistence] {path} sincronizado desde GitHub")
+        logger.info(f"[github_persistence] {path} sincronizado desde GitHub (contents API)")
         return True
     except Exception as e:
         logger.warning(f"[github_persistence] No se pudo sincronizar {path}: {e}")

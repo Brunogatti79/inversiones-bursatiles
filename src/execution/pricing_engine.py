@@ -80,6 +80,22 @@ CEDEAR_CSV_PATH = "data/cedear_cierres.csv"  # no existe hoy — ver advertencia
 FALLBACK_CCL = 1487.0
 FALLBACK_BRL_USD = 5.70
 
+# FIX 29/07/2026 (incidente real, mismo día): el fix de CCL de ayer (fetch
+# real a Ámbito, antes descartado) empezó a persistir data/ccl_cache.json
+# con valores sin ningún sanity check -- una lectura de 118.18 (contra un
+# fallback histórico de 1487.0, ~12.6x de diferencia) se guardó y se usó
+# igual, inflando el precio USD de TODAS las posiciones MERVAL (que siempre
+# dividen por CCL) y de cualquier CEDEAR que ese día haya caído al fallback
+# ARS/CCL interno de fetch_live_cedear_usd_prices() por no tener línea "D"
+# en data912. get_brl_usd() ya tenía esta protección (banda 3-10); CCL
+# nunca la tuvo porque hasta ayer el valor ni se persistía.
+# Banda deliberadamente amplia (no un rango ajustado al dólar de hoy) para
+# no romper cuando el ARS siga devaluándose en los próximos meses -- lo que
+# importa acá es descartar errores de orden de magnitud (parseo, endpoint
+# equivocado, unidad incorrecta), no validar el nivel exacto del CCL.
+CCL_PLAUSIBLE_MIN = 300.0
+CCL_PLAUSIBLE_MAX = 6000.0
+
 
 def get_latest_prices_by_ticker(gh_token: str = None) -> dict:
     """
@@ -149,13 +165,20 @@ def get_latest_prices_by_ticker(gh_token: str = None) -> dict:
 
 
 def get_ccl(signals: list = None) -> float:
-    """CCL actual. Prioridad: cache → señales GGAL.BA/GGAL → fallback fijo."""
+    """CCL actual. Prioridad: cache (si es plausible) → señales GGAL.BA/GGAL → fallback fijo."""
     try:
         if os.path.exists(CCL_CACHE_PATH):
             with open(CCL_CACHE_PATH) as f:
                 ccl = float(json.load(f).get("compra", 0) or 0)
-                if ccl > 0:
+                if CCL_PLAUSIBLE_MIN <= ccl <= CCL_PLAUSIBLE_MAX:
                     return ccl
+                if ccl > 0:
+                    logger.warning(
+                        f"[pricing_engine] CCL cacheado ({ccl}) fuera del rango "
+                        f"plausible ({CCL_PLAUSIBLE_MIN}-{CCL_PLAUSIBLE_MAX}) -- "
+                        f"se descarta, se sigue con GGAL/fallback en vez de "
+                        f"propagar un precio inflado o desinflado a todo el portfolio."
+                    )
     except Exception:
         pass
     if signals:
@@ -163,7 +186,13 @@ def get_ccl(signals: list = None) -> float:
             g_ba = next((s for s in signals if s.get("ticker") == "GGAL.BA"), None)
             g_us = next((s for s in signals if s.get("ticker") == "GGAL"), None)
             if g_ba and g_us and g_ba.get("precio_actual", 0) > 0 and g_us.get("precio_actual", 0) > 0:
-                return round(g_ba["precio_actual"] / g_us["precio_actual"] * 10, 2)
+                ccl_from_ggal = round(g_ba["precio_actual"] / g_us["precio_actual"] * 10, 2)
+                if CCL_PLAUSIBLE_MIN <= ccl_from_ggal <= CCL_PLAUSIBLE_MAX:
+                    return ccl_from_ggal
+                logger.warning(
+                    f"[pricing_engine] CCL derivado de GGAL ADR ({ccl_from_ggal}) "
+                    f"también fuera de rango plausible -- se usa el fallback fijo."
+                )
         except Exception:
             pass
     return FALLBACK_CCL
