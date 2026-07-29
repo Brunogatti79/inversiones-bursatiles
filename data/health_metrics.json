@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-29T16:37:48.745508",
-  "last_run_utc": "2026-07-29T19:37:48.745558",
-  "last_success": "2026-07-29T16:37:48.745508",
+  "last_run": "2026-07-29T17:11:23.798112",
+  "last_run_utc": "2026-07-29T20:11:23.798149",
+  "last_success": "2026-07-29T17:11:23.798112",
   "consecutive_failures": 0,
   "duration_history": [
-    138.8,
     46.5,
     95.6,
     149.7,
@@ -13,11 +12,12 @@
     187.1,
     70.6,
     60.9,
-    55.8
+    55.8,
+    97.6
   ],
-  "duration_avg_sec": 95.4,
+  "duration_avg_sec": 91.3,
   "duration_p95_sec": 168.4,
-  "duration_last_sec": 55.8,
+  "duration_last_sec": 97.6,
   "signals_count": 67,
   "buy_signals": 11,
   "sell_signals": 10,
@@ -251,21 +251,26 @@
       "ts": "2026-07-29",
       "success": true,
       "duration": 55.8
+    },
+    {
+      "ts": "2026-07-29",
+      "success": true,
+      "duration": 97.6
     }
   ],
-  "pipeline_runs_today": 4,
-  "pipeline_runs_week": 45,
-  "optimized_weights_age_h": 0.7,
+  "pipeline_runs_today": 5,
+  "pipeline_runs_week": 46,
+  "optimized_weights_age_h": 0.2,
   "optimized_weights_mode": "sensitivity",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 66.4,
+  "global_confidence_score": 64.7,
   "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
   "optimized_weights_days": 1,
-  "exposure_factor_shadow": 0.928,
+  "exposure_factor_shadow": 0.894,
   "optimized_weights_is_synthetic": true,
   "optimized_weights_synthetic_markets": [
     "MERVAL",
@@ -273,11 +278,11 @@
     "SP500"
   ],
   "backtest_ev_21d": null,
-  "backtest_total_trades": 871,
+  "backtest_total_trades": 1072,
   "predictor_dir_acc": null,
   "predictor_mae": null,
-  "backtest_generated": "2026-07-26",
-  "ccl_source_status": "OK",
-  "ccl_age_minutes": 0.9,
+  "backtest_generated": "2026-07-29",
+  "ccl_source_status": "IMPLAUSIBLE",
+  "ccl_age_minutes": 13.5,
   "last_ccl_value": 118.18
 }
