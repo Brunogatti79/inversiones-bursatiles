@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-29T17:11:04.308546",
+  "generated": "2026-07-29T17:31:22.752175",
   "total_trades": 1072,
   "days_history": 21,
   "by_signal": {
@@ -3571,71 +3571,7 @@
       "nota": "Si delta_ev_21d es chico o negativo, el predictor no está aportando valor marginal detectable sobre el resto del modelo con la muestra actual -- no concluir sin revisar antes el tamaño de muestra (count) de cada grupo."
     }
   },
-  "pattern_discoveries_nuevas": [
-    {
-      "fecha": "2026-07-29 17:11",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🟡 Media + 🟡 NEUTRAL/ESPERAR",
-      "n": 155,
-      "ev": 0.6
-    },
-    {
-      "fecha": "2026-07-29 17:11",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🟡 Media + 🟢 COMPRA",
-      "n": 69,
-      "ev": -0.39
-    },
-    {
-      "fecha": "2026-07-29 17:11",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🟡 Media + 🟠 VENTA PARCIAL",
-      "n": 24,
-      "ev": 2.62
-    },
-    {
-      "fecha": "2026-07-29 17:11",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🟠 Baja + 🟡 NEUTRAL/ESPERAR",
-      "n": 343,
-      "ev": -0.14
-    },
-    {
-      "fecha": "2026-07-29 17:11",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🟠 Baja + 🟠 VENTA PARCIAL",
-      "n": 89,
-      "ev": -1.28
-    },
-    {
-      "fecha": "2026-07-29 17:11",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🟠 Baja + 🟢 COMPRA",
-      "n": 81,
-      "ev": -1.41
-    },
-    {
-      "fecha": "2026-07-29 17:11",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🟢 Alta + 🟢 COMPRA",
-      "n": 53,
-      "ev": 1.24
-    },
-    {
-      "fecha": "2026-07-29 17:11",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🟢 Alta + 🟠 VENTA PARCIAL",
-      "n": 23,
-      "ev": 0.54
-    },
-    {
-      "fecha": "2026-07-29 17:11",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🔴 Muy baja + 🟡 NEUTRAL/ESPERAR",
-      "n": 16,
-      "ev": -2.74
-    }
-  ],
+  "pattern_discoveries_nuevas": [],
   "historical_edge_score": {
     "🟡 Media + 🟡 NEUTRAL/ESPERAR": {
       "score": 73.6,
@@ -3834,7 +3770,7 @@
       "profit_factor": 10.36,
       "significativo_95": true,
       "walk_forward_estado": "sin_datos_validacion",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟢 Alta + 🟢 COMPRA",
@@ -3848,7 +3784,7 @@
       "profit_factor": 3.12,
       "significativo_95": true,
       "walk_forward_estado": "sin_datos_validacion",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟡 Media + 🟡 NEUTRAL/ESPERAR",
@@ -3862,7 +3798,7 @@
       "profit_factor": 1.54,
       "significativo_95": true,
       "walk_forward_estado": "sin_datos_validacion",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟢 Alta + 🟠 VENTA PARCIAL",
@@ -3876,7 +3812,7 @@
       "profit_factor": 1.65,
       "significativo_95": false,
       "walk_forward_estado": "sin_datos_validacion",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟠 Baja + 🟡 NEUTRAL/ESPERAR",
@@ -3890,7 +3826,7 @@
       "profit_factor": 0.92,
       "significativo_95": false,
       "walk_forward_estado": "sin_datos_validacion",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟡 Media + 🟢 COMPRA",
@@ -3904,7 +3840,7 @@
       "profit_factor": 0.81,
       "significativo_95": false,
       "walk_forward_estado": "sin_datos_validacion",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟠 Baja + 🟠 VENTA PARCIAL",
@@ -3918,7 +3854,7 @@
       "profit_factor": 0.42,
       "significativo_95": true,
       "walk_forward_estado": "sin_datos_validacion",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟠 Baja + 🟢 COMPRA",
@@ -3932,7 +3868,7 @@
       "profit_factor": 0.52,
       "significativo_95": true,
       "walk_forward_estado": "sin_datos_validacion",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🔴 Muy baja + 🟡 NEUTRAL/ESPERAR",
@@ -3946,7 +3882,7 @@
       "profit_factor": 0.38,
       "significativo_95": false,
       "walk_forward_estado": "no_evaluado",
-      "cambio_reciente": true
+      "cambio_reciente": false
     }
   ],
   "stability_score": {
