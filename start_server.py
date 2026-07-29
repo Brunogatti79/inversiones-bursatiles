@@ -487,6 +487,13 @@ def _sync_all_data_from_github():
                                              # commiteaba pero no se restauraba al arrancar;
                                              # impacto cosmético (solo un string de log), se
                                              # cierra de paso por ser de una línea.
+            "ccl_cache.json",                # FIX 28/07/2026 (auditoría externa, ver adendum
+                                              # de sesión): nunca estaba en esta lista -- pero
+                                              # además nunca se creaba en primer lugar (bug
+                                              # separado en macro_auto.py, ya corregido). Sin
+                                              # este sync, aun con el archivo corregido, cada
+                                              # redeploy de Railway lo perdía igual que
+                                              # signals_history.json antes de su fix.
             "cedear_cierres.csv",           # FIX 26/06/2026 (sesión 2): snapshot de respaldo
                                              # de precios CEDEAR (data912.com) -- por si la API
                                              # está caída justo al arrancar Railway.

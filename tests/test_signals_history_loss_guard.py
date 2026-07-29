@@ -27,6 +27,13 @@ import src.tracker as tracker
 @pytest.fixture(autouse=True)
 def _isolate_history_file(tmp_path, monkeypatch):
     monkeypatch.setattr(tracker, "HISTORY_PATH", str(tmp_path / "signals_history.json"))
+    # Backups rotativos (P0, auditoría externa 28/07/2026) escriben archivos
+    # locales propios antes de pushear -- deben aislarse igual que
+    # HISTORY_PATH, si no cada test que llega a pushear deja basura en el
+    # data/ real del repo (mismo tipo de bug que motivó la higiene de tests
+    # del 28/07/2026 para otros archivos de producción).
+    monkeypatch.setattr(tracker, "BACKUP_1_PATH", str(tmp_path / "signals_history_backup.json"))
+    monkeypatch.setattr(tracker, "BACKUP_2_PATH", str(tmp_path / "signals_history_backup_2.json"))
     # El guard reintenta fetch_remote_json con time.sleep() entre intentos
     # (endurecimiento 28/07/2026) -- sin esto, cada test que fuerce fallas
     # de verificación tardaría segundos reales de sleep.
@@ -141,6 +148,13 @@ class TestSignalsHistoryLossGuard:
         remote_ok = {f"2026-07-{d:02d}": [] for d in range(1, 27)}
 
         def _fetch_falla_2_veces(path):
+            # Solo cuenta los reintentos sobre HISTORY_PATH -- la rotación
+            # de backups (P0, auditoría externa 28/07/2026) hace su propio
+            # fetch_remote_json sobre BACKUP_1_PATH después de que este
+            # guard ya se resolvió, y no debe interferir con el conteo de
+            # reintentos que este test verifica.
+            if path != tracker.HISTORY_PATH:
+                return remote_ok
             intentos["n"] += 1
             if intentos["n"] < 3:
                 return None  # falla las primeras 2 veces

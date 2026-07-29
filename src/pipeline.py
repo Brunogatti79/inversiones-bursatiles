@@ -283,22 +283,22 @@ def run_pipeline():
         # ─────────────────────────────────────────────────────────────────────
 
         # ── GUARDAR CCL A GITHUB (para que persista entre redeploys) ───────────
+        # FIX 28/07/2026 (auditoría externa, ver adendum de sesión): antes este
+        # bloque nunca se ejecutaba en la práctica -- macro_auto.py calculaba el
+        # CCL desde Ámbito pero lo descartaba, así que data/ccl_cache.json nunca
+        # se creaba y el `if os.path.exists(...)` de abajo siempre era False.
+        # Con macro_auto._persist_ccl_cache() ya escribiendo el archivo local
+        # (ver fetch_argentina_macro), este push ahora sí corre, y se
+        # reemplazó la lógica manual de GET-sha/PUT (sin reintentos, sin manejo
+        # de 409) por github_persistence.push_file(), que ya tiene ambas cosas
+        # y es el mismo mecanismo que usan portfolio.json, signals_history.json,
+        # etc. -- una implementación menos de "push a GitHub" para mantener.
         try:
-            import json as _j2
             ccl_cache_path = "data/ccl_cache.json"
             if os.path.exists(ccl_cache_path):
-                import requests as _req, base64 as _b64
-                _tok = os.environ.get("GH_TOKEN","")
-                if _tok:
-                    with open(ccl_cache_path) as _f: _ccl_content = _f.read()
-                    _url = "https://api.github.com/repos/Brunogatti79/inversiones-bursatiles/contents/data/ccl_cache.json"
-                    _hdrs = {"Authorization": f"token {_tok}", "Content-Type": "application/json"}
-                    _r_sha = _req.get(_url, headers=_hdrs, timeout=8)
-                    _old_sha = _r_sha.json().get("sha","") if _r_sha.ok else ""
-                    _payload = {"message": "auto: ccl_cache update", "content": _b64.b64encode(_ccl_content.encode()).decode()}
-                    if _old_sha: _payload["sha"] = _old_sha
-                    _req.put(_url, json=_payload, headers=_hdrs, timeout=10)
-                    logger.info("CCL cache pusheado a GitHub")
+                from src.github_persistence import push_file
+                push_file(ccl_cache_path, f"auto: ccl_cache update {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+                logger.info("CCL cache pusheado a GitHub")
         except Exception as e_ccl_push:
             logger.debug(f"CCL push no crítico: {e_ccl_push}")
         # ────────────────────────────────────────────────────────────────────────

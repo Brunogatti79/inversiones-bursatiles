@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
  
 HISTORY_PATH = "data/signals_history.json"
 ACCURACY_PATH = "data/accuracy_report.json"
+BACKUP_1_PATH = "data/signals_history_backup.json"
+BACKUP_2_PATH = "data/signals_history_backup_2.json"
  
  
 def update_history(signals: list[dict], max_days: int = 60):
@@ -128,6 +130,53 @@ def update_history(signals: list[dict], max_days: int = 60):
     return history
 
 
+def _rotate_signals_history_backups(remote_current):
+    """
+    Backups rotativos de signals_history.json (P0, auditoría externa
+    28/07/2026 sobre v18): capa extra sobre el guard de fetch/verificación
+    de _push_signals_history_to_github(). Ese guard evita pushear un
+    archivo local sospechoso encima de historia buena en GitHub -- pero no
+    protege contra que la propia historia que SE CONSIDERA buena ya
+    viniera corrupta por otra vía no contemplada. Con 2 backups rotativos
+    hay puntos de restauración manual además del remoto actual.
+
+    Antes de pisar signals_history.json con el contenido nuevo, guarda lo
+    que HOY está en GitHub (remote_current, el estado previo a este push)
+    como backup_1, y lo que hoy es backup_1 pasa a backup_2 -- rotación
+    simple de 2 niveles, sin pretender ser un DB versionado.
+
+    Solo corre si remote_current es un dict verificado de verdad (no None
+    por fetch fallido) -- si no se pudo confirmar el estado remoto, no
+    vale la pena arriesgar llamadas extra a la API de GitHub solo para
+    rotar backups; se omite silenciosamente y se reintenta en el próximo
+    ciclo donde el fetch sí funcione. No bloquea nunca el push principal:
+    cualquier error acá se loguea y se sigue.
+    """
+    if not isinstance(remote_current, dict) or not remote_current:
+        return
+
+    from src.github_persistence import fetch_remote_json, push_file
+
+    try:
+        remote_backup_1 = fetch_remote_json(BACKUP_1_PATH)
+        if isinstance(remote_backup_1, dict) and remote_backup_1:
+            with open(BACKUP_2_PATH, "w", encoding="utf-8") as f:
+                json.dump(remote_backup_1, f, ensure_ascii=False, indent=1)
+            push_file(
+                BACKUP_2_PATH,
+                f"auto: signals_history_backup_2 {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            )
+
+        with open(BACKUP_1_PATH, "w", encoding="utf-8") as f:
+            json.dump(remote_current, f, ensure_ascii=False, indent=1)
+        push_file(
+            BACKUP_1_PATH,
+            f"auto: signals_history_backup {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        )
+    except Exception as e:
+        logger.warning(f"[signals_history] No se pudo rotar backups: {e}")
+
+
 def _push_signals_history_to_github():
     """Pushea signals_history.json a GitHub. Sin esto, backtester.py/weight_optimizer.py
     nunca acumulan mas de un dia de historia porque Railway redeploya (y borra el
@@ -219,6 +268,8 @@ def _push_signals_history_to_github():
             f"Se reintenta en la próxima corrida del pipeline."
         )
         return False
+
+    _rotate_signals_history_backups(remote_history)
 
     push_file(HISTORY_PATH, f"auto: signals_history {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     return True

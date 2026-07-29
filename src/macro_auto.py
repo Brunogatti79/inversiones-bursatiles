@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
  
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 CACHE_PATH = "data/macro_auto_cache.json"
+CCL_CACHE_PATH = "data/ccl_cache.json"
 LAST_KNOWN_PATH = "data/macro_last_known.json"
 DATA_QUALITY_HISTORY_PATH = "data/data_quality_history.json"
  
@@ -222,7 +223,16 @@ def fetch_argentina_macro():
         logger.warning(f"Riesgo país ARG error: {e}")
         data["riesgo_pais"] = {"valor": None, "fecha": ""}
  
-    # Brecha cambiaria
+    # Brecha cambiaria + CCL (bug real encontrado y confirmado con Bruno,
+    # auditoría 28/07/2026, ver adendum de sesión: este mismo request a
+    # Ámbito ya calculaba `ccl` para sacar la brecha, pero el valor de CCL
+    # en sí se descartaba -- nunca se guardaba en ningún lado. Como
+    # data/ccl_cache.json nunca se creaba, pricing_engine.get_ccl() y
+    # trailing_stop._get_ccl() siempre caían a un fallback fijo (1487.0),
+    # disfrazado de dato de mercado, incluso para trailing stops sobre
+    # posiciones reales. Fuente de CCL confirmada explícitamente con Bruno:
+    # Ámbito (mercados.ambito.com/dolar/cl/variacion) -- la misma que ya
+    # se pedía acá, ahora persistida en vez de tirada.
     try:
         r = requests.get("https://mercados.ambito.com/dolar/cl/variacion", timeout=10, headers={"User-Agent": "InversionesBursatiles/1.0"})
         if r.status_code == 200:
@@ -234,11 +244,18 @@ def fetch_argentina_macro():
                 data["brecha"] = {"valor": brecha, "fecha": datetime.now().strftime("%Y-%m-%d")}
             else:
                 data["brecha"] = {"valor": None, "fecha": ""}
+            if ccl > 0:
+                data["ccl"] = {"valor": ccl, "fecha": datetime.now().strftime("%Y-%m-%d")}
+                _persist_ccl_cache(ccl, fuente="ambito")
+            else:
+                data["ccl"] = {"valor": None, "fecha": ""}
         else:
             data["brecha"] = {"valor": None, "fecha": ""}
+            data["ccl"] = {"valor": None, "fecha": ""}
     except Exception as e:
-        logger.warning(f"Brecha error: {e}")
+        logger.warning(f"Brecha/CCL error: {e}")
         data["brecha"] = {"valor": None, "fecha": ""}
+        data["ccl"] = {"valor": None, "fecha": ""}
  
     # IPC mensual — datos.gob.ar (INDEC)
     def _fetch_ipc():
@@ -1354,7 +1371,91 @@ def fetch_all_macro():
     }
  
  
-def get_cached_macro():
+def _persist_ccl_cache(ccl: float, fuente: str = "ambito"):
+    """
+    Persiste el CCL en data/ccl_cache.json en el formato que ya esperan
+    los lectores existentes -- pricing_engine.get_ccl() y
+    trailing_stop._get_ccl() leen la clave "compra", contrato que NO se
+    modifica acá (bug real, auditoría 28/07/2026, ver adendum de sesión:
+    el archivo nunca se creaba, así que esos dos lectores siempre caían a
+    fallback). Fuente confirmada explícitamente con Bruno: Ámbito.
+
+    Solo escribe local -- el push a GitHub para persistencia entre
+    redeploys de Railway lo sigue haciendo pipeline.py con
+    github_persistence.push_file(), mismo patrón que el resto de los
+    archivos persistidos (no una excepción bypasseando ese mecanismo).
+    """
+    try:
+        os.makedirs(os.path.dirname(CCL_CACHE_PATH), exist_ok=True)
+        payload = {
+            "compra":    ccl,
+            "fuente":    fuente,
+            "fecha":     datetime.now().strftime("%Y-%m-%d"),
+            "timestamp": datetime.now().isoformat(),
+        }
+        with open(CCL_CACHE_PATH, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning(f"[macro_auto] No se pudo persistir ccl_cache.json: {e}")
+
+
+def get_ccl_data(max_age_hours: float = 4.0) -> dict:
+    """
+    Fuente de datos para GET /api/ccl (start_server.py). Antes de esta
+    función, el endpoint importaba `get_ccl_data` de este módulo -- una
+    función que nunca existió en el repo, por lo que /api/ccl siempre
+    devolvía HTTP 500 (bug real encontrado en auditoría 28/07/2026, ver
+    adendum de sesión, no relacionado con el bug de persistencia de
+    ccl_cache.json pero descubierto en la misma revisión).
+
+    Prioridad:
+      1. Cache local (data/ccl_cache.json) si tiene menos de
+         max_age_hours -- evita pegarle a Ámbito en cada request al
+         endpoint cuando el pipeline ya lo actualizó hace poco (mismo
+         concepto de TTL ~4h ya documentado en versiones previas de la
+         arquitectura para este archivo).
+      2. Si el cache no existe o está vencido: fetch en vivo a Ámbito,
+         mismo request y parseo que fetch_argentina_macro(), y lo persiste
+         para que el próximo request (o el próximo pipeline) lo reuse.
+      3. Si todo falla: devuelve compra=None explícito -- no inventa un
+         valor. El caller (start_server._handle_get_ccl) decide qué hacer
+         con eso, no se enmascara con un fallback silencioso acá.
+    """
+    try:
+        if os.path.exists(CCL_CACHE_PATH):
+            with open(CCL_CACHE_PATH, encoding="utf-8") as f:
+                cached = json.load(f)
+            ts = cached.get("timestamp")
+            if ts:
+                edad_horas = (datetime.now() - datetime.fromisoformat(ts)).total_seconds() / 3600
+                if edad_horas <= max_age_hours and float(cached.get("compra", 0) or 0) > 0:
+                    return cached
+    except Exception as e:
+        logger.warning(f"[macro_auto] get_ccl_data: cache local inválido, reintentando fetch: {e}")
+
+    try:
+        r = requests.get("https://mercados.ambito.com/dolar/cl/variacion", timeout=10,
+                          headers={"User-Agent": "InversionesBursatiles/1.0"})
+        if r.status_code == 200:
+            ccl_data = r.json()
+            ccl = float(str(ccl_data.get("compra", "0")).replace(".", "").replace(",", "."))
+            if ccl > 0:
+                _persist_ccl_cache(ccl, fuente="ambito")
+                return {
+                    "compra":    ccl,
+                    "fuente":    "ambito",
+                    "fecha":     datetime.now().strftime("%Y-%m-%d"),
+                    "timestamp": datetime.now().isoformat(),
+                }
+    except Exception as e:
+        logger.warning(f"[macro_auto] get_ccl_data: fetch en vivo a Ámbito falló: {e}")
+
+    return {
+        "compra": None,
+        "fuente": None,
+        "fecha":  "",
+        "error":  "CCL no disponible (cache vencido y fetch en vivo a Ámbito falló)",
+    }
     """Lee el último cache de macro como fallback."""
     try:
         if os.path.exists(CACHE_PATH):

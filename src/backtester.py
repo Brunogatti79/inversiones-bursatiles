@@ -365,6 +365,33 @@ def _walk_forward_validate_patterns(history: dict, sorted_dates: list, price_ind
     }
 
 
+def _sample_confidence_tier(n: int) -> str:
+    """
+    Semáforo por tamaño de muestra (auditoría externa 28/07/2026 sobre v18,
+    P0 punto 3): p-value y EV pueden "verse bien" con muestras chicas y
+    seguir siendo ruido -- significancia estadística no sustituye un n
+    mínimo razonable, lo complementa. Con la historia real todavía corta
+    (incidente signals_history.json 28/07/2026, ver notas de sesión), la
+    gran mayoría de reglas hoy van a caer en "exploratorio" -- es el
+    resultado correcto y honesto, no un defecto de esta función.
+
+    Umbrales deliberadamente simples y conservadores:
+      n < 30    -> "exploratorio" (EV/p-value acá son orientativos, no accionables)
+      30-99     -> "preliminar"   (empieza a tener peso, sigue sin ser definitivo)
+      n >= 100  -> "confiable"    (tamaño de muestra donde el ruido pesa menos)
+
+    Deliberadamente NO reemplaza a walk_forward_estado como criterio de
+    orden (ver _rank_discovered_rules) ni oculta/filtra reglas: es una
+    columna adicional visible en la tabla, mismo criterio que ya se usa
+    en todo este archivo de no inventar un score único que mezcle todo.
+    """
+    if n >= 100:
+        return "confiable"
+    if n >= 30:
+        return "preliminar"
+    return "exploratorio"
+
+
 def _rank_discovered_rules(cross: dict, walk_forward: dict = None,
                             recent_events: list = None, min_samples: int = 15) -> list[dict]:
     """
@@ -423,6 +450,7 @@ def _rank_discovered_rules(cross: dict, walk_forward: dict = None,
             rules.append({
                 "regla":               key,
                 "n":                   resumen["n"],
+                "confianza_muestra":   _sample_confidence_tier(resumen["n"]),
                 "horizonte":           horizonte,
                 "ev":                  resumen["ev"],
                 "win_rate":            best.get("win_rate"),
@@ -563,6 +591,18 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
     except Exception as e_rr:
         logger.warning(f"Backtester: ranked_rules no crítico — continuando: {e_rr}")
         results["ranked_rules"] = []
+
+    # Auditoría externa (28/07/2026), riesgo #6: stability_score -- ¿la
+    # ventaja de cada combinación es consistente en el tiempo o depende de
+    # pocos trades extremos? Complementa a historical_edge_score (que solo
+    # mira el EV agregado) con la dispersión entre ventanas cronológicas.
+    # Envuelto aparte por el mismo motivo que walk_forward_validation: no
+    # debe tumbar el resto de results si falla con historia todavía chica.
+    try:
+        results["stability_score"] = _compute_stability_score(trades)
+    except Exception as e_stab:
+        logger.warning(f"Backtester: stability_score no crítico — continuando: {e_stab}")
+        results["stability_score"] = {}
 
     # Guardar
     os.makedirs("data", exist_ok=True)
@@ -1050,6 +1090,112 @@ def _predictor_contribution_analysis(trades: list) -> dict:
                  "modelo con la muestra actual -- no concluir sin revisar "
                  "antes el tamaño de muestra (count) de cada grupo."),
     }
+    return result
+
+
+def _compute_stability_score(trades: list, key1: str = "confidence_label", key2: str = "signal",
+                              n_windows: int = 3, min_samples_per_window: int = 5,
+                              min_samples_total: int = 15) -> dict:
+    """
+    Stability score (P1, auditoría externa 28/07/2026 sobre v18, riesgo
+    #6): un EV promedio positivo con n grande no dice si la ventaja es
+    CONSISTENTE en el tiempo o si depende de un puñado de trades extremos
+    concentrados en pocos días. Cita textual de la auditoría: "dos
+    estrategias pueden tener EV=+3% pero una oscila entre +20%/-15%/+12%/-9%
+    y otra entre +2%/+3%/+4%/+3% -- la segunda suele ser mucho más
+    operable" aunque el EV global sea idéntico.
+
+    Corta la historia de cada combinación en `n_windows` ventanas
+    CRONOLÓGICAS de tamaño similar (mismo criterio que
+    _walk_forward_validate_patterns: nunca al azar, mezclar fechas
+    destruye el sentido temporal del test) y mide:
+      - ev_por_ventana: EV de cada ventana, para inspección visual directa
+      - std_ev_ventanas: desvío estándar del EV entre ventanas
+      - stability_score (0-100): % de ventanas cuyo EV tiene el mismo
+        signo que el EV global de la combinación
+
+    Ventanas con menos de min_samples_per_window trades no cuentan ni a
+    favor ni en contra -- no se inventa un signo para una ventana sin
+    datos suficientes. Si menos de 2 ventanas quedan evaluables, o la
+    combinación no llega a min_samples_total en total, queda marcada
+    "ventanas_insuficientes": True con stability_score en None. Con ~20
+    días de historia real (incidente signals_history.json 28/07/2026, ver
+    notas de sesión) la gran mayoría de combinaciones hoy van a caer acá
+    -- resultado honesto, no un defecto de esta función (mismo criterio
+    que _walk_forward_validate_patterns y _sample_confidence_tier).
+
+    Deliberadamente NO se conecta a ranked_rules ni a ninguna señal en
+    vivo todavía -- mismo criterio de "calcular primero, decidir después"
+    que _compute_historical_edge_scores.
+    """
+    from collections import defaultdict
+
+    combo_trades = defaultdict(list)
+    for t in trades:
+        k1 = t.get(key1, "UNKNOWN") or "UNKNOWN"
+        k2 = t.get(key2, "UNKNOWN") or "UNKNOWN"
+        combo_trades[(k1, k2)].append(t)
+
+    result = {}
+    for (k1, k2), ctrades in combo_trades.items():
+        if len(ctrades) < min_samples_total:
+            continue
+
+        ctrades_sorted = sorted(ctrades, key=lambda t: t.get("signal_date", ""))
+        n = len(ctrades_sorted)
+        key = f"{k1} + {k2}"
+
+        # Mismo criterio que _cell_summary: usar el horizonte con más
+        # muestra real disponible entre 5d y 10d (21d suele tener muy
+        # pocos datos todavía con la historia actual).
+        n5  = sum(1 for t in ctrades_sorted if t.get("ret_5d")  is not None)
+        n10 = sum(1 for t in ctrades_sorted if t.get("ret_10d") is not None)
+        horizon_field = "ret_5d" if n5 >= n10 else "ret_10d"
+
+        global_rets = [t[horizon_field] for t in ctrades_sorted if t.get(horizon_field) is not None]
+        if not global_rets:
+            continue
+        global_ev = float(np.mean(global_rets))
+        global_sign = global_ev > 0
+
+        window_size = n / n_windows
+        window_evs = []
+        n_signo_consistente = 0
+        n_ventanas_evaluadas = 0
+        for i in range(n_windows):
+            start = int(round(i * window_size))
+            end   = int(round((i + 1) * window_size))
+            w = ctrades_sorted[start:end]
+            rets = [t[horizon_field] for t in w if t.get(horizon_field) is not None]
+            if len(rets) < min_samples_per_window:
+                continue
+            ev_w = float(np.mean(rets))
+            window_evs.append(round(ev_w, 2))
+            n_ventanas_evaluadas += 1
+            if (ev_w > 0) == global_sign:
+                n_signo_consistente += 1
+
+        if n_ventanas_evaluadas < 2:
+            result[key] = {
+                "n_total":               n,
+                "ventanas_insuficientes": True,
+                "stability_score":        None,
+            }
+            continue
+
+        std_ev = float(np.std(window_evs)) if len(window_evs) > 1 else 0.0
+        result[key] = {
+            "n_total":                      n,
+            "horizonte":                    horizon_field.replace("ret_", ""),
+            "ev_global":                    round(global_ev, 2),
+            "ev_por_ventana":               window_evs,
+            "n_ventanas_evaluadas":         n_ventanas_evaluadas,
+            "n_ventanas_signo_consistente": n_signo_consistente,
+            "std_ev_ventanas":              round(std_ev, 2),
+            "ventanas_insuficientes":       False,
+            "stability_score":              round(100 * n_signo_consistente / n_ventanas_evaluadas, 1),
+        }
+
     return result
 
 
