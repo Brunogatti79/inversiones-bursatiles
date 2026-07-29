@@ -143,6 +143,20 @@ class TestStartupSyncContract:
         filenames = set(_extract_sync_filenames() or [])
         assert "download_status.json" in filenames
 
+    def test_signals_history_backups_in_startup_sync(self):
+        """FIX 29/07/2026 (auditoría externa v19): la rotación de 2 niveles
+        de signals_history.json (tracker.py::_rotate_signals_history_backups,
+        28/07/2026) escribe signals_history_backup.json y
+        signals_history_backup_2.json, pero esos dos nombres quedaron fuera
+        de esta lista en el commit original -- el archivo principal
+        persistía correctamente, pero su red de seguridad (los backups)
+        se perdía en cada redeploy como cualquier archivo no sincronizado.
+        Si esto vuelve a romperse, la rotación deja de tener sentido: sigue
+        corriendo y "protegiendo", pero contra un archivo que no sobrevive."""
+        filenames = set(_extract_sync_filenames() or [])
+        assert "signals_history_backup.json" in filenames
+        assert "signals_history_backup_2.json" in filenames
+
     def test_cedear_cierres_csv_in_startup_sync(self):
         """FIX 26/06/2026 (sesión 2): cedear_cierres.csv es el respaldo
         local del precio CEDEAR (data912.com, ver pricing_engine.py) -- si

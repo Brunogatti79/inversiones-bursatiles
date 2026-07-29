@@ -23,6 +23,14 @@ from datetime import datetime, timedelta
 logger = logging.getLogger(__name__)
  
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
+# FIX 29/07/2026 (auditoría externa v19, hallazgo P2): este token estaba
+# hardcodeado en texto plano en este archivo, en un repo público. Se movió
+# a variable de entorno. El token viejo ya quedó expuesto en el historial
+# de git de todas formas -- Bruno debe generar un token nuevo en
+# estadisticasbcra.com y cargarlo como BCRA_TOKEN en Railway; hasta que
+# eso pase, este código no tiene forma de saber si el token sigue siendo
+# válido o si conviene invalidarlo desde el otro lado.
+BCRA_TOKEN = os.getenv("BCRA_TOKEN", "")
 CACHE_PATH = "data/macro_auto_cache.json"
 CCL_CACHE_PATH = "data/ccl_cache.json"
 LAST_KNOWN_PATH = "data/macro_last_known.json"
@@ -149,8 +157,14 @@ BCRA_ENDPOINTS = {
  
 def _bcra_latest(url):
     """Obtiene el último valor desde api.estadisticasbcra.com."""
+    if not BCRA_TOKEN:
+        logger.warning(
+            "[macro_auto] BCRA_TOKEN no configurado en el entorno -- "
+            "se omite la llamada y se usa el fallback existente para esta variable."
+        )
+        return None, None
     try:
-        headers = {"Authorization": "BEARER eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9"}
+        headers = {"Authorization": f"BEARER {BCRA_TOKEN}"}
         r = requests.get(url, timeout=15, headers=headers)
         r.raise_for_status()
         data = r.json()

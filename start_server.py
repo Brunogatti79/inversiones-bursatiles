@@ -494,6 +494,13 @@ def _sync_all_data_from_github():
                                               # este sync, aun con el archivo corregido, cada
                                               # redeploy de Railway lo perdía igual que
                                               # signals_history.json antes de su fix.
+            "signals_history_backup.json",   # FIX 29/07/2026 (auditoría externa v19): la
+            "signals_history_backup_2.json", # rotación de 2 niveles se implementó el 28/07
+                                              # en tracker.py pero quedó fuera de esta lista --
+                                              # los backups en sí se perdían en cada redeploy,
+                                              # dejando la protección incompleta (el archivo
+                                              # principal sí persistía, pero su red de
+                                              # seguridad no).
             "cedear_cierres.csv",           # FIX 26/06/2026 (sesión 2): snapshot de respaldo
                                              # de precios CEDEAR (data912.com) -- por si la API
                                              # está caída justo al arrancar Railway.

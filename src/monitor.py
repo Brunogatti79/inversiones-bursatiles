@@ -47,6 +47,8 @@ CSV_PATHS     = [
 SLA_WARN_HOURS     = 8    # warning si >8h sin run exitoso
 SLA_CRITICAL_HOURS = 14   # crítico si >14h (saltó 2 ventanas + margen)
 MAX_DURATION_HIST  = 10   # cantidad de duraciones a conservar
+CCL_CACHE_PATH     = "data/ccl_cache.json"
+CCL_STALE_MINUTES  = 240  # 4h -- mismo umbral que macro_auto.get_ccl_data() usa para el cache
 
 
 # ── Entrypoint desde pipeline ───────────────────────────────────────────────
@@ -136,6 +138,7 @@ def update_health_metrics(run_context: dict) -> dict:
     health.update(_read_backtest_metrics())
     health.update(_read_weights_metrics())
     health.update(_check_data_freshness())
+    health.update(_check_ccl_status())
 
     # SLA
     sla = _compute_sla(health)
@@ -297,6 +300,50 @@ def _check_data_freshness() -> dict:
         "data_freshness_h": round(oldest_h, 1) if oldest_h is not None else None,
         "data_stale":       oldest_h is not None and oldest_h > 10,
     }
+
+
+def _check_ccl_status() -> dict:
+    """Observabilidad del CCL (sugerida por auditoría externa v19, 29/07/2026,
+    punto 1): el fix de trailing_stop.py (ATR ARS -> ATR USD para MERVAL) que
+    depende de data/ccl_cache.json ahora persiste correctamente entre
+    redeploys (ver start_server.py::_sync_all_data_from_github), pero eso
+    solo garantiza que el archivo sobreviva -- no que el valor adentro sea
+    reciente. La fuente (scraping de Ámbito) no tiene SLA propio: si cambia
+    el HTML/JSON de la fuente, el CCL puede quedar viejo silenciosamente sin
+    que nada lo marque hasta que quality_check detecte un síntoma indirecto
+    (score macro en 0/44 default). Esto lo hace visible directamente."""
+    try:
+        if not os.path.exists(CCL_CACHE_PATH):
+            return {
+                "ccl_source_status": "SIN_ARCHIVO",
+                "ccl_age_minutes":   None,
+                "last_ccl_value":    None,
+            }
+        with open(CCL_CACHE_PATH, encoding="utf-8") as f:
+            cached = json.load(f)
+
+        valor = cached.get("compra")
+        age_min = (time.time() - os.path.getmtime(CCL_CACHE_PATH)) / 60
+
+        if not valor or float(valor) <= 0:
+            status = "SIN_VALOR"
+        elif age_min > CCL_STALE_MINUTES:
+            status = "STALE"
+        else:
+            status = "OK"
+
+        return {
+            "ccl_source_status": status,
+            "ccl_age_minutes":   round(age_min, 1),
+            "last_ccl_value":    float(valor) if valor else None,
+        }
+    except Exception as e:
+        logger.warning(f"[monitor] No se pudo evaluar estado de CCL: {e}")
+        return {
+            "ccl_source_status": "ERROR",
+            "ccl_age_minutes":   None,
+            "last_ccl_value":    None,
+        }
 
 
 # ── Persistencia ────────────────────────────────────────────────────────────
