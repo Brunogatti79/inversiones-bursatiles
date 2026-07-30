@@ -182,19 +182,24 @@ def fetch_argentina_macro():
     data = {}
  
     # Tipo de cambio USD/ARS desde Yahoo Finance
-    try:
+    # FIX 30/07/2026 (auditoría de log): YFRateLimitError en ARS=X apareció en
+    # 3 corridas distintas separadas por horas (no una ráfaga puntual) y
+    # dejaba esta variable -- una de las más importantes del score ARG -- en
+    # None sin ninguna red de contención, a diferencia de ipc/desempleo/
+    # balanza/fiscal que ya tienen este mismo patrón desde julio. Se
+    # generaliza acá.
+    def _fetch_tipo_cambio():
         import yfinance as yf
         ars = yf.download("ARS=X", period="5d", progress=False)
         if not ars.empty:
             if isinstance(ars.columns, pd.MultiIndex):
                 ars.columns = ars.columns.get_level_values(0)
             tc = float(ars['Close'].iloc[-1])
-            data["tipo_cambio"] = {"valor": tc, "fecha": datetime.now().strftime("%Y-%m-%d")}
-        else:
-            data["tipo_cambio"] = {"valor": None, "fecha": ""}
-    except Exception as e:
-        logger.warning(f"Yahoo ARS error: {e}")
-        data["tipo_cambio"] = {"valor": None, "fecha": ""}
+            return tc, datetime.now().strftime("%Y-%m-%d")
+        return None, None
+
+    val, dt = _with_last_known_fallback("tipo_cambio", _fetch_tipo_cambio)
+    data["tipo_cambio"] = {"valor": val, "fecha": dt or ""}
  
     # Tasa plazo fijo — BCRA estadisticasbcra.com en vivo, fallback a último conocido
     try:
@@ -222,20 +227,19 @@ def fetch_argentina_macro():
         data["reservas"] = {"valor": 26500, "fecha": "fallback"}
  
     # Riesgo país — Ámbito
-    try:
+    # FIX 30/07/2026 (mismo lote que tipo_cambio arriba): sin red de
+    # contención, scraping frágil por naturaleza (§8.4 de la arquitectura).
+    def _fetch_riesgo_pais_arg():
         r = requests.get("https://mercados.ambito.com/riesgo-pais/datos", timeout=10, headers={"User-Agent": "InversionesBursatiles/1.0"})
         if r.status_code == 200:
             rp_data = r.json()
             if isinstance(rp_data, dict):
                 val = float(str(rp_data.get("ultimo", "0")).replace(".", "").replace(",", "."))
-                data["riesgo_pais"] = {"valor": val, "fecha": datetime.now().strftime("%Y-%m-%d")}
-            else:
-                data["riesgo_pais"] = {"valor": None, "fecha": ""}
-        else:
-            data["riesgo_pais"] = {"valor": None, "fecha": ""}
-    except Exception as e:
-        logger.warning(f"Riesgo país ARG error: {e}")
-        data["riesgo_pais"] = {"valor": None, "fecha": ""}
+                return val, datetime.now().strftime("%Y-%m-%d")
+        return None, None
+
+    val, dt = _with_last_known_fallback("riesgo_pais_arg", _fetch_riesgo_pais_arg)
+    data["riesgo_pais"] = {"valor": val, "fecha": dt or ""}
  
     # Brecha cambiaria + CCL (bug real encontrado y confirmado con Bruno,
     # auditoría 28/07/2026, ver adendum de sesión: este mismo request a
@@ -289,7 +293,18 @@ def fetch_argentina_macro():
         logger.warning(f"Brecha/CCL error: {e}")
         data["brecha"] = {"valor": None, "fecha": ""}
         data["ccl"] = {"valor": None, "fecha": ""}
- 
+
+    # Fallback de "brecha" (mismo lote 30/07/2026 que tipo_cambio/riesgo_pais
+    # arriba). Reutiliza _with_last_known_fallback SIN volver a llamar a
+    # Ámbito -- el fetch_fn solo devuelve lo que ya se calculó arriba en este
+    # mismo run. Deliberadamente no se toca "ccl" acá: tiene su propia
+    # persistencia dedicada (_persist_ccl_cache, ver adendum CCL 28-29/07/2026)
+    # que ya sostiene el pricing de portfolio y queda fuera del alcance de
+    # este fix de resiliencia macro.
+    _brecha_val, _brecha_fecha = data["brecha"]["valor"], data["brecha"]["fecha"]
+    val, dt = _with_last_known_fallback("brecha", lambda: (_brecha_val, _brecha_fecha))
+    data["brecha"] = {"valor": val, "fecha": dt or ""}
+
     # IPC mensual — datos.gob.ar (INDEC)
     def _fetch_ipc():
         url_ipc = (
@@ -668,7 +683,28 @@ def fetch_brasil_macro():
     for name, series_id in BCB_SERIES.items():
         val, dt = _bcb_latest(series_id)
         data[name] = {"valor": val, "fecha": dt}
- 
+
+    # Tasa real ex-post (diferencial tasa real) — REINCORPORADA 30/07/2026
+    # (auditoría de log + confirmación con Bruno). Estaba en la
+    # documentación v2/v3/v4 como variable manual (xlsx) pero no existía en
+    # ningún lugar del código -- se había caído del modelo sin dejar rastro
+    # de cuándo ni por qué. Se recalcula sin fuente externa nueva: reutiliza
+    # selic e ipca ya obtenidos arriba (ambos vía BCB/SGS, confirmados
+    # estables) -- cero dependencia adicional, la fuente más confiable
+    # posible porque son inputs ya auditados.
+    # Fórmula simple (no Fisher compuesta): SELIC nominal anual - IPCA
+    # interanual = tasa real ex-post aproximada.
+    # DECISIÓN EXPLÍCITA (confirmada con Bruno): esta variable queda
+    # correlacionada con "selic" (misma tasa, neta de inflación) -- se suma
+    # igual como 9na variable en vez de reemplazar selic, mismo criterio que
+    # ya usa el modelo ARG con tasa_tamar + ipc por separado.
+    selic_val = data.get("selic", {}).get("valor")
+    ipca_val = data.get("ipca", {}).get("valor")
+    if selic_val is not None and ipca_val is not None:
+        data["tasa_real"] = {"valor": round(selic_val - ipca_val, 2), "fecha": data["selic"].get("fecha", "")}
+    else:
+        data["tasa_real"] = {"valor": None, "fecha": ""}
+
     # Riesgo país Brasil (EMBI) — scraping
     try:
         r = requests.get("https://mercados.ambito.com/riesgo-pais-historico/brasil", timeout=10, headers={"User-Agent": "InversionesBursatiles/1.0"})
@@ -685,27 +721,28 @@ def fetch_brasil_macro():
         logger.warning(f"Riesgo país BRA error: {e}")
         data["riesgo_pais"] = {"valor": None, "fecha": ""}
  
-    # PMI Manufacturero Brasil — FRED (BRAPMIMANMISMEI)
-    try:
-        fred_key = os.environ.get("FRED_API_KEY", "")
-        if fred_key:
-            url_pmi = (
-                "https://api.stlouisfed.org/fred/series/observations"
-                "?series_id=BRAPMIMANMISMEI&api_key=" + fred_key +
-                "&file_type=json&limit=3&sort_order=desc"
-            )
-            r_pmi = requests.get(url_pmi, timeout=15, headers={"User-Agent": "InversionesBursatiles/1.0"})
-            r_pmi.raise_for_status()
-            obs = [o for o in r_pmi.json().get("observations", []) if o.get("value", ".") != "."]
-            if obs:
-                data["pmi"] = {"valor": float(obs[0]["value"]), "fecha": obs[0]["date"]}
-            else:
-                data["pmi"] = {"valor": None, "fecha": ""}
-        else:
-            data["pmi"] = {"valor": None, "fecha": "sin_fred_key"}
-    except Exception as e:
-        logger.warning("PMI BRA FRED error: " + str(e))
-        data["pmi"] = {"valor": None, "fecha": ""}
+    # PMI Manufacturero Brasil — REEMPLAZADO 30/07/2026 (auditoría de log,
+    # confirmado con Bruno). El series_id anterior (BRAPMIMANMISMEI) devolvía
+    # 400 Bad Request en el 100% de las corridas desde el 03/06/2026 -- casi
+    # 2 meses sin que nadie lo notara porque el except lo atrapaba en
+    # silencio. El PMI real de S&P Global para Brasil es dato con licencia
+    # paga (sin API pública gratuita) -- se descartó reproducirlo por
+    # scraping por el mismo motivo de fragilidad que ya tenemos con Ámbito,
+    # más el tema de licencia.
+    # Sustituto elegido (opción B, confirmada con Bruno): índice compuesto
+    # de tendencia empresarial de la industria brasileña que publica la
+    # OCDE vía FRED (BRABSCICP02STSAQ) -- gratuito, oficial, misma familia
+    # de señal (confianza/actividad industrial) aunque NO es un PMI de
+    # difusión 0-100 sino un índice compuesto centrado en 0 (rango
+    # recalibrado en RANGES["bra_pmi"] para esta escala, ver comentario ahí).
+    # LIMITACIÓN CONOCIDA: esta serie es TRIMESTRAL, no mensual -- el valor
+    # puede quedar desactualizado hasta ~3 meses respecto a la fecha de la
+    # corrida. A VALIDAR EN PRODUCCIÓN: confirmar que la serie sigue
+    # actualizándose (última obs. confirmada en la investigación: 2025-07-01,
+    # publicada nov-2025) y que no fue descontinuada como sus series hermanas
+    # (BSBUFT01BRM460S, BSBUCT01BRM460S, discontinuadas en 2013).
+    val, dt = _fred_latest("BRABSCICP02STSAQ")
+    data["pmi"] = {"valor": val, "fecha": dt or ""}
 
     logger.info(f"BRA macro: {sum(1 for v in data.values() if v['valor'] is not None)}/{len(data)} variables obtenidas")
     return data
@@ -740,7 +777,17 @@ RANGES = {
                                        # ver _resultado_fiscal_pct_pbi()
     # Brasil — ahora auto via BCB/FRED
     "bra_deuda_pib": (100.0,  30.0),  # % PIB
-    "bra_pmi":       (40.0,   58.0),  # PMI < 50 contraccion
+    # Reincorporada 30/07/2026 (ver fetch_brasil_macro): SELIC - IPCA.
+    # Mismo criterio direccional que bra_selic (tupla alto->bajo + invert=True
+    # en vars_bra) para no introducir una convención nueva -- consistencia
+    # con la variable de la que deriva.
+    "bra_tasa_real": (10.0,   -2.0),
+    # Recalibrado 30/07/2026: ya no es un PMI de difusión 0-100 (ver fetch_brasil_macro,
+    # cambio de fuente por series_id roto). BRABSCICP02STSAQ es un índice OECD
+    # compuesto centrado en 0 -- rango basado en el historial visto en la
+    # investigación (oscila aprox. -25/+55, con +-15 como banda "normal" fuera
+    # de crisis/boom). A VALIDAR EN PRODUCCIÓN con más observaciones reales.
+    "bra_pmi":       (-15.0,  15.0),
     # USA
     "usa_fed":       (8.0,    0.5),
     "usa_cpi":      (9.0,    0.0),
@@ -1116,6 +1163,7 @@ def compute_macro_scores(arg_data, bra_data, usa_data):
         ("brl_usd",    "bra_brl",      True),
         ("deuda_pib",  "bra_deuda_pib", True),
         ("pmi",        "bra_pmi",       False),
+        ("tasa_real",  "bra_tasa_real", True),
     ]
     for var_name, range_key, invert in vars_bra:
         val = bra_data.get(var_name, {}).get("valor")
