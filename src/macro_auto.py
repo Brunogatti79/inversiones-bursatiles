@@ -279,11 +279,21 @@ def fetch_argentina_macro():
     # nivel exacto.
     CCL_PLAUSIBLE_MIN, CCL_PLAUSIBLE_MAX = 300.0, 6000.0
 
+    # REEMPLAZADO 30/07/2026 (auditoría de log): el 118.18 descartado por el
+    # chequeo de plausibilidad de arriba no era un error de red -- Ámbito
+    # dejó de responder con el formato/valor esperado en este endpoint (
+    # mismo patrón que riesgo_pais, ver fix un poco más arriba). Migrado a
+    # DolarApi.com (dolarapi.com/v1/dolares/contadoconliqui), API pública
+    # específica para cotizaciones de dólar, sin auth. Probada en vivo el
+    # 30/07/2026: devolvió compra=1583, venta=1586.1 -- dentro del rango
+    # plausible y consistente con el oficial (~1465-1515) de la misma
+    # respuesta. El chequeo CCL_PLAUSIBLE_MIN/MAX de abajo se deja igual,
+    # como red de seguridad adicional aunque la fuente sea más confiable.
     try:
-        r = requests.get("https://mercados.ambito.com/dolar/cl/variacion", timeout=10, headers={"User-Agent": "InversionesBursatiles/1.0"})
+        r = requests.get("https://dolarapi.com/v1/dolares/contadoconliqui", timeout=10, headers={"User-Agent": "InversionesBursatiles/1.0"})
         if r.status_code == 200:
             ccl_data = r.json()
-            ccl = float(str(ccl_data.get("compra", "0")).replace(".", "").replace(",", "."))
+            ccl = float(ccl_data.get("compra", 0) or 0)
             if ccl > 0 and not (CCL_PLAUSIBLE_MIN <= ccl <= CCL_PLAUSIBLE_MAX):
                 logger.warning(
                     f"[macro_auto] CCL fetcheado ({ccl}) fuera de rango plausible "
@@ -1545,11 +1555,13 @@ def get_ccl_data(max_age_hours: float = 4.0) -> dict:
         logger.warning(f"[macro_auto] get_ccl_data: cache local inválido, reintentando fetch: {e}")
 
     try:
-        r = requests.get("https://mercados.ambito.com/dolar/cl/variacion", timeout=10,
+        # REEMPLAZADO 30/07/2026 (mismo motivo que fetch_argentina_macro, ver
+        # comentario ahí) -- DolarApi.com en vez de Ambito.
+        r = requests.get("https://dolarapi.com/v1/dolares/contadoconliqui", timeout=10,
                           headers={"User-Agent": "InversionesBursatiles/1.0"})
         if r.status_code == 200:
             ccl_data = r.json()
-            ccl = float(str(ccl_data.get("compra", "0")).replace(".", "").replace(",", "."))
+            ccl = float(ccl_data.get("compra", 0) or 0)
             # FIX 29/07/2026: mismo guard de plausibilidad que el bloque de
             # fetch_argentina_macro -- ver comentario ahí para el detalle
             # del incidente. Un valor implausible acá NO se persiste (evita
@@ -1562,10 +1574,10 @@ def get_ccl_data(max_age_hours: float = 4.0) -> dict:
                 )
                 ccl = 0.0
             if ccl > 0:
-                _persist_ccl_cache(ccl, fuente="ambito")
+                _persist_ccl_cache(ccl, fuente="dolarapi")
                 return {
                     "compra":    ccl,
-                    "fuente":    "ambito",
+                    "fuente":    "dolarapi",
                     "fecha":     datetime.now().strftime("%Y-%m-%d"),
                     "timestamp": datetime.now().isoformat(),
                 }
