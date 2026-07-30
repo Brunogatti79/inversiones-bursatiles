@@ -13,7 +13,25 @@ import json
 import logging
 import pandas as pd
 from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
- 
+
+# FIX 30/07/2026 (auditoría de log + confirmado con Bruno): este es el
+# entrypoint real de Railway (railway.toml: startCommand = "python
+# start_server.py") y nunca configuraba logging.basicConfig(). Sin esto, el
+# logger raíz de Python queda en su nivel default (WARNING) -- TODO
+# logger.info() del pipeline completo (macro_auto, analyzer, tracker, etc.)
+# se descartaba en silencio desde siempre, incluida la línea "[START]
+# start_server.py version=..." dos líneas más abajo. main.py sí tenía este
+# basicConfig, pero corre como subprocess aparte (ver launch_main() más
+# abajo) -- su configuración de logging vive en un proceso Python distinto
+# y no alcanza al proceso de start_server.py, que es donde efectivamente
+# corre run_pipeline(). Mismo formato que ya usaba main.py, para
+# consistencia.
+logging.basicConfig(
+    level=logging.DEBUG if os.getenv("DEBUG_MODE", "false").lower() == "true" else logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+
 logger = logging.getLogger(__name__)
  
 # ── Versión del código — para verificar qué está corriendo en Railway ──
