@@ -140,6 +140,9 @@ def fetch_usa_macro():
     data["hy_spread"] = {"valor": val, "fecha": dt}
  
     logger.info(f"USA macro: {sum(1 for v in data.values() if v['valor'] is not None)}/{len(data)} variables obtenidas")
+    faltantes = [k for k, v in data.items() if v.get("valor") is None]
+    if faltantes:
+        logger.warning(f"[macro_auto] USA variables en None esta corrida: {faltantes}")
     return data
  
  
@@ -354,6 +357,9 @@ def fetch_argentina_macro():
     data["resultado_fiscal"] = {"valor": val, "fecha": dt or ""}
  
     logger.info(f"ARG macro: {sum(1 for v in data.values() if v['valor'] is not None)}/{len(data)} variables obtenidas")
+    faltantes = [k for k, v in data.items() if v.get("valor") is None]
+    if faltantes:
+        logger.warning(f"[macro_auto] ARG variables en None esta corrida: {faltantes} (incluye 'ccl' si aplica, que no es input del score)")
     return data
  
  
@@ -703,6 +709,14 @@ def fetch_brasil_macro():
     if selic_val is not None and ipca_val is not None:
         data["tasa_real"] = {"valor": round(selic_val - ipca_val, 2), "fecha": data["selic"].get("fecha", "")}
     else:
+        # FIX 30/07/2026 (auditoría de log, primera corrida post-deploy):
+        # esto quedaba en None sin ningún rastro en el log -- exactamente el
+        # patrón de falla silenciosa que el proyecto marca como el más
+        # peligroso. Ahora deja explícito cuál de los dos inputs faltó.
+        logger.warning(
+            f"[macro_auto] tasa_real BRA no calculada -- selic={selic_val}, ipca={ipca_val} "
+            f"(al menos uno de los dos vino None esta corrida)"
+        )
         data["tasa_real"] = {"valor": None, "fecha": ""}
 
     # Riesgo país Brasil (EMBI) — scraping
@@ -745,6 +759,9 @@ def fetch_brasil_macro():
     data["pmi"] = {"valor": val, "fecha": dt or ""}
 
     logger.info(f"BRA macro: {sum(1 for v in data.values() if v['valor'] is not None)}/{len(data)} variables obtenidas")
+    faltantes = [k for k, v in data.items() if v.get("valor") is None]
+    if faltantes:
+        logger.warning(f"[macro_auto] BRA variables en None esta corrida: {faltantes}")
     return data
  
  
