@@ -232,13 +232,26 @@ def fetch_argentina_macro():
     # Riesgo país — Ámbito
     # FIX 30/07/2026 (mismo lote que tipo_cambio arriba): sin red de
     # contención, scraping frágil por naturaleza (§8.4 de la arquitectura).
+    # REEMPLAZADO 30/07/2026 (auditoría de log: 3 corridas seguidas fallando
+    # sin excepción de red -- la respuesta de Ámbito dejó de tener la forma
+    # esperada, no es caché fría). Se migra a ArgentinaDatos API
+    # (api.argentinadatos.com), documentada en argentinadatos.com/docs,
+    # licencia MIT, sin auth. Probada en vivo el 30/07/2026 contra un
+    # endpoint hermano (/v1/feriados/) -- responde 200 con JSON válido.
+    # NO pude probar el endpoint específico de riesgo-pais en esta sesión
+    # (mis herramientas no permiten fetch directo a una URL no vista antes
+    # en una búsqueda) -- A VALIDAR EN PRODUCCIÓN con el próximo run real.
+    # Nota: la propia doc de ArgentinaDatos indica que su fuente para este
+    # dato TAMBIÉN es Ámbito -- si Ámbito está completamente caído (no solo
+    # con un cambio de formato en este endpoint puntual), esto podría fallar
+    # igual. Si eso pasa, el fallback a último valor cacheado sigue
+    # protegiendo la variable igual que antes.
     def _fetch_riesgo_pais_arg():
-        r = requests.get("https://mercados.ambito.com/riesgo-pais/datos", timeout=10, headers={"User-Agent": "InversionesBursatiles/1.0"})
+        r = requests.get("https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo", timeout=10, headers={"User-Agent": "InversionesBursatiles/1.0"})
         if r.status_code == 200:
             rp_data = r.json()
-            if isinstance(rp_data, dict):
-                val = float(str(rp_data.get("ultimo", "0")).replace(".", "").replace(",", "."))
-                return val, datetime.now().strftime("%Y-%m-%d")
+            if isinstance(rp_data, dict) and rp_data.get("valor") is not None:
+                return float(rp_data["valor"]), rp_data.get("fecha", "")
         return None, None
 
     val, dt = _with_last_known_fallback("riesgo_pais_arg", _fetch_riesgo_pais_arg)
