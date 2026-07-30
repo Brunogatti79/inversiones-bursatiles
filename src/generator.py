@@ -277,6 +277,17 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
 
     _MC_FLAGS = {"MERVAL": "🇦🇷", "BOVESPA": "🇧🇷", "SP500": "🇺🇸"}
 
+    def _es_compra(s):
+        """FIX 30/07/2026 (pedido de Bruno, auditoría de dashboard): los
+        paneles de 'Por confianza del modelo' y 'V1 vs V2' listaban
+        tickers de HOY filtrando solo por confidence_label/consenso, sin
+        mirar la señal -- un ticker en NEUTRAL o VENTA con confianza Alta
+        igual aparecía en esas listas. Estos paneles son para detectar
+        oportunidades accionables, no para reportar confianza en general
+        -- se acota a COMPRA/COMPRA FUERTE en las dos listas de abajo."""
+        sig = (s.get("signal_v2") or s.get("signal") or "")
+        return "COMPRA" in sig.upper()
+
     def _mc_ticker_badges(matching):
         """Lista compacta de tickers de HOY que caen en una categoría dada.
         Distinto de los conteos de _backtest (que son históricos/agregados):
@@ -353,7 +364,7 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
         _conf_ticker_labels = {"🟢 Alta", "🟡 Media"}
         mc_chips_conf = "".join(
             _mc_chip(_conf_names[_l], _by_conf.get(_l), border_color=_conf_colors[_l],
-                     extra_html=(_mc_ticker_badges([s for s in _signals_today if s.get("confidence_label") == _l])
+                     extra_html=(_mc_ticker_badges([s for s in _signals_today if s.get("confidence_label") == _l and _es_compra(s)])
                                  if _l in _conf_ticker_labels else ""))
             for _l in _conf_order if _l in _by_conf
         )
@@ -372,7 +383,7 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
         _cons_ticker_keys = {"Consenso", "V1↓/V2↑ activo débil, buen entry"}
         mc_chips_cons = "".join(
             _mc_chip(_cons_meta.get(_k, (_k, None))[0], _by_cons[_k], subtitle=_cons_meta.get(_k, (_k, None))[1],
-                     extra_html=(_mc_ticker_badges([s for s in _signals_today if s.get("consenso") == _k])
+                     extra_html=(_mc_ticker_badges([s for s in _signals_today if s.get("consenso") == _k and _es_compra(s)])
                                  if _k in _cons_ticker_keys else ""))
             for _k in _cons_keys
         )
