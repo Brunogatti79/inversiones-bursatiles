@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-07-30T13:06:02.328894",
-  "last_run_utc": "2026-07-30T16:06:02.328925",
-  "last_success": "2026-07-30T13:06:02.328894",
+  "last_run": "2026-07-30T14:07:39.140984",
+  "last_run_utc": "2026-07-30T17:07:39.141015",
+  "last_success": "2026-07-30T14:07:39.140984",
   "consecutive_failures": 0,
   "duration_history": [
-    55.8,
     97.6,
     102.0,
     54.9,
@@ -13,19 +12,20 @@
     98.3,
     105.1,
     169.2,
-    112.7
+    112.7,
+    58.4
   ],
-  "duration_avg_sec": 96.2,
+  "duration_avg_sec": 96.0,
   "duration_p95_sec": 140.9,
-  "duration_last_sec": 112.7,
+  "duration_last_sec": 58.4,
   "signals_count": 67,
   "buy_signals": 14,
-  "sell_signals": 8,
-  "neutral_signals": 45,
+  "sell_signals": 9,
+  "neutral_signals": 44,
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
-  "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 44/100), correlación moderada entre mercados. BOVESPA en modo idiosincr",
-  "validacion_nivel": "WARNING",
+  "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 44/100), correlación moderada entre mercados. Ajuste macro: MERVAL -0.2",
+  "validacion_nivel": "OK",
   "runs_log": [
     {
       "ts": "2026-07-23",
@@ -266,21 +266,26 @@
       "ts": "2026-07-30",
       "success": true,
       "duration": 112.7
+    },
+    {
+      "ts": "2026-07-30",
+      "success": true,
+      "duration": 58.4
     }
   ],
-  "pipeline_runs_today": 5,
-  "pipeline_runs_week": 48,
-  "optimized_weights_age_h": 0.3,
+  "pipeline_runs_today": 6,
+  "pipeline_runs_week": 49,
+  "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 52.5,
+  "global_confidence_score": 67.9,
   "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
   "optimized_weights_days": 22,
-  "exposure_factor_shadow": 0.65,
+  "exposure_factor_shadow": 0.958,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
   "backtest_ev_21d": null,
@@ -289,6 +294,6 @@
   "predictor_mae": null,
   "backtest_generated": "2026-07-30",
   "ccl_source_status": "IMPLAUSIBLE",
-  "ccl_age_minutes": 20.1,
+  "ccl_age_minutes": 1.0,
   "last_ccl_value": 118.18
 }
