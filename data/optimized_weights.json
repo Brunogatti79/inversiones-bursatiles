@@ -1,44 +1,23 @@
 {
-  "generated": "2026-07-29T11:44:25.503422",
-  "days_history": 1,
-  "mode": "sensitivity",
+  "generated": "2026-07-30T10:07:10.540901",
+  "days_history": 22,
+  "mode": "walk_forward",
   "MERVAL": {
-    "macro": 0.2,
-    "tecnico": 0.15,
+    "macro": 0.35,
+    "tecnico": 0.25,
     "sector": 0.1,
-    "fundamental": 0.55,
-    "ev_21d": 7.77,
-    "win_rate_21d": 0.556,
-    "avg_ret_21d": 7.77,
-    "sharpe_21d": 0.34,
-    "samples": 459,
-    "n_real_entries": 0,
-    "n_replay_entries": 594
+    "fundamental": 0.3
   },
   "BOVESPA": {
-    "macro": 0.35,
-    "tecnico": 0.2,
-    "sector": 0.1,
-    "fundamental": 0.35,
-    "ev_21d": 3.39,
-    "win_rate_21d": 0.617,
-    "avg_ret_21d": 3.39,
-    "sharpe_21d": 0.29,
-    "samples": 60,
-    "n_real_entries": 0,
-    "n_replay_entries": 644
-  },
-  "SP500": {
-    "macro": 0.35,
+    "macro": 0.25,
     "tecnico": 0.35,
     "sector": 0.1,
-    "fundamental": 0.2,
-    "ev_21d": 5.97,
-    "win_rate_21d": 0.923,
-    "avg_ret_21d": 5.97,
-    "sharpe_21d": 0.7,
-    "samples": 13,
-    "n_real_entries": 0,
-    "n_replay_entries": 1092
+    "fundamental": 0.3
+  },
+  "SP500": {
+    "macro": 0.2,
+    "tecnico": 0.3,
+    "sector": 0.1,
+    "fundamental": 0.4
   }
 }
