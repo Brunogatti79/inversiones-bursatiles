@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-08-03T16:21:15.509530",
-  "last_run_utc": "2026-08-03T19:21:15.509576",
-  "last_success": "2026-08-03T16:21:15.509530",
+  "last_run": "2026-08-03T17:31:58.518495",
+  "last_run_utc": "2026-08-03T20:31:58.518570",
+  "last_success": "2026-08-03T17:31:58.518495",
   "consecutive_failures": 0,
   "duration_history": [
-    169.3,
     83.0,
     69.8,
     97.1,
@@ -13,11 +12,12 @@
     154.4,
     1033.1,
     173.2,
-    72.5
+    72.5,
+    118.5
   ],
-  "duration_avg_sec": 189.5,
+  "duration_avg_sec": 192.7,
   "duration_p95_sec": 603.1,
-  "duration_last_sec": 72.5,
+  "duration_last_sec": 118.5,
   "signals_count": 67,
   "buy_signals": 15,
   "sell_signals": 8,
@@ -256,21 +256,26 @@
       "ts": "2026-08-03",
       "success": true,
       "duration": 72.5
+    },
+    {
+      "ts": "2026-08-03",
+      "success": true,
+      "duration": 118.5
     }
   ],
-  "pipeline_runs_today": 2,
-  "pipeline_runs_week": 46,
-  "optimized_weights_age_h": 0.0,
+  "pipeline_runs_today": 3,
+  "pipeline_runs_week": 47,
+  "optimized_weights_age_h": 1.2,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 60.1,
+  "global_confidence_score": 59.6,
   "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
   "optimized_weights_days": 26,
-  "exposure_factor_shadow": 0.802,
+  "exposure_factor_shadow": 0.792,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
   "backtest_ev_21d": null,
@@ -279,6 +284,6 @@
   "predictor_mae": null,
   "backtest_generated": "2026-08-03",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 1.1,
-  "last_ccl_value": 1578.1
+  "ccl_age_minutes": 1.8,
+  "last_ccl_value": 1579.4
 }
