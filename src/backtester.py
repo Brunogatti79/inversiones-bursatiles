@@ -540,6 +540,14 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         # "Alta" en general o "COMPRA" en general. Sin esto, cualquier regla
         # de decisión que combine ambos campos se basaba en intuición.
         "confidence_x_signal":    _aggregate_cross(trades, "confidence_label", "signal"),
+        # Pedido de Bruno (05/08/2026): cruce confianza x consenso V1/V2 --
+        # by_consenso y by_confidence_label existían por separado, pero no
+        # cruzados. Se detectó a mano que la celda con volumen real
+        # ("cualquier confianza" + "activo débil, buen entry", n=114,
+        # avg_ret_21d +23%) estaba dominada por 2 tickers (GLOB, MGLU3.SA)
+        # de 21 distintos -- de ahí _diversity_metrics arriba, que se aplica
+        # también a este cruce para no repetir el mismo error de lectura.
+        "confidence_x_consenso":  _aggregate_cross(trades, "confidence_label", "consenso"),
         # Auditoría externa (28/07/2026), punto 2: cruce de 3 vías -- "Alta +
         # COMPRA" puede estar promediando un mercado malo con uno bueno.
         # La mayoría de las celdas van a salir con muestra insuficiente con
@@ -875,6 +883,53 @@ def _aggregate_by(trades: list, group_key: str) -> dict:
     return result
 
 
+def _diversity_metrics(gtrades: list) -> dict:
+    """
+    Auditoría 05/08/2026 (caso real detectado sobre 28 días de historia):
+    el cruce confidence_label x consenso mostraba un n=114 y avg_ret_21d
+    de +23% en la celda "activo débil, buen entry" -- pero al desagregar
+    por ticker, GLOB (+113% avg) y MGLU3.SA (+75% avg) eran apenas 2 de
+    21 tickers y explicaban casi todo el promedio (sin ellos: n=88,
+    avg_ret cae a +2.2%). El n de señales no distingue "21 apuestas
+    independientes" de "2 movimientos de precio contados 25 veces porque
+    la señal se sostuvo varios días seguidos" -- sin esta métrica, una
+    celda con n grande y EV llamativo puede leerse como patrón cuando en
+    realidad es concentración en 1-2 nombres.
+
+    Deliberadamente NO oculta ni recalcula win_rate/EV -- solo expone la
+    diversidad real para que se lea junto con el resto de la celda, mismo
+    criterio que muestra_insuficiente (no reemplaza el juicio, lo informa).
+    """
+    tickers = [t.get("ticker", "") for t in gtrades if t.get("ticker")]
+    if not tickers:
+        return {
+            "tickers_unicos":     0,
+            "top_ticker":         None,
+            "top_ticker_pct":     None,
+            "concentracion_alta": False,
+        }
+
+    counts: dict[str, int] = {}
+    for tk in tickers:
+        counts[tk] = counts.get(tk, 0) + 1
+    top_ticker, top_count = max(counts.items(), key=lambda kv: kv[1])
+    n_tickers = len(counts)
+    top_pct = round(top_count / len(tickers) * 100, 1)
+
+    # Concentración alta: un solo ticker explica >=30% de las señales de la
+    # celda Y hay pocos tickers en general (<10). Ambas condiciones juntas
+    # para no marcar como "concentrado" un cruce con 3-4 tickers parejos
+    # donde ninguno domina desproporcionadamente.
+    concentracion_alta = top_pct >= 30 and n_tickers < 10
+
+    return {
+        "tickers_unicos":     n_tickers,
+        "top_ticker":         top_ticker,
+        "top_ticker_pct":     top_pct,
+        "concentracion_alta": concentracion_alta,
+    }
+
+
 def _aggregate_cross(trades: list, key1: str, key2: str, min_cell_samples: int = 5) -> dict:
     """
     Cruce de 2 claves (ej. confidence_label × signal) -- pedido real de
@@ -898,6 +953,7 @@ def _aggregate_cross(trades: list, key1: str, key2: str, min_cell_samples: int =
     result = {}
     for (k1, k2), gtrades in groups.items():
         entry = {"count": len(gtrades), "muestra_insuficiente": len(gtrades) < min_cell_samples}
+        entry.update(_diversity_metrics(gtrades))
 
         for h in HORIZONS:
             rets = [t[f"ret_{h}d"] for t in gtrades if t.get(f"ret_{h}d") is not None]
@@ -949,6 +1005,7 @@ def _aggregate_cross3(trades: list, key1: str, key2: str, key3: str,
     result = {}
     for (k1, k2, k3), gtrades in groups.items():
         entry = {"count": len(gtrades), "muestra_insuficiente": len(gtrades) < min_cell_samples}
+        entry.update(_diversity_metrics(gtrades))
 
         for h in HORIZONS:
             rets = [t[f"ret_{h}d"] for t in gtrades if t.get(f"ret_{h}d") is not None]
