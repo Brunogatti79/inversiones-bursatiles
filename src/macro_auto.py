@@ -708,10 +708,21 @@ def _bcb_latest(series_id):
 def fetch_brasil_macro():
     """Obtiene variables macro de Brasil."""
     data = {}
- 
+
+    # FIX 06/08/2026 (pedido de Bruno, tras ver "BCB error [serie 433]" en
+    # logs de producción -- 433 = IPCA): a diferencia de las variables ARG
+    # (tipo_cambio, riesgo_pais, brecha, ipc, desempleo, balanza,
+    # resultado_fiscal), las 6 series de BCB_SERIES nunca tuvieron
+    # _with_last_known_fallback() -- un 502/timeout puntual de la API del
+    # BCB (que ya se vio en logs reales, no es hipotético) las dejaba en
+    # None esa corrida entera, sin red de contención.
+    # Prefijo "bra_" en las claves de caché: Argentina ya usa "desempleo"
+    # sin prefijo (ver fetch_argentina_macro) en el MISMO archivo
+    # data/macro_last_known.json -- sin el prefijo, el fallback de
+    # desempleo de Brasil pisaría/leería el de Argentina y viceversa.
     for name, series_id in BCB_SERIES.items():
-        val, dt = _bcb_latest(series_id)
-        data[name] = {"valor": val, "fecha": dt}
+        val, dt = _with_last_known_fallback(f"bra_{name}", lambda sid=series_id: _bcb_latest(sid))
+        data[name] = {"valor": val, "fecha": dt or ""}
 
     # Tasa real ex-post (diferencial tasa real) — REINCORPORADA 30/07/2026
     # (auditoría de log + confirmación con Bruno). Estaba en la
