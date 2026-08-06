@@ -142,8 +142,21 @@ DATA_DIR         = "data"
  
  
 def get_period():
-    end   = datetime.now(pytz.UTC)
-    start = end - timedelta(days=400)
+    # FIX 06/08/2026 (auditoría de Bruno: dashboard mostraba datos del
+    # 04/08 pese a que download_data.yml corrió 4 veces el 05/08 y comiteó
+    # cada vez). Causa raíz: yfinance trata 'end' en Ticker.history() como
+    # EXCLUSIVO -- Yahoo devuelve datos estrictamente ANTERIORES a esa
+    # fecha, nunca incluyéndola. Con end=hoy (sin +1 día), la corrida final
+    # del día (cron 23:00 UTC, pensada para capturar el cierre de HOY una
+    # vez cerrados los 3 mercados) pedía end="2026-08-05" y Yahoo respondía
+    # con datos hasta 2026-08-04 -- el día entero que esa corrida debía
+    # traer quedaba sistemáticamente afuera, sin excepción ni respuesta
+    # vacía que lo delatara (por eso "ok": true con last_date desactualizado
+    # en download_status.json corrida tras corrida).
+    # Fix: correr el límite superior un día hacia adelante para que el
+    # límite EXCLUSIVO caiga después del día de la corrida, no en él.
+    end   = datetime.now(pytz.UTC) + timedelta(days=1)
+    start = end - timedelta(days=401)
     return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
  
  
@@ -282,6 +295,30 @@ def download_market_no_index(tickers, market_name):
     return df
 
 
+def _dias_atraso_simple(last_date):
+    """
+    Versión liviana de la misma idea que data_validator.ultimo_dia_habil()
+    (Railway/src/), pero SIN importarla: probado en este mismo entorno
+    (06/08/2026) que `from src.data_validator import ...` revienta con
+    ModuleNotFoundError al correr `python scripts/download_data.py` desde
+    la raíz del repo -- sys.path[0] queda en scripts/, no en la raíz, y
+    este script no comparte contexto de ejecución con Railway (que sí lo
+    resuelve vía start_server.py). Mejor una versión local, aunque
+    duplique un poco de lógica, que un job de GitHub Actions roto por un
+    import cruzado sin testear en CI real.
+
+    No conoce feriados (a diferencia de la versión de data_validator.py) --
+    es solo una señal informativa en download_status.json para detectar
+    rápido si una corrida quedó stale, no el control de calidad autoritativo
+    (ese ya corre después, en el pipeline de Railway, con feriados incluidos).
+    """
+    hoy = datetime.now(pytz.UTC).date()
+    d = hoy - timedelta(days=1)
+    while d.weekday() >= 5:  # sábado/domingo
+        d -= timedelta(days=1)
+    return (d - last_date).days
+
+
 def save_csv(df, market_name, suffix="cierres"):
     os.makedirs(DATA_DIR, exist_ok=True)
     path = f"{DATA_DIR}/{market_name.lower()}_{suffix}.csv"
@@ -311,10 +348,14 @@ def main():
                 # data912.com aparte, no necesita High/Low de Yahoo acá)
                 df = download_market_no_index(tickers, market)
                 save_csv(df, market)
+                _last = df.index[-1].date()
+                _atraso = _dias_atraso_simple(_last)
                 status["markets"][market] = {
-                    "rows":      len(df),
-                    "last_date": str(df.index[-1].date()),
-                    "ok":        True,
+                    "rows":         len(df),
+                    "last_date":    str(_last),
+                    "dias_atraso":  _atraso,
+                    "stale":        _atraso > 0,
+                    "ok":           True,
                 }
             else:
                 df, df_high, df_low = download_market(tickers, index, market)
@@ -333,17 +374,33 @@ def main():
                 if df_low is not None:
                     save_csv(df_low, market, suffix="low")
 
+                _last = df.index[-1].date()
+                _atraso = _dias_atraso_simple(_last)
                 status["markets"][market] = {
-                    "rows":      len(df),
-                    "last_date": str(df.index[-1].date()),
-                    "ok":        True,
-                    "ohlc":      df_high is not None and df_low is not None,
+                    "rows":         len(df),
+                    "last_date":    str(_last),
+                    "dias_atraso":  _atraso,
+                    # Fix 06/08/2026 (auditoría de Bruno): antes "ok": true
+                    # no distinguía "hay datos nuevos" de "hay datos, pero
+                    # son los de hace 2 días" -- ver get_period() más arriba
+                    # para la causa raíz real (bug del 'end' exclusivo de
+                    # yfinance). Este flag es la señal explícita que faltaba;
+                    # no bloquea el commit (todavía es mejor tener datos
+                    # atrasados que ninguno), solo lo hace visible sin tener
+                    # que bucear en logs.
+                    "stale":        _atraso > 0,
+                    "ok":           True,
+                    "ohlc":         df_high is not None and df_low is not None,
                 }
         except Exception as e:
             logger.error(f"[{market}] ERROR: {e}")
             errors.append(str(e))
             status["markets"][market] = {"ok": False, "error": str(e)}
- 
+
+    _stale_markets = [m for m, s in status["markets"].items() if s.get("stale")]
+    if _stale_markets:
+        logger.warning(f"=== Mercados con datos atrasados esta corrida: {_stale_markets} ===")
+
     status["success"] = len(errors) == 0
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(f"{DATA_DIR}/download_status.json", "w") as f:
