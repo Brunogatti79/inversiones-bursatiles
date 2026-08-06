@@ -326,6 +326,28 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             _ev_color = "#888"  # dentro del umbral de ruido -> mismo color que "dentro del ruido"
         _sub_html = f'<div style="font-size:9.5px;color:#666;margin:2px 0 6px">{subtitle}</div>' if subtitle else ""
         _warn = ('<span style="color:#fbbf24"> ⚠️ muestra chica</span>' if _n < min_n else "")
+        # NUEVO (05/08/2026, pedido de Bruno tras auditoría del cruce
+        # confianza×consenso): si un solo ticker explica ≥30% de las
+        # señales de la celda y hay menos de 10 tickers distintos en
+        # total, el WR/EV de arriba puede ser 1-2 movimientos de precio
+        # contados varias veces (la señal se sostuvo varios días
+        # seguidos), no un patrón real -- caso encontrado en la propia
+        # auditoría: la celda "cualquier confianza + activo débil, buen
+        # timing" mostraba +23% de resultado promedio, pero sin GLOB y
+        # MGLU3.SA caía a +2.2%. Ver _diversity_metrics en backtester.py.
+        _concentracion = bool((entry or {}).get("concentracion_alta"))
+        _top_ticker = (entry or {}).get("top_ticker")
+        _top_pct = (entry or {}).get("top_ticker_pct")
+        _tickers_unicos = (entry or {}).get("tickers_unicos")
+        _concentracion_html = ""
+        if _concentracion and _top_ticker:
+            _tickers_word = "ticker distinto" if _tickers_unicos == 1 else "tickers distintos"
+            _concentracion_html = (
+                f'<div style="font-size:9px;color:#fbbf24;margin-top:4px;border-top:1px dashed #3a3020;'
+                f'padding-top:4px">⚠️ Concentrado en <b>{_top_ticker}</b> ({_top_pct:.0f}% de las señales, '
+                f'{_tickers_unicos} {_tickers_word} en total) — el resultado puede depender de 1-2 nombres, '
+                f'no de un patrón general.</div>'
+            )
         return (
             f'<div style="background:#111116;border:1px solid #222;border-left:3px solid {border_color};'
             f'border-radius:6px;padding:8px 12px">'
@@ -337,6 +359,7 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             f'de las veces</div>'
             f'<div style="font-size:11px;color:#999">Resultado promedio: <b style="color:{_ev_color}">{_ev_str}</b></div>'
             f'{_mc_materiality(_ev)}'
+            f'{_concentracion_html}'
             f'{extra_html}'
             f'</div>'
         )
@@ -387,6 +410,40 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
                                  if _k in _cons_ticker_keys else ""))
             for _k in _cons_keys
         )
+
+        # Cruce confianza × consenso (pedido de Bruno, 06/08/2026): los dos
+        # paneles de arriba muestran cada dimensión por separado, pero no
+        # cruzadas -- una celda como "🟢 Alta + activo débil, buen timing"
+        # puede tener un resultado completamente distinto al de "🔴 Muy
+        # baja + activo débil, buen timing" y esa diferencia se pierde al
+        # mirar solo los promedios de cada dimensión. Usa
+        # backtester._aggregate_cross(..., "confidence_label", "consenso")
+        # (backtester.py, agregado 05/08/2026), que ya viene con
+        # _diversity_metrics incluido -- de ahí que _mc_chip ya sepa
+        # mostrar la advertencia de concentración sin cambios adicionales.
+        _cons_short = {
+            "Consenso": "🤝 Consenso",
+            "V1↓/V2↑ activo débil, buen entry": "✅ Activo débil, buen timing",
+            "V1↑/V2↓ buen activo, mal timing":  "⚠️ Buen activo, mal timing",
+        }
+        _cxc = _backtest.get("confidence_x_consenso", {})
+        _cxc_parts = []
+        for _cl in _conf_order:
+            _byc_cl = _cxc.get(_cl, {})
+            for _ck in sorted(_byc_cl.keys(), key=lambda k: (k != "Consenso", -_byc_cl[k].get("count", 0))):
+                _combo_label = f'{_cl} · {_cons_short.get(_ck, _ck)}'
+                _cxc_parts.append(_mc_chip(_combo_label, _byc_cl[_ck], border_color=_conf_colors.get(_cl, "#2a2a2a"), min_n=10))
+        mc_chips_cxc = "".join(_cxc_parts)
+        mc_cxc_section = ""
+        if mc_chips_cxc:
+            mc_cxc_section = (
+                '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">🎯⚖️ Confianza × V1 vs V2 (cruce)</div>'
+                '<div style="font-size:10px;color:#666;margin-bottom:6px">Los dos paneles de arriba por separado -- acá '
+                'cruzados, para ver si "buen timing con mala calidad" funciona distinto según cuán confiado estaba el '
+                'modelo en la señal. Con pocos días de historia, varias celdas todavía tienen pocas operaciones.</div>'
+                f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px;margin-bottom:10px">'
+                f'{mc_chips_cxc}</div>'
+            )
 
         _mkt_names = {"MERVAL": "🇦🇷 MERVAL", "BOVESPA": "🇧🇷 BOVESPA", "SP500": "🇺🇸 S&amp;P 500"}
         _by_mkt = _backtest.get("by_market", {})
@@ -595,6 +652,8 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             'es buen momento técnico para entrar. Cuando no coinciden, ¿cuál importó más?</div>'
             f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:6px;margin-bottom:10px">'
             f'{mc_chips_cons}</div>'
+
+            f'{mc_cxc_section}'
 
             '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 6px">🌎 Por mercado</div>'
             f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px">'
