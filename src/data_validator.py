@@ -92,7 +92,15 @@ def validar_frescura(df: pd.DataFrame, market: str) -> dict:
 
     diff_dias = (esperado - ultima_fecha).days
 
-    if diff_dias == 0:
+    if diff_dias < 0:
+        # El dato es MÁS reciente que lo esperado (ej: Yahoo ya publicó el
+        # cierre de hoy antes de las 22 UTC). No es atraso -- el mensaje
+        # anterior decía "-1d de atraso" con signo invertido, generando
+        # alertas amarillas falsas (Bruno, 07/08/2026).
+        resultado['info'].append(
+            f"[{market}] ✅ Dato adelantado: {ultima_fecha} (esperado: {esperado})"
+        )
+    elif diff_dias == 0:
         resultado['info'].append(f"[{market}] ✅ Dato fresco: {ultima_fecha} (esperado: {esperado})")
     elif diff_dias <= 3:
         resultado['warnings'].append(

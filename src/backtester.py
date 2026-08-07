@@ -1065,16 +1065,32 @@ def _metrics_from_rets(rets: list) -> dict | None:
     ic95    = None
     significativo_95 = False
     n = len(arr)
-    if n >= 2 and std > 0:
+    # Guard contra varianza casi-cero (no solo == 0): retornos numéricamente
+    # casi idénticos (ej. varias señales cerradas al mismo múltiplo de ATR
+    # en una celda con n chico) hacen que ttest_1samp calcule momentos con
+    # cancelación catastrófica -- scipy tira RuntimeWarning y el resultado
+    # queda numéricamente poco confiable aunque no crashee (Bruno, 07/08/2026).
+    # Umbral relativo a la magnitud de los propios retornos, no un valor
+    # absoluto fijo, para no penalizar series con retornos chicos legítimos.
+    std_ok = std > 0 and (std / max(abs(avg_ret), 1e-9) > 1e-6 or std > 1e-6)
+    if n >= 2 and std_ok:
         try:
+            import warnings as _warnings
             from scipy import stats as _stats
-            t_stat, p_value = _stats.ttest_1samp(arr, popmean=0.0)
+            with _warnings.catch_warnings():
+                _warnings.simplefilter("error", RuntimeWarning)
+                t_stat, p_value = _stats.ttest_1samp(arr, popmean=0.0)
             p_value = round(float(p_value), 4)
             sem     = std / np.sqrt(n)
             t_crit  = _stats.t.ppf(0.975, df=n - 1)
             margin  = float(t_crit * sem)
             ic95    = [round(avg_ret - margin, 2), round(avg_ret + margin, 2)]
             significativo_95 = bool(p_value < 0.05)
+        except RuntimeWarning as e:
+            logger.info(
+                f"Backtester: significancia omitida por varianza casi-cero "
+                f"(n={n}, std={std:.6g}): {e}"
+            )
         except Exception as e:
             logger.warning(f"Backtester: no se pudo calcular significancia (n={n}): {e}")
 

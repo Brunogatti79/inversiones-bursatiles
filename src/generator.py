@@ -898,6 +898,25 @@ def generate_dashboard(
     except Exception:
         _conf_x_signal = {}
 
+    # Footer del header: versión y pesos reales del modelo (antes hardcodeado
+    # como "Modelo v2.0 — 50/30/20" desde hacía varias versiones, desconectado
+    # de MODEL_VERSION/AQ_WEIGHTS/ES_WEIGHTS reales -- Bruno, 07/08/2026).
+    try:
+        from src.model_version import MODEL_VERSION as _FOOTER_MODEL_VERSION
+        from src.analyzer import AQ_WEIGHTS as _FOOTER_AQ, ES_WEIGHTS as _FOOTER_ES
+        footer_model_html = (
+            f"Modelo v{_FOOTER_MODEL_VERSION} — "
+            f"Asset Quality({int(_FOOTER_AQ['macro']*100)}%Macro+"
+            f"{int(_FOOTER_AQ['fundamental']*100)}%Fundamental+"
+            f"{int(_FOOTER_AQ['sectorial']*100)}%Sectorial) · "
+            f"Entry Score({int(_FOOTER_ES['tecnico']*100)}%Técnico+"
+            f"{int(_FOOTER_ES['dist_max']*100)}%Dist.Máximo+"
+            f"{int(_FOOTER_ES['dist_support']*100)}%Dist.Soporte)"
+        )
+    except Exception as e:
+        logger.warning(f"No se pudo armar footer_model_html dinámico: {e}")
+        footer_model_html = "Modelo — versión no disponible"
+
     for _s in signals:
         _estado, _detalle = _estado_regla_compra(
             _s.get("signal_v2") or _s.get("signal", ""),
@@ -1282,7 +1301,7 @@ def generate_dashboard(
     <h1>Informe de Inversiones</h1>
     <div style="font-size:12px;color:#666;margin-top:3px">MERVAL · BOVESPA · S&P 500 · Generado {run_date}</div>
   </div>
-  <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>Modelo v2.0 — Asset Quality(50%Macro+30%Fundamental+20%Sectorial) · Entry Score(60%Técnico+25%Riesgo/Retorno+15%Dist.Máximo)</div>
+  <div style="text-align:right;font-size:12px;color:#666">Pipeline automático<br>{footer_model_html}</div>
 </div>
 {validacion_banner}{system_status_banner}{history_depth_banner}
 <div class="tabs">
