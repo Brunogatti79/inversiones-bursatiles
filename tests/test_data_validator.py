@@ -104,6 +104,19 @@ class TestValidarFrescura:
         assert r["ok"] is True
         assert any("atraso" in m for m in r["warnings"])
 
+    def test_dato_adelantado_va_a_info_no_warning(self):
+        # Regresión Bruno 07/08/2026: Yahoo publica el cierre de hoy antes
+        # de las 22 UTC -> diff_dias negativo. Antes esto caía en el mismo
+        # branch que "atraso" y generaba warning con signo invertido
+        # ("-1d de atraso"). Debe ir a info, no a warnings.
+        fecha = ultimo_dia_habil("SP500")
+        dates = pd.date_range(end=pd.Timestamp(fecha + timedelta(days=1)), periods=10, freq="D")
+        df = pd.DataFrame({"INDICE": np.linspace(100, 105, 10)}, index=dates)
+        r = validar_frescura(df, "SP500")
+        assert r["ok"] is True
+        assert r["warnings"] == []
+        assert any("adelantado" in m for m in r["info"])
+
     def test_atraso_severo_es_error(self):
         fecha = ultimo_dia_habil("SP500")
         dates = pd.date_range(end=pd.Timestamp(fecha - timedelta(days=10)), periods=10, freq="D")
