@@ -1257,29 +1257,29 @@
       "MERVAL": {
         "n": 500,
         "horizon": "21d",
-        "win_rate": 0.25,
-        "avg_ret": -12.26,
-        "expected_value": -12.26,
-        "sharpe": -0.46,
-        "max_drawdown": -99.56
+        "win_rate": 0.15,
+        "avg_ret": -12.65,
+        "expected_value": -12.65,
+        "sharpe": -0.48,
+        "max_drawdown": -99.6
       },
       "BOVESPA": {
         "n": 425,
         "horizon": "21d",
         "win_rate": 0.353,
-        "avg_ret": -1.88,
-        "expected_value": -1.88,
+        "avg_ret": -1.78,
+        "expected_value": -1.78,
         "sharpe": -0.27,
-        "max_drawdown": -37.27
+        "max_drawdown": -35.38
       },
       "SP500": {
         "n": 750,
         "horizon": "21d",
         "win_rate": 0.567,
-        "avg_ret": 3.01,
-        "expected_value": 3.01,
-        "sharpe": 0.31,
-        "max_drawdown": -19.91
+        "avg_ret": 3.03,
+        "expected_value": 3.03,
+        "sharpe": 0.32,
+        "max_drawdown": -20.34
       }
     },
     "predictor_accuracy": 0.522
