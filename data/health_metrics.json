@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-08-08T17:31:56.194872",
-  "last_run_utc": "2026-08-08T20:31:56.194909",
-  "last_success": "2026-08-08T17:31:56.194872",
+  "last_run": "2026-08-09T17:37:37.527713",
+  "last_run_utc": "2026-08-09T20:37:37.527748",
+  "last_success": "2026-08-09T17:37:37.527713",
   "consecutive_failures": 0,
   "duration_history": [
-    70.0,
     67.0,
     191.3,
     86.0,
@@ -13,11 +12,12 @@
     171.6,
     77.8,
     69.7,
-    116.2
+    116.2,
+    457.5
   ],
-  "duration_avg_sec": 98.0,
-  "duration_p95_sec": 181.4,
-  "duration_last_sec": 116.2,
+  "duration_avg_sec": 132.6,
+  "duration_p95_sec": 324.4,
+  "duration_last_sec": 457.5,
   "signals_count": 67,
   "buy_signals": 23,
   "sell_signals": 9,
@@ -27,11 +27,6 @@
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 56/100), correlación moderada entre mercados. Ajuste macro: MERVAL +0.1",
   "validacion_nivel": "OK",
   "runs_log": [
-    {
-      "ts": "2026-08-01",
-      "success": true,
-      "duration": 154.4
-    },
     {
       "ts": "2026-08-02",
       "success": true,
@@ -196,29 +191,34 @@
       "ts": "2026-08-08",
       "success": true,
       "duration": 116.2
+    },
+    {
+      "ts": "2026-08-09",
+      "success": true,
+      "duration": 457.5
     }
   ],
   "pipeline_runs_today": 1,
   "pipeline_runs_week": 34,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
-  "data_freshness_h": 0.0,
+  "data_freshness_h": 0.1,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
   "global_confidence_score": 52.3,
   "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
-  "optimized_weights_days": 31,
+  "optimized_weights_days": 32,
   "exposure_factor_shadow": 0.646,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
   "backtest_ev_21d": -2.28,
-  "backtest_total_trades": 1742,
+  "backtest_total_trades": 1809,
   "predictor_dir_acc": 0.567,
   "predictor_mae": 9.37,
-  "backtest_generated": "2026-08-08",
+  "backtest_generated": "2026-08-09",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 1.8,
+  "ccl_age_minutes": 7.5,
   "last_ccl_value": 1578.4
 }
