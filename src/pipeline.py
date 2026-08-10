@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 import pytz
  
-from src.downloader     import download_all, save_csvs, load_ohlc_extra, load_cedear_close_extra, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
+from src.downloader     import download_all, save_csvs, load_ohlc_extra, load_cedear_close_extra, reload_price_csvs_fresh, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
 from src.analyzer       import (analyze_market, detect_signal_changes, save_signals, get_index_stats)
 from src.macro_loader   import load_xlsx_signals
 from src.macro_auto     import fetch_all_macro, get_cached_macro
@@ -592,8 +592,24 @@ def run_pipeline():
 
         # ── BACKTEST (Fase 0) ──────────────────────────────────────────────────
         try:
+            # FIX 10/08/2026 (auditoría externa v20, prioridad #1): refresca
+            # los CSVs de precio desde GitHub justo antes de correr el
+            # backtester, en vez de reusar los cargados en la Fase 1/8 --
+            # ver docstring de reload_price_csvs_fresh() para el incidente
+            # real que motivó esto (race condition entre este pipeline y
+            # download_data.yml de GitHub Actions, corriendo en paralelo sin
+            # sincronización). Si el refresh falla por cualquier motivo
+            # (sin red, sin GH_TOKEN, CSV vacío), cae a los DataFrames de
+            # siempre -- nunca bloquea la corrida por esto.
+            _bt_price_data = reload_price_csvs_fresh(data_dir=DATA_DIR)
+            if _bt_price_data is None:
+                logger.info("Backtester: usando CSVs de la Fase 1/8 (refresh no disponible)")
+                _bt_price_data = {"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df}
+            else:
+                logger.info("Backtester: CSVs refrescados desde GitHub justo antes de correr")
+
             bt_results = run_backtest(
-                price_data={"merval": merval_df, "bovespa": bovespa_df, "sp500": sp500_df},
+                price_data=_bt_price_data,
                 ticker_cols=ticker_cols,
             )
             from src.model_version import log_model_run

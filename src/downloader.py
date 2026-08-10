@@ -122,6 +122,62 @@ MAX_CSV_AGE_DAYS = 3   # si el CSV tiene más de 3 días, intentar descarga dire
  
 def _csv_path(market: str, data_dir: str) -> str:
     return os.path.join(data_dir, f"{market.lower()}_cierres.csv")
+
+
+def reload_price_csvs_fresh(data_dir: str = "data") -> dict | None:
+    """
+    FIX 10/08/2026 (auditoría externa v20, prioridad #1): el backtester
+    corría siempre sobre merval_df/bovespa_df/sp500_df cargados en la
+    FASE 1/8 del pipeline (el arranque de la corrida) y nunca se volvían
+    a leer -- si GitHub Actions (download_data.yml, proceso independiente
+    del pipeline de Railway, sin sincronización entre ambos) pusheaba
+    CSVs de precio más nuevos MIENTRAS el pipeline de Railway ya estaba
+    corriendo, el backtest terminaba evaluando retornos con precios de
+    horas antes, sin que nada lo reflejara. Confirmado en producción el
+    10/08/2026: recalcular el backtest con los CSVs más frescos del
+    mismo commit dio ranking_top_vs_rest.samples=1876 vs 1742 persistido,
+    y el EV del top 20% cambió de signo completo (-3.52% -> +3.48%).
+
+    Se llama justo antes de correr el backtester (no en la Fase 1, que
+    sigue usando lo que cargó al arrancar -- las señales de HOY deben
+    ser consistentes con el momento del análisis, no hace falta que sean
+    del segundo exacto; el backtest en cambio evalúa retornos HISTÓRICOS
+    de señales pasadas, y ahí sí importa usar el precio más fresco
+    posible para que más trades alcancen a completar su horizonte).
+
+    Trae los 3 CSVs directo de GitHub (raw.githubusercontent.com, misma
+    fuente de verdad que usa GitHub Actions para pushear) vía
+    github_persistence.pull_file() -- no vuelve a pegarle a Yahoo
+    Finance, es más rápido y evita otra fuente de inconsistencia.
+
+    Devuelve {"merval": df, "bovespa": df, "sp500": df} si los 3 se
+    pudieron traer y parsear, o None si algo falló -- el caller debe
+    caer a los DataFrames ya cargados al arrancar el pipeline en ese
+    caso, nunca romper la corrida por esto (backtester es un paso "no
+    crítico" del pipeline, este refresh tampoco debería serlo).
+    """
+    from src.github_persistence import pull_file
+
+    result = {}
+    for market in ("merval", "bovespa", "sp500"):
+        path = _csv_path(market, data_dir)
+        try:
+            if not pull_file(path):
+                logger.warning(f"[reload_price_csvs_fresh] pull_file falló para {path}, "
+                               f"backtester va a usar los CSVs cargados al arrancar el pipeline")
+                return None
+        except Exception as e:
+            logger.warning(f"[reload_price_csvs_fresh] Error pull_file({path}): {e}")
+            return None
+
+        df = _load_csv(market, data_dir)
+        if df is None or df.empty:
+            logger.warning(f"[reload_price_csvs_fresh] {path} se trajo pero no se pudo parsear/vacío")
+            return None
+        result[market] = df
+
+    logger.info("[reload_price_csvs_fresh] 3 CSVs de precio refrescados desde GitHub para el backtester")
+    return result
  
  
 def _get_period():
