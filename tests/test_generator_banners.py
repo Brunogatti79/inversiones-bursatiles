@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
 import pytest
 
-from src.generator import generate_dashboard, _render_model_conclusions_panel, _render_macro_panel
+from src.generator import generate_dashboard, _render_model_conclusions_panel, _render_macro_panel, _render_ranking_edge_panel
 
 
 def _signal(**overrides):
@@ -243,6 +243,73 @@ class TestRenderModelConclusionsPanel:
         historia' en vez de propagar la excepción."""
         html = _render_model_conclusions_panel({}, [{"version": "4.9"}, {}])
         assert "Conclusiones del Modelo" in html
+
+
+class TestRenderRankingEdgePanel:
+    """
+    _render_ranking_edge_panel() -- auditoría externa v20, prioridad #6
+    (10/08/2026). Expone historical_edge_score/ranking_top_vs_rest ya
+    calculados por backtester.py, sin conectarlos a ninguna decisión de
+    capital (ver docstring completo en generator.py sobre por qué:
+    ranking_top_vs_rest no fue reproducible corrida a corrida en la
+    verificación de este mismo fix -- race condition entre Railway y
+    GitHub Actions, no un bug del ranking en sí).
+    """
+
+    def test_backtest_vacio_no_renderiza_nada(self):
+        """Sin historical_edge_score ni ranking_top_vs_rest -- panel vacío,
+        no un div vacío con solo el título."""
+        assert _render_ranking_edge_panel({}) == ""
+        assert _render_ranking_edge_panel(None) == ""
+
+    def test_con_historical_edge_score_muestra_top_y_bottom(self):
+        backtest = {
+            "historical_edge_score": {
+                "🟢 Alta + 🟢 COMPRA":  {"score": 90.0, "n": 50, "ev": 3.0, "significativo_95": True},
+                "🟠 Baja + 🟢 COMPRA":  {"score": 20.0, "n": 40, "ev": -5.36, "significativo_95": True},
+                "🟡 Media + 🟡 NEUTRAL/ESPERAR": {"score": 55.0, "n": 200, "ev": 0.5, "significativo_95": False},
+            },
+        }
+        html = _render_ranking_edge_panel(backtest)
+        assert "Edge Histórico del Ranking" in html
+        assert "no fue reproducible" in html  # advertencia siempre visible
+        assert "🟢 Alta + 🟢 COMPRA" in html
+        assert "🟠 Baja + 🟢 COMPRA" in html
+
+    def test_con_ranking_top_vs_rest_muestra_contraste(self):
+        backtest = {
+            "ranking_top_vs_rest": {
+                "top_20pct":    {"samples": 375, "expected_value": 3.48},
+                "bottom_20pct": {"samples": 375, "expected_value": -3.27},
+            },
+        }
+        html = _render_ranking_edge_panel(backtest)
+        assert "Top 20% (n=375)" in html
+        assert "Bottom 20% (n=375)" in html
+
+    def test_entradas_con_n_none_no_crashean_el_sort(self):
+        """Regresión: historical_edge_score con score=None en alguna celda
+        (grupo sin muestra suficiente) no debe romper el sorted()."""
+        backtest = {
+            "historical_edge_score": {
+                "🔴 Muy baja + 🔴 VENTA": {"score": None, "n": 2, "ev": None, "significativo_95": False},
+                "🟢 Alta + 🟢 COMPRA":    {"score": 90.0, "n": 50, "ev": 3.0, "significativo_95": True},
+            },
+        }
+        html = _render_ranking_edge_panel(backtest)
+        assert "Edge Histórico del Ranking" in html
+
+    def test_no_conecta_a_kelly_ni_ranking_verificacion_textual(self):
+        """No es un test funcional real (eso lo verifica el resto de la
+        suite de portfolio_optimizer/analyzer) -- solo confirma que el
+        panel es explícito sobre que es informativo, para que quien lea
+        el dashboard no asuma que ya está accionando sobre esto."""
+        backtest = {"ranking_top_vs_rest": {
+            "top_20pct": {"samples": 10, "expected_value": 1.0},
+            "bottom_20pct": {"samples": 10, "expected_value": -1.0},
+        }}
+        html = _render_ranking_edge_panel(backtest)
+        assert "no conectado a Kelly" in html
 
 
 class TestRenderMacroPanel:
