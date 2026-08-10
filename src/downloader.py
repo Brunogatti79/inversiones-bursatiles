@@ -357,4 +357,46 @@ def load_ohlc_extra(data_dir: str = "data") -> dict:
             "low":  _load_ohlc_csv(market, "low", data_dir),
         }
     return result
+
+
+def load_cedear_close_extra(data_dir: str = "data") -> pd.DataFrame | None:
+    """
+    FIX 10/08/2026 (auditoría externa v20, prioridad #2): data/cedear_cierres.csv
+    se pushea desde el 29/06/2026 (snapshot diario del precio CEDEAR real vía
+    data912.com, ver model_version.py) pero hasta hoy ningún módulo lo leía --
+    _atr() para todo el universo SP500/CEDEARs se calculaba sobre el precio del
+    subyacente NYSE (sp500_cierres.csv), correcto para el negocio pero en la
+    escala/mercado equivocado para dimensionar stops: un CEDEAR se opera en
+    pesos vía BYMA, con su propia liquidez, gaps y ruido de CCL -- la
+    volatilidad efectiva que importa para el sizing del stop no es la de NYSE.
+
+    Devuelve un DataFrame indexado por fecha, columnas = ticker (mismo
+    formato que _load_ohlc_csv), o None si el archivo no existe o está vacío
+    -- nunca levanta excepción hacia el caller. analyze_market() cae al
+    comportamiento actual (ATR sobre NYSE) para cualquier ticker sin
+    cobertura acá, no solo para cuando el archivo entero falta.
+    """
+    path = os.path.join(data_dir, "cedear_cierres.csv")
+    if not os.path.exists(path):
+        return None
+    try:
+        df = pd.read_csv(path, sep=";", decimal=",", index_col=0,
+                         encoding="utf-8-sig", thousands=" ")
+        df.index = pd.to_datetime(df.index)
+        df.index.name = "Fecha"
+        for col in df.columns:
+            df[col] = (
+                df[col].astype(str)
+                .str.replace(" ", "", regex=False)
+                .str.replace(",", ".", regex=False)
+            )
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+        df = df.sort_index().dropna(how="all")
+        if df.empty:
+            return None
+        return df
+    except Exception as e:
+        logger.warning(f"[CEDEAR] Error leyendo cedear_cierres.csv (no crítico, se usa ATR sobre NYSE): {e}")
+        return None
+
  

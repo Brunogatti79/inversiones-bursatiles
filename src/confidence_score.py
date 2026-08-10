@@ -12,14 +12,33 @@ COMPONENTES:
   5. Régimen de volatilidad          (10%) — alta vol penaliza, baja vol bonifica
 
 INTERPRETACIÓN:
-  ≥ 75 → Alta confianza  → señal sólida, Kelly sin restricción adicional
-  55-74 → Media confianza → Kelly × 0.85, reducir tamaño
-  35-54 → Baja confianza → Kelly × 0.60, posición mínima o esperar
+  ≥ 75 → Alta confianza  → señal sólida
+  55-74 → Media confianza → reducir tamaño
+  35-54 → Baja confianza → posición mínima o esperar
   < 35 → Muy baja confianza → ignorar señal aunque score V2 sea bueno
 
 USO desde pipeline.py (post-quality_check, post-exit_model):
     from src.confidence_score import enrich_confidence_scores
     all_signals = enrich_confidence_scores(all_signals, vol_regime)
+
+NOTA 10/08/2026 (auditoría real, no teórica): este módulo calculaba
+kelly_half_adj = kelly_half * _confidence_kelly_factor(confidence_score)
+como un segundo ajuste de Kelly por confianza, independiente del que
+hace portfolio_optimizer.py. Verificado con grep exhaustivo contra
+generator.py, notifier.py, bot.py y la generación de Excel: ningún
+consumidor downstream leía kelly_half_adj -- se calculaba en cada
+corrida sin ningún efecto sobre lo que se muestra en dashboard/Telegram
+(lo que sí se muestra, suggested_pct, nunca pasaba por acá). No era un
+doble castigo real porque el campo era código muerto, pero SÍ hubiera
+sido un doble castigo real si se hubiera conectado a algo, porque desde
+el fix del mismo día en portfolio_optimizer.py::_calc_kelly_weights(),
+kelly_half YA viene segmentado por confidence_label (usa
+confidence_x_signal[label] antes que el agregado). Aplicar
+_confidence_kelly_factor() otra vez encima habría penalizado la misma
+señal dos veces por el mismo motivo. Eliminado en vez de conectado --
+ver _confidence_kelly_factor() más abajo, que queda sin uso a propósito
+(no se borra la función por si se decide reintroducir el ajuste algún
+día, pero con ese trade-off explícito en mente).
 """
 
 import logging
@@ -50,13 +69,6 @@ def enrich_confidence_scores(signals: list[dict], vol_regime: dict = None) -> li
             cs, label = _calc_confidence(sig, global_regime)
             sig["confidence_score"] = cs
             sig["confidence_label"] = label
-
-            # Si kelly_half ya fue calculado, ajustarlo por confianza
-            if sig.get("kelly_half") is not None:
-                adj = _confidence_kelly_factor(cs)
-                sig["kelly_half_adj"] = round(sig["kelly_half"] * adj, 1)
-                sig["confidence_adj_factor"] = round(adj, 2)
-
             enriched += 1
         except Exception:
             sig["confidence_score"] = 50
@@ -189,7 +201,7 @@ def _confidence_kelly_factor(confidence_score: float) -> float:
 #     de que algo está estructuralmente roto, no solo "bajo" en confianza.
 #
 # Importante: el kill switch frena recomendaciones de capital NUEVO
-# (kelly_half / kelly_half_adj → 0). NO toca posiciones ya abiertas en
+# (kelly_half → 0). NO toca posiciones ya abiertas en
 # portfolio.json -- decidir qué hacer con posiciones existentes durante un
 # kill switch es una decisión de Bruno, no automática.
 #
@@ -331,9 +343,9 @@ def compute_global_confidence(
 def apply_kill_switch(signals: list[dict], global_conf: dict) -> list[dict]:
     """
     Marca cada señal con el estado del kill switch. Si está activo, frena
-    la asignación de capital NUEVA (kelly_half / kelly_half_adj -> 0) en
-    TODAS las señales, sin distinguir por confianza individual -- es un
-    circuit breaker de sistema, no un filtro por ticker.
+    la asignación de capital NUEVA (kelly_half -> 0) en TODAS las
+    señales, sin distinguir por confianza individual -- es un circuit
+    breaker de sistema, no un filtro por ticker.
 
     No toca posiciones ya abiertas (eso vive en portfolio.json / tracker.py)
     ni ningún otro campo de la señal.
@@ -350,8 +362,6 @@ def apply_kill_switch(signals: list[dict], global_conf: dict) -> list[dict]:
             sig["kill_switch_reasons"] = reasons
             if sig.get("kelly_half") is not None:
                 sig["kelly_half"] = 0.0
-            if sig.get("kelly_half_adj") is not None:
-                sig["kelly_half_adj"] = 0.0
 
     return signals
 
@@ -455,10 +465,9 @@ def apply_exposure_factor(signals: list[dict], exposure: dict) -> list[dict]:
     campos sin necesidad, evita ruido de redondeo en runs sin ajuste).
 
     Si el kill switch ya está activo, apply_kill_switch() (arriba) ya puso
-    kelly_half/kelly_half_adj en 0 antes de que esto corra -- multiplicar
-    por exposure_factor (que también sería 0 en ese caso) es redundante
-    pero no dañino, y cubre kelly_f/suggested_pct que apply_kill_switch no
-    toca.
+    kelly_half en 0 antes de que esto corra -- multiplicar por
+    exposure_factor (que también sería 0 en ese caso) es redundante pero
+    no dañino, y cubre kelly_f/suggested_pct que apply_kill_switch no toca.
     """
     if not signals or not exposure:
         return signals

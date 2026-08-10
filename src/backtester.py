@@ -540,6 +540,17 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         # "Alta" en general o "COMPRA" en general. Sin esto, cualquier regla
         # de decisión que combine ambos campos se basaba en intuición.
         "confidence_x_signal":    _aggregate_cross(trades, "confidence_label", "signal"),
+        # Pedido de auditoría externa v20 (10/08/2026): el régimen
+        # cross-market (RISK_ON/RISK_OFF/NEUTRAL) ya se calculaba y
+        # persistía por señal desde hace semanas (cross_market.py), pero
+        # nunca se había cruzado contra EV real -- solo se usaba para
+        # ajustar el score hacia adelante. by_regime es el desglose
+        # marginal; regime_x_signal cruza régimen con tipo de señal,
+        # mismo patrón que confidence_x_signal. Ver nota en _build_trades
+        # sobre por qué esto hoy solo compara NEUTRAL vs RISK_ON (0
+        # observaciones de RISK_OFF en la historia real disponible).
+        "by_regime":              _aggregate_by(trades, "cross_market_regime"),
+        "regime_x_signal":        _aggregate_cross(trades, "cross_market_regime", "signal"),
         # Pedido de Bruno (05/08/2026): cruce confianza x consenso V1/V2 --
         # by_consenso y by_confidence_label existían por separado, pero no
         # cruzados. Se detectó a mano que la celda con volumen real
@@ -718,6 +729,18 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
             # consenso/confidence_score: entradas viejas sin el campo se manejan
             # como ausentes ("UNKNOWN"), no como una categoría falsa.
             factor_dominante  = entry.get("factor_dominante", "") or ""
+            # FIX 10/08/2026 (auditoría externa v20): cross_market.py ya
+            # calcula y persiste el régimen (RISK_ON/RISK_OFF/NEUTRAL) en
+            # cada señal desde hace semanas, pero nunca había llegado al
+            # backtester -- se usaba para ajustar el score hacia adelante,
+            # nunca para medir EV hacia atrás. Mismo criterio que el resto
+            # de los campos de esta sección: entradas viejas o de antes de
+            # que el campo existiera se manejan como "UNKNOWN", no como un
+            # régimen inventado. Aviso real, no teórico: solo 18 de 33 días
+            # de historia tienen este campo, y de esas señales, 0 son
+            # RISK_OFF (verificado 10/08/2026) -- cualquier desglose por
+            # régimen hoy solo puede comparar NEUTRAL vs RISK_ON.
+            cross_market_regime = entry.get("cross_market_regime", "") or ""
 
             if not signal or precio_entry <= 0 or not ticker:
                 continue
@@ -748,6 +771,7 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
                 "confidence_score": confidence_score,
                 "confidence_label": confidence_label or "UNKNOWN",
                 "factor_dominante": factor_dominante or "UNKNOWN",
+                "cross_market_regime": cross_market_regime or "UNKNOWN",
             }
 
             # Retornos hold-to-horizon

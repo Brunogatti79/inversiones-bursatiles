@@ -788,7 +788,9 @@ def _consenso(signal_v1, signal_v2, score_v1, score_v2):
  
 def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
                    xlsx_signals: dict = None, fund_scores: dict = None,
-                   vol_regime: dict = None, ohlc_extra: dict = None) -> list[dict]:
+                   vol_regime: dict = None, ohlc_extra: dict = None,
+                   cedear_close_extra: pd.DataFrame = None,
+                   fund_sector_medians: dict = None) -> list[dict]:
     if df is None or df.empty or len(df) < 5:
         logger.warning(f"[{market}] DataFrame vacío, saltando análisis")
         return []
@@ -891,8 +893,22 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         s_fund = 50.0
         upside_graham = None
         score_cuant = None
+        fund_fuente = "sin_datos"
         if fund_scores:
-            entry = fund_scores.get(ticker, 50.0)
+            if ticker in fund_scores:
+                entry = fund_scores[ticker]
+                fund_fuente = "real"
+            else:
+                # FIX 10/08/2026 (auditoría externa v20, prioridad #3): antes
+                # cualquier ticker sin fila en el CSV caía directo a 50.0 --
+                # ver docstring de load_fundamental_scores() para el sesgo
+                # que esto introducía. Ahora usa la mediana del sector como
+                # mejor estimación disponible, y lo marca explícitamente en
+                # fund_fuente para que quede auditable cuál score es real y
+                # cuál estimado (afecta cómo se debería leer/confiar en V1/AQ
+                # para ese ticker puntual).
+                entry = (fund_sector_medians or {}).get(sector, 50.0)
+                fund_fuente = "mediana_sector" if fund_sector_medians and sector in fund_sector_medians else "sin_datos"
             if isinstance(entry, dict):
                 s_fund = entry.get("score", 50.0)
                 upside_graham = entry.get("upside_graham")
@@ -1022,10 +1038,59 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
         # Fix 26/06/2026: antes esto era 0.0 SIEMPRE — ver docstring de _atr().
         # Fix 27/07/2026: OHLC real si está disponible, ver _resolve_high_low.
         high_s, low_s = _resolve_high_low(col, df_12m, ohlc_extra)
-        try:
-            atr_val, atr_metodo = _atr(high_s, low_s, serie)
-        except Exception:
-            atr_val, atr_metodo = 0.0, "error"
+        # Fix 10/08/2026 (auditoría externa v20, prioridad #2): para SP500,
+        # si el ticker tiene cobertura en cedear_close_extra (precio CEDEAR
+        # real vía data912.com, no el subyacente NYSE), se usa esa serie de
+        # cierre en vez de `serie` -- SOLO para ATR/stop/target, no para el
+        # resto del análisis (RSI, momentum, score técnico siguen sobre
+        # NYSE, que es correcto para evaluar el negocio; lo que hay que
+        # corregir es la escala de volatilidad para dimensionar el stop,
+        # no el análisis fundamental/técnico del activo). _resolve_high_low
+        # no tiene High/Low de CEDEAR (no existen), así que este camino cae
+        # directo al proxy close-only de _atr(), pero sobre la escala/
+        # mercado correcto -- se prefiere ATR-proxy-en-CEDEAR sobre
+        # ATR-real-en-NYSE porque lo que se opera y lo que hay que
+        # stopear es el CEDEAR, no el subyacente.
+        atr_close_series = serie
+        atr_fuente_precio = "nyse_ohlc" if high_s is not None else "nyse_proxy"
+        atr_pct_cedear = None
+        if market == "SP500" and cedear_close_extra is not None and ticker in cedear_close_extra.columns:
+            # Sin reindex contra df_12m.index a propósito: los calendarios de
+            # feriados NYSE y BYMA no coinciden, y un reindex por fecha exacta
+            # descartaba ~75% de las filas (43 -> 10 en la validación real del
+            # 10/08/2026) aunque el dato estuviera disponible. El ATR no
+            # necesita estar alineado día a día con la serie NYSE -- es un
+            # rolling sobre SU PROPIA secuencia de cierres consecutivos.
+            cedear_serie = cedear_close_extra[ticker].dropna()
+            if len(cedear_serie) >= 15:  # _atr() necesita period+1=15 puntos mínimo
+                atr_fuente_precio = "cedear_proxy"
+                _atr_cedear, _ = _atr(None, None, cedear_serie)
+                _precio_cedear_actual = float(cedear_serie.iloc[-1])
+                # BUG encontrado en la validación de este mismo fix (10/08/2026,
+                # no en producción todavía): el ATR de la serie CEDEAR queda en
+                # la escala de precio del CEDEAR (ej. ~$16 para AAPL, por el
+                # ratio de conversión de CEDEARs por acción), completamente
+                # distinta de `precio_actual` (escala NYSE, ~$306) que usa el
+                # resto del sistema para mostrar precio/soportes/resistencias.
+                # Sumar/restar un ATR de ~$0.3 (escala CEDEAR) sobre un precio
+                # de ~$306 (escala NYSE) daba stops pegados al precio, casi sin
+                # rango entre stop y target. Fix: convertir a ATR PORCENTUAL
+                # sobre el precio CEDEAR (que sí captura la volatilidad/ruido
+                # local real, que es el objetivo de este cambio) y aplicar ese
+                # mismo porcentaje sobre precio_actual (NYSE) -- así se
+                # preserva la magnitud relativa correcta en la escala de
+                # precio que ve Bruno y que usa el resto del pipeline.
+                if _precio_cedear_actual > 0 and _atr_cedear > 0:
+                    atr_pct_cedear = _atr_cedear / _precio_cedear_actual
+
+        if atr_pct_cedear is not None:
+            atr_val = round(atr_pct_cedear * precio_actual, 4)
+            atr_metodo = "cedear_pct_proxy"
+        else:
+            try:
+                atr_val, atr_metodo = _atr(high_s, low_s, atr_close_series)
+            except Exception:
+                atr_val, atr_metodo = 0.0, "error"
         atr_stop = round(precio_actual - (atr_val * 2), 2) if atr_val > 0 else 0.0
         atr_target = round(precio_actual + (atr_val * 3), 2) if atr_val > 0 else 0.0
  
@@ -1086,6 +1151,7 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             # ── Fundamental detalle ──
             "upside_graham": upside_graham,
             "score_cuant": score_cuant,
+            "fund_fuente": fund_fuente,
             "momentum": round(mom_final, 2),
             # ── V2 ──
             "dist_max_pct": round(dist_max_pct, 1),
@@ -1111,6 +1177,7 @@ def analyze_market(df: pd.DataFrame, market: str, ticker_names: dict,
             # ── ATR stops dinámicos ──
             "atr": round(atr_val, 2),
             "atr_metodo": atr_metodo,
+            "atr_fuente_precio": atr_fuente_precio,
             "atr_stop": atr_stop,
             "atr_target": atr_target,
             # ── Indicadores líderes ──

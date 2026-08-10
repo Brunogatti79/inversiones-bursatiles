@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 import pytz
  
-from src.downloader     import download_all, save_csvs, load_ohlc_extra, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
+from src.downloader     import download_all, save_csvs, load_ohlc_extra, load_cedear_close_extra, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS
 from src.analyzer       import (analyze_market, detect_signal_changes, save_signals, get_index_stats)
 from src.macro_loader   import load_xlsx_signals
 from src.macro_auto     import fetch_all_macro, get_cached_macro
@@ -196,6 +196,15 @@ def run_pipeline():
         # workflow .yml no fue actualizado para commitearlos) -- analyze_market
         # cae al proxy close-only de siempre en ese caso, no rompe nada.
         ohlc_extra = load_ohlc_extra(data_dir=DATA_DIR)
+
+        # Fix 10/08/2026 (auditoría externa v20, prioridad #2): precio CEDEAR
+        # real (data912.com, vía data/cedear_cierres.csv) para calcular ATR
+        # de SP500 sobre la escala/mercado correcto en vez del subyacente
+        # NYSE -- ver docstring de load_cedear_close_extra() y el comentario
+        # en analyze_market() donde se usa. None si el archivo no existe
+        # todavía o está vacío -- analyze_market cae al ATR sobre NYSE de
+        # siempre en ese caso, no rompe nada.
+        cedear_close_extra = load_cedear_close_extra(data_dir=DATA_DIR)
  
         # 1b. VALIDACIÓN DE DATOS ─────────────────────────────────────────────
         logger.info("1b/8 Validando consistencia de datos...")
@@ -258,10 +267,11 @@ def run_pipeline():
         except Exception as e:
             logger.warning(f"Macro auto falló ({e}), usando xlsx/fallback")
             xlsx_signals = load_xlsx_signals(f"{DATA_DIR}/modelo_macro_micro_señales.xlsx")
-        fund_scores  = load_fundamental_scores(f"{DATA_DIR}/ratios_consolidado_quant.csv")
+        fund_scores, fund_sector_medians = load_fundamental_scores(f"{DATA_DIR}/ratios_consolidado_quant.csv")
         macro_scores = xlsx_signals.get("macro_scores", {})
         logger.info(f"Macro scores (pre-cross): {macro_scores}")
-        logger.info(f"Fundamental scores cargados: {len(fund_scores)} tickers")
+        logger.info(f"Fundamental scores cargados: {len(fund_scores)} tickers, "
+                    f"{len(fund_sector_medians)} medianas de sector (fallback)")
 
         # Mapeo ticker → col_nombre (usado por exit_model, backtester y cross_market)
         ticker_cols = {}
@@ -344,13 +354,17 @@ def run_pipeline():
 
         signals_merval  = analyze_market(merval_df,  "MERVAL",  MERVAL_TICKERS,
                                          xlsx_signals=xlsx_signals, fund_scores=fund_scores,
-                                         vol_regime=vol_regime, ohlc_extra=ohlc_extra.get("MERVAL"))
+                                         vol_regime=vol_regime, ohlc_extra=ohlc_extra.get("MERVAL"),
+                                         fund_sector_medians=fund_sector_medians)
         signals_bovespa = analyze_market(bovespa_df, "BOVESPA", BOVESPA_TICKERS,
                                          xlsx_signals=xlsx_signals, fund_scores=fund_scores,
-                                         vol_regime=vol_regime, ohlc_extra=ohlc_extra.get("BOVESPA"))
+                                         vol_regime=vol_regime, ohlc_extra=ohlc_extra.get("BOVESPA"),
+                                         fund_sector_medians=fund_sector_medians)
         signals_sp500   = analyze_market(sp500_df,   "SP500",   SP500_TICKERS,
                                          xlsx_signals=xlsx_signals, fund_scores=fund_scores,
-                                         vol_regime=vol_regime, ohlc_extra=ohlc_extra.get("SP500"))
+                                         vol_regime=vol_regime, ohlc_extra=ohlc_extra.get("SP500"),
+                                         cedear_close_extra=cedear_close_extra,
+                                         fund_sector_medians=fund_sector_medians)
         all_signals = signals_merval + signals_bovespa + signals_sp500
         all_signals.sort(key=lambda x: x["score_final"], reverse=True)
 

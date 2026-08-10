@@ -146,23 +146,46 @@ def _compute_sector_medians(df: pd.DataFrame) -> dict:
     return medians
 
 
-def load_fundamental_scores(csv_path: str = None) -> dict:
+def load_fundamental_scores(csv_path: str = None) -> tuple[dict, dict]:
     """
-    Lee el CSV de ratios y retorna dict {ticker: score_fundamental (0-100)}.
-    Si el CSV no existe, retorna dict vacío (el pipeline usa 50.0 por defecto).
+    Lee el CSV de ratios y retorna (scores, sector_medians).
+
+    scores: {ticker: score_fundamental (0-100)}. Si el CSV no existe,
+    retorna ({}, {}).
+
+    sector_medians: {sector: mediana del score fundamental YA CALCULADO
+    de los tickers de ese sector que sí tienen datos}. FIX 10/08/2026
+    (auditoría externa v20, prioridad #3): antes, cualquier ticker sin
+    fila en el CSV recibía 50.0 exacto en analyzer.py -- un valor neutro
+    fijo, no un "sin dato". Con ~17 de 84 tickers actuales sin
+    fundamentales (verificado 10/08/2026), esto sesga el score V1/AQ: un
+    ticker realmente malo (score real <50) queda mejor calificado de lo
+    real, y uno realmente bueno queda peor -- ambos convergen al mismo
+    50.0 sin relación con su calidad real. La mediana del sector es una
+    mejor estimación que un valor fijo, aunque sigue siendo una
+    aproximación (no reemplaza tener el dato real) -- se documenta
+    explícitamente en el campo fund_fuente de la señal (ver analyzer.py)
+    para que quede auditable cuál fue estimado vs. real.
+
+    No confundir con _compute_sector_medians() (arriba): esa calcula
+    medianas de RATIOS crudos (P/E, EV/EBITDA) para normalizar el cálculo
+    de un ticker que SÍ tiene fila -- esta calcula la mediana del SCORE
+    FINAL 0-100 ya calculado, para estimar el de un ticker que NO tiene
+    fila.
     """
     path = csv_path or CSV_PATH
 
     if not os.path.exists(path):
         logger.warning(f"[fundamental] CSV no encontrado: {path} — scores fundamentales desactivados")
-        return {}
+        return {}, {}
 
     try:
         df = pd.read_csv(path, sep=";", encoding="utf-8")
         logger.info(f"[fundamental] CSV cargado: {len(df)} filas, {len(df.columns)} columnas")
 
-        sector_medians = _compute_sector_medians(df)
+        sector_medians_ratios = _compute_sector_medians(df)
         scores = {}
+        scores_por_sector: dict[str, list] = {}
 
         for _, row in df.iterrows():
             ticker = str(row.get("Ticker", "")).strip()
@@ -176,20 +199,39 @@ def load_fundamental_scores(csv_path: str = None) -> dict:
                 score_base = _normalize_score(score_cuant_raw)
             else:
                 # Calcular desde ratios individuales
-                score_base = _score_fundamental_from_ratios(row, sector_medians)
+                score_base = _score_fundamental_from_ratios(row, sector_medians_ratios)
 
             scores[ticker] = round(score_base, 1)
 
-        logger.info(f"[fundamental] Scores fundamentales calculados para {len(scores)} tickers")
-        return scores
+            sector = str(row.get("Sector", "")).strip().upper()
+            if sector and sector != "NAN":
+                scores_por_sector.setdefault(sector, []).append(score_base)
+
+        sector_score_medians = {
+            sector: round(float(np.median(vals)), 1)
+            for sector, vals in scores_por_sector.items() if vals
+        }
+
+        logger.info(f"[fundamental] Scores fundamentales calculados para {len(scores)} tickers, "
+                    f"medianas de {len(sector_score_medians)} sectores")
+        return scores, sector_score_medians
 
     except Exception as e:
         logger.error(f"[fundamental] Error leyendo CSV: {e}")
-        return {}
+        return {}, {}
 
 
-def get_fundamental_score(ticker: str, scores: dict = None) -> float:
-    """Retorna el score fundamental de un ticker. 50.0 si no está disponible."""
+def get_fundamental_score(ticker: str, scores: dict = None, sector: str = None,
+                          sector_medians: dict = None) -> float:
+    """
+    Retorna el score fundamental de un ticker. Si no está disponible,
+    usa la mediana del sector (sector_medians) si se pasó; si no, 50.0
+    -- mismo fallback de siempre, solo como último recurso ahora.
+    """
     if scores is None:
-        scores = load_fundamental_scores()
-    return scores.get(ticker, 50.0)
+        scores, _ = load_fundamental_scores()
+    if ticker in scores:
+        return scores[ticker]
+    if sector and sector_medians:
+        return sector_medians.get(str(sector).strip().upper(), 50.0)
+    return 50.0
