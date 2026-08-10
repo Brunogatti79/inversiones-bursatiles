@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T15:45:27.572022",
+  "generated": "2026-08-10T17:30:52.032802",
   "total_trades": 1876,
   "days_history": 33,
   "by_signal": {
@@ -3428,6 +3428,637 @@
           "pct_target": 0.0,
           "pct_stop": 100.0
         }
+      }
+    }
+  },
+  "by_regime": {
+    "UNKNOWN": {
+      "count": 1005,
+      "h5d": {
+        "samples": 1005,
+        "win_rate": 0.473,
+        "avg_ret": -1.62,
+        "avg_win": 3.15,
+        "avg_loss": 5.89,
+        "expected_value": -1.62,
+        "sharpe": -0.14,
+        "max_drawdown": -100.0,
+        "profit_factor": 0.48,
+        "p_value": 0.0,
+        "ic95": [
+          -2.35,
+          -0.89
+        ],
+        "significativo_95": true
+      },
+      "h10d": {
+        "samples": 1005,
+        "win_rate": 0.524,
+        "avg_ret": -1.53,
+        "avg_win": 4.49,
+        "avg_loss": 8.17,
+        "expected_value": -1.53,
+        "sharpe": -0.11,
+        "max_drawdown": -100.0,
+        "profit_factor": 0.61,
+        "p_value": 0.0004,
+        "ic95": [
+          -2.38,
+          -0.68
+        ],
+        "significativo_95": true
+      },
+      "h21d": {
+        "samples": 205,
+        "win_rate": 0.449,
+        "avg_ret": -2.91,
+        "avg_win": 8.35,
+        "avg_loss": 12.07,
+        "expected_value": -2.91,
+        "sharpe": -0.15,
+        "max_drawdown": -100.0,
+        "profit_factor": 0.56,
+        "p_value": 0.0381,
+        "ic95": [
+          -5.65,
+          -0.17
+        ],
+        "significativo_95": true
+      },
+      "stop_target": {
+        "samples": 935,
+        "avg_ret": -1.35,
+        "win_rate": 0.426,
+        "target_hits": 394,
+        "stop_hits": 529,
+        "time_exits": 12,
+        "pct_target": 42.1,
+        "pct_stop": 56.6,
+        "pct_time": 1.3
+      }
+    },
+    "NEUTRAL": {
+      "count": 871,
+      "h5d": {
+        "samples": 737,
+        "win_rate": 0.464,
+        "avg_ret": -1.87,
+        "avg_win": 5.06,
+        "avg_loss": 7.87,
+        "expected_value": -1.87,
+        "sharpe": -0.12,
+        "max_drawdown": -100.0,
+        "profit_factor": 0.56,
+        "p_value": 0.0008,
+        "ic95": [
+          -2.95,
+          -0.78
+        ],
+        "significativo_95": true
+      },
+      "h10d": {
+        "samples": 247,
+        "win_rate": 0.413,
+        "avg_ret": -2.73,
+        "avg_win": 7.1,
+        "avg_loss": 9.64,
+        "expected_value": -2.73,
+        "sharpe": -0.15,
+        "max_drawdown": -100.0,
+        "profit_factor": 0.52,
+        "p_value": 0.0177,
+        "ic95": [
+          -4.97,
+          -0.48
+        ],
+        "significativo_95": true
+      },
+      "h21d": null,
+      "stop_target": {
+        "samples": 254,
+        "avg_ret": -4.22,
+        "win_rate": 0.346,
+        "target_hits": 88,
+        "stop_hits": 166,
+        "time_exits": 0,
+        "pct_target": 34.6,
+        "pct_stop": 65.4,
+        "pct_time": 0.0
+      }
+    }
+  },
+  "regime_x_signal": {
+    "UNKNOWN": {
+      "🟡 NEUTRAL/ESPERAR": {
+        "count": 600,
+        "muestra_insuficiente": false,
+        "tickers_unicos": 61,
+        "top_ticker": "VALO.BA",
+        "top_ticker_pct": 2.5,
+        "concentracion_alta": false,
+        "h5d": {
+          "samples": 600,
+          "win_rate": 0.465,
+          "avg_ret": -1.77,
+          "avg_win": 3.25,
+          "avg_loss": 6.14,
+          "expected_value": -1.77,
+          "sharpe": -0.14,
+          "max_drawdown": -100.0,
+          "profit_factor": 0.46,
+          "p_value": 0.0005,
+          "ic95": [
+            -2.76,
+            -0.78
+          ],
+          "significativo_95": true
+        },
+        "h10d": {
+          "samples": 600,
+          "win_rate": 0.51,
+          "avg_ret": -1.8,
+          "avg_win": 4.75,
+          "avg_loss": 8.63,
+          "expected_value": -1.8,
+          "sharpe": -0.12,
+          "max_drawdown": -100.0,
+          "profit_factor": 0.57,
+          "p_value": 0.0026,
+          "ic95": [
+            -2.97,
+            -0.64
+          ],
+          "significativo_95": true
+        },
+        "h21d": {
+          "samples": 113,
+          "win_rate": 0.416,
+          "avg_ret": -4.93,
+          "avg_win": 7.91,
+          "avg_loss": 14.08,
+          "expected_value": -4.93,
+          "sharpe": -0.21,
+          "max_drawdown": -100.0,
+          "profit_factor": 0.4,
+          "p_value": 0.027,
+          "ic95": [
+            -9.27,
+            -0.59
+          ],
+          "significativo_95": true
+        },
+        "stop_target": {
+          "samples": 560,
+          "avg_ret": -1.74,
+          "win_rate": 0.409,
+          "pct_target": 40.9,
+          "pct_stop": 57.7
+        }
+      },
+      "🟢 COMPRA": {
+        "count": 227,
+        "muestra_insuficiente": false,
+        "tickers_unicos": 31,
+        "top_ticker": "COME.BA",
+        "top_ticker_pct": 6.6,
+        "concentracion_alta": false,
+        "h5d": {
+          "samples": 227,
+          "win_rate": 0.493,
+          "avg_ret": -0.39,
+          "avg_win": 3.14,
+          "avg_loss": 3.83,
+          "expected_value": -0.39,
+          "sharpe": -0.08,
+          "max_drawdown": -76.98,
+          "profit_factor": 0.8,
+          "p_value": 0.2051,
+          "ic95": [
+            -1.0,
+            0.21
+          ],
+          "significativo_95": false
+        },
+        "h10d": {
+          "samples": 227,
+          "win_rate": 0.489,
+          "avg_ret": -0.9,
+          "avg_win": 4.19,
+          "avg_loss": 5.78,
+          "expected_value": -0.9,
+          "sharpe": -0.1,
+          "max_drawdown": -98.6,
+          "profit_factor": 0.69,
+          "p_value": 0.1266,
+          "ic95": [
+            -2.06,
+            0.26
+          ],
+          "significativo_95": false
+        },
+        "h21d": {
+          "samples": 47,
+          "win_rate": 0.298,
+          "avg_ret": -1.7,
+          "avg_win": 13.68,
+          "avg_loss": 8.22,
+          "expected_value": -1.7,
+          "sharpe": -0.14,
+          "max_drawdown": -69.03,
+          "profit_factor": 0.71,
+          "p_value": 0.3633,
+          "ic95": [
+            -5.39,
+            1.99
+          ],
+          "significativo_95": false
+        },
+        "stop_target": {
+          "samples": 223,
+          "avg_ret": -0.06,
+          "win_rate": 0.408,
+          "pct_target": 40.8,
+          "pct_stop": 59.2
+        }
+      },
+      "🟠 VENTA PARCIAL": {
+        "count": 166,
+        "muestra_insuficiente": false,
+        "tickers_unicos": 24,
+        "top_ticker": "AAPL",
+        "top_ticker_pct": 9.0,
+        "concentracion_alta": false,
+        "h5d": {
+          "samples": 166,
+          "win_rate": 0.476,
+          "avg_ret": -2.92,
+          "avg_win": 2.73,
+          "avg_loss": 8.04,
+          "expected_value": -2.92,
+          "sharpe": -0.19,
+          "max_drawdown": -100.0,
+          "profit_factor": 0.31,
+          "p_value": 0.0185,
+          "ic95": [
+            -5.33,
+            -0.5
+          ],
+          "significativo_95": true
+        },
+        "h10d": {
+          "samples": 166,
+          "win_rate": 0.62,
+          "avg_ret": -1.56,
+          "avg_win": 4.16,
+          "avg_loss": 10.91,
+          "expected_value": -1.56,
+          "sharpe": -0.09,
+          "max_drawdown": -100.0,
+          "profit_factor": 0.62,
+          "p_value": 0.2255,
+          "ic95": [
+            -4.08,
+            0.96
+          ],
+          "significativo_95": false
+        },
+        "h21d": {
+          "samples": 45,
+          "win_rate": 0.689,
+          "avg_ret": 0.92,
+          "avg_win": 6.62,
+          "avg_loss": 11.71,
+          "expected_value": 0.92,
+          "sharpe": 0.06,
+          "max_drawdown": -90.57,
+          "profit_factor": 1.25,
+          "p_value": 0.7011,
+          "ic95": [
+            -3.82,
+            5.66
+          ],
+          "significativo_95": false
+        },
+        "stop_target": {
+          "samples": 143,
+          "avg_ret": -2.01,
+          "win_rate": 0.517,
+          "pct_target": 49.0,
+          "pct_stop": 48.3
+        }
+      },
+      "⭐ COMPRA FUERTE": {
+        "count": 7,
+        "muestra_insuficiente": false,
+        "tickers_unicos": 6,
+        "top_ticker": "HAPV3.SA",
+        "top_ticker_pct": 28.6,
+        "concentracion_alta": false,
+        "h5d": {
+          "samples": 7,
+          "win_rate": 0.429,
+          "avg_ret": 1.38,
+          "avg_win": 6.56,
+          "avg_loss": 2.5,
+          "expected_value": 1.38,
+          "sharpe": 0.29,
+          "max_drawdown": -9.64,
+          "profit_factor": 1.97,
+          "p_value": 0.506,
+          "ic95": [
+            -3.04,
+            5.81
+          ],
+          "significativo_95": false
+        },
+        "h10d": {
+          "samples": 7,
+          "win_rate": 0.714,
+          "avg_ret": 1.29,
+          "avg_win": 2.83,
+          "avg_loss": 2.58,
+          "expected_value": 1.29,
+          "sharpe": 0.38,
+          "max_drawdown": -1.29,
+          "profit_factor": 2.74,
+          "p_value": 0.3906,
+          "ic95": [
+            -1.86,
+            4.43
+          ],
+          "significativo_95": false
+        },
+        "h21d": null,
+        "stop_target": {
+          "samples": 6,
+          "avg_ret": 2.61,
+          "win_rate": 0.5,
+          "pct_target": 50.0,
+          "pct_stop": 50.0
+        }
+      },
+      "🔴 VENTA": {
+        "count": 5,
+        "muestra_insuficiente": false,
+        "tickers_unicos": 3,
+        "top_ticker": "JPM",
+        "top_ticker_pct": 40.0,
+        "concentracion_alta": true,
+        "h5d": {
+          "samples": 5,
+          "win_rate": 0.4,
+          "avg_ret": -0.27,
+          "avg_win": 0.99,
+          "avg_loss": 1.12,
+          "expected_value": -0.27,
+          "sharpe": -0.25,
+          "max_drawdown": -2.58,
+          "profit_factor": 0.59,
+          "p_value": 0.6377,
+          "ic95": [
+            -1.61,
+            1.06
+          ],
+          "significativo_95": false
+        },
+        "h10d": {
+          "samples": 5,
+          "win_rate": 0.4,
+          "avg_ret": -0.26,
+          "avg_win": 2.75,
+          "avg_loss": 2.27,
+          "expected_value": -0.26,
+          "sharpe": -0.11,
+          "max_drawdown": -2.81,
+          "profit_factor": 0.81,
+          "p_value": 0.8435,
+          "ic95": [
+            -3.35,
+            2.83
+          ],
+          "significativo_95": false
+        },
+        "h21d": null,
+        "stop_target": {
+          "samples": 3,
+          "avg_ret": -1.74,
+          "win_rate": 0.333,
+          "pct_target": 33.3,
+          "pct_stop": 66.7
+        }
+      }
+    },
+    "NEUTRAL": {
+      "🟡 NEUTRAL/ESPERAR": {
+        "count": 486,
+        "muestra_insuficiente": false,
+        "tickers_unicos": 59,
+        "top_ticker": "JNJ",
+        "top_ticker_pct": 2.7,
+        "concentracion_alta": false,
+        "h5d": {
+          "samples": 422,
+          "win_rate": 0.528,
+          "avg_ret": -0.36,
+          "avg_win": 5.12,
+          "avg_loss": 6.51,
+          "expected_value": -0.36,
+          "sharpe": -0.03,
+          "max_drawdown": -100.0,
+          "profit_factor": 0.88,
+          "p_value": 0.5489,
+          "ic95": [
+            -1.56,
+            0.83
+          ],
+          "significativo_95": false
+        },
+        "h10d": {
+          "samples": 150,
+          "win_rate": 0.447,
+          "avg_ret": 0.4,
+          "avg_win": 7.43,
+          "avg_loss": 5.27,
+          "expected_value": 0.4,
+          "sharpe": 0.05,
+          "max_drawdown": -64.26,
+          "profit_factor": 1.14,
+          "p_value": 0.5352,
+          "ic95": [
+            -0.87,
+            1.67
+          ],
+          "significativo_95": false
+        },
+        "h21d": null,
+        "stop_target": {
+          "samples": 149,
+          "avg_ret": -0.91,
+          "win_rate": 0.43,
+          "pct_target": 43.0,
+          "pct_stop": 57.0
+        }
+      },
+      "🟠 VENTA PARCIAL": {
+        "count": 103,
+        "muestra_insuficiente": false,
+        "tickers_unicos": 22,
+        "top_ticker": "JPM",
+        "top_ticker_pct": 12.6,
+        "concentracion_alta": false,
+        "h5d": {
+          "samples": 77,
+          "win_rate": 0.481,
+          "avg_ret": -4.64,
+          "avg_win": 2.61,
+          "avg_loss": 11.34,
+          "expected_value": -4.64,
+          "sharpe": -0.23,
+          "max_drawdown": -99.99,
+          "profit_factor": 0.21,
+          "p_value": 0.0496,
+          "ic95": [
+            -9.24,
+            -0.04
+          ],
+          "significativo_95": true
+        },
+        "h10d": {
+          "samples": 32,
+          "win_rate": 0.469,
+          "avg_ret": -12.14,
+          "avg_win": 1.46,
+          "avg_loss": 24.15,
+          "expected_value": -12.14,
+          "sharpe": -0.41,
+          "max_drawdown": -99.99,
+          "profit_factor": 0.05,
+          "p_value": 0.03,
+          "ic95": [
+            -22.86,
+            -1.43
+          ],
+          "significativo_95": true
+        },
+        "h21d": null,
+        "stop_target": {
+          "samples": 21,
+          "avg_ret": -19.33,
+          "win_rate": 0.143,
+          "pct_target": 14.3,
+          "pct_stop": 85.7
+        }
+      },
+      "🟢 COMPRA": {
+        "count": 233,
+        "muestra_insuficiente": false,
+        "tickers_unicos": 35,
+        "top_ticker": "PG",
+        "top_ticker_pct": 5.2,
+        "concentracion_alta": false,
+        "h5d": {
+          "samples": 197,
+          "win_rate": 0.381,
+          "avg_ret": -0.52,
+          "avg_win": 6.19,
+          "avg_loss": 4.64,
+          "expected_value": -0.52,
+          "sharpe": -0.07,
+          "max_drawdown": -90.36,
+          "profit_factor": 0.82,
+          "p_value": 0.306,
+          "ic95": [
+            -1.51,
+            0.48
+          ],
+          "significativo_95": false
+        },
+        "h10d": {
+          "samples": 58,
+          "win_rate": 0.293,
+          "avg_ret": -4.86,
+          "avg_win": 10.31,
+          "avg_loss": 11.15,
+          "expected_value": -4.86,
+          "sharpe": -0.22,
+          "max_drawdown": -99.97,
+          "profit_factor": 0.38,
+          "p_value": 0.1065,
+          "ic95": [
+            -10.74,
+            1.02
+          ],
+          "significativo_95": false
+        },
+        "h21d": null,
+        "stop_target": {
+          "samples": 68,
+          "avg_ret": -2.17,
+          "win_rate": 0.265,
+          "pct_target": 26.5,
+          "pct_stop": 73.5
+        }
+      },
+      "⭐ COMPRA FUERTE": {
+        "count": 48,
+        "muestra_insuficiente": false,
+        "tickers_unicos": 9,
+        "top_ticker": "TXAR.BA",
+        "top_ticker_pct": 14.6,
+        "concentracion_alta": false,
+        "h5d": {
+          "samples": 41,
+          "win_rate": 0.171,
+          "avg_ret": -18.59,
+          "avg_win": 4.32,
+          "avg_loss": 23.31,
+          "expected_value": -18.59,
+          "sharpe": -0.57,
+          "max_drawdown": -100.0,
+          "profit_factor": 0.04,
+          "p_value": 0.0009,
+          "ic95": [
+            -28.98,
+            -8.21
+          ],
+          "significativo_95": true
+        },
+        "h10d": {
+          "samples": 7,
+          "win_rate": 0.429,
+          "avg_ret": -9.08,
+          "avg_win": 9.78,
+          "avg_loss": 23.23,
+          "expected_value": -9.08,
+          "sharpe": -0.27,
+          "max_drawdown": -90.52,
+          "profit_factor": 0.32,
+          "p_value": 0.5314,
+          "ic95": [
+            -40.07,
+            21.91
+          ],
+          "significativo_95": false
+        },
+        "h21d": null,
+        "stop_target": {
+          "samples": 16,
+          "avg_ret": -23.91,
+          "win_rate": 0.188,
+          "pct_target": 18.8,
+          "pct_stop": 81.2
+        }
+      },
+      "🔴 VENTA": {
+        "count": 1,
+        "muestra_insuficiente": true,
+        "tickers_unicos": 1,
+        "top_ticker": "GOOGL",
+        "top_ticker_pct": 100.0,
+        "concentracion_alta": true,
+        "h5d": null,
+        "h10d": null,
+        "h21d": null
       }
     }
   },
