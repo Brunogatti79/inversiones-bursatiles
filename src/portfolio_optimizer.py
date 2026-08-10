@@ -185,16 +185,31 @@ def _calc_kelly_weights(buy_signals: list[dict], backtest: dict, regime_factor: 
     calibration_curve = ((backtest or {}).get("confidence_calibration_curve") or {}).get("curva")
 
     # Extraer métricas de backtest por señal/mercado
-    by_signal = backtest.get("by_signal", {}) if backtest else {}
-    by_market = backtest.get("by_market", {}) if backtest else {}
+    by_signal          = backtest.get("by_signal", {}) if backtest else {}
+    by_market          = backtest.get("by_market", {}) if backtest else {}
+    confidence_x_signal = backtest.get("confidence_x_signal", {}) if backtest else {}
 
     for sig in buy_signals:
         signal_key = sig.get("signal_v2") or sig.get("signal", "")
         market     = sig.get("mercado", "")
         score_v1   = float(sig.get("score_final", 0) or 0)
+        conf_label = sig.get("confidence_label", "") or ""
 
-        # Buscar métricas en backtest (señal específica → mercado → fallback)
-        _, metrics = _get_backtest_metrics_best_horizon(by_signal, signal_key)
+        # Buscar métricas en backtest: celda segmentada por confianza
+        # primero (señal × confidence_label), señal agregada después,
+        # mercado al final. FIX 10/08/2026 (auditoría real, no teórica):
+        # el bucket agregado de by_signal mezcla confianzas muy distintas
+        # -- ej. "Media+COMPRA" viene confirmado EV negativo en el
+        # walk-forward (dos ventanas independientes) mientras
+        # "Alta+COMPRA" es levemente positivo, y el agregado los diluye a
+        # un único EV -1.82 que no representa a ninguna de las dos.
+        # Mismo umbral samples>=5 y misma cascada de fallback que ya
+        # existía, solo se agrega un nivel más específico antes.
+        _, metrics = _get_backtest_metrics_best_horizon(
+            confidence_x_signal.get(conf_label, {}), signal_key
+        )
+        if metrics is None:
+            _, metrics = _get_backtest_metrics_best_horizon(by_signal, signal_key)
         if metrics is None:
             _, metrics = _get_backtest_metrics_best_horizon(by_market, market)
 
