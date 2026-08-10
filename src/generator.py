@@ -234,6 +234,95 @@ def _build_oportunidades(signals, price_data):
 # Dashboard HTML
 # ─────────────────────────────────────────────
  
+def _render_ranking_edge_panel(_backtest: dict) -> str:
+    """
+    Panel "Edge Histórico del Ranking" (Panorama) -- auditoría externa
+    v20, prioridad #6 (10/08/2026). Expone historical_edge_score y
+    ranking_top_vs_rest, ya calculados por backtester.py desde hace
+    semanas pero deliberadamente NUNCA conectados a ranking_accionable ni
+    a ninguna decisión de capital -- ver docstring de esos campos en
+    backtester.py.
+
+    Sigue sin conectarse a nada accionable en este fix: es un panel
+    puramente informativo, mismo criterio que stability_score. La razón
+    concreta de por qué NO se conecta todavía, encontrada en la misma
+    sesión de este fix: al recalcular ranking_top_vs_rest desde cero con
+    los mismos datos versionados del repo, el resultado no coincidió con
+    el valor persistido en backtest_results.json (samples 1742 vs 1876,
+    y el EV del top 20% cambió de signo, -3.52% -> +3.48%) -- causa
+    raíz identificada: race condition entre el pipeline de Railway y el
+    workflow de GitHub Actions que actualiza los CSV de precio de forma
+    independiente, sin sincronización entre ambos. Hasta que eso no se
+    resuelva (decisión de infraestructura pendiente, no de este panel),
+    conectar este número a Kelly o al orden de señales sería apoyar una
+    decisión de capital en un valor que hoy no es reproducible corrida a
+    corrida -- de ahí el aviso explícito en el panel.
+    """
+    edge = (_backtest or {}).get("historical_edge_score") or {}
+    rtr  = (_backtest or {}).get("ranking_top_vs_rest") or {}
+
+    if not edge and not rtr:
+        return ""
+
+    def _fmt_ev(v):
+        if v is None:
+            return "—"
+        color = "#4ade80" if v > 0 else ("#f87171" if v < 0 else "#888")
+        return f'<span style="color:{color};font-weight:700">{v:+.2f}%</span>'
+
+    rows_html = ""
+    if edge:
+        ranked = sorted(
+            [(k, v) for k, v in edge.items() if isinstance(v, dict) and v.get("n")],
+            key=lambda kv: kv[1].get("score") or 0, reverse=True,
+        )
+        top3 = ranked[:3]
+        bottom3 = ranked[-3:] if len(ranked) > 3 else []
+        for label, group in (("🟢 Mejor edge histórico", top3), ("🔴 Peor edge histórico", bottom3)):
+            if not group:
+                continue
+            rows_html += f'<div style="font-size:10px;color:#888;margin-top:6px">{label}</div>'
+            for combo, v in group:
+                rows_html += (
+                    '<div style="display:flex;justify-content:space-between;font-size:11px;'
+                    'padding:2px 0;border-bottom:1px solid #222">'
+                    f'<span style="color:#ccc">{combo}</span>'
+                    f'<span style="color:#666">n={v.get("n")}</span>'
+                    f'{_fmt_ev(v.get("ev"))}'
+                    '</div>'
+                )
+
+    rtr_html = ""
+    top20, bot20 = rtr.get("top_20pct") or {}, rtr.get("bottom_20pct") or {}
+    if top20.get("samples") and bot20.get("samples"):
+        rtr_html = (
+            '<div style="font-size:10px;color:#888;margin-top:10px">Top 20% vs Bottom 20% del ranking accionable</div>'
+            '<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0">'
+            f'<span style="color:#ccc">Top 20% (n={top20.get("samples")})</span>{_fmt_ev(top20.get("expected_value"))}'
+            '</div>'
+            '<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0">'
+            f'<span style="color:#ccc">Bottom 20% (n={bot20.get("samples")})</span>{_fmt_ev(bot20.get("expected_value"))}'
+            '</div>'
+        )
+
+    if not rows_html and not rtr_html:
+        return ""
+
+    return f'''
+    <div style="background:#111;border:1px solid #222;border-radius:8px;padding:14px;margin-top:12px">
+      <div style="font-size:13px;font-weight:700;color:#eee;margin-bottom:4px">📊 Edge Histórico del Ranking</div>
+      <div style="font-size:10px;color:#f59e0b;margin-bottom:6px">
+        ⚠️ Informativo, no conectado a Kelly ni al orden de señales -- ver auditoría 10/08/2026:
+        este número no fue reproducible corrida a corrida en la última verificación (posible
+        desincronización entre pipeline y actualización de precios). No usar para decisiones de
+        capital hasta resolver eso.
+      </div>
+      {rows_html}
+      {rtr_html}
+    </div>
+    '''
+
+
 def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signals: list = None) -> str:
     """
     Panel "Conclusiones del Modelo" (Panorama) -- extraído de generate_dashboard()
@@ -1112,6 +1201,7 @@ def generate_dashboard(
     macro_panel_html = _render_macro_panel(signals, extra_html=sistema_html)
 
     model_conclusions_html = _render_model_conclusions_panel(_backtest, _perf_history, signals)
+    ranking_edge_html = _render_ranking_edge_panel(_backtest)
 
 
     # ── Registro de Oportunidades (para medir efectividad real del proyecto) ──
@@ -1379,6 +1469,7 @@ def generate_dashboard(
   <!-- ── Conclusiones del Modelo -- fila propia, ya no comparte con Sistema (ajuste de layout 24/07/2026) ── -->
   <div style="margin:12px 0 18px">
     {model_conclusions_html}
+    {ranking_edge_html}
   </div>
 
   <!-- ── Cross-Market Context ── -->
