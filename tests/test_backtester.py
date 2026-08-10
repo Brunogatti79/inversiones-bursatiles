@@ -29,6 +29,7 @@ from src.backtester import (
     _isotonic_calibration_curve,
     calibrated_win_probability,
     _aggregate_by,
+    _aggregate_cross,
     _build_trades,
 )
 
@@ -591,3 +592,64 @@ class TestBuildTradesFactorDominante:
         }
         trades = _build_trades(history, ["2026-07-01"] + [f"2026-07-{d:02d}" for d in range(2, 15)], price_index)
         assert trades[0]["factor_dominante"] == "UNKNOWN"
+
+
+# ── cross_market_regime × EV (auditoría externa v20, 10/08/2026) ───────────
+# cross_market.py calcula y persiste RISK_ON/RISK_OFF/NEUTRAL por señal
+# desde hace semanas, pero nunca había llegado al backtester -- se usaba
+# para ajustar el score hacia adelante, nunca para medir EV hacia atrás.
+
+class TestCrossMarketRegimeEnBacktester:
+
+    def test_build_trades_extrae_cross_market_regime(self):
+        history = {
+            "2026-07-01": [{
+                "ticker": "GGAL.BA", "signal": "🟢 COMPRA", "precio": 100.0,
+                "atr_stop": 90.0, "atr_target": 120.0, "sector": "Financiero",
+                "mercado": "MERVAL", "cross_market_regime": "RISK_ON",
+            }],
+        }
+        price_index = {
+            "GGAL.BA": {f"2026-07-{d:02d}": 100.0 + d for d in range(1, 15)}
+        }
+        trades = _build_trades(history, ["2026-07-01"] + [f"2026-07-{d:02d}" for d in range(2, 15)], price_index)
+        assert trades[0]["cross_market_regime"] == "RISK_ON"
+
+    def test_cross_market_regime_ausente_cae_en_unknown_no_crashea(self):
+        """Mismo criterio que factor_dominante/consenso/confidence_label:
+        entradas viejas de signals_history.json (previas a que
+        cross_market.py empezara a persistir el campo) no deben
+        interpretarse como un régimen inventado."""
+        history = {
+            "2026-07-01": [{
+                "ticker": "GGAL.BA", "signal": "🟢 COMPRA", "precio": 100.0,
+                "atr_stop": 90.0, "atr_target": 120.0, "sector": "Financiero",
+                "mercado": "MERVAL",
+                # sin cross_market_regime -- entrada "vieja"
+            }],
+        }
+        price_index = {
+            "GGAL.BA": {f"2026-07-{d:02d}": 100.0 + d for d in range(1, 15)}
+        }
+        trades = _build_trades(history, ["2026-07-01"] + [f"2026-07-{d:02d}" for d in range(2, 15)], price_index)
+        assert trades[0]["cross_market_regime"] == "UNKNOWN"
+
+    def test_by_regime_separa_ev_por_regimen(self):
+        trades = (
+            [{"signal": "🟢 COMPRA", "cross_market_regime": "RISK_ON", "ret_5d": r}
+             for r in (3.0, 2.0, -1.0, 1.5, 0.5)] +
+            [{"signal": "🟢 COMPRA", "cross_market_regime": "NEUTRAL", "ret_5d": r}
+             for r in (-3.0, -2.0, -1.5, -0.5, 1.0)]
+        )
+        by_regime = _aggregate_by(trades, "cross_market_regime")
+        assert by_regime["RISK_ON"]["h5d"]["expected_value"] > 0
+        assert by_regime["NEUTRAL"]["h5d"]["expected_value"] < 0
+
+    def test_regime_x_signal_cruza_ambas_dimensiones(self):
+        trades = [
+            {"signal": "🟢 COMPRA", "cross_market_regime": "RISK_ON", "ret_5d": 2.0},
+            {"signal": "🔴 VENTA",  "cross_market_regime": "RISK_ON", "ret_5d": -1.0},
+        ]
+        rxs = _aggregate_cross(trades, "cross_market_regime", "signal")
+        assert "🟢 COMPRA" in rxs["RISK_ON"]
+        assert "🔴 VENTA" in rxs["RISK_ON"]

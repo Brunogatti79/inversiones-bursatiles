@@ -15,6 +15,7 @@ import pytest
 from src.confidence_score import (
     compute_global_confidence,
     apply_kill_switch,
+    enrich_confidence_scores,
     KILL_SWITCH_THRESHOLD,
     MIN_CRITICAL_FOR_KILL,
 )
@@ -195,17 +196,16 @@ class TestWeightedThresholdTrigger:
 class TestApplyKillSwitch:
 
     def test_inactive_kill_switch_leaves_kelly_untouched(self):
-        signals = [{"ticker": "AAPL", "kelly_half": 2.5, "kelly_half_adj": 1.8}]
+        signals = [{"ticker": "AAPL", "kelly_half": 2.5}]
         global_conf = {"kill_switch_active": False, "kill_switch_reasons": []}
         result = apply_kill_switch(signals, global_conf)
         assert result[0]["kill_switch_active"] is False
         assert result[0]["kelly_half"] == 2.5
-        assert result[0]["kelly_half_adj"] == 1.8
 
     def test_active_kill_switch_zeroes_kelly_on_all_signals(self):
         signals = [
-            {"ticker": "AAPL", "kelly_half": 2.5, "kelly_half_adj": 1.8},
-            {"ticker": "GGAL.BA", "kelly_half": 5.0, "kelly_half_adj": 4.2},
+            {"ticker": "AAPL", "kelly_half": 2.5},
+            {"ticker": "GGAL.BA", "kelly_half": 5.0},
         ]
         global_conf = {
             "kill_switch_active": True,
@@ -215,8 +215,25 @@ class TestApplyKillSwitch:
         for sig in result:
             assert sig["kill_switch_active"] is True
             assert sig["kelly_half"] == 0.0
-            assert sig["kelly_half_adj"] == 0.0
             assert sig["kill_switch_reasons"] == global_conf["kill_switch_reasons"]
+
+    def test_kelly_half_adj_ya_no_se_genera(self):
+        """FIX 10/08/2026: kelly_half_adj (ajuste de Kelly por confianza,
+        calculado en confidence_score.py) era código muerto -- ningún
+        consumidor downstream lo leía (verificado con grep exhaustivo
+        contra generator.py/notifier.py/bot.py/Excel), y conectarlo ahora
+        hubiera sido un doble castigo real, porque portfolio_optimizer.py
+        ya segmenta kelly_half por confidence_label desde ese mismo día.
+        Eliminado en enrich_confidence_scores(). apply_kill_switch() ya
+        no debe escribirlo ni esperarlo, aunque una señal externa lo trajera
+        seteado por error -- no debe crashear ni revivirlo."""
+        signals = [{"ticker": "AAPL", "kelly_half": 2.5, "kelly_half_adj": 999}]
+        global_conf = {"kill_switch_active": True, "kill_switch_reasons": ["test"]}
+        result = apply_kill_switch(signals, global_conf)
+        assert result[0]["kelly_half"] == 0.0
+        # apply_kill_switch ya no toca kelly_half_adj -- si alguien lo
+        # puso ahí, queda como estaba (no es su responsabilidad limpiarlo).
+        assert result[0]["kelly_half_adj"] == 999
 
     def test_signals_without_kelly_fields_are_not_crashed_or_invented(self):
         """Señales NEUTRAL/VENTA no tienen kelly_half -- no debe agregarse
@@ -229,3 +246,24 @@ class TestApplyKillSwitch:
 
     def test_empty_signals_list_returns_empty(self):
         assert apply_kill_switch([], {"kill_switch_active": True}) == []
+
+
+class TestEnrichConfidenceScoresNoLongerGeneratesKellyHalfAdj:
+    """FIX 10/08/2026 -- ver docstring de TestApplyKillSwitch arriba para
+    el motivo completo (código muerto que, de conectarse, hubiera
+    duplicado el ajuste por confianza que portfolio_optimizer.py ya
+    aplica)."""
+
+    def test_no_agrega_kelly_half_adj_aunque_kelly_half_este_presente(self):
+        signals = [{
+            "ticker": "AAPL", "mercado": "SP500", "signal_v2": "🟢 COMPRA",
+            "score_v1": 65.0, "score_v2": 60.0, "rsi": 50.0,
+            "market_trend_score": 55.0, "weekly_trend": "neutral",
+            "monthly_trend": "neutral", "kelly_half": 5.0,
+        }]
+        result = enrich_confidence_scores(signals, vol_regime={"global_regime": "NORMAL"})
+        assert "confidence_score" in result[0]
+        assert "confidence_label" in result[0]
+        assert "kelly_half_adj" not in result[0]
+        assert "confidence_adj_factor" not in result[0]
+        assert result[0]["kelly_half"] == 5.0  # no lo toca, queda como vino

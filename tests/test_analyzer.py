@@ -30,6 +30,7 @@ from src.analyzer import (
     _atr,
     _normalizar_dist_max,
     SIGNAL_LABELS,
+    analyze_market,
 )
 
 
@@ -221,6 +222,61 @@ class TestATR:
         result, metodo = _atr(None, None, close)
         assert result == 0.0
         assert metodo == "sin_datos"
+
+
+# ── Fundamental: mediana de sector como fallback (auditoría externa v20, ──
+# prioridad #3, 10/08/2026) — ver también tests/test_fundamental.py para
+# los tests de fundamental.py en sí; estos cubren la integración completa
+# vía analyze_market().
+
+class TestFundamentalSectorMedianFallback:
+
+    def _mock_df(self, seed=13):
+        np.random.seed(seed)
+        dates = pd.date_range("2025-01-01", periods=300, freq="B")
+        close = 100 * np.cumprod(1 + np.random.normal(0.0005, 0.015, 300))
+        indice = 1000 * np.cumprod(1 + np.random.normal(0.0003, 0.01, 300))
+        df = pd.DataFrame({"Empresa Test": close, "INDICE S&P 500": indice}, index=dates)
+        df.index.name = "Fecha"
+        return df
+
+    def test_ticker_ausente_sin_sector_medians_cae_a_50_como_siempre(self):
+        df = self._mock_df()
+        signals = analyze_market(df, "SP500", {"ZZZ": "Empresa Test"}, fund_scores={})
+        assert signals[0]["fund_fuente"] == "sin_datos"
+
+    def test_ticker_ausente_con_sector_medians_usa_mediana(self):
+        df = self._mock_df()
+        # ZZZ no está en SECTOR_MAP -> cae en "GENERAL". fund_scores no
+        # vacío (con datos de otro ticker) para que el bloque de fallback
+        # se ejecute -- si fund_scores viene {} (CSV no cargado en
+        # absoluto), el comportamiento correcto sigue siendo 50.0 para
+        # todos, no medianas (ver test de abajo).
+        signals = analyze_market(
+            df, "SP500", {"ZZZ": "Empresa Test"},
+            fund_scores={"OTRO": 99.0}, fund_sector_medians={"GENERAL": 30.0},
+        )
+        assert signals[0]["fund_fuente"] == "mediana_sector"
+
+    def test_fund_scores_completamente_vacio_no_usa_medianas(self):
+        """Si fund_scores es {} (CSV no encontrado/vacío), el chequeo
+        `if fund_scores:` es falsy y se mantiene el comportamiento
+        histórico de 50.0 fijo -- no tiene sentido aplicar medianas de
+        sector si no hay ningún dato fundamental cargado en absoluto."""
+        df = self._mock_df()
+        signals = analyze_market(
+            df, "SP500", {"ZZZ": "Empresa Test"},
+            fund_scores={}, fund_sector_medians={"GENERAL": 30.0},
+        )
+        assert signals[0]["fund_fuente"] == "sin_datos"
+
+    def test_ticker_presente_usa_su_propio_score_no_la_mediana(self):
+        df = self._mock_df()
+        signals = analyze_market(
+            df, "SP500", {"ZZZ": "Empresa Test"},
+            fund_scores={"ZZZ": 88.0}, fund_sector_medians={"GENERAL": 30.0},
+        )
+        assert signals[0]["fund_fuente"] == "real"
 
 
 # ── Normalización distancia al máximo ──────────────────────────────────────
