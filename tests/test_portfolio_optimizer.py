@@ -335,3 +335,65 @@ class TestCalibratedProbabilityBlend:
             },
             "by_market": {},
         }
+
+
+# ── confidence_x_signal tiene prioridad sobre by_signal agregado ────────
+# FIX 10/08/2026: auditoría real mostró que "Media+COMPRA" venía confirmado
+# EV negativo en walk-forward (dos ventanas) mientras "Alta+COMPRA" era
+# positivo -- pero _calc_kelly_weights solo miraba by_signal (agregado de
+# TODAS las confianzas), diluyendo ambas señales al mismo número.
+
+class TestConfidenceXSignalTienePrioridad:
+
+    def _backtest_segmentado(self):
+        return {
+            "confidence_x_signal": {
+                "🟢 Alta": {
+                    "🟢 COMPRA": {
+                        "h21d": None,  # muestra insuficiente (samples<5), debe caer a h10d
+                        "h10d": {"samples": 75, "win_rate": 0.453, "avg_win": 3.47, "avg_loss": 2.44},
+                        "h5d":  {"samples": 99, "win_rate": 0.586, "avg_win": 3.11, "avg_loss": 1.97},
+                    },
+                },
+                "🟡 Media": {
+                    "🟢 COMPRA": {
+                        "h21d": {"samples": 5, "win_rate": 0.2, "avg_win": 3.0, "avg_loss": 7.75},
+                        "h10d": {"samples": 85, "win_rate": 0.565, "avg_win": 3.54, "avg_loss": 16.9},
+                        "h5d":  {"samples": 166, "win_rate": 0.44, "avg_win": 3.74, "avg_loss": 4.3},
+                    },
+                },
+            },
+            # Agregado: si la lógica vieja siguiera vigente, ambas señales
+            # caerían acá y darían el mismo Kelly (falso negativo/positivo).
+            "by_signal": {
+                "🟢 COMPRA": {
+                    "h21d": {"samples": 18, "win_rate": 0.278, "avg_win": 10.15, "avg_loss": 7.06},
+                    "h10d": {"samples": 269, "win_rate": 0.465, "avg_win": 4.47, "avg_loss": 7.28},
+                    "h5d":  {"samples": 407, "win_rate": 0.45, "avg_win": 4.43, "avg_loss": 4.12},
+                }
+            },
+            "by_market": {},
+        }
+
+    def test_alta_y_media_dan_kelly_distinto_no_el_agregado(self):
+        backtest = self._backtest_segmentado()
+        sig_alta  = _buy_signal(confidence_label="🟢 Alta")
+        sig_media = _buy_signal(confidence_label="🟡 Media")
+        w_alta, w_media = _calc_kelly_weights([sig_alta, sig_media], backtest)
+        assert w_alta > 0, "Alta+COMPRA es EV positivo en h10d, no debería quedar en 0"
+        assert w_media == 0.0, "Media+COMPRA es EV negativo confirmado, debe quedar en 0"
+        assert w_alta > w_media
+
+    def test_confidence_label_ausente_cae_a_by_signal_agregado(self):
+        """Señales sin confidence_label (compatibilidad hacia atrás) deben
+        seguir funcionando igual que antes del fix, usando el agregado."""
+        backtest = self._backtest_segmentado()
+        sig_sin_label = _buy_signal(confidence_label="")
+        w = _calc_kelly_weights([sig_sin_label], backtest)
+        assert w[0] == 0.0  # el agregado h21d también es negativo -> clamp a 0, no crashea
+
+    def test_confidence_label_desconocida_cae_a_by_signal_agregado(self):
+        backtest = self._backtest_segmentado()
+        sig = _buy_signal(confidence_label="🔵 Inexistente")
+        w = _calc_kelly_weights([sig], backtest)
+        assert w[0] == 0.0  # no encuentra la celda -> cae al agregado sin crashear
