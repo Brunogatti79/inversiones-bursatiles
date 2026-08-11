@@ -750,6 +750,15 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
             if not future_prices:
                 continue
 
+            # FIX 10/08/2026: truncar en el primer split detectado (ver
+            # docstring de _detect_split_horizon) -- todo lo que venga
+            # después de un split queda fuera de este trade, no se
+            # calcula con un precio de escala distinta a precio_entry.
+            split_idx = _detect_split_horizon(precio_entry, future_prices)
+            split_detectado = split_idx < len(future_prices)
+            if split_detectado:
+                future_prices = future_prices[:split_idx]
+
             trade = {
                 "ticker":       ticker,
                 "mercado":      mercado,
@@ -772,6 +781,7 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
                 "confidence_label": confidence_label or "UNKNOWN",
                 "factor_dominante": factor_dominante or "UNKNOWN",
                 "cross_market_regime": cross_market_regime or "UNKNOWN",
+                "split_detectado": split_detectado,
             }
 
             # Retornos hold-to-horizon
@@ -795,6 +805,53 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
 
     logger.info(f"Backtester: {len(trades)} trades calculados desde {len(evaluation_dates)} fechas")
     return trades
+
+
+def _detect_split_horizon(entry_price: float, future_prices: list, threshold: float = 0.60) -> int:
+    """
+    FIX 10/08/2026 (auditoría externa v20, prioridad #1 -- incidente real
+    encontrado en producción, no teórico): YPF y Mirgor hicieron split de
+    acciones 1:10 el 03/08/2026, el mismo día. signals_history.json
+    refleja correctamente el precio en cada momento (pre-split hasta el
+    02/08, post-split desde el 03/08) -- el precio en sí NO está mal.
+    El problema es que _build_trades() comparaba precio_entry (pre-split,
+    ej. $81.325 para YPFD.BA) contra un precio futuro post-split (ej.
+    $8.105) sin ajustar, generando un retorno de -90% completamente
+    artificial -- no reflejaba ningún evento de mercado real, solo la
+    fracción entre acciones. Impacto medido en producción: 52 señales
+    (3% de la muestra de 33 días), EV promedio artificial de esas 52
+    señales: -74.83%, arrastrando el EV del top 20% del ranking de
+    -0.39% (real) a -3.52% (contaminado).
+
+    Recorre [entry_price] + future_prices buscando el primer salto entre
+    dos precios CONSECUTIVOS cuyo cambio absoluto supere `threshold`
+    (default 60% -- por encima de cualquier movimiento intradía/overnight
+    orgánico plausible incluso para MERVAL en día de alta volatilidad
+    macro, pero por debajo de un split típico 2:1 (-50%), 3:1 (-66%),
+    5:1 (-80%) o 10:1 (-90%)). Devuelve el índice (0-based, sobre
+    future_prices) a partir del cual los precios ya NO son comparables
+    contra entry_price -- es decir, future_prices[:idx] es seguro de
+    usar, future_prices[idx:] no. Si no hay salto, devuelve len(future_prices)
+    (nada se trunca).
+
+    Deliberadamente NO intenta reconstruir el ratio del split para
+    "corregir" el precio (ej. multiplicar por 10) -- el ratio real puede
+    no ser exactamente una potencia de 10 (splits 3:1, 4:1, etc. también
+    existen), y adivinarlo mal sería peor que excluir el dato. Se
+    prioriza no contaminar el backtest sobre no perder esas observaciones.
+    """
+    if not future_prices or entry_price <= 0:
+        return len(future_prices)
+
+    prev = entry_price
+    for i, p in enumerate(future_prices):
+        if p is None or p <= 0:
+            continue
+        cambio = abs(p / prev - 1)
+        if cambio >= threshold:
+            return i  # future_prices[i] ya es post-split -- truncar acá
+        prev = p
+    return len(future_prices)
 
 
 def _get_future_prices(ticker: str, signal_date: str, price_index: dict, max_horizon: int = 25) -> list:
