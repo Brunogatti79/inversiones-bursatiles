@@ -31,6 +31,7 @@ from src.backtester import (
     _aggregate_by,
     _aggregate_cross,
     _build_trades,
+    _detect_split_horizon,
 )
 
 
@@ -578,6 +579,83 @@ class TestBuildTradesFactorDominante:
         assert len(trades) == 1
         assert trades[0]["factor_dominante"] == "fundamental"
 
+    def test_split_detectado_se_marca_en_el_trade(self):
+        """Regresión del incidente real 03/08/2026: YPF/Mirgor split 1:10,
+        precio_entry (pre-split) comparado contra precio futuro (post-split)
+        sin ajustar daba retornos artificiales de ~-90%. Ver docstring de
+        _detect_split_horizon()."""
+        history = {
+            "2026-08-01": [{
+                "ticker": "YPFD.BA", "signal": "🟢 COMPRA", "precio": 81325.0,
+                "atr_stop": 75000.0, "atr_target": 90000.0, "sector": "Energía",
+                "mercado": "MERVAL",
+            }],
+        }
+        # Split real: 03/08 el precio cae ~90% de golpe (evento corporativo)
+        price_index = {
+            "YPFD.BA": {
+                "2026-08-01": 81325.0, "2026-08-02": 81325.0,
+                "2026-08-03": 8105.0, "2026-08-04": 8105.0, "2026-08-05": 7840.0,
+                "2026-08-06": 7835.0, "2026-08-07": 7775.0, "2026-08-08": 7775.0,
+                "2026-08-09": 7775.0, "2026-08-10": 8105.0, "2026-08-11": 8000.0,
+                "2026-08-12": 8010.0, "2026-08-13": 7990.0, "2026-08-14": 8020.0,
+            }
+        }
+        sorted_dates = list(price_index["YPFD.BA"].keys())
+        trades = _build_trades(history, sorted_dates, price_index)
+        assert len(trades) == 1
+        t = trades[0]
+        assert t["split_detectado"] is True
+        # Todos los horizontes (5/10/21d) deben quedar en None -- el split
+        # ocurre en la primera observación futura (day 1), no hay ningún
+        # precio "limpio" (pre-split) para ese trade después de la entrada.
+        assert t["ret_5d"] is None
+        assert t["ret_10d"] is None
+        assert t["ret_21d"] is None
+
+    def test_sin_split_no_se_marca_y_retornos_se_calculan_normal(self):
+        history = {
+            "2026-08-01": [{
+                "ticker": "GGAL.BA", "signal": "🟢 COMPRA", "precio": 100.0,
+                "atr_stop": 90.0, "atr_target": 120.0, "sector": "Financiero",
+                "mercado": "MERVAL",
+            }],
+        }
+        price_index = {
+            "GGAL.BA": {f"2026-08-{d:02d}": 100.0 + d for d in range(1, 15)}
+        }
+        sorted_dates = list(price_index["GGAL.BA"].keys())
+        trades = _build_trades(history, sorted_dates, price_index)
+        assert trades[0]["split_detectado"] is False
+        assert trades[0]["ret_5d"] is not None
+
+    def test_split_a_mitad_de_camino_trunca_solo_horizontes_posteriores(self):
+        """Si el split ocurre entre 5d y 10d, ret_5d debe seguir siendo
+        válido (todo pre-split), y ret_10d/ret_21d deben quedar en None."""
+        history = {
+            "2026-08-01": [{
+                "ticker": "TEST.BA", "signal": "🟢 COMPRA", "precio": 100.0,
+                "atr_stop": 90.0, "atr_target": 120.0, "sector": "Financiero",
+                "mercado": "MERVAL",
+            }],
+        }
+        precios = {"2026-08-01": 100.0}
+        base_date = 2
+        # 7 dias organicos post-entry (index 0-6 -> day 1-7), split en day 8
+        organicos = [101, 102, 101.5, 103, 102.5, 104, 103.5]
+        for i, p in enumerate(organicos):
+            precios[f"2026-08-{base_date+i:02d}"] = p
+        # split (90% caida) en el 8vo dia futuro
+        precios["2026-08-10"] = 10.35
+        for i in range(11, 25):
+            precios[f"2026-08-{i:02d}"] = 10.0 + (i % 3)
+        sorted_dates = list(precios.keys())
+        trades = _build_trades(history, sorted_dates, {"TEST.BA": precios})
+        t = trades[0]
+        assert t["split_detectado"] is True
+        assert t["ret_5d"] is not None   # dia 5 < dia 8 (split) -- pre-split, OK
+        assert t["ret_10d"] is None      # dia 10 > dia 8 (split) -- truncado
+
     def test_factor_dominante_ausente_cae_en_unknown_no_crashea(self):
         history = {
             "2026-07-01": [{
@@ -653,3 +731,48 @@ class TestCrossMarketRegimeEnBacktester:
         rxs = _aggregate_cross(trades, "cross_market_regime", "signal")
         assert "🟢 COMPRA" in rxs["RISK_ON"]
         assert "🔴 VENTA" in rxs["RISK_ON"]
+
+
+# ── _detect_split_horizon: unitarios directos (auditoría v20, 10/08/2026) ──
+
+class TestDetectSplitHorizon:
+
+    def test_split_10a1_real_ypf(self):
+        """Caso real de producción: YPFD.BA, entry 81325 (02/08), precio
+        futuro 8105 (03/08) -- split 1:10, cambio -90.0%."""
+        future = [8105.0, 8105.0, 7840.0]
+        assert _detect_split_horizon(81325.0, future) == 0
+
+    def test_sin_movimiento_organico_no_detecta_nada(self):
+        future = [101.0, 99.0, 103.0, 97.5, 102.0]
+        assert _detect_split_horizon(100.0, future) == len(future)
+
+    def test_umbral_60pct_no_confunde_volatilidad_alta_real(self):
+        """Un movimiento fuerte pero orgánico (ej. -40% en una crisis
+        puntual de MERVAL) NO debe confundirse con un split -- el umbral
+        es 60%, por debajo de cualquier split típico (2:1=-50% ya lo
+        agarra en el limite, 3:1=-66%, 10:1=-90%) pero por encima de
+        crashes orgánicos plausibles."""
+        future = [70.0]  # -30% en un dia, fuerte pero no split
+        assert _detect_split_horizon(100.0, future) == len(future)
+
+    def test_split_2a1_no_alcanza_el_umbral_deliberadamente(self):
+        """Split 2:1 da exactamente -50%, por DEBAJO del umbral de 60% --
+        decisión deliberada: 60% evita falsos positivos con movimientos
+        orgánicos fuertes pero reales (ej. -45% a -55% en un día por una
+        noticia puntual), a costa de no capturar splits 2:1 exactos. Los
+        2 casos reales confirmados en producción (YPF, Mirgor) fueron
+        10:1 (-90%), muy por encima de cualquier umbral razonable."""
+        future = [50.0]  # exactamente -50%, split 2:1 -- no se detecta
+        assert _detect_split_horizon(100.0, future) == 1
+
+    def test_entry_price_cero_o_negativo_no_crashea(self):
+        assert _detect_split_horizon(0.0, [10.0, 20.0]) == 2
+        assert _detect_split_horizon(-5.0, [10.0, 20.0]) == 2
+
+    def test_future_prices_vacio_no_crashea(self):
+        assert _detect_split_horizon(100.0, []) == 0
+
+    def test_precio_none_en_la_lista_no_crashea(self):
+        future = [None, 101.0, 99.0]
+        assert _detect_split_horizon(100.0, future) == 3  # sin split real, no trunca
