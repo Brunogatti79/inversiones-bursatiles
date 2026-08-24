@@ -145,6 +145,70 @@ class TestScoreAdjustments:
         assert abs(adj["MERVAL"])  < 1.0
         assert abs(adj["BOVESPA"]) < 1.0
 
+    # ── FIX 24/08/2026: gate por tendencia local, no solo correlación ──────
+    # Caso real que motivó el fix: régimen RISK_ON (SP500 alcista) con
+    # MERVAL cayendo en términos propios (EV -7.48%/WR 12.3% a 21d en
+    # backtest_results.json) mientras la correlación se mantenía "moderada"
+    # (no cruzaba DIVERGE_THRESH=0.20) -- el ajuste seguía siendo positivo.
+
+    def test_local_bearish_trend_suppresses_risk_on_boost(self):
+        """SP500 alcista pero MERVAL con tendencia local BAJISTA propia →
+        el boost debe atenuarse fuerte, no aplicarse a pleno como si MERVAL
+        estuviera de acuerdo con SP500."""
+        adj_agree    = _calc_score_adjustments(
+            70.0, 0.7, 0.65, False, False,
+            mv_trend_score=70.0, bv_trend_score=70.0,  # MERVAL/BOVESPA también alcistas
+        )
+        adj_contra   = _calc_score_adjustments(
+            70.0, 0.7, 0.65, False, False,
+            mv_trend_score=30.0, bv_trend_score=70.0,  # MERVAL bajista propio, BOVESPA alcista
+        )
+        # MERVAL contradiciendo su propia tendencia local debe pesar mucho
+        # menos que cuando coincide con SP500 -- ya no boost casi pleno.
+        assert adj_contra["MERVAL"] < adj_agree["MERVAL"]
+        assert adj_contra["MERVAL"] >= 0  # sigue sin ser negativo, solo atenuado
+        # BOVESPA no debería verse afectado por lo que pasa en MERVAL
+        assert adj_contra["BOVESPA"] == adj_agree["BOVESPA"]
+
+    def test_local_bullish_trend_suppresses_risk_off_penalty(self):
+        """Caso simétrico: SP500 bajista pero un mercado con tendencia local
+        propia alcista → la penalización debe atenuarse, no aplicarse a
+        pleno."""
+        adj_agree  = _calc_score_adjustments(
+            30.0, 0.7, 0.65, False, False,
+            mv_trend_score=30.0, bv_trend_score=30.0,
+        )
+        adj_contra = _calc_score_adjustments(
+            30.0, 0.7, 0.65, False, False,
+            mv_trend_score=70.0, bv_trend_score=30.0,  # MERVAL alcista propio pese a SP500 bajista
+        )
+        assert adj_contra["MERVAL"] > adj_agree["MERVAL"]  # penalización más chica (menos negativa)
+        assert adj_contra["BOVESPA"] == adj_agree["BOVESPA"]
+
+    def test_default_trend_score_preserves_old_behavior(self):
+        """Sin pasar mv_trend_score/bv_trend_score (llamadas viejas, ej. el
+        resto de esta suite de tests), el default neutral (50.0) no debe
+        gatillar ninguna atenuación por tendencia local -- comportamiento
+        idéntico al que existía antes del fix."""
+        adj_sin_kwargs = _calc_score_adjustments(70.0, 0.7, 0.65, False, False)
+        adj_default_explicito = _calc_score_adjustments(
+            70.0, 0.7, 0.65, False, False,
+            mv_trend_score=50.0, bv_trend_score=50.0,
+        )
+        assert adj_sin_kwargs == adj_default_explicito
+
+    def test_local_trend_agrees_no_extra_suppression(self):
+        """Si la tendencia local coincide con la dirección del ajuste
+        (ambas alcistas o ambas bajistas), no debe activarse la atenuación
+        -- el ajuste debe seguir siendo prácticamente el mismo que antes
+        del fix (mismo cálculo, solo corr_mv_sp/mv_diverge)."""
+        adj_con_gate = _calc_score_adjustments(
+            70.0, 0.7, 0.65, False, False,
+            mv_trend_score=65.0, bv_trend_score=65.0,
+        )
+        adj_sin_gate = _calc_score_adjustments(70.0, 0.7, 0.65, False, False)
+        assert adj_con_gate == adj_sin_gate
+
 
 class TestComputeCrossMarketContext:
 
@@ -235,3 +299,75 @@ class TestComputeCrossMarketContext:
         assert "market_trends" in result
         for mkt in ("MERVAL", "BOVESPA", "SP500"):
             assert mkt in result["market_trends"]
+
+    # ── Shadow mode (24/08/2026): el gate por tendencia local se calcula
+    # pero NO se aplica todavía -- ver nota en compute_cross_market_context.
+    # Motivo: al medir el Top20/Bottom20 real del backtest se encontró que
+    # el 100% de esas señales tienen cross_market_regime=UNKNOWN (el campo
+    # es reciente), así que el mecanismo no tiene evidencia de explicar el
+    # problema medido, aunque siga siendo plausible hacia adelante.
+
+    def test_score_adjustments_applied_ignores_local_trend_gate(self):
+        """El score_adjustments que se aplica en pipeline.py debe ser
+        IDÉNTICO al comportamiento de antes de esta sesión -- sin importar
+        la tendencia local de cada mercado."""
+        np.random.seed(3)
+        n = 300
+        # SP500 fuerte alcista, MERVAL cayendo en términos propios -- el
+        # caso exacto que el gate atenuaría si estuviera activo.
+        merval_prices = 100 * np.cumprod(1 + np.random.normal(-0.006, 0.008, n))
+        bovespa_prices = 100 * np.cumprod(1 + np.random.normal(0.004, 0.008, n))
+        sp500_prices = 100 * np.cumprod(1 + np.random.normal(0.006, 0.008, n))
+        mv = pd.DataFrame({"MERVAL": merval_prices})
+        bv = pd.DataFrame({"BOVESPA": bovespa_prices})
+        sp = pd.DataFrame({"SP500": sp500_prices})
+
+        result = compute_cross_market_context(
+            mv, bv, sp,
+            {"merval": "MERVAL", "bovespa": "BOVESPA", "sp500": "SP500"}
+        )
+        assert result["market_trends"]["MERVAL"]["trend"] == "BAJISTA"
+        assert result["regime"] == "RISK_ON"
+        # El aplicado (score_adjustments) NO debe verse recortado por la
+        # tendencia local bajista de MERVAL -- shadow mode, no se aplica.
+        applied_no_gate = _calc_score_adjustments(
+            result["sp500_trend_score"],
+            result["correlations"]["merval_sp500"],
+            result["correlations"]["bovespa_sp500"],
+            result["divergence"]["merval_diverge"],
+            result["divergence"]["bovespa_diverge"],
+        )
+        assert result["score_adjustments"]["MERVAL"] == applied_no_gate["MERVAL"]
+
+    def test_shadow_field_present_and_can_differ_from_applied(self):
+        """score_adjustments_shadow_gate_local debe estar presente, y en el
+        caso RISK_ON + MERVAL localmente bajista debe venir MÁS CHICO (más
+        conservador) que el aplicado -- así se puede medir el efecto antes
+        de activarlo, comparando ambos campos persistidos por señal."""
+        np.random.seed(3)
+        n = 300
+        merval_prices = 100 * np.cumprod(1 + np.random.normal(-0.006, 0.008, n))
+        bovespa_prices = 100 * np.cumprod(1 + np.random.normal(0.004, 0.008, n))
+        sp500_prices = 100 * np.cumprod(1 + np.random.normal(0.006, 0.008, n))
+        mv = pd.DataFrame({"MERVAL": merval_prices})
+        bv = pd.DataFrame({"BOVESPA": bovespa_prices})
+        sp = pd.DataFrame({"SP500": sp500_prices})
+
+        result = compute_cross_market_context(
+            mv, bv, sp,
+            {"merval": "MERVAL", "bovespa": "BOVESPA", "sp500": "SP500"}
+        )
+        assert "score_adjustments_shadow_gate_local" in result
+        shadow = result["score_adjustments_shadow_gate_local"]
+        applied = result["score_adjustments"]
+        if result["market_trends"]["MERVAL"]["trend"] == "BAJISTA" and applied["MERVAL"] > 0:
+            assert shadow["MERVAL"] <= applied["MERVAL"]
+
+    def test_fallback_includes_shadow_key(self):
+        """El fallback también debe tener la clave shadow, mismo criterio
+        que market_trends -- evita KeyError en consumidores downstream."""
+        result = compute_cross_market_context(
+            pd.DataFrame(), pd.DataFrame(), pd.DataFrame(),
+            {"merval": "", "bovespa": "", "sp500": ""}
+        )
+        assert "score_adjustments_shadow_gate_local" in result
