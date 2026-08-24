@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-24T13:10:37.859140",
+  "generated": "2026-08-24T15:04:42.720732",
   "total_trades": 2814,
   "days_history": 47,
   "by_signal": {
@@ -7572,16 +7572,7 @@
       "nota": "Si delta_ev_21d es chico o negativo, el predictor no está aportando valor marginal detectable sobre el resto del modelo con la muestra actual -- no concluir sin revisar antes el tamaño de muestra (count) de cada grupo."
     }
   },
-  "pattern_discoveries_nuevas": [
-    {
-      "fecha": "2026-08-24 13:10",
-      "tipo": "cambio_de_signo",
-      "combinacion": "🟡 Media + 🟡 NEUTRAL/ESPERAR",
-      "ev_antes": 0.01,
-      "ev_ahora": 0.0,
-      "n": 527
-    }
-  ],
+  "pattern_discoveries_nuevas": [],
   "historical_edge_score": {
     "🟡 Media + 🟡 NEUTRAL/ESPERAR": {
       "score": 55.0,
@@ -7939,7 +7930,7 @@
       "profit_factor": 1.0,
       "significativo_95": false,
       "walk_forward_estado": "no_confirmado",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟠 Baja + 🟠 VENTA PARCIAL",
