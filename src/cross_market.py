@@ -92,6 +92,7 @@ def compute_cross_market_context(
         "correlations": {"merval_sp500": 0, "bovespa_sp500": 0, "merval_bovespa": 0, "avg": 0},
         "divergence": {"merval_diverge": False, "bovespa_diverge": False, "global_divergence": False},
         "score_adjustments": {"MERVAL": 0.0, "BOVESPA": 0.0, "SP500": 0.0},
+        "score_adjustments_shadow_gate_local": {"MERVAL": 0.0, "BOVESPA": 0.0, "SP500": 0.0},
         "narrative": "Sin datos suficientes para análisis cross-market.",
     }
 
@@ -161,8 +162,27 @@ def compute_cross_market_context(
         regime = _determine_regime(sp_trend_score, avg_corr)
 
         # 5. Ajustes al score macro
+        # FIX 24/08/2026 → REVERTIDO A SHADOW MODE el mismo día (auditoría
+        # con Claude + 2 revisiones externas): el gate por tendencia local
+        # es un mecanismo razonable, pero al medirlo contra el Top20/Bottom20
+        # real del backtest se encontró que el 100% de las señales que
+        # componen ese resultado histórico tienen cross_market_regime=UNKNOWN
+        # (el campo recién se empezó a persistir a mediados de julio) -- o
+        # sea, el mecanismo NO explica el problema medido, aunque siga
+        # siendo plausible hacia adelante. "Mecanismo plausible + resultado
+        # histórico desconectado = fix NO justificado todavía" (síntesis de
+        # la revisión externa). Se aplica en producción el cálculo VIEJO
+        # (sin gate, comportamiento idéntico al de antes de esta sesión) y
+        # se calcula en paralelo la versión con gate SOLO para loguearla
+        # (score_adjustments_shadow_gate_local) -- no se aplica a
+        # macro_score todavía. Reactivar cuando haya semanas de historia
+        # real con el shadow persistido para medir impacto en Top/Bottom.
         adjustments = _calc_score_adjustments(
-            sp_trend_score, corr_mv_sp, corr_bv_sp, mv_diverge, bv_diverge
+            sp_trend_score, corr_mv_sp, corr_bv_sp, mv_diverge, bv_diverge,
+        )
+        adjustments_shadow = _calc_score_adjustments(
+            sp_trend_score, corr_mv_sp, corr_bv_sp, mv_diverge, bv_diverge,
+            mv_trend_score=mv_trend_score, bv_trend_score=bv_trend_score,
         )
 
         # 6. Narrativa
@@ -187,12 +207,18 @@ def compute_cross_market_context(
             "correlations":     correlations,
             "divergence":       divergence,
             "score_adjustments": adjustments,
+            # ── Shadow mode (24/08/2026) -- NO se aplica a macro_score, solo
+            # se persiste por señal para poder medir impacto real antes de
+            # activar. Ver nota arriba y src/confidence_score.py para el
+            # criterio de cuándo pasar esto a producción.
+            "score_adjustments_shadow_gate_local": adjustments_shadow,
             "narrative":        narrative,
         }
 
         logger.info(
             f"[cross_market] Régimen={regime} | SP500={sp_trend_label}({sp_trend_score:.0f}) | "
-            f"Corr avg={avg_corr:.2f} | Adj MERVAL={adjustments['MERVAL']:+.1f} BOVESPA={adjustments['BOVESPA']:+.1f}"
+            f"Corr avg={avg_corr:.2f} | Adj MERVAL={adjustments['MERVAL']:+.1f} BOVESPA={adjustments['BOVESPA']:+.1f} | "
+            f"Shadow(gate local) MERVAL={adjustments_shadow['MERVAL']:+.1f} BOVESPA={adjustments_shadow['BOVESPA']:+.1f}"
         )
 
         return result
@@ -305,6 +331,8 @@ def _calc_score_adjustments(
     corr_bv_sp: float,
     mv_diverge: bool,
     bv_diverge: bool,
+    mv_trend_score: float = 50.0,
+    bv_trend_score: float = 50.0,
 ) -> dict:
     """
     Calcula el ajuste al macro_score por influencia cross-market.
@@ -312,17 +340,43 @@ def _calc_score_adjustments(
     Principios:
     • SP500 alcista (trend_score > 58) → boost a emergentes, proporcional a correlación
     • SP500 bajista (trend_score < 42) → penalización, proporcional a correlación
-    • Si el mercado diverge → el ajuste se reduce a la mitad (está moviéndose solo)
+    • Si el mercado diverge (correlación < DIVERGE_THRESH) → el ajuste se reduce
     • El ajuste es una señal débil: máx ±6 puntos sobre el macro_score
+
+    FIX 24/08/2026 (auditoría con Claude, evidencia en backtest_results.json):
+    el gate de divergencia por correlación no alcanza a frenar el boost cuando
+    un mercado emergente cae fuerte EN TÉRMINOS PROPIOS mientras SP500 sube y
+    la correlación diaria se mantiene "moderada" (no por debajo de
+    DIVERGE_THRESH). Correlación mide co-movimiento día a día, no que ambos
+    mercados vayan en la misma dirección acumulada -- son cosas distintas.
+    Caso real detectado: régimen RISK_ON activo, MERVAL con boost positivo,
+    mientras MERVAL individualmente tenía EV -7.48%/WR 12.3% a 21d en el
+    mismo período (ver backtest_results.json, by_market). market_trends ya
+    calculaba la tendencia LOCAL de cada mercado (mv_trend_score/bv_trend_score,
+    misma función _trend_score que SP500) pero no se usaba para nada más que
+    mostrarlo en el dashboard -- acá se usa para frenar el ajuste cuando
+    contradice la tendencia propia del mercado. Reutiliza el mismo factor de
+    atenuación (0.30) que ya existía para divergencia por correlación, no se
+    inventa un número nuevo. Defaults en 50.0 (neutral) para no romper
+    llamadas existentes que no pasen estos parámetros.
     """
     # Señal base de SP500 (-1 a +1)
     # Neutral en 50, max efecto en 0 y 100
     sp_signal = (sp_trend_score - 50) / 50  # rango: -1 a +1
 
+    # Tendencia local contradice la dirección del ajuste (usa los mismos
+    # cortes 42/58 que ya definen RISK_OFF/RISK_ON en _determine_regime).
+    mv_local_bearish = mv_trend_score < 42
+    mv_local_bullish = mv_trend_score > 58
+    bv_local_bearish = bv_trend_score < 42
+    bv_local_bullish = bv_trend_score > 58
+
     # Ajuste MERVAL
     mv_base = sp_signal * MAX_BOOST * SP500_INFLUENCE_ON_MERVAL
     if mv_diverge:
         mv_base *= 0.30  # diverge → mucho menos influencia
+    if (sp_signal > 0 and mv_local_bearish) or (sp_signal < 0 and mv_local_bullish):
+        mv_base *= 0.30  # tendencia local contradice el ajuste → mucho menos influencia
     # Escalar por correlación (si correlación baja, SP500 importa menos)
     corr_mv_safe = max(0.0, min(1.0, corr_mv_sp))
     mv_adj = mv_base * corr_mv_safe
@@ -330,6 +384,8 @@ def _calc_score_adjustments(
     # Ajuste BOVESPA
     bv_base = sp_signal * MAX_BOOST * SP500_INFLUENCE_ON_BOVESPA
     if bv_diverge:
+        bv_base *= 0.30
+    if (sp_signal > 0 and bv_local_bearish) or (sp_signal < 0 and bv_local_bullish):
         bv_base *= 0.30
     corr_bv_safe = max(0.0, min(1.0, corr_bv_sp))
     bv_adj = bv_base * corr_bv_safe

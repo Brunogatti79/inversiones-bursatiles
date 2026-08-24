@@ -382,7 +382,21 @@ def run_pipeline():
             _s["market_trend"] = _mt.get("trend")
             _s["market_trend_score"] = _mt.get("score")
             _s["cross_market_regime"] = cross_market.get("regime", "NEUTRAL")
- 
+            # ── Instrumentación 24/08/2026 (shadow mode cross_market) ────
+            # score_adjustments (el que SÍ se aplicó a macro_score arriba) y
+            # score_adjustments_shadow_gate_local (el que se aplicaría si el
+            # gate por tendencia local estuviera activo, calculado pero NO
+            # aplicado) -- sin esto, medir el impacto real del gate antes de
+            # activarlo requeriría reconstruirlo desde afuera con supuestos,
+            # como pasó en la auditoría del 24/08 que motivó este campo.
+            _mkt = _s.get("mercado")
+            _s["cross_market_adjustment_applied"] = (
+                cross_market.get("score_adjustments", {}).get(_mkt)
+            )
+            _s["cross_market_adjustment_shadow"] = (
+                cross_market.get("score_adjustments_shadow_gate_local", {}).get(_mkt)
+            )
+
         # 4b. PREDICCIONES ENSEMBLE (5d / 10d / 21d)
         logger.info("4b/8 Generando predicciones ensemble...")
         try:

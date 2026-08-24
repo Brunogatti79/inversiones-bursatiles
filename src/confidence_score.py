@@ -5,11 +5,28 @@ Combina múltiples fuentes de evidencia en un único número (0-100)
 que indica cuánta confianza merece cada señal individual.
 
 COMPONENTES:
-  1. Acuerdo predictor + modelo      (35%) — ¿coinciden en dirección?
-  2. Alignment de timeframes         (25%) — ¿diario+semanal+mensual alineados?
-  3. Quality checks sin alertas      (20%) — ¿sin flags rojos/amarillos?
-  4. Consistencia V1/V2              (10%) — ¿ambos scores apuntan igual?
-  5. Régimen de volatilidad          (10%) — alta vol penaliza, baja vol bonifica
+  1. Acuerdo predictor + modelo      (15%) — ¿coinciden en dirección?
+  2. Alignment de timeframes         (33%) — ¿diario+semanal+mensual alineados?
+  3. Quality checks sin alertas      (26%) — ¿sin flags rojos/amarillos?
+  4. Consistencia V1/V2              (13%) — ¿ambos scores apuntan igual?
+  5. Régimen de volatilidad          (13%) — alta vol penaliza, baja vol bonifica
+
+NOTA 24/08/2026 (auditoría con Claude, evidencia en backtest_results.json):
+peso del predictor bajado de 35% a 15% (los 20pts liberados se redistribuyeron
+proporcionalmente a los otros 4 componentes: 25→33, 20→26, 10→13, 10→13,
+manteniendo el total en 100). Motivo: confidence_calibration.monotona=false
+en el backtest (quintil de mayor confianza es el de PEOR resultado real,
+28.7% WR / -3.50% EV, contra 47.3% WR / -0.63% EV del quintil más bajo), y
+predictor_contribution mostraba que "el predictor confirma la señal" rendía
+peor (-3.15% EV a 21d, n=173) que "el predictor contradice" (-1.92% EV,
+n=225) -- efecto persistente en las dos ventanas temporales con datos
+suficientes (30d y 45d de historia). Era el componente de mayor peso (35%)
+y estaba empujando la confianza en la dirección equivocada. No se invirtió
+el signo del componente (sería ajustar a una muestra de 47 días que podría
+ser ruido de régimen, no una relación causal demostrada) -- se redujo su
+peso para que domine menos mientras no haya más evidencia de que aporta
+valor marginal real. Revisar de nuevo cuando predictor_health.py muestre
+salud sostenida y/o haya más historia para confirmar si el efecto persiste.
 
 INTERPRETACIÓN:
   ≥ 75 → Alta confianza  → señal sólida
@@ -66,13 +83,24 @@ def enrich_confidence_scores(signals: list[dict], vol_regime: dict = None) -> li
 
     for sig in signals:
         try:
-            cs, label = _calc_confidence(sig, global_regime)
+            cs, label, breakdown = _calc_confidence(sig, global_regime)
             sig["confidence_score"] = cs
             sig["confidence_label"] = label
+            # ── Instrumentación 24/08/2026 (auditoría con Claude): antes de
+            # esto, alignment_label y quality_flag se USABAN para calcular
+            # confidence_score pero no quedaban persistidos en
+            # signals_history.json -- ni ellos ni la contribución de cada
+            # componente al score final. Sin esto, cualquier contrafactual
+            # futuro sobre los pesos (ej. "¿qué hubiera dado el predictor a
+            # 15% vs 35% en la historia real?") no se puede reconstruir con
+            # precisión, solo aproximar. Se persiste el desglose completo,
+            # no solo el total.
+            sig["confidence_breakdown"] = breakdown
             enriched += 1
         except Exception:
             sig["confidence_score"] = 50
             sig["confidence_label"] = "Media"
+            sig["confidence_breakdown"] = {}
 
     buy_count = len([s for s in signals if s.get("confidence_score", 0) >= 75
                      and "COMPRA" in (s.get("signal_v2") or "")])
@@ -82,11 +110,18 @@ def enrich_confidence_scores(signals: list[dict], vol_regime: dict = None) -> li
 
 # ── Cálculo del score ───────────────────────────────────────────────────
 
-def _calc_confidence(sig: dict, global_regime: str) -> tuple[float, str]:
-    """Calcula confidence score 0-100 para una señal."""
+def _calc_confidence(sig: dict, global_regime: str) -> tuple[float, str, dict]:
+    """Calcula confidence score 0-100 para una señal.
+
+    Devuelve (score, label, breakdown) -- breakdown incluye los puntos que
+    aportó cada componente y los valores crudos usados (alignment_label,
+    quality_flag), para poder persistirlo por señal (ver
+    enrich_confidence_scores) y auditar/recalcular contrafactuales después,
+    sin tener que reconstruir esos valores desde otro lado.
+    """
     score = 0.0
 
-    # ── 1. Acuerdo predictor + modelo (35%) ─────────────────────────────
+    # ── 1. Acuerdo predictor + modelo (15%, bajado de 35% el 24/08/2026) ─
     pred_21d  = sig.get("pred_21d")
     signal    = sig.get("signal_v2") or sig.get("signal", "")
     is_buy    = "COMPRA" in signal
@@ -98,46 +133,62 @@ def _calc_confidence(sig: dict, global_regime: str) -> tuple[float, str]:
 
         if pred_confirms:
             # Predictor confirma + confianza del predictor
-            score += 35 * min(1.0, pred_conf / 0.70)
+            pred_pts = 15 * min(1.0, pred_conf / 0.70)
         else:
             # Predictor contradice → penalización fuerte
-            score += 35 * (1 - min(1.0, pred_conf / 0.70)) * 0.30
+            pred_pts = 15 * (1 - min(1.0, pred_conf / 0.70)) * 0.30
     else:
-        score += 15  # sin datos del predictor, contribución parcial
+        pred_confirms = None
+        pred_pts = 6.4  # sin datos del predictor, contribución parcial (15/35 * 15)
+    score += pred_pts
 
-    # ── 2. Alignment de timeframes (25%) ────────────────────────────────
+    # ── 2. Alignment de timeframes (33%) ────────────────────────────────
     alignment = sig.get("alignment_label", "")
     align_map = {
-        "TRIPLE CONFIRMACIÓN": 25,
-        "DOBLE CONFIRMACIÓN":  18,
-        "SIN DATOS":           12,
-        "SEÑALES MIXTAS":       8,
-        "CONFLICTO PARCIAL":    5,
+        "TRIPLE CONFIRMACIÓN": 33,
+        "DOBLE CONFIRMACIÓN":  24,
+        "SIN DATOS":           16,
+        "SEÑALES MIXTAS":      11,
+        "CONFLICTO PARCIAL":    7,
         "CONFLICTO TOTAL":      0,
     }
-    score += align_map.get(alignment, 12)
+    align_pts = align_map.get(alignment, 16)
+    score += align_pts
 
-    # ── 3. Quality checks (20%) ──────────────────────────────────────────
+    # ── 3. Quality checks (26%) ──────────────────────────────────────────
     quality = sig.get("quality_flag", "🟢")
-    quality_score = {"🟢": 20, "🟡": 12, "🔴": 3}.get(quality, 12)
+    quality_score = {"🟢": 26, "🟡": 16, "🔴": 4}.get(quality, 16)
     score += quality_score
 
-    # ── 4. Consistencia V1/V2 (10%) ──────────────────────────────────────
+    # ── 4. Consistencia V1/V2 (13%) ──────────────────────────────────────
     score_v1 = float(sig.get("score_final", 50) or 50)
     score_v2 = float(sig.get("score_final_v2", 50) or 50)
     diff = abs(score_v1 - score_v2)
     if diff < 10:
-        score += 10   # muy consistentes
+        consist_pts = 13   # muy consistentes
     elif diff < 20:
-        score += 7
+        consist_pts = 9
     elif diff < 30:
-        score += 4
+        consist_pts = 5
     else:
-        score += 1    # V1 y V2 muy distintos
+        consist_pts = 1    # V1 y V2 muy distintos
+    score += consist_pts
 
-    # ── 5. Régimen de volatilidad (10%) ──────────────────────────────────
-    vol_pts = {"LOW": 10, "NORMAL": 7, "HIGH": 3}.get(global_regime, 7)
+    # ── 5. Régimen de volatilidad (13%) ───────────────────────────────────
+    vol_pts = {"LOW": 13, "NORMAL": 9, "HIGH": 4}.get(global_regime, 9)
     score += vol_pts
+
+    breakdown = {
+        "predictor_pts":      round(pred_pts, 2),
+        "predictor_confirma": pred_confirms,
+        "alignment_label":    alignment,
+        "alignment_pts":      align_pts,
+        "quality_flag":       quality,
+        "quality_pts":        quality_score,
+        "consistency_pts":    consist_pts,
+        "vol_regime_usado":   global_regime,
+        "vol_pts":            vol_pts,
+    }
 
     # Clamp
     score = round(min(100, max(0, score)), 1)
@@ -152,7 +203,7 @@ def _calc_confidence(sig: dict, global_regime: str) -> tuple[float, str]:
     else:
         label = "🔴 Muy baja"
 
-    return score, label
+    return score, label, breakdown
 
 
 def _confidence_kelly_factor(confidence_score: float) -> float:

@@ -78,6 +78,15 @@ def update_history(signals: list[dict], max_days: int = 60):
             # solo puede arrancar a acumular desde el día en que se agrega.
             "confidence_score": s.get("confidence_score"),
             "confidence_label": s.get("confidence_label", ""),
+            # ── Instrumentación 24/08/2026 (auditoría con Claude): desglose
+            # completo de confidence_score, incluyendo alignment_label y
+            # quality_flag crudos -- antes se usaban para calcular el score
+            # pero no quedaban registrados en ningún lado, así que no se
+            # podía recalcular el score con pesos distintos sobre historia
+            # real, solo aproximar. Necesario para validar cualquier cambio
+            # futuro de pesos (ej. si el peso del predictor vuelve a bajar
+            # o sube) contra datos reales en vez de tests unitarios solos.
+            "confidence_breakdown": s.get("confidence_breakdown", {}),
             # ── Stops / Targets (para backtesting) ──────────────────
             "atr_stop":      s.get("atr_stop", 0),
             "atr_target":    s.get("atr_target", 0),
@@ -103,6 +112,17 @@ def update_history(signals: list[dict], max_days: int = 60):
             "market_trend":        s.get("market_trend"),
             "market_trend_score":  s.get("market_trend_score"),
             "cross_market_regime": s.get("cross_market_regime"),
+            # ── Instrumentación 24/08/2026 (shadow mode cross_market,
+            # auditoría con Claude): el ajuste que SÍ se aplicó a
+            # macro_score, y el que se hubiera aplicado con el gate por
+            # tendencia local (calculado pero no aplicado todavía). Sin
+            # persistir esto por señal, medir el impacto real del gate
+            # antes de activarlo en producción requiere reconstruirlo
+            # desde afuera con supuestos sobre correlación/régimen del
+            # día -- exactamente lo que pasó al intentar auditar el fix
+            # original antes de este campo existir.
+            "cross_market_adjustment_applied": s.get("cross_market_adjustment_applied"),
+            "cross_market_adjustment_shadow":  s.get("cross_market_adjustment_shadow"),
             # ── Fix 27/07/2026 (roadmap externo P4/P6): estos campos ya
             # estaban en la señal en vivo (analyzer.py, v4.10/v4.11) pero
             # faltaba agregarlos acá -- sin esto, signals_history.json (la
