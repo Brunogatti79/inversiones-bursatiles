@@ -36,6 +36,17 @@ def _send_message(text, parse_mode="HTML"):
         r = requests.post(url, json=payload, timeout=15)
         r.raise_for_status()
         return True
+    except requests.exceptions.HTTPError as e:
+        # El motivo REAL del rechazo lo manda Telegram en el body (campo
+        # "description"), no en el status code — sin esto solo vemos
+        # "400 Bad Request" y no sabemos si fue longitud, entidades HTML
+        # mal formadas, chat_id inválido, etc.
+        try:
+            detail = r.json().get("description", r.text[:300])
+        except Exception:
+            detail = r.text[:300] if r is not None else str(e)
+        logger.error(f"Error enviando mensaje Telegram: {e} | Detalle Telegram: {detail} | len(text)={len(text)}")
+        return False
     except Exception as e:
         logger.error(f"Error enviando mensaje Telegram: {e}")
         return False
