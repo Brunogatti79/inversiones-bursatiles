@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-08-25T17:32:00.008193",
-  "last_run_utc": "2026-08-25T20:32:00.008244",
-  "last_success": "2026-08-25T17:32:00.008193",
+  "last_run": "2026-08-25T20:26:41.745575",
+  "last_run_utc": "2026-08-25T23:26:41.745609",
+  "last_success": "2026-08-25T20:26:41.745575",
   "consecutive_failures": 0,
   "duration_history": [
-    150.6,
     121.1,
     86.4,
     96.0,
@@ -13,18 +12,19 @@
     128.0,
     122.9,
     115.4,
-    120.0
+    120.0,
+    75.6
   ],
-  "duration_avg_sec": 114.6,
+  "duration_avg_sec": 112.5,
   "duration_p95_sec": 141.3,
-  "duration_last_sec": 120.0,
+  "duration_last_sec": 75.6,
   "signals_count": 67,
   "buy_signals": 13,
   "sell_signals": 13,
   "neutral_signals": 41,
-  "cross_market_regime": "NEUTRAL",
-  "cross_market_sp500_trend": "LATERAL",
-  "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 55/100), correlación moderada entre mercados. MERVAL en modo idiosincrá",
+  "cross_market_regime": "RISK_ON",
+  "cross_market_sp500_trend": "ALCISTA",
+  "cross_market_narrative": "Apetito global por riesgo activo. S&P 500 alcista (score 63/100), correlación moderada entre mercados. MERVAL en modo id",
   "validacion_nivel": "OK",
   "runs_log": [
     {
@@ -216,21 +216,26 @@
       "ts": "2026-08-25",
       "success": true,
       "duration": 120.0
+    },
+    {
+      "ts": "2026-08-25",
+      "success": true,
+      "duration": 75.6
     }
   ],
-  "pipeline_runs_today": 10,
-  "pipeline_runs_week": 38,
+  "pipeline_runs_today": 11,
+  "pipeline_runs_week": 39,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 57.1,
+  "global_confidence_score": 56.8,
   "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
   "optimized_weights_days": 48,
-  "exposure_factor_shadow": 0.742,
+  "exposure_factor_shadow": 0.736,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
   "backtest_ev_21d": -2.64,
@@ -239,6 +244,6 @@
   "predictor_mae": 9.0,
   "backtest_generated": "2026-08-25",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 1.9,
+  "ccl_age_minutes": 1.2,
   "last_ccl_value": 1599.5
 }
