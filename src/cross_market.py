@@ -93,6 +93,7 @@ def compute_cross_market_context(
         "divergence": {"merval_diverge": False, "bovespa_diverge": False, "global_divergence": False},
         "score_adjustments": {"MERVAL": 0.0, "BOVESPA": 0.0, "SP500": 0.0},
         "score_adjustments_shadow_gate_local": {"MERVAL": 0.0, "BOVESPA": 0.0, "SP500": 0.0},
+        "market_exposure_shadow": {"MERVAL": 1.0, "BOVESPA": 1.0, "SP500": 1.0},
         "narrative": "Sin datos suficientes para análisis cross-market.",
     }
 
@@ -212,13 +213,23 @@ def compute_cross_market_context(
             # activar. Ver nota arriba y src/confidence_score.py para el
             # criterio de cuándo pasar esto a producción.
             "score_adjustments_shadow_gate_local": adjustments_shadow,
+            # ── Shadow mode (25/08/2026) -- NO se aplica a Kelly/tamaño de
+            # posición, solo se persiste por señal. Ver docstring de
+            # compute_market_exposure_shadow() para la evidencia que lo
+            # motivó (paradoja de Simpson en ranking_top_vs_rest global).
+            "market_exposure_shadow": {
+                "MERVAL":  compute_market_exposure_shadow(mv_trend_score),
+                "BOVESPA": compute_market_exposure_shadow(bv_trend_score),
+                "SP500":   compute_market_exposure_shadow(sp_trend_score),
+            },
             "narrative":        narrative,
         }
 
         logger.info(
             f"[cross_market] Régimen={regime} | SP500={sp_trend_label}({sp_trend_score:.0f}) | "
             f"Corr avg={avg_corr:.2f} | Adj MERVAL={adjustments['MERVAL']:+.1f} BOVESPA={adjustments['BOVESPA']:+.1f} | "
-            f"Shadow(gate local) MERVAL={adjustments_shadow['MERVAL']:+.1f} BOVESPA={adjustments_shadow['BOVESPA']:+.1f}"
+            f"Shadow(gate local) MERVAL={adjustments_shadow['MERVAL']:+.1f} BOVESPA={adjustments_shadow['BOVESPA']:+.1f} | "
+            f"Shadow(exposure) MERVAL={result['market_exposure_shadow']['MERVAL']:.2f} BOVESPA={result['market_exposure_shadow']['BOVESPA']:.2f}"
         )
 
         return result
@@ -323,6 +334,49 @@ def _determine_regime(sp_trend_score: float, avg_corr: float) -> str:
     elif sp_trend_score <= 42:
         return "RISK_OFF"
     return "NEUTRAL"
+
+
+def compute_market_exposure_shadow(market_trend_score: float | None) -> float:
+    """
+    🔵 SHADOW MODE (25/08/2026, auditoría con Claude) -- NO se aplica a
+    ningún cálculo de capital todavía. Se calcula y se persiste por señal
+    (ver pipeline.py/tracker.py) puramente para medir impacto antes de
+    decidir activarlo, mismo criterio que score_adjustments_shadow_gate_local.
+
+    Motivo: se encontró que ranking_top_vs_rest GLOBAL (que mezcla los 3
+    mercados) mostraba una paradoja de Simpson -- MERVAL/BOVESPA rankean
+    más alto en promedio que SP500 pese a tener peor EV real del período,
+    así que el Top20% global queda dominado por señales de mercados que
+    vienen mal. Verificado con ranking_top_vs_rest_by_market (backtester.py)
+    que el ranking SÍ ordena razonablemente bien DENTRO de cada mercado
+    (top20% > bottom20% en los 3). Eso sugiere que el problema no es la
+    selección de acciones dentro de un mercado, sino que no existe ninguna
+    señal de "este mercado completo viene mal, reducir exposición acá"
+    independiente del ranking interno -- que es justo lo que
+    market_trend_score (ya calculado por _trend_score(), sin uso downstream
+    hasta ahora salvo el gate ya revertido de _calc_score_adjustments) podría
+    aportar.
+
+    No se pudo validar retroactivamente contra el backtest real: solo 195
+    de 974 señales medibles tienen market_trend_score persistido, y
+    ninguna cayó nunca por debajo de 42 en esa ventana -- mismo problema de
+    cobertura histórica que bloqueó la validación del gate de cross_market
+    (ver v20 §5). Por eso arranca en shadow, no aplicado.
+
+    Misma forma de rampa que confidence_score.py::compute_exposure_factor,
+    reusando los cortes 42/58 ya establecidos como convención en este
+    módulo (RISK_OFF/RISK_ON), no números nuevos.
+
+    Returns: multiplicador sugerido 0.20-1.00 (1.00 = sin recorte).
+    """
+    if market_trend_score is None:
+        return 1.0  # sin dato -> no penalizar, no hay base para hacerlo
+    if market_trend_score >= 58:
+        return 1.0
+    elif market_trend_score >= 42:
+        return round(0.60 + (market_trend_score - 42) / 16 * 0.40, 3)
+    else:
+        return round(max(0.20, 0.60 * market_trend_score / 42), 3)
 
 
 def _calc_score_adjustments(

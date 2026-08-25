@@ -137,6 +137,11 @@ def update_history(signals: list[dict], max_days: int = 60):
             # original antes de este campo existir.
             "cross_market_adjustment_applied": s.get("cross_market_adjustment_applied"),
             "cross_market_adjustment_shadow":  s.get("cross_market_adjustment_shadow"),
+            # ── Instrumentación 25/08/2026 (shadow mode, exposición por
+            # mercado, auditoría con Claude): multiplicador sugerido según
+            # tendencia local del mercado, NO aplicado a ningún cálculo de
+            # capital todavía -- ver cross_market.py::compute_market_exposure_shadow.
+            "market_exposure_shadow": s.get("market_exposure_shadow"),
             # ── Fix 27/07/2026 (roadmap externo P4/P6): estos campos ya
             # estaban en la señal en vivo (analyzer.py, v4.10/v4.11) pero
             # faltaba agregarlos acá -- sin esto, signals_history.json (la

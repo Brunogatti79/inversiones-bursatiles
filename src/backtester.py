@@ -534,6 +534,7 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         "confidence_calibration_curve": _isotonic_calibration_curve(trades),
         "attribution_by_factor": _aggregate_by(trades, "factor_dominante"),
         "ranking_top_vs_rest":    _ranking_quantile_breakdown(trades),
+        "ranking_top_vs_rest_by_market": _ranking_quantile_breakdown_by_market(trades),
         # Pedido de Bruno (27/07/2026): cruce real confidence_label × signal
         # -- antes solo existían por separado (by_confidence_label, by_signal),
         # que no alcanzan para saber si "Alta + COMPRA" rinde distinto que
@@ -1584,6 +1585,34 @@ def _ranking_quantile_breakdown(trades: list) -> dict:
     return _quantile_split(valid, "ranking") or {"samples": 0}
 
 
+def _ranking_quantile_breakdown_by_market(trades: list) -> dict:
+    """
+    FIX 25/08/2026 (auditoría con Claude): ranking_top_vs_rest global
+    (arriba) mezcla los 3 mercados en un solo top/bottom 20% -- y eso
+    puede dar una lectura completamente engañosa si las escalas de
+    ranking no son comparables entre mercados. Se verificó exactamente
+    eso: MERVAL/BOVESPA rankean en promedio MÁS ALTO que SP500 (54.6/53.2
+    vs 47.7) pese a tener el peor EV real del período, así que el Top20%
+    global queda dominado por señales MERVAL/BOVESPA y el Bottom20% por
+    SP500 -- no porque el modelo elija mal DENTRO de cada mercado (la
+    correlación ranking↔retorno intra-mercado dio +0.56 en MERVAL, +0.23
+    en BOVESPA, +0.06 en SP500 -- positiva en los tres), sino porque las
+    escalas absolutas no son comparables entre mercados. Esta función
+    corre el mismo split top/bottom 20% que _ranking_quantile_breakdown
+    pero por separado en cada mercado, para que esa distinción quede
+    visible en el backtest en vez de tener que reconstruirla a mano cada
+    vez que alguien sospecha una paradoja de Simpson.
+    """
+    result = {}
+    for mercado in ("MERVAL", "BOVESPA", "SP500"):
+        valid = [t for t in trades
+                 if t.get("mercado") == mercado
+                 and t.get("ranking") not in (None, 0)
+                 and _best_ret(t)[1] is not None]
+        result[mercado] = _quantile_split(valid, "ranking") or {"samples": 0}
+    return result
+
+
 def _signal_summary_table(trades: list) -> list:
     """
     Tabla resumen ejecutiva: una fila por tipo de señal con métricas clave.
@@ -1665,7 +1694,17 @@ def _log_summary(results: dict):
     if rk.get("samples", 0) >= 10:
         t20, b20 = rk.get("top_20pct", {}), rk.get("bottom_20pct", {})
         logger.info(
-            f"  Ranking top vs resto — top20%: n={t20.get('count', 0)} EV={_fmt_pct(t20.get('expected_value'))} | "
+            f"  Ranking top vs resto (GLOBAL, 3 mercados mezclados) — top20%: n={t20.get('count', 0)} EV={_fmt_pct(t20.get('expected_value'))} | "
+            f"bottom20%: n={b20.get('count', 0)} EV={_fmt_pct(b20.get('expected_value'))}"
+        )
+
+    rk_mkt = results.get("ranking_top_vs_rest_by_market", {})
+    for mercado, data in rk_mkt.items():
+        if data.get("samples", 0) < 10:
+            continue
+        t20, b20 = data.get("top_20pct", {}), data.get("bottom_20pct", {})
+        logger.info(
+            f"  Ranking top vs resto ({mercado}) — top20%: n={t20.get('count', 0)} EV={_fmt_pct(t20.get('expected_value'))} | "
             f"bottom20%: n={b20.get('count', 0)} EV={_fmt_pct(b20.get('expected_value'))}"
         )
 

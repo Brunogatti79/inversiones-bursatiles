@@ -396,6 +396,16 @@ def run_pipeline():
             _s["cross_market_adjustment_shadow"] = (
                 cross_market.get("score_adjustments_shadow_gate_local", {}).get(_mkt)
             )
+            # ── Instrumentación 25/08/2026 (shadow mode, exposición por
+            # mercado): multiplicador sugerido 0.20-1.00 según
+            # market_trend_score, NO aplicado a Kelly/portfolio_optimizer
+            # todavía -- ver compute_market_exposure_shadow() en
+            # cross_market.py para la evidencia (paradoja de Simpson en
+            # ranking_top_vs_rest global) y por qué no se pudo validar
+            # retroactivamente antes de instrumentarlo.
+            _s["market_exposure_shadow"] = (
+                cross_market.get("market_exposure_shadow", {}).get(_mkt)
+            )
 
         # 4b. PREDICCIONES ENSEMBLE (5d / 10d / 21d)
         logger.info("4b/8 Generando predicciones ensemble...")
