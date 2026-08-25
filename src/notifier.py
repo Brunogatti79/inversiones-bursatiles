@@ -7,11 +7,33 @@ NUEVO: Bloque de validación de datos en el mensaje diario.
 import logging
 import os
 import base64
+import html as _html
 from datetime import datetime
 import pytz
 import requests
  
 logger = logging.getLogger(__name__)
+
+
+def _esc(value) -> str:
+    """
+    Escapa texto de datos (nombres, motivos, mensajes de error) antes de
+    insertarlo en un mensaje HTML de Telegram.
+
+    Bug real (25/08/2026): pipeline.py generaba textos como "(<-5%)" para
+    signal_override — el '<' suelto rompe TODO el mensaje con
+    "can't parse entities", y el fallo queda silenciado (_send_message lo
+    atrapa y devuelve False sin tumbar el pipeline). Esto blinda contra
+    cualquier futuro campo de texto libre que cuele un '<', '>' o '&' —
+    no solo el caso ya corregido en pipeline.py.
+
+    NO usar sobre texto que ya contiene las etiquetas <b>/<code>/<a> que
+    querés que Telegram interprete — solo sobre el contenido dinámico que
+    va DENTRO de esas etiquetas.
+    """
+    if value is None:
+        return ""
+    return _html.escape(str(value), quote=False)
  
 BOT_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN", "")
 CHAT_ID    = os.getenv("TELEGRAM_CHAT_ID", "")
@@ -232,7 +254,7 @@ def _validacion_section(validacion: dict) -> str:
         for err in res.get("errors", []):
             # Extraer solo el mensaje sin el prefijo [MARKET]
             msg = err.split("]")[-1].strip() if "]" in err else err
-            lines.append(f"    ⚠️ {msg[:80]}")
+            lines.append(f"    ⚠️ {_esc(msg[:80])}")
  
     return "\n".join(lines)
  
@@ -271,7 +293,7 @@ def _radar_section(signals):
         lines.append(f"  {flag} <b>{label}</b>")
         for s in market_ranked:
             sc = radar_score(s)
-            lines.append(f"  #{ranked.index(s)+1} <code>{s.get('ticker','?')}</code> {s.get('empresa','?')[:18]} "
+            lines.append(f"  #{ranked.index(s)+1} <code>{_esc(s.get('ticker','?'))}</code> {_esc(s.get('empresa','?'))[:18]} "
                          f"— Radar {sc} | RSI {s.get('rsi', 50):.0f}")
     return "\n".join(lines)
  
@@ -285,7 +307,7 @@ def _compras_section(signals):
         lines.append(f"  {flag} <b>{label}</b>")
         if compras:
             for s in compras[:4]:
-                lines.append(f"  {s.get('signal','')} <code>{s.get('ticker','?')}</code> {s.get('empresa','?')[:18]} "
+                lines.append(f"  {_esc(s.get('signal',''))} <code>{_esc(s.get('ticker','?'))}</code> {_esc(s.get('empresa','?'))[:18]} "
                              f"— Score {s.get('score_final', 0):.0f} | Sem {s.get('ret_sem', 0):+.1f}%")
         else:
             lines.append("  🟡 Sin señales de compra")
@@ -301,7 +323,7 @@ def _reducciones_section(signals):
         lines.append(f"  {flag} <b>{label}</b>")
         if ventas:
             for s in ventas[:3]:
-                lines.append(f"  {s.get('signal','')} <code>{s.get('ticker','?')}</code> {s.get('empresa','?')[:18]}")
+                lines.append(f"  {_esc(s.get('signal',''))} <code>{_esc(s.get('ticker','?'))}</code> {_esc(s.get('empresa','?'))[:18]}")
         else:
             lines.append("  🟡 Sin señales de reducción")
     return "\n".join(lines)
@@ -348,7 +370,7 @@ def send_daily_report(all_signals, index_stats, dashboard_filename,
         override_block = f"\n{sep}\n⚡ <b>Ajustados por predictor/tendencia</b>\n"
         for s in sorted(overrides, key=lambda x: x.get("mercado",""))[:10]:
             flag = "🇦🇷" if s.get("mercado")=="MERVAL" else "🇧🇷" if s.get("mercado")=="BOVESPA" else "🇺🇸"
-            override_block += f"  {flag} <code>{s['ticker']}</code> {s.get('signal','')} — {s['signal_override']}\n"
+            override_block += f"  {flag} <code>{_esc(s.get('ticker','?'))}</code> {_esc(s.get('signal',''))} — {_esc(s.get('signal_override',''))}\n"
 
     footer = (
         f"\n{sep}\n"

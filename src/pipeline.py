@@ -109,7 +109,7 @@ def apply_prediction_override(signals: list[dict], predictor_health: dict = None
                 reasons.append(f"Pred21d {pred_21d:.1f}% (BAJA FUERTE)")
             elif pred_21d < -5:
                 s["signal"] = "🟠 VENTA PARCIAL"
-                reasons.append(f"Pred21d {pred_21d:.1f}% (<-5%)")
+                reasons.append(f"Pred21d {pred_21d:.1f}% (menor a -5%)")
             elif pred_21d < 0:
                 s["signal"] = "🟡 NEUTRAL/ESPERAR"
                 reasons.append(f"Pred21d {pred_21d:.1f}% (negativa)")
@@ -118,7 +118,7 @@ def apply_prediction_override(signals: list[dict], predictor_health: dict = None
         # nunca se omite)
         if ret_anual < -40 and "COMPRA" in s.get("signal", ""):
             s["signal"] = "🟡 NEUTRAL/ESPERAR"
-            reasons.append(f"Ret.anual {ret_anual:.1f}% (<-40% estructural)")
+            reasons.append(f"Ret.anual {ret_anual:.1f}% (menor a -40% estructural)")
 
         if reasons:
             s["signal_override"] = " | ".join(reasons)
