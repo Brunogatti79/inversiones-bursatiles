@@ -229,7 +229,7 @@ def _validacion_section(validacion: dict) -> str:
 def _radar_section(signals):
     """Top 5 del Radar por score compuesto."""
     def radar_score(s):
-        score = min(s["score_final"] / 100, 1) * 35
+        score = min(s.get("score_final", 0) / 100, 1) * 35
         rsi = s.get("rsi", 50)
         if 28 <= rsi <= 45:   score += 20
         elif 45 < rsi <= 55:  score += 12
@@ -260,8 +260,8 @@ def _radar_section(signals):
         lines.append(f"  {flag} <b>{label}</b>")
         for s in market_ranked:
             sc = radar_score(s)
-            lines.append(f"  #{ranked.index(s)+1} <code>{s['ticker']}</code> {s['empresa'][:18]} "
-                         f"— Radar {sc} | RSI {s['rsi']:.0f}")
+            lines.append(f"  #{ranked.index(s)+1} <code>{s.get('ticker','?')}</code> {s.get('empresa','?')[:18]} "
+                         f"— Radar {sc} | RSI {s.get('rsi', 50):.0f}")
     return "\n".join(lines)
  
  
@@ -274,8 +274,8 @@ def _compras_section(signals):
         lines.append(f"  {flag} <b>{label}</b>")
         if compras:
             for s in compras[:4]:
-                lines.append(f"  {s['signal']} <code>{s['ticker']}</code> {s['empresa'][:18]} "
-                             f"— Score {s['score_final']:.0f} | Sem {s['ret_sem']:+.1f}%")
+                lines.append(f"  {s.get('signal','')} <code>{s.get('ticker','?')}</code> {s.get('empresa','?')[:18]} "
+                             f"— Score {s.get('score_final', 0):.0f} | Sem {s.get('ret_sem', 0):+.1f}%")
         else:
             lines.append("  🟡 Sin señales de compra")
     return "\n".join(lines)
@@ -290,7 +290,7 @@ def _reducciones_section(signals):
         lines.append(f"  {flag} <b>{label}</b>")
         if ventas:
             for s in ventas[:3]:
-                lines.append(f"  {s['signal']} <code>{s['ticker']}</code> {s['empresa'][:18]}")
+                lines.append(f"  {s.get('signal','')} <code>{s.get('ticker','?')}</code> {s.get('empresa','?')[:18]}")
         else:
             lines.append("  🟡 Sin señales de reducción")
     return "\n".join(lines)
@@ -344,14 +344,42 @@ def send_daily_report(all_signals, index_stats, dashboard_filename,
         f"🔗 <a href='{dash_url}'>Ver dashboard completo</a>\n"
         f"⏱ Próxima actualización: mañana al cierre"
     )
- 
-    full_msg = (header + indices_block + validacion_block + synthetic_block +
-                exposure_block + senales_block + override_block + footer)
- 
-    if len(full_msg) > 4000:
-        full_msg = full_msg[:3990] + "\n…"
- 
-    return _send_message(full_msg)
+
+    # Si hace falta recortar por longitud, se descartan bloques ENTEROS de
+    # menor prioridad (nunca un fragmento a mitad de un tag HTML — eso
+    # rompe el tag y Telegram rechaza el mensaje COMPLETO con
+    # "can't parse entities", indistinguible de "no llegó nada"). El
+    # footer con el link al dashboard nunca se toca hasta el último caso.
+    validacion_b, synthetic_b, override_b = validacion_block, synthetic_block, override_block
+    full_msg = (header + indices_block + validacion_b + synthetic_b +
+                exposure_block + senales_block + override_b + footer)
+
+    if len(full_msg) > 3900:
+        # Se descartan bloques enteros de menor prioridad hasta entrar en
+        # el límite. El footer (con el link al dashboard) NUNCA se toca.
+        override_b = ""
+        full_msg = (header + indices_block + validacion_b + synthetic_b +
+                    exposure_block + senales_block + override_b + footer)
+    if len(full_msg) > 3900:
+        validacion_b = ""
+        full_msg = (header + indices_block + validacion_b + synthetic_b +
+                    exposure_block + senales_block + override_b + footer)
+    if len(full_msg) > 3900:
+        synthetic_b = ""
+        full_msg = (header + indices_block + validacion_b + synthetic_b +
+                    exposure_block + senales_block + override_b + footer)
+    if len(full_msg) > 3900:
+        # Último recurso: recortar señales pero preservando el footer entero.
+        max_body = 3900 - len(footer)
+        body = (header + indices_block + validacion_b + synthetic_b +
+                exposure_block + senales_block + override_b)
+        full_msg = body[:max_body] + "\n…" + footer
+        logger.warning("send_daily_report: mensaje recortado por longitud incluso tras dropear bloques opcionales.")
+
+    ok = _send_message(full_msg)
+    if not ok:
+        logger.error("send_daily_report: _send_message devolvió False — el reporte diario NO llegó a Telegram.")
+    return ok
  
  
 def send_signal_change_alerts(changes):
