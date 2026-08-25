@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-25T10:14:40.016434",
+  "generated": "2026-08-25T10:24:51.222623",
   "total_trades": 2881,
   "days_history": 48,
   "by_signal": {
@@ -2465,6 +2465,260 @@
         46.7,
         58.1
       ]
+    }
+  },
+  "ranking_top_vs_rest_by_market": {
+    "MERVAL": {
+      "samples": 768,
+      "top_20pct": {
+        "samples": 153,
+        "win_rate": 0.242,
+        "avg_ret": -3.47,
+        "avg_win": 5.83,
+        "avg_loss": 6.44,
+        "expected_value": -3.47,
+        "sharpe": -0.55,
+        "max_drawdown": -99.77,
+        "profit_factor": 0.29,
+        "p_value": 0.0,
+        "ic95": [
+          -4.48,
+          -2.46
+        ],
+        "significativo_95": true,
+        "count": 153,
+        "horizontes_mezclados": [
+          21,
+          10,
+          5
+        ],
+        "ranking_range": [
+          61.8,
+          69.4
+        ]
+      },
+      "bottom_20pct": {
+        "samples": 153,
+        "win_rate": 0.17,
+        "avg_ret": -10.17,
+        "avg_win": 2.15,
+        "avg_loss": 12.69,
+        "expected_value": -10.17,
+        "sharpe": -1.24,
+        "max_drawdown": -100.0,
+        "profit_factor": 0.03,
+        "p_value": 0.0,
+        "ic95": [
+          -11.48,
+          -8.85
+        ],
+        "significativo_95": true,
+        "count": 153,
+        "horizontes_mezclados": [
+          21,
+          10,
+          5
+        ],
+        "ranking_range": [
+          39.0,
+          51.9
+        ]
+      },
+      "middle_60pct": {
+        "samples": 462,
+        "win_rate": 0.119,
+        "avg_ret": -6.22,
+        "avg_win": 3.58,
+        "avg_loss": 7.54,
+        "expected_value": -6.22,
+        "sharpe": -1.03,
+        "max_drawdown": -100.0,
+        "profit_factor": 0.06,
+        "p_value": 0.0,
+        "ic95": [
+          -6.77,
+          -5.67
+        ],
+        "significativo_95": true,
+        "count": 462,
+        "horizontes_mezclados": [
+          21,
+          10,
+          5
+        ],
+        "ranking_range": [
+          52.0,
+          61.8
+        ]
+      }
+    },
+    "BOVESPA": {
+      "samples": 680,
+      "top_20pct": {
+        "samples": 136,
+        "win_rate": 0.493,
+        "avg_ret": 0.25,
+        "avg_win": 4.58,
+        "avg_loss": 3.95,
+        "expected_value": 0.25,
+        "sharpe": 0.05,
+        "max_drawdown": -72.92,
+        "profit_factor": 1.13,
+        "p_value": 0.5733,
+        "ic95": [
+          -0.63,
+          1.14
+        ],
+        "significativo_95": false,
+        "count": 136,
+        "horizontes_mezclados": [
+          21,
+          10,
+          5
+        ],
+        "ranking_range": [
+          58.8,
+          67.3
+        ]
+      },
+      "bottom_20pct": {
+        "samples": 136,
+        "win_rate": 0.279,
+        "avg_ret": -6.33,
+        "avg_win": 6.21,
+        "avg_loss": 11.19,
+        "expected_value": -6.33,
+        "sharpe": -0.53,
+        "max_drawdown": -100.0,
+        "profit_factor": 0.22,
+        "p_value": 0.0,
+        "ic95": [
+          -8.34,
+          -4.32
+        ],
+        "significativo_95": true,
+        "count": 136,
+        "horizontes_mezclados": [
+          21,
+          10,
+          5
+        ],
+        "ranking_range": [
+          41.2,
+          50.0
+        ]
+      },
+      "middle_60pct": {
+        "samples": 408,
+        "win_rate": 0.25,
+        "avg_ret": -7.11,
+        "avg_win": 5.05,
+        "avg_loss": 11.17,
+        "expected_value": -7.11,
+        "sharpe": -0.66,
+        "max_drawdown": -100.0,
+        "profit_factor": 0.15,
+        "p_value": 0.0,
+        "ic95": [
+          -8.16,
+          -6.07
+        ],
+        "significativo_95": true,
+        "count": 408,
+        "horizontes_mezclados": [
+          21,
+          10,
+          5
+        ],
+        "ranking_range": [
+          50.0,
+          58.8
+        ]
+      }
+    },
+    "SP500": {
+      "samples": 1200,
+      "top_20pct": {
+        "samples": 240,
+        "win_rate": 0.721,
+        "avg_ret": 4.81,
+        "avg_win": 8.12,
+        "avg_loss": 3.73,
+        "expected_value": 4.81,
+        "sharpe": 0.54,
+        "max_drawdown": -64.01,
+        "profit_factor": 5.62,
+        "p_value": 0.0,
+        "ic95": [
+          3.68,
+          5.95
+        ],
+        "significativo_95": true,
+        "count": 240,
+        "horizontes_mezclados": [
+          21,
+          10,
+          5
+        ],
+        "ranking_range": [
+          52.0,
+          61.7
+        ]
+      },
+      "bottom_20pct": {
+        "samples": 240,
+        "win_rate": 0.642,
+        "avg_ret": 3.29,
+        "avg_win": 8.07,
+        "avg_loss": 5.26,
+        "expected_value": 3.29,
+        "sharpe": 0.39,
+        "max_drawdown": -46.33,
+        "profit_factor": 2.75,
+        "p_value": 0.0,
+        "ic95": [
+          2.21,
+          4.38
+        ],
+        "significativo_95": true,
+        "count": 240,
+        "horizontes_mezclados": [
+          21,
+          10,
+          5
+        ],
+        "ranking_range": [
+          33.0,
+          44.0
+        ]
+      },
+      "middle_60pct": {
+        "samples": 720,
+        "win_rate": 0.546,
+        "avg_ret": 0.83,
+        "avg_win": 5.34,
+        "avg_loss": 4.6,
+        "expected_value": 0.83,
+        "sharpe": 0.13,
+        "max_drawdown": -85.19,
+        "profit_factor": 1.4,
+        "p_value": 0.0005,
+        "ic95": [
+          0.36,
+          1.29
+        ],
+        "significativo_95": true,
+        "count": 720,
+        "horizontes_mezclados": [
+          21,
+          10,
+          5
+        ],
+        "ranking_range": [
+          44.0,
+          52.0
+        ]
+      }
     }
   },
   "confidence_x_signal": {
