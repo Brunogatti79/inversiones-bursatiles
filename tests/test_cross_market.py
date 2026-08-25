@@ -17,6 +17,7 @@ from src.cross_market import (
     _determine_regime,
     _calc_score_adjustments,
     compute_cross_market_context,
+    compute_market_exposure_shadow,
     MAX_BOOST,
     MAX_PENALTY,
 )
@@ -371,3 +372,62 @@ class TestComputeCrossMarketContext:
             {"merval": "", "bovespa": "", "sp500": ""}
         )
         assert "score_adjustments_shadow_gate_local" in result
+
+
+class TestMarketExposureShadow:
+    """
+    FIX 25/08/2026 (auditoría con Claude): shadow mode, no aplicado a
+    Kelly/portfolio_optimizer -- ver docstring de
+    compute_market_exposure_shadow() para la evidencia completa (paradoja
+    de Simpson en ranking_top_vs_rest global, no se pudo validar
+    retroactivamente por falta de cobertura histórica de
+    market_trend_score).
+    """
+
+    def test_trend_score_alto_da_exposicion_plena(self):
+        assert compute_market_exposure_shadow(70.0) == 1.0
+        assert compute_market_exposure_shadow(58.0) == 1.0
+
+    def test_trend_score_neutral_da_rampa_intermedia(self):
+        # 42 (piso NEUTRAL) -> 0.60, 58 (techo NEUTRAL) -> 1.00, monótono entre medio
+        assert compute_market_exposure_shadow(42.0) == 0.60
+        v50 = compute_market_exposure_shadow(50.0)
+        assert 0.60 < v50 < 1.0
+
+    def test_trend_score_bajo_recorta_mas_pero_no_a_cero(self):
+        v20 = compute_market_exposure_shadow(20.0)
+        v0 = compute_market_exposure_shadow(0.0)
+        assert 0.20 <= v0 < v20 < 0.60
+
+    def test_monotono_creciente_en_todo_el_rango(self):
+        """A mayor tendencia local, nunca menor exposición sugerida."""
+        scores = [0, 10, 20, 30, 42, 45, 50, 58, 65, 80, 100]
+        vals = [compute_market_exposure_shadow(s) for s in scores]
+        assert vals == sorted(vals)
+
+    def test_sin_dato_no_penaliza(self):
+        """Sin market_trend_score, no hay base para recortar -- exposición
+        plena por default, no 0."""
+        assert compute_market_exposure_shadow(None) == 1.0
+
+    def test_presente_en_compute_cross_market_context(self):
+        np.random.seed(1)
+        n = 300
+        prices = 100 * np.cumprod(1 + np.random.normal(0.001, 0.01, n))
+        mv = pd.DataFrame({"MERVAL": prices})
+        bv = pd.DataFrame({"BOVESPA": prices})
+        sp = pd.DataFrame({"SP500": prices})
+        result = compute_cross_market_context(
+            mv, bv, sp,
+            {"merval": "MERVAL", "bovespa": "BOVESPA", "sp500": "SP500"}
+        )
+        assert "market_exposure_shadow" in result
+        for mkt in ("MERVAL", "BOVESPA", "SP500"):
+            assert 0.20 <= result["market_exposure_shadow"][mkt] <= 1.0
+
+    def test_fallback_incluye_market_exposure_shadow(self):
+        result = compute_cross_market_context(
+            pd.DataFrame(), pd.DataFrame(), pd.DataFrame(),
+            {"merval": "", "bovespa": "", "sp500": ""}
+        )
+        assert "market_exposure_shadow" in result

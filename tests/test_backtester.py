@@ -24,6 +24,7 @@ from src.backtester import (
     _quantile_split,
     _confidence_quantile_breakdown,
     _ranking_quantile_breakdown,
+    _ranking_quantile_breakdown_by_market,
     _best_ret,
     _confidence_calibration_table,
     _isotonic_calibration_curve,
@@ -313,6 +314,69 @@ class TestRankingQuantileBreakdown:
         trades += [_trade(ret_21d=float(i), ranking=i) for i in range(1, 11)]
         result = _ranking_quantile_breakdown(trades)
         assert result["samples"] == 10  # excluye ranking=0 y ranking=None
+
+
+class TestRankingQuantileBreakdownByMarket:
+    """
+    FIX 25/08/2026 (auditoría con Claude): ranking_top_vs_rest GLOBAL
+    puede mostrar una paradoja de Simpson si las escalas de ranking no
+    son comparables entre mercados -- ranking alto puede correlacionar
+    con mal resultado en el pool global aunque, DENTRO de cada mercado,
+    ranking alto sí prediga mejor resultado. Caso real detectado: MERVAL/
+    BOVESPA rankean más alto en promedio que SP500 pese a tener peor EV
+    real, así que top_20pct global queda dominado por MERVAL/BOVESPA y
+    bottom_20pct por SP500 -- sin que el modelo esté necesariamente
+    ordenando mal DENTRO de ningún mercado.
+    """
+
+    def test_separa_por_mercado_correctamente(self):
+        trades  = [_trade(ret_21d=float(i), ranking=i, mercado="MERVAL") for i in range(1, 11)]
+        trades += [_trade(ret_21d=float(i), ranking=i, mercado="SP500") for i in range(1, 11)]
+        result = _ranking_quantile_breakdown_by_market(trades)
+        assert result["MERVAL"]["samples"] == 10
+        assert result["SP500"]["samples"] == 10
+        assert "BOVESPA" in result  # siempre presentes los 3, aunque samples=0
+
+    def test_mercado_sin_datos_devuelve_samples_cero_no_kError(self):
+        trades = [_trade(ret_21d=1.0, ranking=5, mercado="MERVAL")]
+        result = _ranking_quantile_breakdown_by_market(trades)
+        assert result["BOVESPA"]["samples"] == 0
+        assert result["SP500"]["samples"] == 0
+
+    def test_reproduce_paradoja_de_simpson_del_caso_real(self):
+        """Caso real (verificado contra backtest_results.json 24/08/2026):
+        globalmente, ranking alto = peor resultado (porque son señales
+        MERVAL/BOVESPA, que rankean más alto en promedio pero rindieron
+        peor). Pero DENTRO de MERVAL, ranking sí predice bien. El desglose
+        por mercado tiene que mostrar esta segunda verdad, que
+        _ranking_quantile_breakdown (global) no puede mostrar por
+        diseño."""
+        # MERVAL: ranking y retorno correlacionan perfecto (bien ordenado
+        # DENTRO del mercado), pero con rankings altos (55-74) y retornos
+        # todos negativos (mercado que cayó en el período)
+        merval_trades = [
+            _trade(ret_21d=-15.0 + i, ranking=55.0 + i, mercado="MERVAL")
+            for i in range(20)
+        ]
+        # SP500: ranking más bajo en promedio (25-44) pero retornos
+        # positivos (mercado que subió) y SIN relación fuerte con ranking
+        sp500_trades = [
+            _trade(ret_21d=5.0, ranking=25.0 + i, mercado="SP500")
+            for i in range(20)
+        ]
+        trades = merval_trades + sp500_trades
+
+        global_result = _ranking_quantile_breakdown(trades)
+        by_market = _ranking_quantile_breakdown_by_market(trades)
+
+        # Global: top20% (ranking alto) = MERVAL = peor EV que bottom20% (SP500)
+        assert (global_result["top_20pct"]["expected_value"]
+                < global_result["bottom_20pct"]["expected_value"])
+
+        # Pero DENTRO de MERVAL, top20% (ranking más alto) debe tener
+        # mejor EV que bottom20% -- el ordenamiento interno SÍ funciona.
+        mv = by_market["MERVAL"]
+        assert mv["top_20pct"]["expected_value"] > mv["bottom_20pct"]["expected_value"]
 
 
 class TestBuildTradesNewFields:
