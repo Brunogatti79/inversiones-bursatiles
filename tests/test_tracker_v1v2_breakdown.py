@@ -173,3 +173,50 @@ class TestMarketTrendAuditTrail:
         entry = next(iter(history.values()))[0]
         assert entry["market_trend"] is None
         assert entry["cross_market_regime"] is None
+
+
+class TestTechnicalSubcomponentsPersistence:
+    """
+    25/08/2026 (auditoría con Claude, motivada por revisión externa): una
+    regresión de ret_21d ~ rsi_score (recomputado del rsi crudo, que ya se
+    persistía) dio coeficiente POSITIVO y significativo controlando
+    mercado (+0.11, p=0.0004), mientras score_tecnico agregado da
+    NEGATIVO (-0.35, p<0.001) -- el RSI no explica el efecto negativo, así
+    que el responsable está en momentum, ma_cross, ma50_slope o
+    vol_confirmation. analyzer.py ya calculaba y exponía los 5 (son los
+    inputs de _score_tecnico), pero tracker.py solo persistía "rsi". Estos
+    tests cubren los 4 que faltaban, mismo patrón que
+    TestMarketTrendAuditTrail arriba.
+    """
+
+    def test_los_4_subcomponentes_tecnicos_se_persisten(self):
+        sig = _signal(momentum_21d=8.4, ma_cross=True, ma50_slope=1.2, vol_confirmation=63.5)
+        tracker.update_history([sig])
+        history = json.loads(open(tracker.HISTORY_PATH).read())
+        entry = next(iter(history.values()))[0]
+        assert entry["momentum_21d"] == 8.4
+        assert entry["ma_cross"] is True
+        assert entry["ma50_slope"] == 1.2
+        assert entry["vol_confirmation"] == 63.5
+
+    def test_ma_cross_false_se_persiste_como_false_no_como_none(self):
+        """False es un valor válido y distinto de "sin dato" -- no debe
+        colapsar a None ni a 0 por accidente de un default mal elegido."""
+        sig = _signal(ma_cross=False)
+        tracker.update_history([sig])
+        history = json.loads(open(tracker.HISTORY_PATH).read())
+        entry = next(iter(history.values()))[0]
+        assert entry["ma_cross"] is False
+
+    def test_señal_vieja_sin_subcomponentes_tecnicos_no_crashea(self):
+        """Señales de antes de este fix (todo el historial hasta el
+        25/08/2026) no tienen estos campos -- deben caer en None, no
+        romper la persistencia."""
+        sig = _signal()  # sin momentum_21d/ma_cross/ma50_slope/vol_confirmation
+        tracker.update_history([sig])
+        history = json.loads(open(tracker.HISTORY_PATH).read())
+        entry = next(iter(history.values()))[0]
+        assert entry["momentum_21d"] is None
+        assert entry["ma_cross"] is None
+        assert entry["ma50_slope"] is None
+        assert entry["vol_confirmation"] is None
