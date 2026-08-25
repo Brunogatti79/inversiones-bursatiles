@@ -100,6 +100,20 @@ def update_history(signals: list[dict], max_days: int = 60):
             "rsi":           s.get("rsi", 0),
             "ret_anual":     s.get("ret_anual", 0),
             "ret_mes":       s.get("ret_mes", 0),
+            # ── Subcomponentes técnicos crudos (25/08/2026, auditoría con
+            # Claude): analyzer.py ya los calculaba (son los 5 inputs de
+            # _score_tecnico) pero se descartaban antes de persistir --
+            # solo "rsi" quedaba guardado. Motivo del agregado: una
+            # regresión parcial usando solo rsi_score (recomputado del rsi
+            # crudo) dio coeficiente POSITIVO y significativo controlando
+            # mercado (+0.11, p=0.0004), mientras el score_tecnico agregado
+            # da NEGATIVO (-0.35, p<0.001) -- el RSI no es el responsable
+            # del efecto negativo, así que el culpable está en alguno de
+            # estos 4. Sin persistirlos, no se puede aislar cuál.
+            "momentum_21d":      s.get("momentum_21d"),
+            "ma_cross":          s.get("ma_cross"),
+            "ma50_slope":        s.get("ma50_slope"),
+            "vol_confirmation":  s.get("vol_confirmation"),
             # ── Factor decomposition (Fase 6) ──────────────────────────
             "factor_contrib":    s.get("factor_contrib", {}),
             "factor_dominante":  s.get("factor_dominante", ""),
