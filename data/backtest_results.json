@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-26T17:31:11.731960",
+  "generated": "2026-08-26T19:47:10.701638",
   "total_trades": 2948,
   "days_history": 49,
   "by_signal": {
@@ -10,23 +10,23 @@
         "win_rate": 0.467,
         "avg_ret": -0.43,
         "avg_win": 3.75,
-        "avg_loss": 4.09,
+        "avg_loss": 4.1,
         "expected_value": -0.43,
         "sharpe": -0.08,
         "max_drawdown": -100.0,
         "profit_factor": 0.8,
-        "p_value": 0.003,
+        "p_value": 0.0029,
         "ic95": [
-          -0.71,
+          -0.72,
           -0.15
         ],
         "significativo_95": true
       },
       "h10d": {
         "samples": 1282,
-        "win_rate": 0.458,
+        "win_rate": 0.457,
         "avg_ret": -1.03,
-        "avg_win": 5.08,
+        "avg_win": 5.09,
         "avg_loss": 6.19,
         "expected_value": -1.03,
         "sharpe": -0.13,
@@ -43,7 +43,7 @@
         "samples": 777,
         "win_rate": 0.405,
         "avg_ret": -2.19,
-        "avg_win": 7.67,
+        "avg_win": 7.66,
         "avg_loss": 8.91,
         "expected_value": -2.19,
         "sharpe": -0.21,
@@ -58,7 +58,7 @@
       },
       "stop_target": {
         "samples": 993,
-        "avg_ret": -0.32,
+        "avg_ret": -0.33,
         "win_rate": 0.411,
         "target_hits": 365,
         "stop_hits": 561,
@@ -72,10 +72,10 @@
       "count": 781,
       "h5d": {
         "samples": 743,
-        "win_rate": 0.398,
+        "win_rate": 0.397,
         "avg_ret": -1.04,
         "avg_win": 4.38,
-        "avg_loss": 4.63,
+        "avg_loss": 4.62,
         "expected_value": -1.04,
         "sharpe": -0.17,
         "max_drawdown": -100.0,
@@ -90,16 +90,16 @@
       "h10d": {
         "samples": 583,
         "win_rate": 0.36,
-        "avg_ret": -2.68,
-        "avg_win": 5.21,
+        "avg_ret": -2.69,
+        "avg_win": 5.2,
         "avg_loss": 7.13,
-        "expected_value": -2.68,
+        "expected_value": -2.69,
         "sharpe": -0.32,
         "max_drawdown": -100.0,
         "profit_factor": 0.41,
         "p_value": 0.0,
         "ic95": [
-          -3.37,
+          -3.38,
           -2.0
         ],
         "significativo_95": true
@@ -107,29 +107,29 @@
       "h21d": {
         "samples": 306,
         "win_rate": 0.255,
-        "avg_ret": -4.86,
+        "avg_ret": -4.88,
         "avg_win": 10.93,
-        "avg_loss": 10.27,
-        "expected_value": -4.86,
+        "avg_loss": 10.29,
+        "expected_value": -4.88,
         "sharpe": -0.39,
         "max_drawdown": -100.0,
         "profit_factor": 0.36,
         "p_value": 0.0,
         "ic95": [
-          -6.27,
-          -3.45
+          -6.29,
+          -3.47
         ],
         "significativo_95": true
       },
       "stop_target": {
-        "samples": 405,
-        "avg_ret": -1.58,
-        "win_rate": 0.323,
-        "target_hits": 123,
+        "samples": 404,
+        "avg_ret": -1.6,
+        "win_rate": 0.322,
+        "target_hits": 122,
         "stop_hits": 265,
         "time_exits": 17,
-        "pct_target": 30.4,
-        "pct_stop": 65.4,
+        "pct_target": 30.2,
+        "pct_stop": 65.6,
         "pct_time": 4.2
       }
     },
@@ -137,35 +137,35 @@
       "count": 431,
       "h5d": {
         "samples": 404,
-        "win_rate": 0.446,
+        "win_rate": 0.443,
         "avg_ret": -0.42,
-        "avg_win": 2.82,
-        "avg_loss": 3.03,
+        "avg_win": 2.84,
+        "avg_loss": 3.02,
         "expected_value": -0.42,
         "sharpe": -0.11,
         "max_drawdown": -91.61,
         "profit_factor": 0.75,
-        "p_value": 0.0259,
+        "p_value": 0.0244,
         "ic95": [
           -0.79,
-          -0.05
+          -0.06
         ],
         "significativo_95": true
       },
       "h10d": {
         "samples": 358,
-        "win_rate": 0.506,
-        "avg_ret": -0.06,
-        "avg_win": 3.96,
-        "avg_loss": 4.17,
-        "expected_value": -0.06,
+        "win_rate": 0.503,
+        "avg_ret": -0.07,
+        "avg_win": 3.97,
+        "avg_loss": 4.15,
+        "expected_value": -0.07,
         "sharpe": -0.01,
         "max_drawdown": -92.27,
         "profit_factor": 0.97,
-        "p_value": 0.8395,
+        "p_value": 0.8123,
         "ic95": [
-          -0.59,
-          0.48
+          -0.6,
+          0.47
         ],
         "significativo_95": false
       },
@@ -173,28 +173,28 @@
         "samples": 192,
         "win_rate": 0.62,
         "avg_ret": 1.6,
-        "avg_win": 5.74,
+        "avg_win": 5.73,
         "avg_loss": 5.15,
         "expected_value": 1.6,
         "sharpe": 0.23,
         "max_drawdown": -35.74,
-        "profit_factor": 1.82,
+        "profit_factor": 1.81,
         "p_value": 0.002,
         "ic95": [
-          0.6,
+          0.59,
           2.6
         ],
         "significativo_95": true
       },
       "stop_target": {
-        "samples": 295,
-        "avg_ret": 0.08,
-        "win_rate": 0.444,
-        "target_hits": 115,
+        "samples": 294,
+        "avg_ret": 0.07,
+        "win_rate": 0.442,
+        "target_hits": 114,
         "stop_hits": 162,
         "time_exits": 18,
-        "pct_target": 39.0,
-        "pct_stop": 54.9,
+        "pct_target": 38.8,
+        "pct_stop": 55.1,
         "pct_time": 6.1
       }
     },
@@ -204,16 +204,16 @@
         "samples": 80,
         "win_rate": 0.312,
         "avg_ret": -1.73,
-        "avg_win": 5.49,
+        "avg_win": 5.48,
         "avg_loss": 5.01,
         "expected_value": -1.73,
         "sharpe": -0.28,
         "max_drawdown": -91.83,
         "profit_factor": 0.5,
-        "p_value": 0.0151,
+        "p_value": 0.0147,
         "ic95": [
           -3.1,
-          -0.35
+          -0.36
         ],
         "significativo_95": true
       },
@@ -221,33 +221,33 @@
         "samples": 66,
         "win_rate": 0.318,
         "avg_ret": -3.3,
-        "avg_win": 7.05,
+        "avg_win": 7.06,
         "avg_loss": 8.14,
         "expected_value": -3.3,
         "sharpe": -0.37,
         "max_drawdown": -96.04,
         "profit_factor": 0.4,
-        "p_value": 0.0037,
+        "p_value": 0.0036,
         "ic95": [
-          -5.48,
-          -1.13
+          -5.47,
+          -1.14
         ],
         "significativo_95": true
       },
       "h21d": {
         "samples": 20,
         "win_rate": 0.4,
-        "avg_ret": -2.51,
+        "avg_ret": -2.45,
         "avg_win": 2.18,
-        "avg_loss": 5.63,
-        "expected_value": -2.51,
-        "sharpe": -0.56,
-        "max_drawdown": -36.21,
+        "avg_loss": 5.53,
+        "expected_value": -2.45,
+        "sharpe": -0.55,
+        "max_drawdown": -35.4,
         "profit_factor": 0.26,
-        "p_value": 0.0245,
+        "p_value": 0.0276,
         "ic95": [
-          -4.6,
-          -0.41
+          -4.54,
+          -0.35
         ],
         "significativo_95": true
       },
@@ -285,17 +285,17 @@
       "h10d": {
         "samples": 17,
         "win_rate": 0.588,
-        "avg_ret": 2.23,
+        "avg_ret": 2.19,
         "avg_win": 6.62,
-        "avg_loss": 4.06,
-        "expected_value": 2.23,
-        "sharpe": 0.39,
+        "avg_loss": 4.15,
+        "expected_value": 2.19,
+        "sharpe": 0.38,
         "max_drawdown": -16.13,
-        "profit_factor": 2.33,
-        "p_value": 0.1387,
+        "profit_factor": 2.28,
+        "p_value": 0.1474,
         "ic95": [
-          -0.71,
-          5.16
+          -0.77,
+          5.14
         ],
         "significativo_95": false
       },
@@ -334,18 +334,18 @@
       "count": 880,
       "h5d": {
         "samples": 808,
-        "win_rate": 0.337,
-        "avg_ret": -1.54,
-        "avg_win": 3.26,
-        "avg_loss": 3.98,
-        "expected_value": -1.54,
-        "sharpe": -0.33,
+        "win_rate": 0.335,
+        "avg_ret": -1.55,
+        "avg_win": 3.27,
+        "avg_loss": 3.97,
+        "expected_value": -1.55,
+        "sharpe": -0.34,
         "max_drawdown": -100.0,
         "profit_factor": 0.42,
         "p_value": 0.0,
         "ic95": [
           -1.86,
-          -1.22
+          -1.23
         ],
         "significativo_95": true
       },
@@ -361,7 +361,7 @@
         "profit_factor": 0.24,
         "p_value": 0.0,
         "ic95": [
-          -4.07,
+          -4.08,
           -3.07
         ],
         "significativo_95": true
@@ -369,17 +369,17 @@
       "h21d": {
         "samples": 360,
         "win_rate": 0.139,
-        "avg_ret": -7.71,
-        "avg_win": 4.09,
-        "avg_loss": 9.62,
-        "expected_value": -7.71,
+        "avg_ret": -7.72,
+        "avg_win": 4.1,
+        "avg_loss": 9.63,
+        "expected_value": -7.72,
         "sharpe": -1.05,
         "max_drawdown": -100.0,
         "profit_factor": 0.07,
         "p_value": 0.0,
         "ic95": [
           -8.48,
-          -6.95
+          -6.96
         ],
         "significativo_95": true
       },
@@ -409,17 +409,17 @@
         "profit_factor": 0.56,
         "p_value": 0.0,
         "ic95": [
-          -1.79,
+          -1.8,
           -0.82
         ],
         "significativo_95": true
       },
       "h10d": {
         "samples": 595,
-        "win_rate": 0.366,
+        "win_rate": 0.365,
         "avg_ret": -3.09,
-        "avg_win": 4.5,
-        "avg_loss": 7.48,
+        "avg_win": 4.53,
+        "avg_loss": 7.46,
         "expected_value": -3.09,
         "sharpe": -0.34,
         "max_drawdown": -100.0,
@@ -435,7 +435,7 @@
         "samples": 340,
         "win_rate": 0.279,
         "avg_ret": -6.12,
-        "avg_win": 6.31,
+        "avg_win": 6.3,
         "avg_loss": 10.94,
         "expected_value": -6.12,
         "sharpe": -0.55,
@@ -444,7 +444,7 @@
         "p_value": 0.0,
         "ic95": [
           -7.3,
-          -4.94
+          -4.95
         ],
         "significativo_95": true
       },
@@ -464,7 +464,7 @@
       "count": 1320,
       "h5d": {
         "samples": 1260,
-        "win_rate": 0.516,
+        "win_rate": 0.515,
         "avg_ret": 0.32,
         "avg_win": 3.92,
         "avg_loss": 3.51,
@@ -472,7 +472,7 @@
         "sharpe": 0.06,
         "max_drawdown": -98.92,
         "profit_factor": 1.19,
-        "p_value": 0.0302,
+        "p_value": 0.0322,
         "ic95": [
           0.03,
           0.61
@@ -481,47 +481,47 @@
       },
       "h10d": {
         "samples": 1050,
-        "win_rate": 0.563,
+        "win_rate": 0.562,
         "avg_ret": 1.06,
         "avg_win": 5.54,
         "avg_loss": 4.7,
         "expected_value": 1.06,
         "sharpe": 0.15,
         "max_drawdown": -97.59,
-        "profit_factor": 1.52,
+        "profit_factor": 1.51,
         "p_value": 0.0,
         "ic95": [
           0.63,
-          1.49
+          1.48
         ],
         "significativo_95": true
       },
       "h21d": {
         "samples": 600,
         "win_rate": 0.63,
-        "avg_ret": 3.22,
+        "avg_ret": 3.21,
         "avg_win": 8.39,
-        "avg_loss": 5.59,
-        "expected_value": 3.22,
+        "avg_loss": 5.6,
+        "expected_value": 3.21,
         "sharpe": 0.35,
         "max_drawdown": -27.83,
-        "profit_factor": 2.56,
+        "profit_factor": 2.55,
         "p_value": 0.0,
         "ic95": [
           2.47,
-          3.97
+          3.96
         ],
         "significativo_95": true
       },
       "stop_target": {
-        "samples": 869,
-        "avg_ret": 0.79,
-        "win_rate": 0.481,
-        "target_hits": 359,
+        "samples": 867,
+        "avg_ret": 0.77,
+        "win_rate": 0.48,
+        "target_hits": 357,
         "stop_hits": 417,
         "time_exits": 93,
-        "pct_target": 41.3,
-        "pct_stop": 48.0,
+        "pct_target": 41.2,
+        "pct_stop": 48.1,
         "pct_time": 10.7
       }
     }
@@ -531,15 +531,15 @@
       "count": 396,
       "h5d": {
         "samples": 378,
-        "win_rate": 0.463,
+        "win_rate": 0.46,
         "avg_ret": 0.17,
-        "avg_win": 4.78,
-        "avg_loss": 3.81,
+        "avg_win": 4.81,
+        "avg_loss": 3.79,
         "expected_value": 0.17,
         "sharpe": 0.03,
         "max_drawdown": -98.22,
         "profit_factor": 1.08,
-        "p_value": 0.5657,
+        "p_value": 0.561,
         "ic95": [
           -0.4,
           0.73
@@ -550,13 +550,13 @@
         "samples": 315,
         "win_rate": 0.537,
         "avg_ret": -0.0,
-        "avg_win": 5.44,
+        "avg_win": 5.45,
         "avg_loss": 6.31,
         "expected_value": -0.0,
         "sharpe": -0.0,
         "max_drawdown": -98.95,
         "profit_factor": 1.0,
-        "p_value": 0.9923,
+        "p_value": 0.9976,
         "ic95": [
           -0.84,
           0.83
@@ -567,15 +567,15 @@
         "samples": 180,
         "win_rate": 0.467,
         "avg_ret": 0.32,
-        "avg_win": 9.61,
-        "avg_loss": 7.82,
+        "avg_win": 9.62,
+        "avg_loss": 7.81,
         "expected_value": 0.32,
         "sharpe": 0.03,
         "max_drawdown": -86.61,
         "profit_factor": 1.08,
-        "p_value": 0.6895,
+        "p_value": 0.686,
         "ic95": [
-          -1.25,
+          -1.24,
           1.89
         ],
         "significativo_95": false
@@ -597,14 +597,14 @@
       "h5d": {
         "samples": 42,
         "win_rate": 0.595,
-        "avg_ret": 0.38,
-        "avg_win": 2.37,
+        "avg_ret": 0.39,
+        "avg_win": 2.38,
         "avg_loss": 2.54,
-        "expected_value": 0.38,
+        "expected_value": 0.39,
         "sharpe": 0.12,
         "max_drawdown": -30.1,
         "profit_factor": 1.37,
-        "p_value": 0.4335,
+        "p_value": 0.4303,
         "ic95": [
           -0.58,
           1.35
@@ -615,15 +615,15 @@
         "samples": 35,
         "win_rate": 0.514,
         "avg_ret": 0.38,
-        "avg_win": 3.8,
+        "avg_win": 3.81,
         "avg_loss": 3.25,
         "expected_value": 0.38,
         "sharpe": 0.09,
         "max_drawdown": -41.53,
         "profit_factor": 1.24,
-        "p_value": 0.5888,
+        "p_value": 0.5854,
         "ic95": [
-          -1.01,
+          -1.0,
           1.76
         ],
         "significativo_95": false
@@ -633,14 +633,14 @@
         "win_rate": 0.65,
         "avg_ret": 0.91,
         "avg_win": 2.92,
-        "avg_loss": 2.83,
+        "avg_loss": 2.82,
         "expected_value": 0.91,
         "sharpe": 0.21,
-        "max_drawdown": -16.9,
-        "profit_factor": 1.92,
-        "p_value": 0.374,
+        "max_drawdown": -16.8,
+        "profit_factor": 1.93,
+        "p_value": 0.3705,
         "ic95": [
-          -1.13,
+          -1.12,
           2.95
         ],
         "significativo_95": false
@@ -661,64 +661,64 @@
       "count": 660,
       "h5d": {
         "samples": 630,
-        "win_rate": 0.411,
-        "avg_ret": -1.39,
-        "avg_win": 2.57,
-        "avg_loss": 4.15,
-        "expected_value": -1.39,
+        "win_rate": 0.41,
+        "avg_ret": -1.4,
+        "avg_win": 2.56,
+        "avg_loss": 4.14,
+        "expected_value": -1.4,
         "sharpe": -0.31,
         "max_drawdown": -100.0,
         "profit_factor": 0.43,
         "p_value": 0.0,
         "ic95": [
-          -1.74,
-          -1.04
+          -1.75,
+          -1.05
         ],
         "significativo_95": true
       },
       "h10d": {
         "samples": 525,
         "win_rate": 0.366,
-        "avg_ret": -3.06,
+        "avg_ret": -3.07,
         "avg_win": 3.1,
-        "avg_loss": 6.62,
-        "expected_value": -3.06,
+        "avg_loss": 6.63,
+        "expected_value": -3.07,
         "sharpe": -0.47,
         "max_drawdown": -100.0,
         "profit_factor": 0.27,
         "p_value": 0.0,
         "ic95": [
-          -3.63,
-          -2.5
+          -3.64,
+          -2.51
         ],
         "significativo_95": true
       },
       "h21d": {
         "samples": 300,
         "win_rate": 0.29,
-        "avg_ret": -6.11,
-        "avg_win": 5.16,
-        "avg_loss": 10.71,
-        "expected_value": -6.11,
-        "sharpe": -0.68,
+        "avg_ret": -6.12,
+        "avg_win": 5.15,
+        "avg_loss": 10.72,
+        "expected_value": -6.12,
+        "sharpe": -0.69,
         "max_drawdown": -100.0,
         "profit_factor": 0.2,
         "p_value": 0.0,
         "ic95": [
-          -7.12,
-          -5.09
+          -7.13,
+          -5.1
         ],
         "significativo_95": true
       },
       "stop_target": {
-        "samples": 408,
-        "avg_ret": -1.85,
-        "win_rate": 0.35,
-        "target_hits": 126,
+        "samples": 407,
+        "avg_ret": -1.86,
+        "win_rate": 0.349,
+        "target_hits": 125,
         "stop_hits": 264,
         "time_exits": 18,
-        "pct_target": 30.9,
-        "pct_stop": 64.7,
+        "pct_target": 30.7,
+        "pct_stop": 64.9,
         "pct_time": 4.4
       }
     },
@@ -729,7 +729,7 @@
         "win_rate": 0.416,
         "avg_ret": -1.18,
         "avg_win": 3.39,
-        "avg_loss": 4.44,
+        "avg_loss": 4.45,
         "expected_value": -1.18,
         "sharpe": -0.21,
         "max_drawdown": -99.82,
@@ -745,7 +745,7 @@
         "samples": 336,
         "win_rate": 0.366,
         "avg_ret": -2.41,
-        "avg_win": 4.71,
+        "avg_win": 4.72,
         "avg_loss": 6.52,
         "expected_value": -2.41,
         "sharpe": -0.31,
@@ -761,10 +761,10 @@
       "h21d": {
         "samples": 180,
         "win_rate": 0.294,
-        "avg_ret": -4.23,
-        "avg_win": 7.24,
+        "avg_ret": -4.22,
+        "avg_win": 7.23,
         "avg_loss": 9.01,
-        "expected_value": -4.23,
+        "expected_value": -4.22,
         "sharpe": -0.44,
         "max_drawdown": -99.98,
         "profit_factor": 0.34,
@@ -792,51 +792,51 @@
       "h5d": {
         "samples": 168,
         "win_rate": 0.298,
-        "avg_ret": -2.06,
-        "avg_win": 3.23,
+        "avg_ret": -2.07,
+        "avg_win": 3.21,
         "avg_loss": 4.3,
-        "expected_value": -2.06,
+        "expected_value": -2.07,
         "sharpe": -0.46,
         "max_drawdown": -98.55,
         "profit_factor": 0.32,
         "p_value": 0.0,
         "ic95": [
           -2.75,
-          -1.37
+          -1.38
         ],
         "significativo_95": true
       },
       "h10d": {
         "samples": 140,
         "win_rate": 0.179,
-        "avg_ret": -4.12,
-        "avg_win": 4.5,
+        "avg_ret": -4.13,
+        "avg_win": 4.46,
         "avg_loss": 6.0,
-        "expected_value": -4.12,
+        "expected_value": -4.13,
         "sharpe": -0.75,
         "max_drawdown": -99.82,
         "profit_factor": 0.16,
         "p_value": 0.0,
         "ic95": [
           -5.05,
-          -3.2
+          -3.21
         ],
         "significativo_95": true
       },
       "h21d": {
         "samples": 80,
         "win_rate": 0.013,
-        "avg_ret": -8.03,
-        "avg_win": 0.55,
-        "avg_loss": 8.14,
-        "expected_value": -8.03,
-        "sharpe": -1.92,
+        "avg_ret": -8.04,
+        "avg_win": 0.14,
+        "avg_loss": 8.15,
+        "expected_value": -8.04,
+        "sharpe": -1.93,
         "max_drawdown": -99.87,
         "profit_factor": 0.0,
         "p_value": 0.0,
         "ic95": [
-          -8.96,
-          -7.1
+          -8.97,
+          -7.11
         ],
         "significativo_95": true
       },
@@ -857,31 +857,31 @@
       "h5d": {
         "samples": 210,
         "win_rate": 0.438,
-        "avg_ret": -0.89,
+        "avg_ret": -0.9,
         "avg_win": 3.68,
         "avg_loss": 4.46,
-        "expected_value": -0.89,
+        "expected_value": -0.9,
         "sharpe": -0.18,
         "max_drawdown": -89.77,
         "profit_factor": 0.64,
-        "p_value": 0.0085,
+        "p_value": 0.0083,
         "ic95": [
           -1.56,
-          -0.23
+          -0.24
         ],
         "significativo_95": true
       },
       "h10d": {
         "samples": 175,
         "win_rate": 0.48,
-        "avg_ret": -0.73,
+        "avg_ret": -0.74,
         "avg_win": 4.95,
         "avg_loss": 5.98,
-        "expected_value": -0.73,
+        "expected_value": -0.74,
         "sharpe": -0.11,
-        "max_drawdown": -92.23,
+        "max_drawdown": -92.26,
         "profit_factor": 0.76,
-        "p_value": 0.1479,
+        "p_value": 0.1466,
         "ic95": [
           -1.73,
           0.26
@@ -891,14 +891,14 @@
       "h21d": {
         "samples": 100,
         "win_rate": 0.57,
-        "avg_ret": -0.89,
+        "avg_ret": -0.9,
         "avg_win": 5.0,
-        "avg_loss": 8.7,
-        "expected_value": -0.89,
+        "avg_loss": 8.72,
+        "expected_value": -0.9,
         "sharpe": -0.12,
-        "max_drawdown": -71.0,
+        "max_drawdown": -71.16,
         "profit_factor": 0.76,
-        "p_value": 0.2503,
+        "p_value": 0.2488,
         "ic95": [
           -2.42,
           0.63
@@ -924,55 +924,55 @@
         "win_rate": 0.443,
         "avg_ret": -0.8,
         "avg_win": 4.59,
-        "avg_loss": 5.08,
+        "avg_loss": 5.09,
         "expected_value": -0.8,
         "sharpe": -0.1,
         "max_drawdown": -96.47,
         "profit_factor": 0.72,
-        "p_value": 0.1694,
+        "p_value": 0.1665,
         "ic95": [
           -1.94,
-          0.34
+          0.33
         ],
         "significativo_95": false
       },
       "h10d": {
         "samples": 175,
         "win_rate": 0.491,
-        "avg_ret": -2.31,
+        "avg_ret": -2.32,
         "avg_win": 4.15,
-        "avg_loss": 8.56,
-        "expected_value": -2.31,
+        "avg_loss": 8.57,
+        "expected_value": -2.32,
         "sharpe": -0.2,
         "max_drawdown": -99.7,
         "profit_factor": 0.47,
-        "p_value": 0.0105,
+        "p_value": 0.0103,
         "ic95": [
           -4.08,
-          -0.55
+          -0.56
         ],
         "significativo_95": true
       },
       "h21d": {
         "samples": 100,
         "win_rate": 0.61,
-        "avg_ret": -3.91,
-        "avg_win": 4.99,
-        "avg_loss": 17.83,
-        "expected_value": -3.91,
+        "avg_ret": -3.92,
+        "avg_win": 4.98,
+        "avg_loss": 17.85,
+        "expected_value": -3.92,
         "sharpe": -0.25,
         "max_drawdown": -99.68,
         "profit_factor": 0.44,
-        "p_value": 0.0136,
+        "p_value": 0.0135,
         "ic95": [
-          -6.98,
+          -7.0,
           -0.84
         ],
         "significativo_95": true
       },
       "stop_target": {
         "samples": 149,
-        "avg_ret": 0.18,
+        "avg_ret": 0.17,
         "win_rate": 0.497,
         "target_hits": 59,
         "stop_hits": 71,
@@ -988,30 +988,30 @@
         "samples": 269,
         "win_rate": 0.528,
         "avg_ret": -0.0,
-        "avg_win": 3.03,
-        "avg_loss": 3.39,
+        "avg_win": 3.04,
+        "avg_loss": 3.4,
         "expected_value": -0.0,
         "sharpe": -0.0,
         "max_drawdown": -95.51,
         "profit_factor": 1.0,
-        "p_value": 0.9957,
+        "p_value": 0.9982,
         "ic95": [
           -0.48,
-          0.47
+          0.48
         ],
         "significativo_95": false
       },
       "h10d": {
         "samples": 220,
-        "win_rate": 0.559,
+        "win_rate": 0.55,
         "avg_ret": 0.31,
-        "avg_win": 4.84,
-        "avg_loss": 5.43,
+        "avg_win": 4.92,
+        "avg_loss": 5.32,
         "expected_value": 0.31,
         "sharpe": 0.05,
         "max_drawdown": -98.76,
         "profit_factor": 1.13,
-        "p_value": 0.4521,
+        "p_value": 0.451,
         "ic95": [
           -0.5,
           1.13
@@ -1022,15 +1022,15 @@
         "samples": 120,
         "win_rate": 0.542,
         "avg_ret": 0.46,
-        "avg_win": 6.17,
+        "avg_win": 6.16,
         "avg_loss": 6.28,
         "expected_value": 0.46,
         "sharpe": 0.06,
-        "max_drawdown": -63.91,
+        "max_drawdown": -63.83,
         "profit_factor": 1.16,
-        "p_value": 0.4956,
+        "p_value": 0.5004,
         "ic95": [
-          -0.87,
+          -0.88,
           1.8
         ],
         "significativo_95": false
@@ -1052,51 +1052,51 @@
       "h5d": {
         "samples": 126,
         "win_rate": 0.468,
-        "avg_ret": 0.4,
-        "avg_win": 4.19,
+        "avg_ret": 0.39,
+        "avg_win": 4.17,
         "avg_loss": 2.94,
-        "expected_value": 0.4,
+        "expected_value": 0.39,
         "sharpe": 0.09,
         "max_drawdown": -68.23,
         "profit_factor": 1.25,
-        "p_value": 0.3258,
+        "p_value": 0.3303,
         "ic95": [
           -0.4,
-          1.19
+          1.18
         ],
         "significativo_95": false
       },
       "h10d": {
         "samples": 105,
         "win_rate": 0.448,
-        "avg_ret": -0.03,
-        "avg_win": 4.79,
+        "avg_ret": -0.04,
+        "avg_win": 4.77,
         "avg_loss": 3.94,
-        "expected_value": -0.03,
+        "expected_value": -0.04,
         "sharpe": -0.01,
         "max_drawdown": -75.78,
-        "profit_factor": 0.99,
-        "p_value": 0.9534,
+        "profit_factor": 0.98,
+        "p_value": 0.9435,
         "ic95": [
           -1.09,
-          1.03
+          1.01
         ],
         "significativo_95": false
       },
       "h21d": {
         "samples": 60,
         "win_rate": 0.367,
-        "avg_ret": -0.31,
-        "avg_win": 5.36,
+        "avg_ret": -0.32,
+        "avg_win": 5.32,
         "avg_loss": 3.59,
-        "expected_value": -0.31,
+        "expected_value": -0.32,
         "sharpe": -0.05,
         "max_drawdown": -68.16,
         "profit_factor": 0.86,
-        "p_value": 0.6901,
+        "p_value": 0.6776,
         "ic95": [
           -1.85,
-          1.23
+          1.2
         ],
         "significativo_95": false
       },
@@ -1119,61 +1119,61 @@
         "win_rate": 0.467,
         "avg_ret": 0.48,
         "avg_win": 5.67,
-        "avg_loss": 4.06,
+        "avg_loss": 4.07,
         "expected_value": 0.48,
         "sharpe": 0.07,
         "max_drawdown": -89.71,
         "profit_factor": 1.22,
-        "p_value": 0.1902,
+        "p_value": 0.1952,
         "ic95": [
-          -0.24,
-          1.21
+          -0.25,
+          1.2
         ],
         "significativo_95": false
       },
       "h10d": {
         "samples": 280,
         "win_rate": 0.507,
-        "avg_ret": 1.31,
-        "avg_win": 8.03,
+        "avg_ret": 1.3,
+        "avg_win": 8.02,
         "avg_loss": 5.61,
-        "expected_value": 1.31,
+        "expected_value": 1.3,
         "sharpe": 0.14,
         "max_drawdown": -91.04,
         "profit_factor": 1.47,
-        "p_value": 0.0194,
+        "p_value": 0.02,
         "ic95": [
           0.21,
-          2.4
+          2.39
         ],
         "significativo_95": true
       },
       "h21d": {
         "samples": 160,
         "win_rate": 0.5,
-        "avg_ret": 4.23,
-        "avg_win": 14.88,
+        "avg_ret": 4.22,
+        "avg_win": 14.86,
         "avg_loss": 6.43,
-        "expected_value": 4.23,
+        "expected_value": 4.22,
         "sharpe": 0.32,
         "max_drawdown": -19.33,
-        "profit_factor": 2.32,
+        "profit_factor": 2.31,
         "p_value": 0.0001,
         "ic95": [
-          2.16,
-          6.29
+          2.15,
+          6.28
         ],
         "significativo_95": true
       },
       "stop_target": {
-        "samples": 220,
-        "avg_ret": 1.04,
-        "win_rate": 0.391,
-        "target_hits": 77,
+        "samples": 219,
+        "avg_ret": 1.01,
+        "win_rate": 0.388,
+        "target_hits": 76,
         "stop_hits": 130,
         "time_exits": 13,
-        "pct_target": 35.0,
-        "pct_stop": 59.1,
+        "pct_target": 34.7,
+        "pct_stop": 59.4,
         "pct_time": 5.9
       }
     }
@@ -1181,7 +1181,7 @@
   "predictor": {
     "samples": 1300,
     "directional_accuracy": 0.542,
-    "mae": 8.98,
+    "mae": 8.99,
     "by_pred_signal": {
       "➡️ LATERAL": {
         "samples": 912,
@@ -1190,38 +1190,38 @@
       },
       "📈 SUBA": {
         "samples": 242,
-        "avg_real_ret": -1.7,
+        "avg_real_ret": -1.71,
         "win_rate": 0.434
       },
       "📉 BAJA": {
         "samples": 135,
-        "avg_real_ret": -5.7,
+        "avg_real_ret": -5.71,
         "win_rate": 0.296
       },
       "⚠️ BAJA FUERTE": {
         "samples": 11,
-        "avg_real_ret": -19.52,
+        "avg_real_ret": -19.51,
         "win_rate": 0.0
       }
     }
   },
   "stop_target": {
-    "samples": 1752,
+    "samples": 1750,
     "by_exit_type": {
       "stop": {
         "count": 1029,
-        "pct": 58.7,
+        "pct": 58.8,
         "avg_ret": -5.48
       },
       "target": {
-        "count": 619,
+        "count": 617,
         "pct": 35.3,
-        "avg_ret": 6.95
+        "avg_ret": 6.97
       },
       "time": {
         "count": 104,
         "pct": 5.9,
-        "avg_ret": 2.81
+        "avg_ret": 2.77
       }
     },
     "avg_days_to_exit": 7.1
@@ -1329,8 +1329,8 @@
       "expected_value": 1.6,
       "sharpe_21d": 0.23,
       "max_drawdown": -35.74,
-      "pct_target_hit": 39.0,
-      "pct_stop_hit": 54.9
+      "pct_target_hit": 38.8,
+      "pct_stop_hit": 55.1
     },
     {
       "signal": "🔴 VENTA",
@@ -1358,10 +1358,10 @@
       "signal": "⭐ COMPRA FUERTE",
       "n": 89,
       "win_rate_21d": 0.4,
-      "avg_ret_21d": -2.51,
-      "expected_value": -2.51,
-      "sharpe_21d": -0.56,
-      "max_drawdown": -36.21,
+      "avg_ret_21d": -2.45,
+      "expected_value": -2.45,
+      "sharpe_21d": -0.55,
+      "max_drawdown": -35.4,
       "pct_target_hit": 20.9,
       "pct_stop_hit": 74.4
     },
@@ -1369,12 +1369,12 @@
       "signal": "🟢 COMPRA",
       "n": 781,
       "win_rate_21d": 0.255,
-      "avg_ret_21d": -4.86,
-      "expected_value": -4.86,
+      "avg_ret_21d": -4.88,
+      "expected_value": -4.88,
       "sharpe_21d": -0.39,
       "max_drawdown": -100.0,
-      "pct_target_hit": 30.4,
-      "pct_stop_hit": 65.4
+      "pct_target_hit": 30.2,
+      "pct_stop_hit": 65.6
     }
   ],
   "by_consenso": {
@@ -1382,35 +1382,35 @@
       "count": 228,
       "h5d": {
         "samples": 210,
-        "win_rate": 0.471,
-        "avg_ret": -0.35,
-        "avg_win": 2.47,
-        "avg_loss": 2.87,
-        "expected_value": -0.35,
-        "sharpe": -0.1,
-        "max_drawdown": -66.31,
-        "profit_factor": 0.77,
-        "p_value": 0.1323,
+        "win_rate": 0.467,
+        "avg_ret": -0.36,
+        "avg_win": 2.5,
+        "avg_loss": 2.86,
+        "expected_value": -0.36,
+        "sharpe": -0.11,
+        "max_drawdown": -66.99,
+        "profit_factor": 0.76,
+        "p_value": 0.1229,
         "ic95": [
-          -0.81,
-          0.11
+          -0.82,
+          0.1
         ],
         "significativo_95": false
       },
       "h10d": {
         "samples": 154,
         "win_rate": 0.422,
-        "avg_ret": -0.52,
-        "avg_win": 3.5,
-        "avg_loss": 3.46,
-        "expected_value": -0.52,
-        "sharpe": -0.12,
-        "max_drawdown": -80.31,
-        "profit_factor": 0.74,
-        "p_value": 0.1247,
+        "avg_ret": -0.54,
+        "avg_win": 3.48,
+        "avg_loss": 3.48,
+        "expected_value": -0.54,
+        "sharpe": -0.13,
+        "max_drawdown": -80.52,
+        "profit_factor": 0.73,
+        "p_value": 0.114,
         "ic95": [
-          -1.19,
-          0.14
+          -1.2,
+          0.13
         ],
         "significativo_95": false
       },
@@ -1423,31 +1423,31 @@
         "expected_value": 1.78,
         "sharpe": 0.3,
         "max_drawdown": -28.25,
-        "profit_factor": 2.19,
-        "p_value": 0.0571,
+        "profit_factor": 2.18,
+        "p_value": 0.0573,
         "ic95": [
-          -0.03,
+          -0.04,
           3.59
         ],
         "significativo_95": false
       },
       "stop_target": {
-        "samples": 139,
-        "avg_ret": -0.05,
-        "win_rate": 0.439,
-        "target_hits": 54,
+        "samples": 138,
+        "avg_ret": -0.07,
+        "win_rate": 0.435,
+        "target_hits": 53,
         "stop_hits": 78,
         "time_exits": 7,
-        "pct_target": 38.8,
-        "pct_stop": 56.1,
-        "pct_time": 5.0
+        "pct_target": 38.4,
+        "pct_stop": 56.5,
+        "pct_time": 5.1
       }
     },
     "Consenso": {
       "count": 2517,
       "h5d": {
         "samples": 2384,
-        "win_rate": 0.433,
+        "win_rate": 0.432,
         "avg_ret": -0.73,
         "avg_win": 3.79,
         "avg_loss": 4.18,
@@ -1464,10 +1464,10 @@
       },
       "h10d": {
         "samples": 1998,
-        "win_rate": 0.432,
+        "win_rate": 0.431,
         "avg_ret": -1.49,
-        "avg_win": 4.9,
-        "avg_loss": 6.35,
+        "avg_win": 4.91,
+        "avg_loss": 6.34,
         "expected_value": -1.49,
         "sharpe": -0.19,
         "max_drawdown": -100.0,
@@ -1475,36 +1475,36 @@
         "p_value": 0.0,
         "ic95": [
           -1.84,
-          -1.14
+          -1.15
         ],
         "significativo_95": true
       },
       "h21d": {
         "samples": 1163,
         "win_rate": 0.383,
-        "avg_ret": -2.72,
-        "avg_win": 7.37,
-        "avg_loss": 8.98,
-        "expected_value": -2.72,
+        "avg_ret": -2.73,
+        "avg_win": 7.36,
+        "avg_loss": 8.99,
+        "expected_value": -2.73,
         "sharpe": -0.26,
         "max_drawdown": -100.0,
         "profit_factor": 0.51,
         "p_value": 0.0,
         "ic95": [
-          -3.33,
-          -2.12
+          -3.34,
+          -2.13
         ],
         "significativo_95": true
       },
       "stop_target": {
-        "samples": 1495,
-        "avg_ret": -0.84,
-        "win_rate": 0.383,
-        "target_hits": 516,
+        "samples": 1494,
+        "avg_ret": -0.85,
+        "win_rate": 0.382,
+        "target_hits": 515,
         "stop_hits": 890,
         "time_exits": 89,
         "pct_target": 34.5,
-        "pct_stop": 59.5,
+        "pct_stop": 59.6,
         "pct_time": 6.0
       }
     },
@@ -1520,7 +1520,7 @@
         "sharpe": 0.03,
         "max_drawdown": -78.62,
         "profit_factor": 1.09,
-        "p_value": 0.6495,
+        "p_value": 0.6539,
         "ic95": [
           -0.74,
           1.18
@@ -1537,9 +1537,9 @@
         "sharpe": -0.02,
         "max_drawdown": -90.1,
         "profit_factor": 0.95,
-        "p_value": 0.8132,
+        "p_value": 0.8098,
         "ic95": [
-          -1.64,
+          -1.65,
           1.29
         ],
         "significativo_95": false
@@ -1548,13 +1548,13 @@
         "samples": 94,
         "win_rate": 0.489,
         "avg_ret": 1.76,
-        "avg_win": 12.11,
-        "avg_loss": 8.17,
+        "avg_win": 12.1,
+        "avg_loss": 8.16,
         "expected_value": 1.76,
         "sharpe": 0.14,
         "max_drawdown": -59.46,
         "profit_factor": 1.42,
-        "p_value": 0.1751,
+        "p_value": 0.1738,
         "ic95": [
           -0.78,
           4.29
@@ -1563,7 +1563,7 @@
       },
       "stop_target": {
         "samples": 118,
-        "avg_ret": 1.9,
+        "avg_ret": 1.89,
         "win_rate": 0.458,
         "target_hits": 49,
         "stop_hits": 61,
@@ -1579,17 +1579,17 @@
       "count": 431,
       "h5d": {
         "samples": 398,
-        "win_rate": 0.482,
-        "avg_ret": -0.08,
-        "avg_win": 3.8,
-        "avg_loss": 3.7,
-        "expected_value": -0.08,
+        "win_rate": 0.48,
+        "avg_ret": -0.09,
+        "avg_win": 3.82,
+        "avg_loss": 3.69,
+        "expected_value": -0.09,
         "sharpe": -0.02,
         "max_drawdown": -90.09,
-        "profit_factor": 0.96,
-        "p_value": 0.7583,
+        "profit_factor": 0.95,
+        "p_value": 0.7389,
         "ic95": [
-          -0.59,
+          -0.6,
           0.43
         ],
         "significativo_95": false
@@ -1597,17 +1597,17 @@
       "h10d": {
         "samples": 308,
         "win_rate": 0.474,
-        "avg_ret": -0.35,
-        "avg_win": 5.35,
-        "avg_loss": 5.49,
-        "expected_value": -0.35,
+        "avg_ret": -0.36,
+        "avg_win": 5.34,
+        "avg_loss": 5.5,
+        "expected_value": -0.36,
         "sharpe": -0.05,
         "max_drawdown": -97.4,
         "profit_factor": 0.88,
-        "p_value": 0.3933,
+        "p_value": 0.3802,
         "ic95": [
-          -1.15,
-          0.45
+          -1.16,
+          0.44
         ],
         "significativo_95": false
       },
@@ -1615,13 +1615,13 @@
         "samples": 137,
         "win_rate": 0.569,
         "avg_ret": 1.76,
-        "avg_win": 8.95,
-        "avg_loss": 7.74,
+        "avg_win": 8.94,
+        "avg_loss": 7.73,
         "expected_value": 1.76,
         "sharpe": 0.16,
         "max_drawdown": -69.6,
         "profit_factor": 1.53,
-        "p_value": 0.0587,
+        "p_value": 0.0582,
         "ic95": [
           -0.06,
           3.58
@@ -1629,22 +1629,22 @@
         "significativo_95": false
       },
       "stop_target": {
-        "samples": 257,
+        "samples": 256,
         "avg_ret": 0.84,
-        "win_rate": 0.447,
-        "target_hits": 103,
+        "win_rate": 0.445,
+        "target_hits": 102,
         "stop_hits": 139,
         "time_exits": 15,
-        "pct_target": 40.1,
-        "pct_stop": 54.1,
-        "pct_time": 5.8
+        "pct_target": 39.8,
+        "pct_stop": 54.3,
+        "pct_time": 5.9
       }
     },
     "Consenso": {
       "count": 2517,
       "h5d": {
         "samples": 2384,
-        "win_rate": 0.433,
+        "win_rate": 0.432,
         "avg_ret": -0.73,
         "avg_win": 3.79,
         "avg_loss": 4.18,
@@ -1661,10 +1661,10 @@
       },
       "h10d": {
         "samples": 1998,
-        "win_rate": 0.432,
+        "win_rate": 0.431,
         "avg_ret": -1.49,
-        "avg_win": 4.9,
-        "avg_loss": 6.35,
+        "avg_win": 4.91,
+        "avg_loss": 6.34,
         "expected_value": -1.49,
         "sharpe": -0.19,
         "max_drawdown": -100.0,
@@ -1672,36 +1672,36 @@
         "p_value": 0.0,
         "ic95": [
           -1.84,
-          -1.14
+          -1.15
         ],
         "significativo_95": true
       },
       "h21d": {
         "samples": 1163,
         "win_rate": 0.383,
-        "avg_ret": -2.72,
-        "avg_win": 7.37,
-        "avg_loss": 8.98,
-        "expected_value": -2.72,
+        "avg_ret": -2.73,
+        "avg_win": 7.36,
+        "avg_loss": 8.99,
+        "expected_value": -2.73,
         "sharpe": -0.26,
         "max_drawdown": -100.0,
         "profit_factor": 0.51,
         "p_value": 0.0,
         "ic95": [
-          -3.33,
-          -2.12
+          -3.34,
+          -2.13
         ],
         "significativo_95": true
       },
       "stop_target": {
-        "samples": 1495,
-        "avg_ret": -0.84,
-        "win_rate": 0.383,
-        "target_hits": 516,
+        "samples": 1494,
+        "avg_ret": -0.85,
+        "win_rate": 0.382,
+        "target_hits": 515,
         "stop_hits": 890,
         "time_exits": 89,
         "pct_target": 34.5,
-        "pct_stop": 59.5,
+        "pct_stop": 59.6,
         "pct_time": 6.0
       }
     }
@@ -1719,7 +1719,7 @@
         "sharpe": -0.03,
         "max_drawdown": -99.88,
         "profit_factor": 0.91,
-        "p_value": 0.3507,
+        "p_value": 0.3518,
         "ic95": [
           -0.55,
           0.2
@@ -1729,10 +1729,10 @@
       "h10d": {
         "samples": 712,
         "win_rate": 0.485,
-        "avg_ret": -0.84,
-        "avg_win": 5.21,
-        "avg_loss": 6.54,
-        "expected_value": -0.84,
+        "avg_ret": -0.85,
+        "avg_win": 5.22,
+        "avg_loss": 6.55,
+        "expected_value": -0.85,
         "sharpe": -0.11,
         "max_drawdown": -100.0,
         "profit_factor": 0.75,
@@ -1746,17 +1746,17 @@
       "h21d": {
         "samples": 389,
         "win_rate": 0.357,
-        "avg_ret": -2.56,
-        "avg_win": 7.01,
-        "avg_loss": 7.88,
-        "expected_value": -2.56,
+        "avg_ret": -2.57,
+        "avg_win": 7.0,
+        "avg_loss": 7.89,
+        "expected_value": -2.57,
         "sharpe": -0.28,
         "max_drawdown": -100.0,
         "profit_factor": 0.49,
         "p_value": 0.0,
         "ic95": [
-          -3.47,
-          -1.65
+          -3.48,
+          -1.66
         ],
         "significativo_95": true
       },
@@ -1776,7 +1776,7 @@
       "count": 1523,
       "h5d": {
         "samples": 1427,
-        "win_rate": 0.428,
+        "win_rate": 0.427,
         "avg_ret": -0.85,
         "avg_win": 3.68,
         "avg_loss": 4.24,
@@ -1787,16 +1787,16 @@
         "p_value": 0.0,
         "ic95": [
           -1.15,
-          -0.55
+          -0.56
         ],
         "significativo_95": true
       },
       "h10d": {
         "samples": 1217,
-        "win_rate": 0.422,
+        "win_rate": 0.421,
         "avg_ret": -1.57,
-        "avg_win": 4.92,
-        "avg_loss": 6.3,
+        "avg_win": 4.93,
+        "avg_loss": 6.29,
         "expected_value": -1.57,
         "sharpe": -0.19,
         "max_drawdown": -100.0,
@@ -1811,29 +1811,29 @@
       "h21d": {
         "samples": 756,
         "win_rate": 0.407,
-        "avg_ret": -2.39,
-        "avg_win": 8.08,
+        "avg_ret": -2.4,
+        "avg_win": 8.07,
         "avg_loss": 9.59,
-        "expected_value": -2.39,
+        "expected_value": -2.4,
         "sharpe": -0.21,
         "max_drawdown": -100.0,
         "profit_factor": 0.58,
         "p_value": 0.0,
         "ic95": [
-          -3.22,
-          -1.56
+          -3.23,
+          -1.57
         ],
         "significativo_95": true
       },
       "stop_target": {
-        "samples": 969,
-        "avg_ret": -0.91,
-        "win_rate": 0.355,
-        "target_hits": 298,
+        "samples": 968,
+        "avg_ret": -0.92,
+        "win_rate": 0.354,
+        "target_hits": 297,
         "stop_hits": 601,
         "time_exits": 70,
-        "pct_target": 30.8,
-        "pct_stop": 62.0,
+        "pct_target": 30.7,
+        "pct_stop": 62.1,
         "pct_time": 7.2
       }
     },
@@ -1841,11 +1841,11 @@
       "count": 460,
       "h5d": {
         "samples": 434,
-        "win_rate": 0.41,
-        "avg_ret": -0.89,
-        "avg_win": 3.53,
-        "avg_loss": 3.97,
-        "expected_value": -0.89,
+        "win_rate": 0.408,
+        "avg_ret": -0.9,
+        "avg_win": 3.54,
+        "avg_loss": 3.95,
+        "expected_value": -0.9,
         "sharpe": -0.19,
         "max_drawdown": -99.96,
         "profit_factor": 0.62,
@@ -1858,18 +1858,18 @@
       },
       "h10d": {
         "samples": 309,
-        "win_rate": 0.356,
-        "avg_ret": -1.93,
-        "avg_win": 4.32,
-        "avg_loss": 5.39,
-        "expected_value": -1.93,
+        "win_rate": 0.353,
+        "avg_ret": -1.94,
+        "avg_win": 4.36,
+        "avg_loss": 5.38,
+        "expected_value": -1.94,
         "sharpe": -0.32,
         "max_drawdown": -99.97,
         "profit_factor": 0.44,
         "p_value": 0.0,
         "ic95": [
-          -2.61,
-          -1.26
+          -2.62,
+          -1.27
         ],
         "significativo_95": true
       },
@@ -1881,24 +1881,24 @@
         "avg_loss": 8.05,
         "expected_value": -1.86,
         "sharpe": -0.23,
-        "max_drawdown": -94.34,
+        "max_drawdown": -94.35,
         "profit_factor": 0.57,
-        "p_value": 0.0166,
+        "p_value": 0.0165,
         "ic95": [
-          -3.36,
+          -3.37,
           -0.35
         ],
         "significativo_95": true
       },
       "stop_target": {
-        "samples": 189,
-        "avg_ret": -1.75,
-        "win_rate": 0.36,
-        "target_hits": 65,
+        "samples": 188,
+        "avg_ret": -1.78,
+        "win_rate": 0.356,
+        "target_hits": 64,
         "stop_hits": 118,
         "time_exits": 6,
-        "pct_target": 34.4,
-        "pct_stop": 62.4,
+        "pct_target": 34.0,
+        "pct_stop": 62.8,
         "pct_time": 3.2
       }
     },
@@ -1914,7 +1914,7 @@
         "sharpe": -0.05,
         "max_drawdown": -72.09,
         "profit_factor": 0.87,
-        "p_value": 0.6366,
+        "p_value": 0.637,
         "ic95": [
           -1.7,
           1.05
@@ -1924,14 +1924,14 @@
       "h10d": {
         "samples": 68,
         "win_rate": 0.603,
-        "avg_ret": 0.3,
+        "avg_ret": 0.29,
         "avg_win": 5.07,
-        "avg_loss": 6.95,
-        "expected_value": 0.3,
+        "avg_loss": 6.96,
+        "expected_value": 0.29,
         "sharpe": 0.04,
         "max_drawdown": -62.64,
         "profit_factor": 1.11,
-        "p_value": 0.7413,
+        "p_value": 0.7419,
         "ic95": [
           -1.47,
           2.06
@@ -1943,14 +1943,14 @@
         "win_rate": 0.565,
         "avg_ret": 1.71,
         "avg_win": 9.35,
-        "avg_loss": 8.21,
+        "avg_loss": 8.22,
         "expected_value": 1.71,
         "sharpe": 0.18,
         "max_drawdown": -24.12,
         "profit_factor": 1.48,
-        "p_value": 0.2431,
+        "p_value": 0.2441,
         "ic95": [
-          -1.17,
+          -1.18,
           4.6
         ],
         "significativo_95": false
@@ -1972,18 +1972,18 @@
     "samples": 2782,
     "top_20pct": {
       "samples": 556,
-      "win_rate": 0.372,
-      "avg_ret": -2.44,
-      "avg_win": 5.12,
-      "avg_loss": 6.92,
-      "expected_value": -2.44,
+      "win_rate": 0.369,
+      "avg_ret": -2.45,
+      "avg_win": 5.16,
+      "avg_loss": 6.9,
+      "expected_value": -2.45,
       "sharpe": -0.33,
       "max_drawdown": -100.0,
       "profit_factor": 0.44,
       "p_value": 0.0,
       "ic95": [
-        -3.05,
-        -1.83
+        -3.06,
+        -1.84
       ],
       "significativo_95": true,
       "count": 556,
@@ -1999,18 +1999,18 @@
     },
     "bottom_20pct": {
       "samples": 556,
-      "win_rate": 0.493,
-      "avg_ret": -0.26,
-      "avg_win": 5.98,
-      "avg_loss": 6.33,
-      "expected_value": -0.26,
+      "win_rate": 0.491,
+      "avg_ret": -0.27,
+      "avg_win": 5.99,
+      "avg_loss": 6.31,
+      "expected_value": -0.27,
       "sharpe": -0.03,
       "max_drawdown": -99.97,
       "profit_factor": 0.92,
-      "p_value": 0.4759,
+      "p_value": 0.4594,
       "ic95": [
-        -0.99,
-        0.46
+        -1.0,
+        0.45
       ],
       "significativo_95": false,
       "count": 556,
@@ -2026,9 +2026,9 @@
     },
     "middle_60pct": {
       "samples": 1670,
-      "win_rate": 0.412,
+      "win_rate": 0.411,
       "avg_ret": -2.3,
-      "avg_win": 6.4,
+      "avg_win": 6.41,
       "avg_loss": 8.39,
       "expected_value": -2.3,
       "sharpe": -0.23,
@@ -2062,8 +2062,8 @@
           48.0
         ],
         "count": 557,
-        "win_rate": 0.494,
-        "expected_value": -0.22,
+        "win_rate": 0.492,
+        "expected_value": -0.23,
         "horizontes_mezclados": [
           21,
           10,
@@ -2077,8 +2077,8 @@
           51.2
         ],
         "count": 557,
-        "win_rate": 0.397,
-        "expected_value": -3.05,
+        "win_rate": 0.395,
+        "expected_value": -3.06,
         "horizontes_mezclados": [
           21,
           10,
@@ -2122,8 +2122,8 @@
           97.0
         ],
         "count": 556,
-        "win_rate": 0.372,
-        "expected_value": -2.44,
+        "win_rate": 0.369,
+        "expected_value": -2.45,
         "horizontes_mezclados": [
           21,
           10,
@@ -2152,38 +2152,38 @@
       },
       {
         "confidence_score": 32.0,
-        "p_ganar_calibrada": 0.418
+        "p_ganar_calibrada": 0.417
       },
       {
         "confidence_score": 41.3,
-        "p_ganar_calibrada": 0.418
+        "p_ganar_calibrada": 0.417
       },
       {
         "confidence_score": 50.6,
-        "p_ganar_calibrada": 0.418
+        "p_ganar_calibrada": 0.417
       },
       {
         "confidence_score": 59.8,
-        "p_ganar_calibrada": 0.418
+        "p_ganar_calibrada": 0.417
       },
       {
         "confidence_score": 69.1,
-        "p_ganar_calibrada": 0.418
+        "p_ganar_calibrada": 0.417
       },
       {
         "confidence_score": 78.4,
-        "p_ganar_calibrada": 0.418
+        "p_ganar_calibrada": 0.417
       },
       {
         "confidence_score": 87.7,
-        "p_ganar_calibrada": 0.418
+        "p_ganar_calibrada": 0.417
       },
       {
         "confidence_score": 97.0,
-        "p_ganar_calibrada": 0.472
+        "p_ganar_calibrada": 0.467
       }
     ],
-    "correlacion_score_crudo_vs_resultado": -0.06,
+    "correlacion_score_crudo_vs_resultado": -0.061,
     "metodo": "isotonic_regression_pava"
   },
   "attribution_by_factor": {
@@ -2191,7 +2191,7 @@
       "count": 2367,
       "h5d": {
         "samples": 2212,
-        "win_rate": 0.434,
+        "win_rate": 0.433,
         "avg_ret": -0.68,
         "avg_win": 3.83,
         "avg_loss": 4.13,
@@ -2202,16 +2202,16 @@
         "p_value": 0.0,
         "ic95": [
           -0.91,
-          -0.44
+          -0.45
         ],
         "significativo_95": true
       },
       "h10d": {
         "samples": 1737,
-        "win_rate": 0.405,
+        "win_rate": 0.404,
         "avg_ret": -1.73,
-        "avg_win": 4.86,
-        "avg_loss": 6.21,
+        "avg_win": 4.87,
+        "avg_loss": 6.2,
         "expected_value": -1.73,
         "sharpe": -0.22,
         "max_drawdown": -100.0,
@@ -2219,7 +2219,7 @@
         "p_value": 0.0,
         "ic95": [
           -2.09,
-          -1.36
+          -1.37
         ],
         "significativo_95": true
       },
@@ -2227,10 +2227,10 @@
         "samples": 778,
         "win_rate": 0.257,
         "avg_ret": -5.39,
-        "avg_win": 6.91,
-        "avg_loss": 9.64,
+        "avg_win": 6.9,
+        "avg_loss": 9.65,
         "expected_value": -5.39,
-        "sharpe": -0.53,
+        "sharpe": -0.54,
         "max_drawdown": -100.0,
         "profit_factor": 0.25,
         "p_value": 0.0,
@@ -2241,14 +2241,14 @@
         "significativo_95": true
       },
       "stop_target": {
-        "samples": 1217,
-        "avg_ret": -1.09,
-        "win_rate": 0.357,
-        "target_hits": 411,
+        "samples": 1215,
+        "avg_ret": -1.1,
+        "win_rate": 0.356,
+        "target_hits": 409,
         "stop_hits": 777,
         "time_exits": 29,
-        "pct_target": 33.8,
-        "pct_stop": 63.8,
+        "pct_target": 33.7,
+        "pct_stop": 64.0,
         "pct_time": 2.4
       }
     },
@@ -2291,23 +2291,23 @@
       "h21d": {
         "samples": 496,
         "win_rate": 0.623,
-        "avg_ret": 2.76,
-        "avg_win": 7.96,
-        "avg_loss": 5.83,
-        "expected_value": 2.76,
+        "avg_ret": 2.75,
+        "avg_win": 7.95,
+        "avg_loss": 5.84,
+        "expected_value": 2.75,
         "sharpe": 0.3,
         "max_drawdown": -27.83,
         "profit_factor": 2.25,
         "p_value": 0.0,
         "ic95": [
-          1.96,
-          3.56
+          1.95,
+          3.55
         ],
         "significativo_95": true
       },
       "stop_target": {
         "samples": 506,
-        "avg_ret": 0.71,
+        "avg_ret": 0.7,
         "win_rate": 0.486,
         "target_hits": 201,
         "stop_hits": 230,
@@ -2387,18 +2387,18 @@
     "samples": 2782,
     "top_20pct": {
       "samples": 556,
-      "win_rate": 0.378,
-      "avg_ret": -1.8,
-      "avg_win": 5.2,
-      "avg_loss": 6.05,
-      "expected_value": -1.8,
+      "win_rate": 0.374,
+      "avg_ret": -1.82,
+      "avg_win": 5.23,
+      "avg_loss": 6.03,
+      "expected_value": -1.82,
       "sharpe": -0.26,
       "max_drawdown": -100.0,
       "profit_factor": 0.52,
       "p_value": 0.0,
       "ic95": [
-        -2.38,
-        -1.23
+        -2.39,
+        -1.24
       ],
       "significativo_95": true,
       "count": 556,
@@ -2414,18 +2414,18 @@
     },
     "bottom_20pct": {
       "samples": 556,
-      "win_rate": 0.48,
-      "avg_ret": -0.11,
-      "avg_win": 7.34,
-      "avg_loss": 7.0,
-      "expected_value": -0.11,
+      "win_rate": 0.478,
+      "avg_ret": -0.12,
+      "avg_win": 7.35,
+      "avg_loss": 6.98,
+      "expected_value": -0.12,
       "sharpe": -0.01,
       "max_drawdown": -99.95,
       "profit_factor": 0.97,
-      "p_value": 0.7797,
+      "p_value": 0.7616,
       "ic95": [
-        -0.9,
-        0.68
+        -0.91,
+        0.67
       ],
       "significativo_95": false,
       "count": 556,
@@ -2473,17 +2473,17 @@
       "top_20pct": {
         "samples": 161,
         "win_rate": 0.292,
-        "avg_ret": -2.9,
-        "avg_win": 5.56,
-        "avg_loss": 6.39,
-        "expected_value": -2.9,
+        "avg_ret": -2.91,
+        "avg_win": 5.57,
+        "avg_loss": 6.41,
+        "expected_value": -2.91,
         "sharpe": -0.44,
-        "max_drawdown": -99.49,
+        "max_drawdown": -99.5,
         "profit_factor": 0.36,
         "p_value": 0.0,
         "ic95": [
-          -3.92,
-          -1.88
+          -3.93,
+          -1.89
         ],
         "significativo_95": true,
         "count": 161,
@@ -2501,7 +2501,7 @@
         "samples": 161,
         "win_rate": 0.193,
         "avg_ret": -9.75,
-        "avg_win": 2.63,
+        "avg_win": 2.64,
         "avg_loss": 12.71,
         "expected_value": -9.75,
         "sharpe": -1.12,
@@ -2526,18 +2526,18 @@
       },
       "middle_60pct": {
         "samples": 486,
-        "win_rate": 0.198,
-        "avg_ret": -5.27,
-        "avg_win": 4.09,
-        "avg_loss": 7.58,
-        "expected_value": -5.27,
+        "win_rate": 0.195,
+        "avg_ret": -5.29,
+        "avg_win": 4.11,
+        "avg_loss": 7.57,
+        "expected_value": -5.29,
         "sharpe": -0.8,
         "max_drawdown": -100.0,
         "profit_factor": 0.13,
         "p_value": 0.0,
         "ic95": [
-          -5.86,
-          -4.69
+          -5.87,
+          -4.7
         ],
         "significativo_95": true,
         "count": 486,
@@ -2556,18 +2556,18 @@
       "samples": 714,
       "top_20pct": {
         "samples": 142,
-        "win_rate": 0.634,
-        "avg_ret": 2.05,
-        "avg_win": 5.65,
-        "avg_loss": 4.18,
-        "expected_value": 2.05,
+        "win_rate": 0.627,
+        "avg_ret": 2.04,
+        "avg_win": 5.69,
+        "avg_loss": 4.1,
+        "expected_value": 2.04,
         "sharpe": 0.33,
-        "max_drawdown": -40.13,
-        "profit_factor": 2.34,
+        "max_drawdown": -40.54,
+        "profit_factor": 2.33,
         "p_value": 0.0001,
         "ic95": [
-          1.03,
-          3.06
+          1.02,
+          3.05
         ],
         "significativo_95": true,
         "count": 142,
@@ -2584,17 +2584,17 @@
       "bottom_20pct": {
         "samples": 142,
         "win_rate": 0.282,
-        "avg_ret": -6.2,
-        "avg_win": 6.88,
+        "avg_ret": -6.18,
+        "avg_win": 6.95,
         "avg_loss": 11.33,
-        "expected_value": -6.2,
+        "expected_value": -6.18,
         "sharpe": -0.5,
         "max_drawdown": -100.0,
         "profit_factor": 0.24,
         "p_value": 0.0,
         "ic95": [
-          -8.26,
-          -4.14
+          -8.25,
+          -4.12
         ],
         "significativo_95": true,
         "count": 142,
@@ -2611,17 +2611,17 @@
       "middle_60pct": {
         "samples": 430,
         "win_rate": 0.288,
-        "avg_ret": -6.21,
-        "avg_win": 5.65,
+        "avg_ret": -6.22,
+        "avg_win": 5.64,
         "avg_loss": 11.02,
-        "expected_value": -6.21,
+        "expected_value": -6.22,
         "sharpe": -0.56,
         "max_drawdown": -100.0,
         "profit_factor": 0.21,
         "p_value": 0.0,
         "ic95": [
-          -7.26,
-          -5.16
+          -7.27,
+          -5.17
         ],
         "significativo_95": true,
         "count": 430,
@@ -2641,17 +2641,17 @@
       "top_20pct": {
         "samples": 252,
         "win_rate": 0.702,
-        "avg_ret": 4.41,
-        "avg_win": 7.97,
-        "avg_loss": 3.99,
-        "expected_value": 4.41,
+        "avg_ret": 4.4,
+        "avg_win": 7.96,
+        "avg_loss": 4.01,
+        "expected_value": 4.4,
         "sharpe": 0.5,
-        "max_drawdown": -68.28,
-        "profit_factor": 4.71,
+        "max_drawdown": -68.19,
+        "profit_factor": 4.68,
         "p_value": 0.0,
         "ic95": [
-          3.31,
-          5.5
+          3.3,
+          5.49
         ],
         "significativo_95": true,
         "count": 252,
@@ -2667,18 +2667,18 @@
       },
       "bottom_20pct": {
         "samples": 252,
-        "win_rate": 0.635,
-        "avg_ret": 3.29,
-        "avg_win": 8.23,
-        "avg_loss": 5.3,
-        "expected_value": 3.29,
+        "win_rate": 0.631,
+        "avg_ret": 3.28,
+        "avg_win": 8.27,
+        "avg_loss": 5.25,
+        "expected_value": 3.28,
         "sharpe": 0.38,
-        "max_drawdown": -47.07,
-        "profit_factor": 2.7,
+        "max_drawdown": -47.32,
+        "profit_factor": 2.69,
         "p_value": 0.0,
         "ic95": [
-          2.22,
-          4.36
+          2.21,
+          4.35
         ],
         "significativo_95": true,
         "count": 252,
@@ -2694,18 +2694,18 @@
       },
       "middle_60pct": {
         "samples": 756,
-        "win_rate": 0.534,
-        "avg_ret": 0.77,
-        "avg_win": 5.34,
+        "win_rate": 0.533,
+        "avg_ret": 0.76,
+        "avg_win": 5.35,
         "avg_loss": 4.47,
-        "expected_value": 0.77,
+        "expected_value": 0.76,
         "sharpe": 0.12,
-        "max_drawdown": -89.52,
-        "profit_factor": 1.37,
-        "p_value": 0.0009,
+        "max_drawdown": -89.65,
+        "profit_factor": 1.36,
+        "p_value": 0.0011,
         "ic95": [
-          0.32,
-          1.23
+          0.31,
+          1.22
         ],
         "significativo_95": true,
         "count": 756,
@@ -2740,7 +2740,7 @@
           "sharpe": 0.02,
           "max_drawdown": -95.54,
           "profit_factor": 1.07,
-          "p_value": 0.5599,
+          "p_value": 0.5583,
           "ic95": [
             -0.32,
             0.6
@@ -2751,13 +2751,13 @@
           "samples": 453,
           "win_rate": 0.514,
           "avg_ret": 0.02,
-          "avg_win": 5.2,
+          "avg_win": 5.21,
           "avg_loss": 5.46,
           "expected_value": 0.02,
           "sharpe": 0.0,
-          "max_drawdown": -98.78,
+          "max_drawdown": -98.79,
           "profit_factor": 1.01,
-          "p_value": 0.9459,
+          "p_value": 0.9452,
           "ic95": [
             -0.67,
             0.72
@@ -2768,15 +2768,15 @@
           "samples": 249,
           "win_rate": 0.434,
           "avg_ret": -1.51,
-          "avg_win": 7.16,
-          "avg_loss": 8.15,
+          "avg_win": 7.15,
+          "avg_loss": 8.14,
           "expected_value": -1.51,
           "sharpe": -0.16,
-          "max_drawdown": -99.47,
+          "max_drawdown": -99.46,
           "profit_factor": 0.67,
-          "p_value": 0.0134,
+          "p_value": 0.0135,
           "ic95": [
-            -2.71,
+            -2.7,
             -0.32
           ],
           "significativo_95": true
@@ -2801,11 +2801,11 @@
           "win_rate": 0.392,
           "avg_ret": -1.43,
           "avg_win": 3.73,
-          "avg_loss": 4.75,
+          "avg_loss": 4.76,
           "expected_value": -1.43,
           "sharpe": -0.26,
           "max_drawdown": -96.2,
-          "profit_factor": 0.51,
+          "profit_factor": 0.5,
           "p_value": 0.0004,
           "ic95": [
             -2.21,
@@ -2816,40 +2816,40 @@
         "h10d": {
           "samples": 181,
           "win_rate": 0.387,
-          "avg_ret": -3.69,
+          "avg_ret": -3.7,
           "avg_win": 4.55,
-          "avg_loss": 8.89,
-          "expected_value": -3.69,
+          "avg_loss": 8.9,
+          "expected_value": -3.7,
           "sharpe": -0.43,
           "max_drawdown": -99.96,
           "profit_factor": 0.32,
           "p_value": 0.0,
           "ic95": [
             -4.94,
-            -2.44
+            -2.45
           ],
           "significativo_95": true
         },
         "h21d": {
           "samples": 101,
           "win_rate": 0.178,
-          "avg_ret": -5.77,
-          "avg_win": 6.47,
-          "avg_loss": 8.43,
-          "expected_value": -5.77,
-          "sharpe": -0.69,
-          "max_drawdown": -99.85,
-          "profit_factor": 0.17,
+          "avg_ret": -5.81,
+          "avg_win": 6.4,
+          "avg_loss": 8.46,
+          "expected_value": -5.81,
+          "sharpe": -0.7,
+          "max_drawdown": -99.86,
+          "profit_factor": 0.16,
           "p_value": 0.0,
           "ic95": [
-            -7.42,
-            -4.13
+            -7.46,
+            -4.17
           ],
           "significativo_95": true
         },
         "stop_target": {
           "samples": 124,
-          "avg_ret": -1.01,
+          "avg_ret": -1.02,
           "win_rate": 0.403,
           "pct_target": 37.1,
           "pct_stop": 56.5
@@ -2882,40 +2882,40 @@
         "h10d": {
           "samples": 49,
           "win_rate": 0.571,
-          "avg_ret": 1.34,
-          "avg_win": 5.79,
+          "avg_ret": 1.33,
+          "avg_win": 5.76,
           "avg_loss": 4.58,
-          "expected_value": 1.34,
+          "expected_value": 1.33,
           "sharpe": 0.23,
           "max_drawdown": -44.83,
           "profit_factor": 1.68,
-          "p_value": 0.1187,
+          "p_value": 0.1222,
           "ic95": [
-            -0.34,
-            3.03
+            -0.35,
+            3.01
           ],
           "significativo_95": false
         },
         "h21d": {
           "samples": 28,
           "win_rate": 0.321,
-          "avg_ret": -0.37,
+          "avg_ret": -0.38,
           "avg_win": 8.68,
-          "avg_loss": 4.66,
-          "expected_value": -0.37,
+          "avg_loss": 4.67,
+          "expected_value": -0.38,
           "sharpe": -0.06,
-          "max_drawdown": -42.21,
+          "max_drawdown": -42.37,
           "profit_factor": 0.88,
-          "p_value": 0.7755,
+          "p_value": 0.7699,
           "ic95": [
-            -2.94,
-            2.2
+            -2.95,
+            2.19
           ],
           "significativo_95": false
         },
         "stop_target": {
           "samples": 36,
-          "avg_ret": -0.28,
+          "avg_ret": -0.29,
           "win_rate": 0.444,
           "pct_target": 44.4,
           "pct_stop": 50.0
@@ -2931,17 +2931,17 @@
         "h5d": {
           "samples": 37,
           "win_rate": 0.432,
-          "avg_ret": -0.42,
-          "avg_win": 4.68,
+          "avg_ret": -0.43,
+          "avg_win": 4.67,
           "avg_loss": 4.31,
-          "expected_value": -0.42,
+          "expected_value": -0.43,
           "sharpe": -0.07,
           "max_drawdown": -57.75,
           "profit_factor": 0.83,
-          "p_value": 0.6676,
+          "p_value": 0.6639,
           "ic95": [
-            -2.39,
-            1.54
+            -2.38,
+            1.52
           ],
           "significativo_95": false
         },
@@ -2949,33 +2949,33 @@
           "samples": 27,
           "win_rate": 0.481,
           "avg_ret": -0.25,
-          "avg_win": 8.04,
+          "avg_win": 8.03,
           "avg_loss": 7.95,
           "expected_value": -0.25,
           "sharpe": -0.03,
           "max_drawdown": -64.94,
           "profit_factor": 0.94,
-          "p_value": 0.8984,
+          "p_value": 0.8958,
           "ic95": [
-            -4.14,
-            3.64
+            -4.12,
+            3.62
           ],
           "significativo_95": false
         },
         "h21d": {
           "samples": 9,
           "win_rate": 0.333,
-          "avg_ret": -2.67,
-          "avg_win": 1.97,
+          "avg_ret": -2.66,
+          "avg_win": 1.98,
           "avg_loss": 4.98,
-          "expected_value": -2.67,
+          "expected_value": -2.66,
           "sharpe": -0.66,
           "max_drawdown": -21.73,
           "profit_factor": 0.2,
-          "p_value": 0.0985,
+          "p_value": 0.1008,
           "ic95": [
-            -5.77,
-            0.43
+            -5.79,
+            0.46
           ],
           "significativo_95": false
         },
@@ -3067,24 +3067,24 @@
           "win_rate": 0.444,
           "avg_ret": -0.82,
           "avg_win": 3.5,
-          "avg_loss": 4.27,
+          "avg_loss": 4.28,
           "expected_value": -0.82,
-          "sharpe": -0.14,
+          "sharpe": -0.15,
           "max_drawdown": -100.0,
-          "profit_factor": 0.66,
+          "profit_factor": 0.65,
           "p_value": 0.0,
           "ic95": [
-            -1.18,
+            -1.19,
             -0.46
           ],
           "significativo_95": true
         },
         "h10d": {
           "samples": 791,
-          "win_rate": 0.421,
+          "win_rate": 0.42,
           "avg_ret": -1.69,
-          "avg_win": 4.85,
-          "avg_loss": 6.45,
+          "avg_win": 4.87,
+          "avg_loss": 6.44,
           "expected_value": -1.69,
           "sharpe": -0.21,
           "max_drawdown": -100.0,
@@ -3099,17 +3099,17 @@
         "h21d": {
           "samples": 503,
           "win_rate": 0.386,
-          "avg_ret": -2.67,
-          "avg_win": 7.74,
-          "avg_loss": 9.21,
-          "expected_value": -2.67,
+          "avg_ret": -2.68,
+          "avg_win": 7.73,
+          "avg_loss": 9.22,
+          "expected_value": -2.68,
           "sharpe": -0.25,
           "max_drawdown": -100.0,
           "profit_factor": 0.53,
           "p_value": 0.0,
           "ic95": [
             -3.61,
-            -1.74
+            -1.75
           ],
           "significativo_95": true
         },
@@ -3130,49 +3130,49 @@
         "concentracion_alta": false,
         "h5d": {
           "samples": 256,
-          "win_rate": 0.426,
+          "win_rate": 0.422,
           "avg_ret": -0.71,
-          "avg_win": 2.49,
-          "avg_loss": 3.07,
+          "avg_win": 2.51,
+          "avg_loss": 3.06,
           "expected_value": -0.71,
           "sharpe": -0.2,
           "max_drawdown": -89.93,
           "profit_factor": 0.6,
-          "p_value": 0.002,
+          "p_value": 0.0019,
           "ic95": [
-            -1.15,
-            -0.26
+            -1.16,
+            -0.27
           ],
           "significativo_95": true
         },
         "h10d": {
           "samples": 221,
           "win_rate": 0.493,
-          "avg_ret": -0.5,
-          "avg_win": 3.72,
+          "avg_ret": -0.51,
+          "avg_win": 3.71,
           "avg_loss": 4.61,
-          "expected_value": -0.5,
+          "expected_value": -0.51,
           "sharpe": -0.09,
           "max_drawdown": -85.34,
           "profit_factor": 0.78,
-          "p_value": 0.1678,
+          "p_value": 0.1623,
           "ic95": [
             -1.22,
-            0.21
+            0.2
           ],
           "significativo_95": false
         },
         "h21d": {
           "samples": 125,
           "win_rate": 0.64,
-          "avg_ret": 1.39,
-          "avg_win": 5.4,
+          "avg_ret": 1.38,
+          "avg_win": 5.39,
           "avg_loss": 5.74,
-          "expected_value": 1.39,
+          "expected_value": 1.38,
           "sharpe": 0.18,
           "max_drawdown": -36.2,
           "profit_factor": 1.67,
-          "p_value": 0.0427,
+          "p_value": 0.0435,
           "ic95": [
             0.05,
             2.72
@@ -3180,11 +3180,11 @@
           "significativo_95": true
         },
         "stop_target": {
-          "samples": 192,
-          "avg_ret": -0.23,
-          "win_rate": 0.406,
-          "pct_target": 33.3,
-          "pct_stop": 59.4
+          "samples": 191,
+          "avg_ret": -0.25,
+          "win_rate": 0.403,
+          "pct_target": 33.0,
+          "pct_stop": 59.7
         }
       },
       "🟢 COMPRA": {
@@ -3198,13 +3198,13 @@
           "samples": 199,
           "win_rate": 0.387,
           "avg_ret": -0.83,
-          "avg_win": 6.42,
+          "avg_win": 6.41,
           "avg_loss": 5.4,
           "expected_value": -0.83,
-          "sharpe": -0.1,
+          "sharpe": -0.11,
           "max_drawdown": -96.12,
           "profit_factor": 0.75,
-          "p_value": 0.1414,
+          "p_value": 0.1392,
           "ic95": [
             -1.93,
             0.27
@@ -3214,34 +3214,34 @@
         "h10d": {
           "samples": 172,
           "win_rate": 0.343,
-          "avg_ret": -2.16,
-          "avg_win": 7.26,
+          "avg_ret": -2.17,
+          "avg_win": 7.23,
           "avg_loss": 7.08,
-          "expected_value": -2.16,
+          "expected_value": -2.17,
           "sharpe": -0.21,
           "max_drawdown": -99.34,
-          "profit_factor": 0.54,
-          "p_value": 0.0079,
+          "profit_factor": 0.53,
+          "p_value": 0.0076,
           "ic95": [
-            -3.74,
-            -0.58
+            -3.75,
+            -0.59
           ],
           "significativo_95": true
         },
         "h21d": {
           "samples": 116,
           "win_rate": 0.25,
-          "avg_ret": -5.29,
-          "avg_win": 18.52,
-          "avg_loss": 13.22,
-          "expected_value": -5.29,
+          "avg_ret": -5.3,
+          "avg_win": 18.53,
+          "avg_loss": 13.24,
+          "expected_value": -5.3,
           "sharpe": -0.31,
           "max_drawdown": -99.98,
           "profit_factor": 0.47,
           "p_value": 0.0014,
           "ic95": [
-            -8.48,
-            -2.1
+            -8.49,
+            -2.11
           ],
           "significativo_95": true
         },
@@ -3297,17 +3297,17 @@
         "h21d": {
           "samples": 10,
           "win_rate": 0.4,
-          "avg_ret": -2.83,
+          "avg_ret": -2.71,
           "avg_win": 2.35,
-          "avg_loss": 6.28,
-          "expected_value": -2.82,
-          "sharpe": -0.59,
-          "max_drawdown": -19.7,
-          "profit_factor": 0.25,
-          "p_value": 0.1118,
+          "avg_loss": 6.08,
+          "expected_value": -2.71,
+          "sharpe": -0.57,
+          "max_drawdown": -18.7,
+          "profit_factor": 0.26,
+          "p_value": 0.1241,
           "ic95": [
-            -6.26,
-            0.61
+            -6.13,
+            0.72
           ],
           "significativo_95": false
         },
@@ -3346,17 +3346,17 @@
         "h10d": {
           "samples": 11,
           "win_rate": 0.545,
-          "avg_ret": 2.95,
+          "avg_ret": 2.89,
           "avg_win": 7.73,
-          "avg_loss": 2.79,
-          "expected_value": 2.95,
-          "sharpe": 0.56,
-          "max_drawdown": -7.03,
-          "profit_factor": 3.32,
-          "p_value": 0.1097,
+          "avg_loss": 2.92,
+          "expected_value": 2.89,
+          "sharpe": 0.54,
+          "max_drawdown": -7.65,
+          "profit_factor": 3.17,
+          "p_value": 0.12,
           "ic95": [
-            -0.62,
-            6.52
+            -0.72,
+            6.5
           ],
           "significativo_95": false
         },
@@ -3396,34 +3396,34 @@
         "concentracion_alta": false,
         "h5d": {
           "samples": 336,
-          "win_rate": 0.42,
+          "win_rate": 0.417,
           "avg_ret": -0.79,
-          "avg_win": 3.66,
-          "avg_loss": 4.0,
+          "avg_win": 3.68,
+          "avg_loss": 3.98,
           "expected_value": -0.79,
           "sharpe": -0.16,
           "max_drawdown": -99.78,
           "profit_factor": 0.66,
-          "p_value": 0.003,
+          "p_value": 0.0028,
           "ic95": [
-            -1.3,
-            -0.27
+            -1.31,
+            -0.28
           ],
           "significativo_95": true
         },
         "h10d": {
           "samples": 221,
           "win_rate": 0.344,
-          "avg_ret": -2.22,
+          "avg_ret": -2.23,
           "avg_win": 4.54,
-          "avg_loss": 5.77,
-          "expected_value": -2.22,
+          "avg_loss": 5.78,
+          "expected_value": -2.23,
           "sharpe": -0.35,
           "max_drawdown": -99.86,
           "profit_factor": 0.41,
           "p_value": 0.0,
           "ic95": [
-            -3.06,
+            -3.07,
             -1.39
           ],
           "significativo_95": true
@@ -3431,26 +3431,26 @@
         "h21d": {
           "samples": 81,
           "win_rate": 0.383,
-          "avg_ret": -3.04,
+          "avg_ret": -3.05,
           "avg_win": 6.43,
-          "avg_loss": 8.92,
-          "expected_value": -3.04,
+          "avg_loss": 8.93,
+          "expected_value": -3.05,
           "sharpe": -0.35,
-          "max_drawdown": -95.78,
+          "max_drawdown": -95.79,
           "profit_factor": 0.45,
-          "p_value": 0.0022,
+          "p_value": 0.0021,
           "ic95": [
-            -4.94,
+            -4.95,
             -1.15
           ],
           "significativo_95": true
         },
         "stop_target": {
-          "samples": 133,
-          "avg_ret": -2.23,
-          "win_rate": 0.316,
-          "pct_target": 31.6,
-          "pct_stop": 66.2
+          "samples": 132,
+          "avg_ret": -2.28,
+          "win_rate": 0.311,
+          "pct_target": 31.1,
+          "pct_stop": 66.7
         }
       },
       "🟠 VENTA PARCIAL": {
@@ -3463,34 +3463,34 @@
         "h5d": {
           "samples": 75,
           "win_rate": 0.427,
-          "avg_ret": -0.99,
+          "avg_ret": -1.0,
           "avg_win": 2.18,
           "avg_loss": 3.36,
-          "expected_value": -0.99,
+          "expected_value": -1.0,
           "sharpe": -0.3,
           "max_drawdown": -65.72,
           "profit_factor": 0.48,
-          "p_value": 0.0119,
+          "p_value": 0.0116,
           "ic95": [
-            -1.75,
+            -1.76,
             -0.23
           ],
           "significativo_95": true
         },
         "h10d": {
           "samples": 69,
-          "win_rate": 0.449,
-          "avg_ret": -0.09,
-          "avg_win": 3.71,
-          "avg_loss": 3.19,
-          "expected_value": -0.09,
-          "sharpe": -0.02,
-          "max_drawdown": -55.08,
-          "profit_factor": 0.95,
-          "p_value": 0.8597,
+          "win_rate": 0.435,
+          "avg_ret": -0.11,
+          "avg_win": 3.81,
+          "avg_loss": 3.12,
+          "expected_value": -0.11,
+          "sharpe": -0.03,
+          "max_drawdown": -55.26,
+          "profit_factor": 0.94,
+          "p_value": 0.8315,
           "ic95": [
-            -1.1,
-            0.92
+            -1.11,
+            0.9
           ],
           "significativo_95": false
         },
@@ -3609,17 +3609,17 @@
         "h10d": {
           "samples": 17,
           "win_rate": 0.118,
-          "avg_ret": -5.57,
-          "avg_win": 6.2,
+          "avg_ret": -5.56,
+          "avg_win": 6.33,
           "avg_loss": 7.14,
-          "expected_value": -5.57,
+          "expected_value": -5.56,
           "sharpe": -0.97,
           "max_drawdown": -63.27,
           "profit_factor": 0.12,
-          "p_value": 0.0013,
+          "p_value": 0.0014,
           "ic95": [
             -8.51,
-            -2.63
+            -2.61
           ],
           "significativo_95": true
         },
@@ -3658,16 +3658,16 @@
           "samples": 42,
           "win_rate": 0.571,
           "avg_ret": 0.75,
-          "avg_win": 5.5,
+          "avg_win": 5.51,
           "avg_loss": 5.59,
           "expected_value": 0.75,
           "sharpe": 0.11,
           "max_drawdown": -52.26,
           "profit_factor": 1.31,
-          "p_value": 0.4895,
+          "p_value": 0.4882,
           "ic95": [
             -1.39,
-            2.89
+            2.9
           ],
           "significativo_95": false
         },
@@ -3692,16 +3692,16 @@
           "samples": 25,
           "win_rate": 0.52,
           "avg_ret": 0.8,
-          "avg_win": 10.74,
+          "avg_win": 10.75,
           "avg_loss": 9.97,
           "expected_value": 0.8,
           "sharpe": 0.07,
           "max_drawdown": -51.59,
           "profit_factor": 1.17,
-          "p_value": 0.7357,
+          "p_value": 0.7344,
           "ic95": [
             -3.93,
-            5.53
+            5.54
           ],
           "significativo_95": false
         },
@@ -3723,34 +3723,34 @@
         "h5d": {
           "samples": 22,
           "win_rate": 0.409,
-          "avg_ret": 0.66,
-          "avg_win": 5.02,
+          "avg_ret": 0.65,
+          "avg_win": 5.0,
           "avg_loss": 2.37,
-          "expected_value": 0.66,
+          "expected_value": 0.65,
           "sharpe": 0.15,
           "max_drawdown": -18.58,
-          "profit_factor": 1.47,
-          "p_value": 0.5042,
+          "profit_factor": 1.46,
+          "p_value": 0.509,
           "ic95": [
             -1.31,
-            2.62
+            2.6
           ],
           "significativo_95": false
         },
         "h10d": {
           "samples": 19,
           "win_rate": 0.684,
-          "avg_ret": 1.66,
-          "avg_win": 2.73,
-          "avg_loss": 0.67,
-          "expected_value": 1.66,
+          "avg_ret": 1.65,
+          "avg_win": 2.74,
+          "avg_loss": 0.69,
+          "expected_value": 1.65,
           "sharpe": 0.78,
           "max_drawdown": -3.13,
-          "profit_factor": 8.89,
-          "p_value": 0.0037,
+          "profit_factor": 8.59,
+          "p_value": 0.004,
           "ic95": [
-            0.64,
-            2.67
+            0.63,
+            2.68
           ],
           "significativo_95": true
         },
@@ -3789,17 +3789,17 @@
         "h5d": {
           "samples": 14,
           "win_rate": 0.143,
-          "avg_ret": -4.75,
-          "avg_win": 0.59,
+          "avg_ret": -4.73,
+          "avg_win": 0.68,
           "avg_loss": 5.64,
-          "expected_value": -4.75,
+          "expected_value": -4.74,
           "sharpe": -1.06,
           "max_drawdown": -48.78,
           "profit_factor": 0.02,
-          "p_value": 0.0021,
+          "p_value": 0.0022,
           "ic95": [
-            -7.33,
-            -2.17
+            -7.32,
+            -2.15
           ],
           "significativo_95": true
         },
@@ -3823,17 +3823,17 @@
         "h21d": {
           "samples": 8,
           "win_rate": 0.0,
-          "avg_ret": -5.56,
+          "avg_ret": -5.58,
           "avg_win": 0.0,
-          "avg_loss": 5.56,
-          "expected_value": -5.56,
-          "sharpe": -5.84,
-          "max_drawdown": -32.08,
+          "avg_loss": 5.58,
+          "expected_value": -5.58,
+          "sharpe": -5.46,
+          "max_drawdown": -32.24,
           "profit_factor": 0.0,
           "p_value": 0.0,
           "ic95": [
-            -6.35,
-            -4.76
+            -6.44,
+            -4.73
           ],
           "significativo_95": true
         },
@@ -4002,23 +4002,23 @@
       "h21d": {
         "samples": 325,
         "win_rate": 0.425,
-        "avg_ret": -1.13,
-        "avg_win": 8.45,
-        "avg_loss": 8.21,
-        "expected_value": -1.13,
-        "sharpe": -0.1,
-        "max_drawdown": -99.91,
+        "avg_ret": -1.16,
+        "avg_win": 8.42,
+        "avg_loss": 8.23,
+        "expected_value": -1.16,
+        "sharpe": -0.11,
+        "max_drawdown": -99.92,
         "profit_factor": 0.76,
-        "p_value": 0.0617,
+        "p_value": 0.0567,
         "ic95": [
-          -2.32,
-          0.05
+          -2.35,
+          0.03
         ],
         "significativo_95": false
       },
       "stop_target": {
         "samples": 577,
-        "avg_ret": -1.71,
+        "avg_ret": -1.72,
         "win_rate": 0.328,
         "target_hits": 146,
         "stop_hits": 367,
@@ -4032,48 +4032,48 @@
       "count": 737,
       "h5d": {
         "samples": 603,
-        "win_rate": 0.521,
-        "avg_ret": 0.4,
-        "avg_win": 4.36,
-        "avg_loss": 3.89,
-        "expected_value": 0.4,
+        "win_rate": 0.517,
+        "avg_ret": 0.39,
+        "avg_win": 4.38,
+        "avg_loss": 3.88,
+        "expected_value": 0.39,
         "sharpe": 0.07,
         "max_drawdown": -99.4,
-        "profit_factor": 1.22,
-        "p_value": 0.0734,
+        "profit_factor": 1.21,
+        "p_value": 0.0832,
         "ic95": [
-          -0.04,
-          0.84
+          -0.05,
+          0.83
         ],
         "significativo_95": false
       },
       "h10d": {
         "samples": 134,
-        "win_rate": 0.463,
-        "avg_ret": -1.48,
-        "avg_win": 4.66,
-        "avg_loss": 6.76,
-        "expected_value": -1.48,
+        "win_rate": 0.448,
+        "avg_ret": -1.54,
+        "avg_win": 4.79,
+        "avg_loss": 6.67,
+        "expected_value": -1.54,
         "sharpe": -0.18,
-        "max_drawdown": -97.03,
-        "profit_factor": 0.59,
-        "p_value": 0.0417,
+        "max_drawdown": -97.08,
+        "profit_factor": 0.58,
+        "p_value": 0.035,
         "ic95": [
-          -2.9,
-          -0.06
+          -2.96,
+          -0.11
         ],
         "significativo_95": true
       },
       "h21d": null,
       "stop_target": {
-        "samples": 185,
-        "avg_ret": 0.49,
-        "win_rate": 0.476,
-        "target_hits": 88,
+        "samples": 183,
+        "avg_ret": 0.45,
+        "win_rate": 0.47,
+        "target_hits": 86,
         "stop_hits": 97,
         "time_exits": 0,
-        "pct_target": 47.6,
-        "pct_stop": 52.4,
+        "pct_target": 47.0,
+        "pct_stop": 53.0,
         "pct_time": 0.0
       }
     }
@@ -4456,23 +4456,23 @@
         "h21d": {
           "samples": 200,
           "win_rate": 0.47,
-          "avg_ret": -0.69,
-          "avg_win": 8.66,
+          "avg_ret": -0.7,
+          "avg_win": 8.64,
           "avg_loss": 8.97,
-          "expected_value": -0.69,
+          "expected_value": -0.7,
           "sharpe": -0.06,
           "max_drawdown": -97.62,
-          "profit_factor": 0.86,
-          "p_value": 0.3924,
+          "profit_factor": 0.85,
+          "p_value": 0.384,
           "ic95": [
-            -2.26,
-            0.89
+            -2.27,
+            0.88
           ],
           "significativo_95": false
         },
         "stop_target": {
           "samples": 300,
-          "avg_ret": -0.42,
+          "avg_ret": -0.43,
           "win_rate": 0.407,
           "pct_target": 31.3,
           "pct_stop": 56.0
@@ -4522,23 +4522,23 @@
         "h21d": {
           "samples": 31,
           "win_rate": 0.548,
-          "avg_ret": -0.24,
-          "avg_win": 2.75,
-          "avg_loss": 3.89,
-          "expected_value": -0.24,
-          "sharpe": -0.05,
+          "avg_ret": -0.27,
+          "avg_win": 2.71,
+          "avg_loss": 3.9,
+          "expected_value": -0.27,
+          "sharpe": -0.06,
           "max_drawdown": -25.43,
-          "profit_factor": 0.86,
-          "p_value": 0.7863,
+          "profit_factor": 0.84,
+          "p_value": 0.7605,
           "ic95": [
-            -2.04,
-            1.55
+            -2.07,
+            1.52
           ],
           "significativo_95": false
         },
         "stop_target": {
           "samples": 71,
-          "avg_ret": -2.0,
+          "avg_ret": -2.01,
           "win_rate": 0.324,
           "pct_target": 21.1,
           "pct_stop": 64.8
@@ -4588,23 +4588,23 @@
         "h21d": {
           "samples": 81,
           "win_rate": 0.247,
-          "avg_ret": -2.56,
-          "avg_win": 14.62,
-          "avg_loss": 8.19,
-          "expected_value": -2.56,
-          "sharpe": -0.21,
-          "max_drawdown": -95.76,
+          "avg_ret": -2.63,
+          "avg_win": 14.58,
+          "avg_loss": 8.27,
+          "expected_value": -2.63,
+          "sharpe": -0.22,
+          "max_drawdown": -96.0,
           "profit_factor": 0.58,
-          "p_value": 0.0623,
+          "p_value": 0.0565,
           "ic95": [
-            -5.24,
-            0.12
+            -5.32,
+            0.06
           ],
           "significativo_95": false
         },
         "stop_target": {
           "samples": 164,
-          "avg_ret": -3.73,
+          "avg_ret": -3.74,
           "win_rate": 0.207,
           "pct_target": 17.1,
           "pct_stop": 73.8
@@ -4654,17 +4654,17 @@
         "h21d": {
           "samples": 13,
           "win_rate": 0.538,
-          "avg_ret": -1.27,
+          "avg_ret": -1.17,
           "avg_win": 1.87,
-          "avg_loss": 4.92,
-          "expected_value": -1.27,
-          "sharpe": -0.33,
-          "max_drawdown": -24.23,
-          "profit_factor": 0.44,
-          "p_value": 0.2772,
+          "avg_loss": 4.72,
+          "expected_value": -1.17,
+          "sharpe": -0.31,
+          "max_drawdown": -23.28,
+          "profit_factor": 0.46,
+          "p_value": 0.308,
           "ic95": [
-            -3.59,
-            1.06
+            -3.48,
+            1.13
           ],
           "significativo_95": false
         },
@@ -4737,45 +4737,45 @@
         "concentracion_alta": false,
         "h5d": {
           "samples": 77,
-          "win_rate": 0.455,
-          "avg_ret": 0.63,
-          "avg_win": 4.84,
-          "avg_loss": 2.87,
-          "expected_value": 0.63,
-          "sharpe": 0.14,
-          "max_drawdown": -14.89,
-          "profit_factor": 1.4,
-          "p_value": 0.2379,
+          "win_rate": 0.442,
+          "avg_ret": 0.61,
+          "avg_win": 4.97,
+          "avg_loss": 2.84,
+          "expected_value": 0.61,
+          "sharpe": 0.13,
+          "max_drawdown": -16.01,
+          "profit_factor": 1.39,
+          "p_value": 0.2557,
           "ic95": [
-            -0.42,
-            1.69
+            -0.44,
+            1.66
           ],
           "significativo_95": false
         },
         "h10d": {
           "samples": 31,
-          "win_rate": 0.548,
-          "avg_ret": 1.01,
-          "avg_win": 4.83,
-          "avg_loss": 3.63,
-          "expected_value": 1.01,
-          "sharpe": 0.2,
+          "win_rate": 0.516,
+          "avg_ret": 0.9,
+          "avg_win": 4.99,
+          "avg_loss": 3.46,
+          "expected_value": 0.9,
+          "sharpe": 0.18,
           "max_drawdown": -15.84,
-          "profit_factor": 1.62,
-          "p_value": 0.2806,
+          "profit_factor": 1.54,
+          "p_value": 0.3361,
           "ic95": [
-            -0.84,
-            2.86
+            -0.95,
+            2.75
           ],
           "significativo_95": false
         },
         "h21d": null,
         "stop_target": {
-          "samples": 63,
-          "avg_ret": 0.95,
-          "win_rate": 0.444,
-          "pct_target": 44.4,
-          "pct_stop": 55.6
+          "samples": 62,
+          "avg_ret": 0.92,
+          "win_rate": 0.435,
+          "pct_target": 43.5,
+          "pct_stop": 56.5
         }
       },
       "🟡 NEUTRAL/ESPERAR": {
@@ -4788,34 +4788,34 @@
         "h5d": {
           "samples": 318,
           "win_rate": 0.525,
-          "avg_ret": -0.03,
+          "avg_ret": -0.04,
           "avg_win": 3.95,
-          "avg_loss": 4.44,
-          "expected_value": -0.03,
+          "avg_loss": 4.46,
+          "expected_value": -0.04,
           "sharpe": -0.01,
           "max_drawdown": -97.49,
           "profit_factor": 0.98,
-          "p_value": 0.9209,
+          "p_value": 0.8916,
           "ic95": [
-            -0.67,
-            0.61
+            -0.69,
+            0.6
           ],
           "significativo_95": false
         },
         "h10d": {
           "samples": 65,
-          "win_rate": 0.462,
+          "win_rate": 0.446,
           "avg_ret": -2.73,
-          "avg_win": 3.96,
-          "avg_loss": 8.47,
+          "avg_win": 4.18,
+          "avg_loss": 8.29,
           "expected_value": -2.73,
           "sharpe": -0.28,
-          "max_drawdown": -93.15,
-          "profit_factor": 0.4,
-          "p_value": 0.0273,
+          "max_drawdown": -93.21,
+          "profit_factor": 0.41,
+          "p_value": 0.029,
           "ic95": [
-            -5.13,
-            -0.33
+            -5.14,
+            -0.31
           ],
           "significativo_95": true
         },
@@ -4837,45 +4837,45 @@
         "concentracion_alta": false,
         "h5d": {
           "samples": 187,
-          "win_rate": 0.529,
-          "avg_ret": 0.74,
-          "avg_win": 4.54,
-          "avg_loss": 3.54,
-          "expected_value": 0.74,
+          "win_rate": 0.524,
+          "avg_ret": 0.73,
+          "avg_win": 4.57,
+          "avg_loss": 3.51,
+          "expected_value": 0.73,
           "sharpe": 0.14,
           "max_drawdown": -84.68,
-          "profit_factor": 1.44,
-          "p_value": 0.0521,
+          "profit_factor": 1.43,
+          "p_value": 0.0551,
           "ic95": [
-            -0.0,
-            1.48
+            -0.01,
+            1.47
           ],
           "significativo_95": false
         },
         "h10d": {
           "samples": 31,
           "win_rate": 0.387,
-          "avg_ret": -1.89,
-          "avg_win": 5.53,
-          "avg_loss": 6.57,
-          "expected_value": -1.89,
-          "sharpe": -0.26,
-          "max_drawdown": -67.67,
-          "profit_factor": 0.53,
-          "p_value": 0.1617,
+          "avg_ret": -2.02,
+          "avg_win": 5.41,
+          "avg_loss": 6.71,
+          "expected_value": -2.02,
+          "sharpe": -0.28,
+          "max_drawdown": -67.38,
+          "profit_factor": 0.51,
+          "p_value": 0.1319,
           "ic95": [
-            -4.53,
-            0.75
+            -4.63,
+            0.6
           ],
           "significativo_95": false
         },
         "h21d": null,
         "stop_target": {
-          "samples": 14,
-          "avg_ret": -2.01,
-          "win_rate": 0.214,
-          "pct_target": 21.4,
-          "pct_stop": 78.6
+          "samples": 13,
+          "avg_ret": -2.57,
+          "win_rate": 0.154,
+          "pct_target": 15.4,
+          "pct_stop": 84.6
         }
       },
       "⭐ COMPRA FUERTE": {
@@ -4888,34 +4888,34 @@
         "h5d": {
           "samples": 19,
           "win_rate": 0.684,
-          "avg_ret": 3.77,
-          "avg_win": 6.91,
+          "avg_ret": 3.76,
+          "avg_win": 6.9,
           "avg_loss": 3.04,
-          "expected_value": 3.77,
-          "sharpe": 0.62,
+          "expected_value": 3.76,
+          "sharpe": 0.63,
           "max_drawdown": -6.27,
           "profit_factor": 4.92,
-          "p_value": 0.0168,
+          "p_value": 0.0158,
           "ic95": [
-            0.84,
-            6.69
+            0.87,
+            6.65
           ],
           "significativo_95": true
         },
         "h10d": {
           "samples": 5,
           "win_rate": 0.6,
-          "avg_ret": 2.44,
-          "avg_win": 7.15,
+          "avg_ret": 2.47,
+          "avg_win": 7.2,
           "avg_loss": 4.63,
-          "expected_value": 2.44,
-          "sharpe": 0.28,
+          "expected_value": 2.47,
+          "sharpe": 0.3,
           "max_drawdown": -2.55,
-          "profit_factor": 2.32,
-          "p_value": 0.6006,
+          "profit_factor": 2.33,
+          "p_value": 0.5803,
           "ic95": [
-            -8.22,
-            13.09
+            -7.72,
+            12.66
           ],
           "significativo_95": false
         },
@@ -4948,17 +4948,17 @@
         "h10d": {
           "samples": 2,
           "win_rate": 0.0,
-          "avg_ret": -2.85,
+          "avg_ret": -3.18,
           "avg_win": 0.0,
-          "avg_loss": 2.85,
-          "expected_value": -2.85,
-          "sharpe": -3.46,
-          "max_drawdown": -3.68,
+          "avg_loss": 3.18,
+          "expected_value": -3.18,
+          "sharpe": -3.97,
+          "max_drawdown": -3.98,
           "profit_factor": 0.0,
-          "p_value": 0.1791,
+          "p_value": 0.1569,
           "ic95": [
-            -10.27,
-            4.56
+            -10.37,
+            4.01
           ],
           "significativo_95": false
         },
@@ -4985,34 +4985,34 @@
         "h5d": {
           "samples": 63,
           "win_rate": 0.476,
-          "avg_ret": 0.13,
+          "avg_ret": 0.12,
           "avg_win": 3.61,
-          "avg_loss": 3.03,
-          "expected_value": 0.13,
+          "avg_loss": 3.05,
+          "expected_value": 0.12,
           "sharpe": 0.03,
           "max_drawdown": -27.55,
-          "profit_factor": 1.08,
-          "p_value": 0.8008,
+          "profit_factor": 1.07,
+          "p_value": 0.8178,
           "ic95": [
-            -0.88,
-            1.14
+            -0.9,
+            1.13
           ],
           "significativo_95": false
         },
         "h10d": {
           "samples": 36,
           "win_rate": 0.5,
-          "avg_ret": 0.77,
-          "avg_win": 4.63,
-          "avg_loss": 3.08,
-          "expected_value": 0.77,
+          "avg_ret": 0.76,
+          "avg_win": 4.62,
+          "avg_loss": 3.1,
+          "expected_value": 0.76,
           "sharpe": 0.17,
           "max_drawdown": -20.49,
-          "profit_factor": 1.5,
-          "p_value": 0.3246,
+          "profit_factor": 1.49,
+          "p_value": 0.3327,
           "ic95": [
-            -0.78,
-            2.32
+            -0.79,
+            2.31
           ],
           "significativo_95": false
         },
@@ -5021,14 +5021,14 @@
           "win_rate": 0.667,
           "avg_ret": 1.75,
           "avg_win": 5.89,
-          "avg_loss": 6.53,
+          "avg_loss": 6.54,
           "expected_value": 1.75,
           "sharpe": 0.24,
-          "max_drawdown": -22.1,
-          "profit_factor": 1.81,
-          "p_value": 0.3364,
+          "max_drawdown": -22.14,
+          "profit_factor": 1.8,
+          "p_value": 0.3375,
           "ic95": [
-            -1.88,
+            -1.89,
             5.39
           ],
           "significativo_95": false
@@ -5058,9 +5058,9 @@
           "sharpe": -0.05,
           "max_drawdown": -99.83,
           "profit_factor": 0.86,
-          "p_value": 0.1553,
+          "p_value": 0.1578,
           "ic95": [
-            -0.69,
+            -0.68,
             0.11
           ],
           "significativo_95": false
@@ -5068,10 +5068,10 @@
         "h10d": {
           "samples": 637,
           "win_rate": 0.477,
-          "avg_ret": -1.21,
-          "avg_win": 4.75,
-          "avg_loss": 6.66,
-          "expected_value": -1.21,
+          "avg_ret": -1.22,
+          "avg_win": 4.76,
+          "avg_loss": 6.67,
+          "expected_value": -1.22,
           "sharpe": -0.16,
           "max_drawdown": -100.0,
           "profit_factor": 0.65,
@@ -5085,23 +5085,23 @@
         "h21d": {
           "samples": 349,
           "win_rate": 0.33,
-          "avg_ret": -3.26,
-          "avg_win": 5.89,
-          "avg_loss": 7.76,
-          "expected_value": -3.26,
+          "avg_ret": -3.27,
+          "avg_win": 5.88,
+          "avg_loss": 7.77,
+          "expected_value": -3.27,
           "sharpe": -0.39,
           "max_drawdown": -100.0,
           "profit_factor": 0.37,
           "p_value": 0.0,
           "ic95": [
-            -4.14,
-            -2.39
+            -4.15,
+            -2.4
           ],
           "significativo_95": true
         },
         "stop_target": {
           "samples": 447,
-          "avg_ret": -0.02,
+          "avg_ret": -0.03,
           "win_rate": 0.459,
           "pct_target": 42.5,
           "pct_stop": 52.6
@@ -5124,50 +5124,50 @@
           "sharpe": 0.14,
           "max_drawdown": -48.4,
           "profit_factor": 1.48,
-          "p_value": 0.3372,
+          "p_value": 0.3365,
           "ic95": [
-            -1.12,
-            3.24
+            -1.11,
+            3.23
           ],
           "significativo_95": false
         },
         "h10d": {
           "samples": 39,
           "win_rate": 0.59,
-          "avg_ret": 3.71,
+          "avg_ret": 3.7,
           "avg_win": 11.76,
           "avg_loss": 7.87,
-          "expected_value": 3.71,
+          "expected_value": 3.7,
           "sharpe": 0.32,
           "max_drawdown": -62.16,
           "profit_factor": 2.15,
-          "p_value": 0.0554,
+          "p_value": 0.0549,
           "ic95": [
-            -0.04,
-            7.45
+            -0.03,
+            7.44
           ],
           "significativo_95": false
         },
         "h21d": {
           "samples": 22,
           "win_rate": 0.545,
-          "avg_ret": 5.1,
-          "avg_win": 18.9,
+          "avg_ret": 5.08,
+          "avg_win": 18.85,
           "avg_loss": 11.45,
-          "expected_value": 5.1,
+          "expected_value": 5.08,
           "sharpe": 0.31,
           "max_drawdown": -59.53,
-          "profit_factor": 1.98,
-          "p_value": 0.1649,
+          "profit_factor": 1.97,
+          "p_value": 0.1664,
           "ic95": [
-            -2.1,
-            12.3
+            -2.12,
+            12.27
           ],
           "significativo_95": false
         },
         "stop_target": {
           "samples": 30,
-          "avg_ret": 5.86,
+          "avg_ret": 5.84,
           "win_rate": 0.467,
           "pct_target": 36.7,
           "pct_stop": 50.0
@@ -5186,7 +5186,7 @@
           "samples": 1244,
           "win_rate": 0.409,
           "avg_ret": -1.03,
-          "avg_win": 3.83,
+          "avg_win": 3.82,
           "avg_loss": 4.39,
           "expected_value": -1.03,
           "sharpe": -0.17,
@@ -5194,17 +5194,17 @@
           "profit_factor": 0.6,
           "p_value": 0.0,
           "ic95": [
-            -1.35,
+            -1.36,
             -0.7
           ],
           "significativo_95": true
         },
         "h10d": {
           "samples": 1072,
-          "win_rate": 0.412,
+          "win_rate": 0.411,
           "avg_ret": -1.7,
-          "avg_win": 5.13,
-          "avg_loss": 6.49,
+          "avg_win": 5.15,
+          "avg_loss": 6.48,
           "expected_value": -1.7,
           "sharpe": -0.2,
           "max_drawdown": -100.0,
@@ -5219,16 +5219,16 @@
         "h21d": {
           "samples": 697,
           "win_rate": 0.386,
-          "avg_ret": -2.81,
+          "avg_ret": -2.82,
           "avg_win": 8.2,
           "avg_loss": 9.74,
-          "expected_value": -2.81,
+          "expected_value": -2.82,
           "sharpe": -0.24,
           "max_drawdown": -100.0,
           "profit_factor": 0.53,
           "p_value": 0.0,
           "ic95": [
-            -3.68,
+            -3.69,
             -1.95
           ],
           "significativo_95": true
@@ -5250,35 +5250,35 @@
         "concentracion_alta": false,
         "h5d": {
           "samples": 103,
-          "win_rate": 0.515,
-          "avg_ret": -0.15,
-          "avg_win": 1.91,
-          "avg_loss": 2.34,
-          "expected_value": -0.15,
+          "win_rate": 0.505,
+          "avg_ret": -0.16,
+          "avg_win": 1.95,
+          "avg_loss": 2.31,
+          "expected_value": -0.16,
           "sharpe": -0.06,
-          "max_drawdown": -30.6,
-          "profit_factor": 0.87,
-          "p_value": 0.5769,
+          "max_drawdown": -31.36,
+          "profit_factor": 0.86,
+          "p_value": 0.552,
           "ic95": [
-            -0.68,
-            0.38
+            -0.7,
+            0.37
           ],
           "significativo_95": false
         },
         "h10d": {
           "samples": 79,
           "win_rate": 0.456,
-          "avg_ret": -0.35,
-          "avg_win": 3.03,
-          "avg_loss": 3.19,
-          "expected_value": -0.35,
-          "sharpe": -0.09,
+          "avg_ret": -0.37,
+          "avg_win": 3.01,
+          "avg_loss": 3.2,
+          "expected_value": -0.37,
+          "sharpe": -0.1,
           "max_drawdown": -34.78,
-          "profit_factor": 0.8,
-          "p_value": 0.4149,
+          "profit_factor": 0.79,
+          "p_value": 0.3908,
           "ic95": [
-            -1.2,
-            0.5
+            -1.22,
+            0.48
           ],
           "significativo_95": false
         },
@@ -5300,11 +5300,11 @@
           "significativo_95": false
         },
         "stop_target": {
-          "samples": 65,
-          "avg_ret": -0.07,
-          "win_rate": 0.415,
-          "pct_target": 32.3,
-          "pct_stop": 58.5
+          "samples": 64,
+          "avg_ret": -0.11,
+          "win_rate": 0.406,
+          "pct_target": 31.2,
+          "pct_stop": 59.4
         }
       },
       "V1↓/V2↑ activo débil, buen entry": {
@@ -5317,51 +5317,51 @@
         "h5d": {
           "samples": 80,
           "win_rate": 0.613,
-          "avg_ret": 0.99,
-          "avg_win": 4.05,
+          "avg_ret": 0.98,
+          "avg_win": 4.03,
           "avg_loss": 3.84,
-          "expected_value": 0.99,
+          "expected_value": 0.98,
           "sharpe": 0.18,
           "max_drawdown": -60.11,
           "profit_factor": 1.66,
-          "p_value": 0.1115,
+          "p_value": 0.1138,
           "ic95": [
             -0.23,
-            2.21
+            2.19
           ],
           "significativo_95": false
         },
         "h10d": {
           "samples": 66,
           "win_rate": 0.53,
-          "avg_ret": -0.87,
-          "avg_win": 4.23,
+          "avg_ret": -0.88,
+          "avg_win": 4.22,
           "avg_loss": 6.63,
-          "expected_value": -0.87,
+          "expected_value": -0.88,
           "sharpe": -0.12,
           "max_drawdown": -79.33,
           "profit_factor": 0.72,
-          "p_value": 0.3291,
+          "p_value": 0.3232,
           "ic95": [
             -2.62,
-            0.88
+            0.87
           ],
           "significativo_95": false
         },
         "h21d": {
           "samples": 42,
           "win_rate": 0.571,
-          "avg_ret": 2.9,
+          "avg_ret": 2.93,
           "avg_win": 9.81,
-          "avg_loss": 6.31,
-          "expected_value": 2.9,
-          "sharpe": 0.26,
-          "max_drawdown": -39.35,
-          "profit_factor": 2.07,
-          "p_value": 0.099,
+          "avg_loss": 6.25,
+          "expected_value": 2.93,
+          "sharpe": 0.27,
+          "max_drawdown": -38.69,
+          "profit_factor": 2.09,
+          "p_value": 0.0958,
           "ic95": [
-            -0.53,
-            6.33
+            -0.5,
+            6.35
           ],
           "significativo_95": false
         },
@@ -5384,15 +5384,15 @@
         "concentracion_alta": false,
         "h5d": {
           "samples": 383,
-          "win_rate": 0.428,
+          "win_rate": 0.426,
           "avg_ret": -0.78,
-          "avg_win": 3.47,
-          "avg_loss": 3.96,
+          "avg_win": 3.48,
+          "avg_loss": 3.94,
           "expected_value": -0.78,
           "sharpe": -0.17,
           "max_drawdown": -99.87,
-          "profit_factor": 0.66,
-          "p_value": 0.0013,
+          "profit_factor": 0.65,
+          "p_value": 0.0012,
           "ic95": [
             -1.25,
             -0.31
@@ -5401,18 +5401,18 @@
         },
         "h10d": {
           "samples": 267,
-          "win_rate": 0.382,
-          "avg_ret": -1.7,
-          "avg_win": 4.28,
-          "avg_loss": 5.4,
-          "expected_value": -1.7,
+          "win_rate": 0.378,
+          "avg_ret": -1.71,
+          "avg_win": 4.31,
+          "avg_loss": 5.38,
+          "expected_value": -1.71,
           "sharpe": -0.28,
           "max_drawdown": -99.86,
           "profit_factor": 0.49,
           "p_value": 0.0,
           "ic95": [
-            -2.43,
-            -0.97
+            -2.44,
+            -0.98
           ],
           "significativo_95": true
         },
@@ -5421,12 +5421,12 @@
           "win_rate": 0.462,
           "avg_ret": -1.86,
           "avg_win": 5.64,
-          "avg_loss": 8.28,
+          "avg_loss": 8.29,
           "expected_value": -1.86,
           "sharpe": -0.23,
-          "max_drawdown": -94.27,
+          "max_drawdown": -94.28,
           "profit_factor": 0.58,
-          "p_value": 0.022,
+          "p_value": 0.0219,
           "ic95": [
             -3.44,
             -0.28
@@ -5434,11 +5434,11 @@
           "significativo_95": true
         },
         "stop_target": {
-          "samples": 166,
-          "avg_ret": -1.53,
-          "win_rate": 0.38,
-          "pct_target": 36.7,
-          "pct_stop": 60.2
+          "samples": 165,
+          "avg_ret": -1.57,
+          "win_rate": 0.376,
+          "pct_target": 36.4,
+          "pct_stop": 60.6
         }
       },
       "V1↑/V2↓ buen activo, mal timing": {
@@ -5453,32 +5453,32 @@
           "win_rate": 0.263,
           "avg_ret": -2.17,
           "avg_win": 1.92,
-          "avg_loss": 3.62,
+          "avg_loss": 3.63,
           "expected_value": -2.17,
           "sharpe": -0.68,
-          "max_drawdown": -61.38,
+          "max_drawdown": -61.47,
           "profit_factor": 0.19,
           "p_value": 0.0002,
           "ic95": [
-            -3.21,
-            -1.12
+            -3.22,
+            -1.13
           ],
           "significativo_95": true
         },
         "h10d": {
           "samples": 33,
           "win_rate": 0.182,
-          "avg_ret": -2.66,
+          "avg_ret": -2.68,
           "avg_win": 4.41,
-          "avg_loss": 4.24,
-          "expected_value": -2.66,
+          "avg_loss": 4.25,
+          "expected_value": -2.68,
           "sharpe": -0.65,
-          "max_drawdown": -68.9,
+          "max_drawdown": -69.02,
           "profit_factor": 0.23,
           "p_value": 0.0009,
           "ic95": [
-            -4.13,
-            -1.2
+            -4.14,
+            -1.21
           ],
           "significativo_95": true
         },
@@ -5534,19 +5534,19 @@
         "h10d": {
           "samples": 9,
           "win_rate": 0.222,
-          "avg_ret": -6.18,
-          "avg_win": 6.2,
+          "avg_ret": -6.15,
+          "avg_win": 6.33,
           "avg_loss": 9.71,
-          "expected_value": -6.18,
-          "sharpe": -0.82,
+          "expected_value": -6.15,
+          "sharpe": -0.81,
           "max_drawdown": -51.31,
-          "profit_factor": 0.18,
-          "p_value": 0.0498,
+          "profit_factor": 0.19,
+          "p_value": 0.0514,
           "ic95": [
-            -12.0,
-            -0.36
+            -11.99,
+            -0.31
           ],
-          "significativo_95": true
+          "significativo_95": false
         },
         "h21d": null,
         "stop_target": {
@@ -5570,16 +5570,16 @@
           "samples": 46,
           "win_rate": 0.348,
           "avg_ret": -1.78,
-          "avg_win": 5.39,
+          "avg_win": 5.4,
           "avg_loss": 5.61,
           "expected_value": -1.78,
           "sharpe": -0.26,
           "max_drawdown": -72.27,
           "profit_factor": 0.51,
-          "p_value": 0.0862,
+          "p_value": 0.0869,
           "ic95": [
             -3.81,
-            0.24
+            0.25
           ],
           "significativo_95": false
         },
@@ -5603,16 +5603,16 @@
         "h21d": {
           "samples": 30,
           "win_rate": 0.333,
-          "avg_ret": -2.3,
-          "avg_win": 9.5,
-          "avg_loss": 8.21,
-          "expected_value": -2.3,
+          "avg_ret": -2.31,
+          "avg_win": 9.51,
+          "avg_loss": 8.22,
+          "expected_value": -2.31,
           "sharpe": -0.24,
           "max_drawdown": -56.2,
           "profit_factor": 0.58,
-          "p_value": 0.2036,
+          "p_value": 0.2034,
           "ic95": [
-            -5.87,
+            -5.88,
             1.26
           ],
           "significativo_95": false
@@ -5635,30 +5635,30 @@
         "h5d": {
           "samples": 28,
           "win_rate": 0.464,
-          "avg_ret": 1.42,
-          "avg_win": 5.87,
+          "avg_ret": 1.41,
+          "avg_win": 5.86,
           "avg_loss": 2.44,
-          "expected_value": 1.42,
+          "expected_value": 1.41,
           "sharpe": 0.29,
           "max_drawdown": -18.58,
           "profit_factor": 2.08,
-          "p_value": 0.1453,
+          "p_value": 0.1457,
           "ic95": [
             -0.49,
-            3.32
+            3.31
           ],
           "significativo_95": false
         },
         "h10d": {
           "samples": 22,
           "win_rate": 0.682,
-          "avg_ret": 3.25,
-          "avg_win": 5.08,
+          "avg_ret": 3.26,
+          "avg_win": 5.09,
           "avg_loss": 0.68,
-          "expected_value": 3.25,
-          "sharpe": 0.91,
+          "expected_value": 3.26,
+          "sharpe": 0.92,
           "max_drawdown": -3.13,
-          "profit_factor": 16.06,
+          "profit_factor": 16.08,
           "p_value": 0.0004,
           "ic95": [
             1.68,
@@ -5718,17 +5718,17 @@
         "h10d": {
           "samples": 6,
           "win_rate": 0.833,
-          "avg_ret": 1.25,
+          "avg_ret": 1.22,
           "avg_win": 1.67,
-          "avg_loss": 0.83,
-          "expected_value": 1.25,
-          "sharpe": 1.12,
-          "max_drawdown": -0.83,
-          "profit_factor": 10.04,
-          "p_value": 0.0544,
+          "avg_loss": 0.98,
+          "expected_value": 1.23,
+          "sharpe": 1.05,
+          "max_drawdown": -0.98,
+          "profit_factor": 8.5,
+          "p_value": 0.0654,
           "ic95": [
-            0.08,
-            2.42
+            0.0,
+            2.45
           ],
           "significativo_95": false
         },
@@ -5793,7 +5793,7 @@
             "sharpe": -0.25,
             "max_drawdown": -71.25,
             "profit_factor": 0.51,
-            "p_value": 0.0284,
+            "p_value": 0.0286,
             "ic95": [
               -2.19,
               -0.13
@@ -5803,16 +5803,16 @@
           "h21d": {
             "samples": 64,
             "win_rate": 0.125,
-            "avg_ret": -7.1,
+            "avg_ret": -7.09,
             "avg_win": 6.96,
-            "avg_loss": 9.11,
-            "expected_value": -7.1,
+            "avg_loss": 9.1,
+            "expected_value": -7.09,
             "sharpe": -0.95,
-            "max_drawdown": -99.36,
+            "max_drawdown": -99.35,
             "profit_factor": 0.11,
             "p_value": 0.0,
             "ic95": [
-              -8.97,
+              -8.96,
               -5.23
             ],
             "significativo_95": true
@@ -5828,17 +5828,17 @@
           "h5d": {
             "samples": 202,
             "win_rate": 0.49,
-            "avg_ret": -0.61,
-            "avg_win": 4.3,
+            "avg_ret": -0.6,
+            "avg_win": 4.32,
             "avg_loss": 5.33,
-            "expected_value": -0.61,
+            "expected_value": -0.6,
             "sharpe": -0.09,
             "max_drawdown": -96.11,
-            "profit_factor": 0.77,
-            "p_value": 0.2106,
+            "profit_factor": 0.78,
+            "p_value": 0.2178,
             "ic95": [
               -1.57,
-              0.35
+              0.36
             ],
             "significativo_95": false
           },
@@ -5846,33 +5846,33 @@
             "samples": 179,
             "win_rate": 0.469,
             "avg_ret": -1.8,
-            "avg_win": 5.48,
-            "avg_loss": 8.23,
+            "avg_win": 5.49,
+            "avg_loss": 8.24,
             "expected_value": -1.8,
-            "sharpe": -0.2,
-            "max_drawdown": -99.49,
+            "sharpe": -0.19,
+            "max_drawdown": -99.5,
             "profit_factor": 0.59,
-            "p_value": 0.0099,
+            "p_value": 0.0103,
             "ic95": [
               -3.16,
-              -0.44
+              -0.43
             ],
             "significativo_95": true
           },
           "h21d": {
             "samples": 109,
             "win_rate": 0.358,
-            "avg_ret": -3.02,
+            "avg_ret": -3.01,
             "avg_win": 6.3,
-            "avg_loss": 8.22,
-            "expected_value": -3.02,
+            "avg_loss": 8.21,
+            "expected_value": -3.01,
             "sharpe": -0.35,
-            "max_drawdown": -97.84,
+            "max_drawdown": -97.83,
             "profit_factor": 0.43,
             "p_value": 0.0004,
             "ic95": [
               -4.64,
-              -1.4
+              -1.39
             ],
             "significativo_95": true
           }
@@ -5887,17 +5887,17 @@
           "h5d": {
             "samples": 273,
             "win_rate": 0.549,
-            "avg_ret": 0.82,
+            "avg_ret": 0.81,
             "avg_win": 3.86,
-            "avg_loss": 2.89,
-            "expected_value": 0.82,
+            "avg_loss": 2.9,
+            "expected_value": 0.81,
             "sharpe": 0.17,
             "max_drawdown": -24.16,
-            "profit_factor": 1.63,
-            "p_value": 0.0049,
+            "profit_factor": 1.62,
+            "p_value": 0.0052,
             "ic95": [
               0.25,
-              1.39
+              1.38
             ],
             "significativo_95": true
           },
@@ -5910,28 +5910,28 @@
             "expected_value": 2.19,
             "sharpe": 0.36,
             "max_drawdown": -15.03,
-            "profit_factor": 2.86,
+            "profit_factor": 2.85,
             "p_value": 0.0,
             "ic95": [
               1.33,
-              3.06
+              3.05
             ],
             "significativo_95": true
           },
           "h21d": {
             "samples": 76,
             "win_rate": 0.803,
-            "avg_ret": 5.36,
-            "avg_win": 7.73,
+            "avg_ret": 5.35,
+            "avg_win": 7.72,
             "avg_loss": 4.28,
-            "expected_value": 5.36,
+            "expected_value": 5.35,
             "sharpe": 0.63,
             "max_drawdown": -9.94,
-            "profit_factor": 7.34,
+            "profit_factor": 7.33,
             "p_value": 0.0,
             "ic95": [
-              3.43,
-              7.29
+              3.42,
+              7.28
             ],
             "significativo_95": true
           }
@@ -5965,34 +5965,34 @@
           "h10d": {
             "samples": 123,
             "win_rate": 0.341,
-            "avg_ret": -4.02,
+            "avg_ret": -4.03,
             "avg_win": 4.47,
-            "avg_loss": 8.43,
-            "expected_value": -4.02,
+            "avg_loss": 8.44,
+            "expected_value": -4.03,
             "sharpe": -0.53,
             "max_drawdown": -99.82,
             "profit_factor": 0.27,
             "p_value": 0.0,
             "ic95": [
-              -5.38,
-              -2.67
+              -5.39,
+              -2.68
             ],
             "significativo_95": true
           },
           "h21d": {
             "samples": 63,
             "win_rate": 0.111,
-            "avg_ret": -6.65,
+            "avg_ret": -6.69,
             "avg_win": 1.78,
-            "avg_loss": 7.71,
-            "expected_value": -6.65,
+            "avg_loss": 7.75,
+            "expected_value": -6.69,
             "sharpe": -1.23,
-            "max_drawdown": -98.78,
+            "max_drawdown": -98.82,
             "profit_factor": 0.03,
             "p_value": 0.0,
             "ic95": [
-              -8.02,
-              -5.29
+              -8.07,
+              -5.32
             ],
             "significativo_95": true
           }
@@ -6007,16 +6007,16 @@
           "h5d": {
             "samples": 33,
             "win_rate": 0.545,
-            "avg_ret": 0.0,
+            "avg_ret": -0.0,
             "avg_win": 4.49,
-            "avg_loss": 5.38,
+            "avg_loss": 5.39,
             "expected_value": 0.0,
-            "sharpe": 0.0,
+            "sharpe": -0.0,
             "max_drawdown": -52.94,
             "profit_factor": 1.0,
-            "p_value": 0.9976,
+            "p_value": 1.0,
             "ic95": [
-              -2.58,
+              -2.59,
               2.59
             ],
             "significativo_95": false
@@ -6041,17 +6041,17 @@
           "h21d": {
             "samples": 19,
             "win_rate": 0.211,
-            "avg_ret": -4.48,
-            "avg_win": 18.29,
-            "avg_loss": 10.55,
-            "expected_value": -4.48,
+            "avg_ret": -4.55,
+            "avg_win": 17.99,
+            "avg_loss": 10.57,
+            "expected_value": -4.55,
             "sharpe": -0.33,
             "max_drawdown": -76.65,
-            "profit_factor": 0.46,
-            "p_value": 0.1819,
+            "profit_factor": 0.45,
+            "p_value": 0.1724,
             "ic95": [
-              -11.07,
-              2.12
+              -11.11,
+              2.0
             ],
             "significativo_95": false
           }
@@ -6107,7 +6107,7 @@
             "sharpe": -0.47,
             "max_drawdown": -65.65,
             "profit_factor": 0.28,
-            "p_value": 0.0625,
+            "p_value": 0.0626,
             "ic95": [
               -8.43,
               0.12
@@ -6144,34 +6144,34 @@
           "h10d": {
             "samples": 48,
             "win_rate": 0.562,
-            "avg_ret": 1.36,
-            "avg_win": 5.98,
+            "avg_ret": 1.35,
+            "avg_win": 5.96,
             "avg_loss": 4.58,
-            "expected_value": 1.36,
+            "expected_value": 1.35,
             "sharpe": 0.23,
             "max_drawdown": -45.14,
-            "profit_factor": 1.68,
-            "p_value": 0.1219,
+            "profit_factor": 1.67,
+            "p_value": 0.1255,
             "ic95": [
-              -0.36,
-              3.08
+              -0.37,
+              3.07
             ],
             "significativo_95": false
           },
           "h21d": {
             "samples": 28,
             "win_rate": 0.321,
-            "avg_ret": -0.37,
+            "avg_ret": -0.38,
             "avg_win": 8.68,
-            "avg_loss": 4.66,
-            "expected_value": -0.37,
+            "avg_loss": 4.67,
+            "expected_value": -0.38,
             "sharpe": -0.06,
-            "max_drawdown": -42.21,
+            "max_drawdown": -42.37,
             "profit_factor": 0.88,
-            "p_value": 0.7755,
+            "p_value": 0.7699,
             "ic95": [
-              -2.94,
-              2.2
+              -2.95,
+              2.19
             ],
             "significativo_95": false
           }
@@ -6225,51 +6225,51 @@
           "h5d": {
             "samples": 27,
             "win_rate": 0.333,
-            "avg_ret": -2.51,
-            "avg_win": 2.0,
+            "avg_ret": -2.48,
+            "avg_win": 2.1,
             "avg_loss": 4.77,
-            "expected_value": -2.51,
-            "sharpe": -0.63,
+            "expected_value": -2.48,
+            "sharpe": -0.61,
             "max_drawdown": -57.07,
-            "profit_factor": 0.21,
-            "p_value": 0.0037,
+            "profit_factor": 0.22,
+            "p_value": 0.0044,
             "ic95": [
-              -4.1,
-              -0.92
+              -4.08,
+              -0.88
             ],
             "significativo_95": true
           },
           "h10d": {
             "samples": 21,
             "win_rate": 0.333,
-            "avg_ret": -3.67,
-            "avg_win": 4.88,
+            "avg_ret": -3.63,
+            "avg_win": 5.0,
             "avg_loss": 7.95,
-            "expected_value": -3.67,
-            "sharpe": -0.47,
+            "expected_value": -3.63,
+            "sharpe": -0.46,
             "max_drawdown": -66.44,
             "profit_factor": 0.31,
-            "p_value": 0.0506,
+            "p_value": 0.0538,
             "ic95": [
-              -7.27,
-              -0.08
+              -7.24,
+              -0.02
             ],
             "significativo_95": false
           },
           "h21d": {
             "samples": 9,
             "win_rate": 0.333,
-            "avg_ret": -2.67,
-            "avg_win": 1.97,
+            "avg_ret": -2.66,
+            "avg_win": 1.98,
             "avg_loss": 4.98,
-            "expected_value": -2.67,
+            "expected_value": -2.66,
             "sharpe": -0.66,
             "max_drawdown": -21.73,
             "profit_factor": 0.2,
-            "p_value": 0.0985,
+            "p_value": 0.1008,
             "ic95": [
-              -5.77,
-              0.43
+              -5.79,
+              0.46
             ],
             "significativo_95": false
           }
@@ -6284,34 +6284,34 @@
           "h5d": {
             "samples": 10,
             "win_rate": 0.7,
-            "avg_ret": 5.21,
-            "avg_win": 8.11,
+            "avg_ret": 5.11,
+            "avg_win": 7.98,
             "avg_loss": 1.57,
-            "expected_value": 5.21,
+            "expected_value": 5.11,
             "sharpe": 0.81,
             "max_drawdown": -3.12,
-            "profit_factor": 12.06,
-            "p_value": 0.0379,
+            "profit_factor": 11.86,
+            "p_value": 0.0385,
             "ic95": [
-              0.61,
-              9.8
+              0.58,
+              9.65
             ],
             "significativo_95": true
           },
           "h10d": {
             "samples": 6,
             "win_rate": 1.0,
-            "avg_ret": 11.73,
-            "avg_win": 11.73,
+            "avg_ret": 11.57,
+            "avg_win": 11.57,
             "avg_loss": 0.0,
-            "expected_value": 11.73,
-            "sharpe": 2.04,
+            "expected_value": 11.57,
+            "sharpe": 2.08,
             "max_drawdown": 0.0,
             "profit_factor": null,
-            "p_value": 0.006,
+            "p_value": 0.0056,
             "ic95": [
-              5.7,
-              17.77
+              5.73,
+              17.41
             ],
             "significativo_95": true
           },
@@ -6392,17 +6392,17 @@
           "h5d": {
             "samples": 199,
             "win_rate": 0.372,
-            "avg_ret": -1.37,
-            "avg_win": 2.55,
+            "avg_ret": -1.38,
+            "avg_win": 2.53,
             "avg_loss": 3.7,
-            "expected_value": -1.37,
-            "sharpe": -0.32,
+            "expected_value": -1.38,
+            "sharpe": -0.33,
             "max_drawdown": -97.57,
             "profit_factor": 0.41,
             "p_value": 0.0,
             "ic95": [
               -1.97,
-              -0.78
+              -0.79
             ],
             "significativo_95": true
           },
@@ -6410,8 +6410,8 @@
             "samples": 157,
             "win_rate": 0.287,
             "avg_ret": -3.56,
-            "avg_win": 3.47,
-            "avg_loss": 6.38,
+            "avg_win": 3.49,
+            "avg_loss": 6.39,
             "expected_value": -3.56,
             "sharpe": -0.56,
             "max_drawdown": -99.85,
@@ -6457,8 +6457,8 @@
             "expected_value": 0.52,
             "sharpe": 0.09,
             "max_drawdown": -93.24,
-            "profit_factor": 1.3,
-            "p_value": 0.0537,
+            "profit_factor": 1.29,
+            "p_value": 0.0555,
             "ic95": [
               -0.01,
               1.05
@@ -6475,7 +6475,7 @@
             "sharpe": 0.13,
             "max_drawdown": -87.5,
             "profit_factor": 1.39,
-            "p_value": 0.0156,
+            "p_value": 0.0155,
             "ic95": [
               0.18,
               1.66
@@ -6485,16 +6485,16 @@
           "h21d": {
             "samples": 246,
             "win_rate": 0.61,
-            "avg_ret": 3.11,
+            "avg_ret": 3.1,
             "avg_win": 8.48,
-            "avg_loss": 5.28,
-            "expected_value": 3.11,
+            "avg_loss": 5.29,
+            "expected_value": 3.1,
             "sharpe": 0.36,
             "max_drawdown": -23.68,
-            "profit_factor": 2.51,
+            "profit_factor": 2.5,
             "p_value": 0.0,
             "ic95": [
-              2.02,
+              2.01,
               4.2
             ],
             "significativo_95": true
@@ -6510,10 +6510,10 @@
           "h5d": {
             "samples": 312,
             "win_rate": 0.343,
-            "avg_ret": -2.3,
+            "avg_ret": -2.31,
             "avg_win": 2.76,
             "avg_loss": 4.95,
-            "expected_value": -2.3,
+            "expected_value": -2.31,
             "sharpe": -0.38,
             "max_drawdown": -99.97,
             "profit_factor": 0.29,
@@ -6526,10 +6526,10 @@
           },
           "h10d": {
             "samples": 270,
-            "win_rate": 0.3,
+            "win_rate": 0.296,
             "avg_ret": -4.13,
-            "avg_win": 3.4,
-            "avg_loss": 7.35,
+            "avg_win": 3.44,
+            "avg_loss": 7.32,
             "expected_value": -4.13,
             "sharpe": -0.46,
             "max_drawdown": -100.0,
@@ -6544,17 +6544,17 @@
           "h21d": {
             "samples": 148,
             "win_rate": 0.236,
-            "avg_ret": -6.72,
-            "avg_win": 6.49,
+            "avg_ret": -6.73,
+            "avg_win": 6.46,
             "avg_loss": 10.82,
-            "expected_value": -6.72,
-            "sharpe": -0.66,
+            "expected_value": -6.73,
+            "sharpe": -0.67,
             "max_drawdown": -100.0,
-            "profit_factor": 0.19,
+            "profit_factor": 0.18,
             "p_value": 0.0,
             "ic95": [
-              -8.37,
-              -5.08
+              -8.38,
+              -5.09
             ],
             "significativo_95": true
           }
@@ -6570,15 +6570,15 @@
           "concentracion_alta": false,
           "h5d": {
             "samples": 242,
-            "win_rate": 0.45,
+            "win_rate": 0.446,
             "avg_ret": -0.58,
-            "avg_win": 2.49,
-            "avg_loss": 3.09,
+            "avg_win": 2.51,
+            "avg_loss": 3.08,
             "expected_value": -0.58,
             "sharpe": -0.16,
             "max_drawdown": -84.7,
             "profit_factor": 0.66,
-            "p_value": 0.0139,
+            "p_value": 0.0131,
             "ic95": [
               -1.04,
               -0.12
@@ -6588,17 +6588,17 @@
           "h10d": {
             "samples": 207,
             "win_rate": 0.527,
-            "avg_ret": -0.09,
-            "avg_win": 3.72,
+            "avg_ret": -0.1,
+            "avg_win": 3.71,
             "avg_loss": 4.32,
-            "expected_value": -0.09,
+            "expected_value": -0.1,
             "sharpe": -0.02,
             "max_drawdown": -63.09,
-            "profit_factor": 0.96,
-            "p_value": 0.8101,
+            "profit_factor": 0.95,
+            "p_value": 0.7952,
             "ic95": [
               -0.81,
-              0.63
+              0.62
             ],
             "significativo_95": false
           },
@@ -6606,16 +6606,16 @@
             "samples": 118,
             "win_rate": 0.678,
             "avg_ret": 1.98,
-            "avg_win": 5.4,
+            "avg_win": 5.39,
             "avg_loss": 5.2,
             "expected_value": 1.98,
             "sharpe": 0.28,
             "max_drawdown": -21.01,
             "profit_factor": 2.18,
-            "p_value": 0.0029,
+            "p_value": 0.003,
             "ic95": [
-              0.7,
-              3.27
+              0.69,
+              3.26
             ],
             "significativo_95": true
           }
@@ -6741,17 +6741,17 @@
           "h5d": {
             "samples": 94,
             "win_rate": 0.287,
-            "avg_ret": -1.82,
-            "avg_win": 4.62,
+            "avg_ret": -1.83,
+            "avg_win": 4.59,
             "avg_loss": 4.42,
-            "expected_value": -1.82,
+            "expected_value": -1.83,
             "sharpe": -0.32,
             "max_drawdown": -90.92,
             "profit_factor": 0.42,
-            "p_value": 0.0025,
+            "p_value": 0.0024,
             "ic95": [
               -2.99,
-              -0.66
+              -0.67
             ],
             "significativo_95": true
           },
@@ -6759,7 +6759,7 @@
             "samples": 85,
             "win_rate": 0.259,
             "avg_ret": -4.53,
-            "avg_win": 3.65,
+            "avg_win": 3.62,
             "avg_loss": 7.38,
             "expected_value": -4.53,
             "sharpe": -0.64,
@@ -6767,25 +6767,25 @@
             "profit_factor": 0.17,
             "p_value": 0.0,
             "ic95": [
-              -6.05,
-              -3.0
+              -6.06,
+              -3.01
             ],
             "significativo_95": true
           },
           "h21d": {
             "samples": 44,
             "win_rate": 0.0,
-            "avg_ret": -10.15,
+            "avg_ret": -10.17,
             "avg_win": 0.0,
-            "avg_loss": 10.15,
-            "expected_value": -10.15,
-            "sharpe": -2.25,
-            "max_drawdown": -99.13,
+            "avg_loss": 10.17,
+            "expected_value": -10.17,
+            "sharpe": -2.26,
+            "max_drawdown": -99.14,
             "profit_factor": 0.0,
             "p_value": 0.0,
             "ic95": [
-              -11.52,
-              -8.78
+              -11.54,
+              -8.81
             ],
             "significativo_95": true
           }
@@ -6807,7 +6807,7 @@
             "sharpe": -0.17,
             "max_drawdown": -86.92,
             "profit_factor": 0.64,
-            "p_value": 0.1472,
+            "p_value": 0.1468,
             "ic95": [
               -3.38,
               0.5
@@ -6817,17 +6817,17 @@
           "h10d": {
             "samples": 59,
             "win_rate": 0.305,
-            "avg_ret": -4.39,
-            "avg_win": 3.16,
+            "avg_ret": -4.4,
+            "avg_win": 3.12,
             "avg_loss": 7.7,
-            "expected_value": -4.39,
+            "expected_value": -4.4,
             "sharpe": -0.45,
             "max_drawdown": -95.56,
             "profit_factor": 0.18,
             "p_value": 0.0011,
             "ic95": [
-              -6.93,
-              -1.84
+              -6.94,
+              -1.86
             ],
             "significativo_95": true
           },
@@ -6835,16 +6835,16 @@
             "samples": 49,
             "win_rate": 0.224,
             "avg_ret": -12.18,
-            "avg_win": 7.18,
-            "avg_loss": 17.79,
+            "avg_win": 7.22,
+            "avg_loss": 17.8,
             "expected_value": -12.18,
             "sharpe": -0.75,
-            "max_drawdown": -99.93,
+            "max_drawdown": -99.94,
             "profit_factor": 0.12,
             "p_value": 0.0,
             "ic95": [
-              -16.85,
-              -7.52
+              -16.86,
+              -7.51
             ],
             "significativo_95": true
           }
@@ -6894,7 +6894,7 @@
             "samples": 23,
             "win_rate": 0.783,
             "avg_ret": 18.7,
-            "avg_win": 25.44,
+            "avg_win": 25.45,
             "avg_loss": 5.58,
             "expected_value": 18.7,
             "sharpe": 1.34,
@@ -6902,8 +6902,8 @@
             "profit_factor": 16.43,
             "p_value": 0.0,
             "ic95": [
-              12.68,
-              24.71
+              12.69,
+              24.72
             ],
             "significativo_95": true
           }
@@ -7013,17 +7013,17 @@
           "h21d": {
             "samples": 7,
             "win_rate": 0.571,
-            "avg_ret": -1.36,
+            "avg_ret": -1.19,
             "avg_win": 2.35,
-            "avg_loss": 6.31,
-            "expected_value": -1.36,
-            "sharpe": -0.28,
-            "max_drawdown": -17.89,
-            "profit_factor": 0.5,
-            "p_value": 0.5142,
+            "avg_loss": 5.91,
+            "expected_value": -1.19,
+            "sharpe": -0.25,
+            "max_drawdown": -16.87,
+            "profit_factor": 0.53,
+            "p_value": 0.5597,
             "ic95": [
-              -5.81,
-              3.09
+              -5.56,
+              3.18
             ],
             "significativo_95": false
           }
@@ -7057,17 +7057,17 @@
           "h10d": {
             "samples": 11,
             "win_rate": 0.545,
-            "avg_ret": 2.95,
+            "avg_ret": 2.89,
             "avg_win": 7.73,
-            "avg_loss": 2.79,
-            "expected_value": 2.95,
-            "sharpe": 0.56,
-            "max_drawdown": -7.03,
-            "profit_factor": 3.32,
-            "p_value": 0.1097,
+            "avg_loss": 2.92,
+            "expected_value": 2.89,
+            "sharpe": 0.54,
+            "max_drawdown": -7.65,
+            "profit_factor": 3.17,
+            "p_value": 0.12,
             "ic95": [
-              -0.62,
-              6.52
+              -0.72,
+              6.5
             ],
             "significativo_95": false
           },
@@ -7102,14 +7102,14 @@
           "concentracion_alta": false,
           "h5d": {
             "samples": 237,
-            "win_rate": 0.371,
+            "win_rate": 0.367,
             "avg_ret": -1.19,
-            "avg_win": 3.28,
-            "avg_loss": 3.83,
+            "avg_win": 3.31,
+            "avg_loss": 3.8,
             "expected_value": -1.19,
             "sharpe": -0.27,
             "max_drawdown": -99.32,
-            "profit_factor": 0.51,
+            "profit_factor": 0.5,
             "p_value": 0.0,
             "ic95": [
               -1.75,
@@ -7120,33 +7120,33 @@
           "h10d": {
             "samples": 159,
             "win_rate": 0.252,
-            "avg_ret": -3.39,
-            "avg_win": 3.95,
-            "avg_loss": 5.85,
-            "expected_value": -3.39,
-            "sharpe": -0.6,
+            "avg_ret": -3.4,
+            "avg_win": 3.94,
+            "avg_loss": 5.87,
+            "expected_value": -3.4,
+            "sharpe": -0.61,
             "max_drawdown": -99.85,
             "profit_factor": 0.23,
             "p_value": 0.0,
             "ic95": [
-              -4.26,
-              -2.51
+              -4.28,
+              -2.52
             ],
             "significativo_95": true
           },
           "h21d": {
             "samples": 62,
             "win_rate": 0.29,
-            "avg_ret": -4.61,
+            "avg_ret": -4.62,
             "avg_win": 6.46,
-            "avg_loss": 9.14,
-            "expected_value": -4.61,
+            "avg_loss": 9.15,
+            "expected_value": -4.62,
             "sharpe": -0.57,
-            "max_drawdown": -95.57,
+            "max_drawdown": -95.58,
             "profit_factor": 0.29,
             "p_value": 0.0,
             "ic95": [
-              -6.68,
+              -6.69,
               -2.55
             ],
             "significativo_95": true
@@ -7162,17 +7162,17 @@
           "h5d": {
             "samples": 31,
             "win_rate": 0.581,
-            "avg_ret": 1.37,
-            "avg_win": 4.54,
+            "avg_ret": 1.36,
+            "avg_win": 4.53,
             "avg_loss": 3.03,
-            "expected_value": 1.37,
-            "sharpe": 0.28,
+            "expected_value": 1.36,
+            "sharpe": 0.27,
             "max_drawdown": -18.64,
-            "profit_factor": 2.08,
-            "p_value": 0.1416,
+            "profit_factor": 2.07,
+            "p_value": 0.1434,
             "ic95": [
-              -0.45,
-              3.19
+              -0.46,
+              3.18
             ],
             "significativo_95": false
           },
@@ -7238,17 +7238,17 @@
           "h10d": {
             "samples": 37,
             "win_rate": 0.514,
-            "avg_ret": -0.51,
-            "avg_win": 5.19,
+            "avg_ret": -0.5,
+            "avg_win": 5.21,
             "avg_loss": 6.53,
-            "expected_value": -0.51,
+            "expected_value": -0.5,
             "sharpe": -0.07,
             "max_drawdown": -54.74,
             "profit_factor": 0.84,
-            "p_value": 0.6874,
+            "p_value": 0.6942,
             "ic95": [
-              -3.05,
-              2.02
+              -3.04,
+              2.04
             ],
             "significativo_95": false
           },
@@ -7282,34 +7282,34 @@
           "h5d": {
             "samples": 75,
             "win_rate": 0.427,
-            "avg_ret": -0.99,
+            "avg_ret": -1.0,
             "avg_win": 2.18,
             "avg_loss": 3.36,
-            "expected_value": -0.99,
+            "expected_value": -1.0,
             "sharpe": -0.3,
             "max_drawdown": -65.72,
             "profit_factor": 0.48,
-            "p_value": 0.0119,
+            "p_value": 0.0116,
             "ic95": [
-              -1.75,
+              -1.76,
               -0.23
             ],
             "significativo_95": true
           },
           "h10d": {
             "samples": 69,
-            "win_rate": 0.449,
-            "avg_ret": -0.09,
-            "avg_win": 3.71,
-            "avg_loss": 3.19,
-            "expected_value": -0.09,
-            "sharpe": -0.02,
-            "max_drawdown": -55.08,
-            "profit_factor": 0.95,
-            "p_value": 0.8597,
+            "win_rate": 0.435,
+            "avg_ret": -0.11,
+            "avg_win": 3.81,
+            "avg_loss": 3.12,
+            "expected_value": -0.11,
+            "sharpe": -0.03,
+            "max_drawdown": -55.26,
+            "profit_factor": 0.94,
+            "p_value": 0.8315,
             "ic95": [
-              -1.1,
-              0.92
+              -1.11,
+              0.9
             ],
             "significativo_95": false
           },
@@ -7474,10 +7474,10 @@
           "h10d": {
             "samples": 1,
             "win_rate": 1.0,
-            "avg_ret": 1.16,
-            "avg_win": 1.16,
+            "avg_ret": 1.44,
+            "avg_win": 1.44,
             "avg_loss": 0.0,
-            "expected_value": 1.16,
+            "expected_value": 1.44,
             "sharpe": 0.0,
             "max_drawdown": 0.0,
             "profit_factor": null,
@@ -7502,16 +7502,16 @@
             "samples": 42,
             "win_rate": 0.571,
             "avg_ret": 0.75,
-            "avg_win": 5.5,
+            "avg_win": 5.51,
             "avg_loss": 5.59,
             "expected_value": 0.75,
             "sharpe": 0.11,
             "max_drawdown": -52.26,
             "profit_factor": 1.31,
-            "p_value": 0.4895,
+            "p_value": 0.4882,
             "ic95": [
               -1.39,
-              2.89
+              2.9
             ],
             "significativo_95": false
           },
@@ -7536,16 +7536,16 @@
             "samples": 25,
             "win_rate": 0.52,
             "avg_ret": 0.8,
-            "avg_win": 10.74,
+            "avg_win": 10.75,
             "avg_loss": 9.97,
             "expected_value": 0.8,
             "sharpe": 0.07,
             "max_drawdown": -51.59,
             "profit_factor": 1.17,
-            "p_value": 0.7357,
+            "p_value": 0.7344,
             "ic95": [
               -3.93,
-              5.53
+              5.54
             ],
             "significativo_95": false
           }
@@ -7562,34 +7562,34 @@
           "h5d": {
             "samples": 22,
             "win_rate": 0.409,
-            "avg_ret": 0.66,
-            "avg_win": 5.02,
+            "avg_ret": 0.65,
+            "avg_win": 5.0,
             "avg_loss": 2.37,
-            "expected_value": 0.66,
+            "expected_value": 0.65,
             "sharpe": 0.15,
             "max_drawdown": -18.58,
-            "profit_factor": 1.47,
-            "p_value": 0.5042,
+            "profit_factor": 1.46,
+            "p_value": 0.509,
             "ic95": [
               -1.31,
-              2.62
+              2.6
             ],
             "significativo_95": false
           },
           "h10d": {
             "samples": 19,
             "win_rate": 0.684,
-            "avg_ret": 1.66,
-            "avg_win": 2.73,
-            "avg_loss": 0.67,
-            "expected_value": 1.66,
+            "avg_ret": 1.65,
+            "avg_win": 2.74,
+            "avg_loss": 0.69,
+            "expected_value": 1.65,
             "sharpe": 0.78,
             "max_drawdown": -3.13,
-            "profit_factor": 8.89,
-            "p_value": 0.0037,
+            "profit_factor": 8.59,
+            "p_value": 0.004,
             "ic95": [
-              0.64,
-              2.67
+              0.63,
+              2.68
             ],
             "significativo_95": true
           },
@@ -7623,17 +7623,17 @@
           "h5d": {
             "samples": 14,
             "win_rate": 0.143,
-            "avg_ret": -4.75,
-            "avg_win": 0.59,
+            "avg_ret": -4.73,
+            "avg_win": 0.68,
             "avg_loss": 5.64,
-            "expected_value": -4.75,
+            "expected_value": -4.74,
             "sharpe": -1.06,
             "max_drawdown": -48.78,
             "profit_factor": 0.02,
-            "p_value": 0.0021,
+            "p_value": 0.0022,
             "ic95": [
-              -7.33,
-              -2.17
+              -7.32,
+              -2.15
             ],
             "significativo_95": true
           },
@@ -7657,17 +7657,17 @@
           "h21d": {
             "samples": 8,
             "win_rate": 0.0,
-            "avg_ret": -5.56,
+            "avg_ret": -5.58,
             "avg_win": 0.0,
-            "avg_loss": 5.56,
-            "expected_value": -5.56,
-            "sharpe": -5.84,
-            "max_drawdown": -32.08,
+            "avg_loss": 5.58,
+            "expected_value": -5.58,
+            "sharpe": -5.46,
+            "max_drawdown": -32.24,
             "profit_factor": 0.0,
             "p_value": 0.0,
             "ic95": [
-              -6.35,
-              -4.76
+              -6.44,
+              -4.73
             ],
             "significativo_95": true
           }
@@ -7736,10 +7736,10 @@
       "count": 674,
       "h5d": {
         "samples": 644,
-        "win_rate": 0.416,
+        "win_rate": 0.415,
         "avg_ret": -0.83,
-        "avg_win": 3.82,
-        "avg_loss": 4.14,
+        "avg_win": 3.83,
+        "avg_loss": 4.13,
         "expected_value": -0.83,
         "sharpe": -0.16,
         "max_drawdown": -100.0,
@@ -7747,41 +7747,41 @@
         "p_value": 0.0,
         "ic95": [
           -1.22,
-          -0.43
+          -0.44
         ],
         "significativo_95": true
       },
       "h10d": {
         "samples": 506,
-        "win_rate": 0.381,
-        "avg_ret": -2.19,
-        "avg_win": 4.87,
-        "avg_loss": 6.54,
-        "expected_value": -2.19,
+        "win_rate": 0.379,
+        "avg_ret": -2.2,
+        "avg_win": 4.88,
+        "avg_loss": 6.53,
+        "expected_value": -2.2,
         "sharpe": -0.3,
         "max_drawdown": -100.0,
         "profit_factor": 0.46,
         "p_value": 0.0,
         "ic95": [
           -2.83,
-          -1.56
+          -1.57
         ],
         "significativo_95": true
       },
       "h21d": {
         "samples": 218,
         "win_rate": 0.33,
-        "avg_ret": -3.16,
-        "avg_win": 6.08,
-        "avg_loss": 7.72,
-        "expected_value": -3.16,
-        "sharpe": -0.38,
-        "max_drawdown": -99.96,
+        "avg_ret": -3.18,
+        "avg_win": 6.06,
+        "avg_loss": 7.74,
+        "expected_value": -3.18,
+        "sharpe": -0.39,
+        "max_drawdown": -99.97,
         "profit_factor": 0.39,
         "p_value": 0.0,
         "ic95": [
-          -4.26,
-          -2.06
+          -4.28,
+          -2.09
         ],
         "significativo_95": true
       }
@@ -7790,9 +7790,9 @@
       "count": 649,
       "h5d": {
         "samples": 600,
-        "win_rate": 0.397,
+        "win_rate": 0.395,
         "avg_ret": -0.97,
-        "avg_win": 3.85,
+        "avg_win": 3.87,
         "avg_loss": 4.14,
         "expected_value": -0.97,
         "sharpe": -0.17,
@@ -7809,16 +7809,16 @@
         "samples": 518,
         "win_rate": 0.442,
         "avg_ret": -1.27,
-        "avg_win": 4.75,
+        "avg_win": 4.74,
         "avg_loss": 6.03,
         "expected_value": -1.27,
         "sharpe": -0.16,
         "max_drawdown": -99.99,
         "profit_factor": 0.62,
-        "p_value": 0.0003,
+        "p_value": 0.0002,
         "ic95": [
-          -1.94,
-          -0.59
+          -1.95,
+          -0.6
         ],
         "significativo_95": true
       },
@@ -7834,7 +7834,7 @@
         "profit_factor": 0.68,
         "p_value": 0.0154,
         "ic95": [
-          -3.17,
+          -3.18,
           -0.34
         ],
         "significativo_95": true
@@ -7847,23 +7847,23 @@
         "win_rate": 0.467,
         "avg_ret": -0.43,
         "avg_win": 3.75,
-        "avg_loss": 4.09,
+        "avg_loss": 4.1,
         "expected_value": -0.43,
         "sharpe": -0.08,
         "max_drawdown": -100.0,
         "profit_factor": 0.8,
-        "p_value": 0.003,
+        "p_value": 0.0029,
         "ic95": [
-          -0.71,
+          -0.72,
           -0.15
         ],
         "significativo_95": true
       },
       "h10d": {
         "samples": 1282,
-        "win_rate": 0.458,
+        "win_rate": 0.457,
         "avg_ret": -1.03,
-        "avg_win": 5.08,
+        "avg_win": 5.09,
         "avg_loss": 6.19,
         "expected_value": -1.03,
         "sharpe": -0.13,
@@ -7880,7 +7880,7 @@
         "samples": 777,
         "win_rate": 0.405,
         "avg_ret": -2.19,
-        "avg_win": 7.67,
+        "avg_win": 7.66,
         "avg_loss": 8.91,
         "expected_value": -2.19,
         "sharpe": -0.21,
@@ -7895,9 +7895,9 @@
       }
     },
     "_resumen": {
-      "ev_21d_confirma": -3.16,
+      "ev_21d_confirma": -3.18,
       "ev_21d_contradice": -1.76,
-      "delta_ev_21d": -1.4,
+      "delta_ev_21d": -1.42,
       "nota": "Si delta_ev_21d es chico o negativo, el predictor no está aportando valor marginal detectable sobre el resto del modelo con la muestra actual -- no concluir sin revisar antes el tamaño de muestra (count) de cada grupo."
     }
   },
@@ -7922,9 +7922,9 @@
       "significativo_95": true
     },
     "🟡 Media + ⭐ COMPRA FUERTE": {
-      "score": 47.5,
+      "score": 47.4,
       "n": 37,
-      "ev": -0.42,
+      "ev": -0.43,
       "significativo_95": false
     },
     "🟡 Media + 🔴 VENTA": {
@@ -7968,9 +7968,9 @@
       "significativo_95": true
     },
     "🟢 Alta + 🟠 VENTA PARCIAL": {
-      "score": 64.1,
+      "score": 64.0,
       "n": 75,
-      "ev": -0.99,
+      "ev": -1.0,
       "significativo_95": true
     },
     "🟢 Alta + 🔴 VENTA": {
@@ -7991,9 +7991,9 @@
       "significativo_95": false
     },
     "🔴 Muy baja + 🟠 VENTA PARCIAL": {
-      "score": 54.0,
+      "score": 53.9,
       "n": 22,
-      "ev": 0.66,
+      "ev": 0.65,
       "significativo_95": false
     },
     "🔴 Muy baja + 🟢 COMPRA": {
@@ -8032,7 +8032,7 @@
         },
         "validacion": {
           "n": 10,
-          "ev": -1.01
+          "ev": -1.02
         },
         "estado": "confirmado"
       },
@@ -8054,7 +8054,7 @@
         },
         "validacion": {
           "n": 12,
-          "ev": 5.14
+          "ev": 5.13
         },
         "estado": "no_confirmado"
       },
@@ -8065,7 +8065,7 @@
         },
         "validacion": {
           "n": 163,
-          "ev": -0.05
+          "ev": -0.08
         },
         "estado": "confirmado"
       },
@@ -8076,7 +8076,7 @@
         },
         "validacion": {
           "n": 42,
-          "ev": 0.56
+          "ev": 0.53
         },
         "estado": "no_confirmado"
       },
@@ -8087,7 +8087,7 @@
         },
         "validacion": {
           "n": 29,
-          "ev": 2.67
+          "ev": 2.64
         },
         "estado": "no_confirmado"
       },
@@ -8106,7 +8106,7 @@
         },
         "validacion": {
           "n": 128,
-          "ev": 0.97
+          "ev": 0.96
         },
         "estado": "no_confirmado"
       },
@@ -8117,7 +8117,7 @@
         },
         "validacion": {
           "n": 10,
-          "ev": -1.0
+          "ev": -1.02
         },
         "estado": "confirmado"
       },
@@ -8128,7 +8128,7 @@
         },
         "validacion": {
           "n": 4,
-          "ev": 6.62
+          "ev": 6.64
         },
         "estado": "sin_datos_validacion"
       }
@@ -8156,9 +8156,9 @@
       "horizonte": "5d",
       "ev": -0.82,
       "win_rate": 0.444,
-      "sharpe": -0.14,
+      "sharpe": -0.15,
       "max_drawdown": -100.0,
-      "profit_factor": 0.66,
+      "profit_factor": 0.65,
       "significativo_95": true,
       "walk_forward_estado": "confirmado",
       "cambio_reciente": false
@@ -8168,7 +8168,7 @@
       "n": 75,
       "confianza_muestra": "preliminar",
       "horizonte": "5d",
-      "ev": -0.99,
+      "ev": -1.0,
       "win_rate": 0.427,
       "sharpe": -0.3,
       "max_drawdown": -65.72,
@@ -8186,7 +8186,7 @@
       "win_rate": 0.392,
       "sharpe": -0.26,
       "max_drawdown": -96.2,
-      "profit_factor": 0.51,
+      "profit_factor": 0.5,
       "significativo_95": true,
       "walk_forward_estado": "confirmado",
       "cambio_reciente": false
@@ -8238,11 +8238,11 @@
       "n": 22,
       "confianza_muestra": "exploratorio",
       "horizonte": "5d",
-      "ev": 0.66,
+      "ev": 0.65,
       "win_rate": 0.409,
       "sharpe": 0.15,
       "max_drawdown": -18.58,
-      "profit_factor": 1.47,
+      "profit_factor": 1.46,
       "significativo_95": false,
       "walk_forward_estado": "no_evaluado",
       "cambio_reciente": false
@@ -8266,7 +8266,7 @@
       "n": 37,
       "confianza_muestra": "preliminar",
       "horizonte": "5d",
-      "ev": -0.42,
+      "ev": -0.43,
       "win_rate": 0.432,
       "sharpe": -0.07,
       "max_drawdown": -57.75,
@@ -8281,7 +8281,7 @@
       "confianza_muestra": "confiable",
       "horizonte": "5d",
       "ev": -0.71,
-      "win_rate": 0.426,
+      "win_rate": 0.422,
       "sharpe": -0.2,
       "max_drawdown": -89.93,
       "profit_factor": 0.6,
@@ -8295,7 +8295,7 @@
       "confianza_muestra": "confiable",
       "horizonte": "5d",
       "ev": -0.79,
-      "win_rate": 0.42,
+      "win_rate": 0.417,
       "sharpe": -0.16,
       "max_drawdown": -99.78,
       "profit_factor": 0.66,
@@ -8310,7 +8310,7 @@
       "horizonte": "5d",
       "ev": -0.83,
       "win_rate": 0.387,
-      "sharpe": -0.1,
+      "sharpe": -0.11,
       "max_drawdown": -96.12,
       "profit_factor": 0.75,
       "significativo_95": false,
@@ -8326,7 +8326,7 @@
       "ev_por_ventana": [
         0.51,
         -0.31,
-        0.22
+        0.23
       ],
       "n_ventanas_evaluadas": 3,
       "n_ventanas_signo_consistente": 2,
@@ -8341,7 +8341,7 @@
       "ev_por_ventana": [
         -0.72,
         -0.06,
-        -1.78
+        -1.79
       ],
       "n_ventanas_evaluadas": 3,
       "n_ventanas_signo_consistente": 3,
@@ -8371,11 +8371,11 @@
       "ev_por_ventana": [
         0.29,
         -4.25,
-        2.27
+        2.25
       ],
       "n_ventanas_evaluadas": 3,
       "n_ventanas_signo_consistente": 1,
-      "std_ev_ventanas": 2.73,
+      "std_ev_ventanas": 2.72,
       "ventanas_insuficientes": false,
       "stability_score": 33.3
     },
@@ -8386,11 +8386,11 @@
       "ev_por_ventana": [
         -1.57,
         -0.75,
-        0.33
+        0.31
       ],
       "n_ventanas_evaluadas": 3,
       "n_ventanas_signo_consistente": 2,
-      "std_ev_ventanas": 0.78,
+      "std_ev_ventanas": 0.77,
       "ventanas_insuficientes": false,
       "stability_score": 66.7
     },
@@ -8401,7 +8401,7 @@
       "ev_por_ventana": [
         -1.59,
         0.86,
-        -1.87
+        -1.89
       ],
       "n_ventanas_evaluadas": 3,
       "n_ventanas_signo_consistente": 2,
@@ -8427,11 +8427,11 @@
     "🟢 Alta + 🟠 VENTA PARCIAL": {
       "n_total": 76,
       "horizonte": "5d",
-      "ev_global": -0.99,
+      "ev_global": -1.0,
       "ev_por_ventana": [
         0.82,
         -2.31,
-        -1.45
+        -1.46
       ],
       "n_ventanas_evaluadas": 3,
       "n_ventanas_signo_consistente": 2,
@@ -8457,15 +8457,15 @@
     "🔴 Muy baja + 🟠 VENTA PARCIAL": {
       "n_total": 24,
       "horizonte": "5d",
-      "ev_global": 0.66,
+      "ev_global": 0.65,
       "ev_por_ventana": [
         -2.25,
         0.64,
-        4.56
+        4.52
       ],
       "n_ventanas_evaluadas": 3,
       "n_ventanas_signo_consistente": 2,
-      "std_ev_ventanas": 2.79,
+      "std_ev_ventanas": 2.77,
       "ventanas_insuficientes": false,
       "stability_score": 66.7
     },
@@ -8487,22 +8487,22 @@
     "🟡 Media + ⭐ COMPRA FUERTE": {
       "n_total": 42,
       "horizonte": "5d",
-      "ev_global": -0.42,
+      "ev_global": -0.43,
       "ev_por_ventana": [
         -2.13,
         -3.99,
-        5.14
+        5.13
       ],
       "n_ventanas_evaluadas": 3,
       "n_ventanas_signo_consistente": 2,
-      "std_ev_ventanas": 3.94,
+      "std_ev_ventanas": 3.93,
       "ventanas_insuficientes": false,
       "stability_score": 66.7
     },
     "🔴 Muy baja + 🟢 COMPRA": {
       "n_total": 16,
       "horizonte": "5d",
-      "ev_global": -4.75,
+      "ev_global": -4.73,
       "ev_por_ventana": [
         -7.93,
         -4.16
