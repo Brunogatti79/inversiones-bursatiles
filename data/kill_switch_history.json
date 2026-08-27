@@ -3837,5 +3837,22 @@
       "sla_status": "OK",
       "n_signals": 67
     }
+  ],
+  "2026-08-27": [
+    {
+      "timestamp": "2026-08-27T01:18:09.106258",
+      "global_score": 50.5,
+      "label": "🟡 Reducida",
+      "kill_switch_active": true,
+      "kill_switch_reasons": [
+        "data_validator marcó ERROR (datos de mercado corruptos o faltantes)"
+      ],
+      "criticas": 4,
+      "criticas_estructurales": 0,
+      "advertencias": 10,
+      "validacion_nivel": "ERROR",
+      "sla_status": "OK",
+      "n_signals": 67
+    }
   ]
 }
