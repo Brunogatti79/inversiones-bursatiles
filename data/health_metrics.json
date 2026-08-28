@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-08-27T22:56:50.307793",
-  "last_run_utc": "2026-08-28T01:56:50.307827",
-  "last_success": "2026-08-27T22:56:50.307793",
+  "last_run": "2026-08-28T01:07:53.869653",
+  "last_run_utc": "2026-08-28T04:07:53.869702",
+  "last_success": "2026-08-28T01:07:53.869653",
   "consecutive_failures": 0,
   "duration_history": [
-    120.0,
     75.6,
     161.2,
     132.1,
@@ -13,45 +12,21 @@
     129.3,
     85.4,
     87.1,
-    80.2
+    80.2,
+    134.1
   ],
-  "duration_avg_sec": 105.9,
-  "duration_p95_sec": 146.6,
-  "duration_last_sec": 80.2,
+  "duration_avg_sec": 107.6,
+  "duration_p95_sec": 147.6,
+  "duration_last_sec": 134.1,
   "signals_count": 67,
-  "buy_signals": 15,
-  "sell_signals": 13,
-  "neutral_signals": 39,
+  "buy_signals": 14,
+  "sell_signals": 12,
+  "neutral_signals": 41,
   "cross_market_regime": "RISK_ON",
   "cross_market_sp500_trend": "ALCISTA",
   "cross_market_narrative": "Apetito global por riesgo activo. S&P 500 alcista (score 63/100), correlación moderada entre mercados. MERVAL en modo id",
-  "validacion_nivel": "OK",
+  "validacion_nivel": "ERROR",
   "runs_log": [
-    {
-      "ts": "2026-08-20",
-      "success": true,
-      "duration": 150.2
-    },
-    {
-      "ts": "2026-08-20",
-      "success": true,
-      "duration": 85.8
-    },
-    {
-      "ts": "2026-08-20",
-      "success": true,
-      "duration": 117.6
-    },
-    {
-      "ts": "2026-08-20",
-      "success": true,
-      "duration": 137.3
-    },
-    {
-      "ts": "2026-08-20",
-      "success": true,
-      "duration": 72.8
-    },
     {
       "ts": "2026-08-21",
       "success": true,
@@ -211,29 +186,34 @@
       "ts": "2026-08-27",
       "success": true,
       "duration": 80.2
+    },
+    {
+      "ts": "2026-08-28",
+      "success": true,
+      "duration": 134.1
     }
   ],
-  "pipeline_runs_today": 4,
-  "pipeline_runs_week": 37,
+  "pipeline_runs_today": 1,
+  "pipeline_runs_week": 33,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 61.2,
-  "global_confidence_label": "🟡 Reducida",
-  "kill_switch_active": false,
+  "global_confidence_score": 48.9,
+  "global_confidence_label": "🟠 Baja",
+  "kill_switch_active": true,
   "optimized_weights_days": 50,
-  "exposure_factor_shadow": 0.906,
+  "exposure_factor_shadow": 0.0,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
   "backtest_ev_21d": -3.46,
-  "backtest_total_trades": 3015,
-  "predictor_dir_acc": 0.538,
-  "predictor_mae": 9.12,
-  "backtest_generated": "2026-08-27",
+  "backtest_total_trades": 3082,
+  "predictor_dir_acc": 0.539,
+  "predictor_mae": 9.09,
+  "backtest_generated": "2026-08-28",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 1.2,
+  "ccl_age_minutes": 2.1,
   "last_ccl_value": 1600.1
 }
