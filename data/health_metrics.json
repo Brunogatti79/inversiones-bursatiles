@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-08-29T17:31:16.970653",
-  "last_run_utc": "2026-08-29T20:31:16.970696",
-  "last_success": "2026-08-29T17:31:16.970653",
+  "last_run": "2026-08-30T17:37:51.568793",
+  "last_run_utc": "2026-08-30T20:37:51.568830",
+  "last_success": "2026-08-30T17:37:51.568793",
   "consecutive_failures": 0,
   "duration_history": [
-    87.1,
     80.2,
     134.1,
     83.3,
@@ -13,11 +12,12 @@
     77.5,
     73.2,
     121.3,
-    77.0
+    77.0,
+    471.6
   ],
-  "duration_avg_sec": 90.9,
-  "duration_p95_sec": 127.7,
-  "duration_last_sec": 77.0,
+  "duration_avg_sec": 126.0,
+  "duration_p95_sec": 302.9,
+  "duration_last_sec": 471.6,
   "signals_count": 67,
   "buy_signals": 14,
   "sell_signals": 14,
@@ -27,11 +27,6 @@
   "cross_market_narrative": "Apetito global por riesgo activo. S&P 500 alcista (score 63/100), correlación moderada entre mercados. MERVAL en modo id",
   "validacion_nivel": "WARNING",
   "runs_log": [
-    {
-      "ts": "2026-08-22",
-      "success": true,
-      "duration": 114.7
-    },
     {
       "ts": "2026-08-23",
       "success": true,
@@ -201,29 +196,34 @@
       "ts": "2026-08-29",
       "success": true,
       "duration": 77.0
+    },
+    {
+      "ts": "2026-08-30",
+      "success": true,
+      "duration": 471.6
     }
   ],
-  "pipeline_runs_today": 2,
+  "pipeline_runs_today": 1,
   "pipeline_runs_week": 35,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
-  "data_freshness_h": 0.0,
+  "data_freshness_h": 0.1,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
   "global_confidence_score": 38.0,
   "global_confidence_label": "🟠 Baja",
   "kill_switch_active": false,
-  "optimized_weights_days": 52,
+  "optimized_weights_days": 53,
   "exposure_factor_shadow": 0.396,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
   "backtest_ev_21d": -3.46,
-  "backtest_total_trades": 3149,
+  "backtest_total_trades": 3216,
   "predictor_dir_acc": 0.538,
   "predictor_mae": 9.12,
-  "backtest_generated": "2026-08-29",
+  "backtest_generated": "2026-08-30",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 1.2,
+  "ccl_age_minutes": 7.8,
   "last_ccl_value": 1602.3
 }
