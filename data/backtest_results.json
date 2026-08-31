@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-31T19:13:01.275819",
+  "generated": "2026-08-31T20:41:36.010193",
   "total_trades": 3283,
   "days_history": 54,
   "by_signal": {
@@ -8037,22 +8037,7 @@
       "nota": "Si delta_ev_21d es chico o negativo, el predictor no está aportando valor marginal detectable sobre el resto del modelo con la muestra actual -- no concluir sin revisar antes el tamaño de muestra (count) de cada grupo."
     }
   },
-  "pattern_discoveries_nuevas": [
-    {
-      "fecha": "2026-08-31 19:13",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🟠 Baja + 🔴 VENTA",
-      "n": 15,
-      "ev": -1.5
-    },
-    {
-      "fecha": "2026-08-31 19:13",
-      "tipo": "nueva_evidencia",
-      "combinacion": "🟢 Alta + 🟡 NEUTRAL/ESPERAR",
-      "n": 15,
-      "ev": 2.42
-    }
-  ],
+  "pattern_discoveries_nuevas": [],
   "historical_edge_score": {
     "🟡 Media + 🟡 NEUTRAL/ESPERAR": {
       "score": 57.6,
@@ -8415,7 +8400,7 @@
       "profit_factor": 3.63,
       "significativo_95": false,
       "walk_forward_estado": "no_evaluado",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🔴 Muy baja + 🟠 VENTA PARCIAL",
@@ -8443,7 +8428,7 @@
       "profit_factor": 0.12,
       "significativo_95": true,
       "walk_forward_estado": "no_evaluado",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🔴 Muy baja + 🟢 COMPRA",
