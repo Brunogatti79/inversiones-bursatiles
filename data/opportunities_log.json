@@ -15497,14 +15497,14 @@
       "riesgo_pct": 6.0,
       "reward_pct": 28.2,
       "rr_ratio": 5.0,
-      "score_macro": 54.0,
+      "score_macro": 53.7,
       "score_tecnico": 39.8,
       "score_fundamental": 84.7,
       "score_final_v1": 48.6,
-      "asset_quality": 62.3,
+      "asset_quality": 62.2,
       "entry_score": 57.5,
       "score_final_v2": 60.1,
-      "ranking_accionable": 57.3,
+      "ranking_accionable": 57.2,
       "volatility_score": 42.6,
       "adx": 0.0,
       "alignment_score": 95,
@@ -15516,18 +15516,18 @@
       "pred_5d": -3.38,
       "pred_10d": -11.7,
       "pred_21d": 10.83,
-      "pred_confidence": 0.531,
+      "pred_confidence": 0.513,
       "pred_signal": "📈 SUBA",
-      "opportunity_score": 92.5,
+      "opportunity_score": 92.4,
       "index_snapshot": {
         "actual": 177419.0,
-        "ret_dia": 1.3,
+        "ret_dia": 1.0,
         "ret_anual": 25.72
       },
       "cross_market": {
         "regime": "NEUTRAL",
         "sp500_trend": "LATERAL",
-        "sp500_trend_score": 54.7
+        "sp500_trend_score": 52.2
       }
     },
     {
@@ -15561,9 +15561,9 @@
       "pred_5d": 2.2,
       "pred_10d": 16.71,
       "pred_21d": 33.03,
-      "pred_confidence": 0.556,
+      "pred_confidence": 0.537,
       "pred_signal": "📈 SUBA",
-      "opportunity_score": 91.7,
+      "opportunity_score": 91.6,
       "index_snapshot": {
         "actual": 3033848.0,
         "ret_dia": 1.83,
@@ -15572,7 +15572,7 @@
       "cross_market": {
         "regime": "NEUTRAL",
         "sp500_trend": "LATERAL",
-        "sp500_trend_score": 54.7
+        "sp500_trend_score": 52.2
       }
     },
     {
@@ -15581,11 +15581,11 @@
       "mercado": "MERVAL",
       "signal_v2": "🟢 COMPRA",
       "precio": 9210.0,
-      "entrada": 8987.96,
+      "entrada": 8946.63,
       "stop": 8800.98,
       "target": 9313.2,
-      "riesgo_pct": 2.1,
-      "reward_pct": 3.6,
+      "riesgo_pct": 1.6,
+      "reward_pct": 4.1,
       "rr_ratio": 5.0,
       "score_macro": 51.1,
       "score_tecnico": 49.5,
@@ -15606,9 +15606,9 @@
       "pred_5d": 0.02,
       "pred_10d": 1.55,
       "pred_21d": 3.22,
-      "pred_confidence": 0.545,
+      "pred_confidence": 0.527,
       "pred_signal": "➡️ LATERAL",
-      "opportunity_score": 78.2,
+      "opportunity_score": 78.1,
       "index_snapshot": {
         "actual": 3033848.0,
         "ret_dia": 1.83,
@@ -15617,7 +15617,7 @@
       "cross_market": {
         "regime": "NEUTRAL",
         "sp500_trend": "LATERAL",
-        "sp500_trend_score": 54.7
+        "sp500_trend_score": 52.2
       }
     },
     {
@@ -15651,9 +15651,9 @@
       "pred_5d": -1.16,
       "pred_10d": 0.65,
       "pred_21d": 3.95,
-      "pred_confidence": 0.549,
+      "pred_confidence": 0.531,
       "pred_signal": "➡️ LATERAL",
-      "opportunity_score": 77.0,
+      "opportunity_score": 76.9,
       "index_snapshot": {
         "actual": 3033848.0,
         "ret_dia": 1.83,
@@ -15662,52 +15662,7 @@
       "cross_market": {
         "regime": "NEUTRAL",
         "sp500_trend": "LATERAL",
-        "sp500_trend_score": 54.7
-      }
-    },
-    {
-      "ticker": "CAT",
-      "empresa": "Caterpillar",
-      "mercado": "SP500",
-      "signal_v2": "⭐ COMPRA FUERTE",
-      "precio": 797.47,
-      "entrada": 789.5,
-      "stop": 773.13,
-      "target": 831.63,
-      "riesgo_pct": 2.1,
-      "reward_pct": 5.3,
-      "rr_ratio": 0.71,
-      "score_macro": 26.8,
-      "score_tecnico": 47.0,
-      "score_fundamental": 80.0,
-      "score_final_v1": 63.7,
-      "asset_quality": 48.4,
-      "entry_score": 86.5,
-      "score_final_v2": 70.8,
-      "ranking_accionable": 56.6,
-      "volatility_score": 33.6,
-      "adx": 0.0,
-      "alignment_score": 95,
-      "alignment_label": "TRIPLE CONFIRMACIÓN",
-      "weekly_trend": "ALCISTA",
-      "monthly_trend": "ALCISTA",
-      "rsi": 38.7,
-      "momentum_21d": -2.1,
-      "pred_5d": 1.49,
-      "pred_10d": 4.58,
-      "pred_21d": 13.88,
-      "pred_confidence": 0.565,
-      "pred_signal": "📈 SUBA",
-      "opportunity_score": 67.8,
-      "index_snapshot": {
-        "actual": 7686.0,
-        "ret_dia": -0.58,
-        "ret_anual": 19.81
-      },
-      "cross_market": {
-        "regime": "NEUTRAL",
-        "sp500_trend": "LATERAL",
-        "sp500_trend_score": 54.7
+        "sp500_trend_score": 52.2
       }
     },
     {
@@ -15721,38 +15676,128 @@
       "target": 1070.66,
       "riesgo_pct": 1.9,
       "reward_pct": 5.4,
-      "rr_ratio": 1.4,
+      "rr_ratio": 1.44,
       "score_macro": 26.8,
-      "score_tecnico": 51.0,
+      "score_tecnico": 49.2,
       "score_fundamental": 78.5,
-      "score_final_v1": 63.4,
+      "score_final_v1": 63.1,
       "asset_quality": 47.4,
-      "entry_score": 79.9,
-      "score_final_v2": 66.8,
-      "ranking_accionable": 55.9,
-      "volatility_score": 41.3,
+      "entry_score": 78.9,
+      "score_final_v2": 66.4,
+      "ranking_accionable": 56.1,
+      "volatility_score": 43.4,
       "adx": 0.0,
       "alignment_score": 95,
       "alignment_label": "TRIPLE CONFIRMACIÓN",
       "weekly_trend": "ALCISTA",
       "monthly_trend": "ALCISTA",
       "rsi": 47.5,
-      "momentum_21d": 0.7,
+      "momentum_21d": -0.1,
       "pred_5d": 1.73,
       "pred_10d": 4.26,
       "pred_21d": 6.37,
-      "pred_confidence": 0.562,
+      "pred_confidence": 0.543,
       "pred_signal": "📈 SUBA",
-      "opportunity_score": 62.5,
+      "opportunity_score": 62.7,
       "index_snapshot": {
         "actual": 7686.0,
-        "ret_dia": -0.58,
+        "ret_dia": -0.33,
         "ret_anual": 19.81
       },
       "cross_market": {
         "regime": "NEUTRAL",
         "sp500_trend": "LATERAL",
-        "sp500_trend_score": 54.7
+        "sp500_trend_score": 52.2
+      }
+    },
+    {
+      "ticker": "EDN.BA",
+      "empresa": "Edenor",
+      "mercado": "MERVAL",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 1888.0,
+      "entrada": 1848.23,
+      "stop": 1804.52,
+      "target": 2064.62,
+      "riesgo_pct": 2.4,
+      "reward_pct": 11.7,
+      "rr_ratio": 3.96,
+      "score_macro": 51.1,
+      "score_tecnico": 41.0,
+      "score_fundamental": 83.9,
+      "score_final_v1": 48.8,
+      "asset_quality": 61.2,
+      "entry_score": 61.6,
+      "score_final_v2": 64.5,
+      "ranking_accionable": 58.0,
+      "volatility_score": 37.2,
+      "adx": 0.0,
+      "alignment_score": 95,
+      "alignment_label": "TRIPLE CONFIRMACIÓN",
+      "weekly_trend": "BAJISTA",
+      "monthly_trend": "BAJISTA",
+      "rsi": 55.7,
+      "momentum_21d": -9.3,
+      "pred_5d": 0.54,
+      "pred_10d": -3.06,
+      "pred_21d": -4.42,
+      "pred_confidence": 0.509,
+      "pred_signal": "📉 BAJA",
+      "opportunity_score": 62.4,
+      "index_snapshot": {
+        "actual": 3033848.0,
+        "ret_dia": 1.83,
+        "ret_anual": 56.4
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 52.2
+      }
+    },
+    {
+      "ticker": "GOOGL",
+      "empresa": "Alphabet (Google)",
+      "mercado": "SP500",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 339.35,
+      "entrada": 335.96,
+      "stop": 332.96,
+      "target": 349.15,
+      "riesgo_pct": 0.9,
+      "reward_pct": 3.9,
+      "rr_ratio": 1.78,
+      "score_macro": 26.8,
+      "score_tecnico": 44.5,
+      "score_fundamental": 87.7,
+      "score_final_v1": 63.4,
+      "asset_quality": 51.1,
+      "entry_score": 69.3,
+      "score_final_v2": 63.2,
+      "ranking_accionable": 56.0,
+      "volatility_score": 45.2,
+      "adx": 0.0,
+      "alignment_score": 70,
+      "alignment_label": "DOBLE CONFIRMACIÓN",
+      "weekly_trend": "LATERAL",
+      "monthly_trend": "ALCISTA",
+      "rsi": 44.2,
+      "momentum_21d": -9.2,
+      "pred_5d": -1.01,
+      "pred_10d": -1.2,
+      "pred_21d": 5.97,
+      "pred_confidence": 0.533,
+      "pred_signal": "📈 SUBA",
+      "opportunity_score": 62.3,
+      "index_snapshot": {
+        "actual": 7686.0,
+        "ret_dia": -0.33,
+        "ret_anual": 19.81
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 52.2
       }
     }
   ]
