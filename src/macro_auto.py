@@ -41,8 +41,16 @@ DATA_QUALITY_HISTORY_PATH = "data/data_quality_history.json"
 # ─────────────────────────────────────────────
  
  
-def _fred_latest(series_id, api_key=None):
-    """Obtiene el último valor de una serie FRED."""
+def _fred_latest(series_id, api_key=None, expected_gap=False):
+    """
+    Obtiene el último valor de una serie FRED.
+
+    expected_gap=True: usar para series con una falla PERMANENTE y ya
+    diagnosticada (ej. NAPMPI -- discontinuada por FRED en 2016 a pedido
+    del propio ISM, ver comentario en fetch_usa_macro) para que el log no
+    reporte WARNING como si fuera un problema nuevo en cada corrida. El
+    caso genérico (series que sí deberían responder) sigue en WARNING.
+    """
     key = api_key or FRED_API_KEY
     if not key:
         return None, None
@@ -64,7 +72,10 @@ def _fred_latest(series_id, api_key=None):
                 return float(val), o.get("date", "")
         return None, None
     except Exception as e:
-        logger.warning(f"FRED error [{series_id}]: {e}")
+        if expected_gap:
+            logger.info(f"FRED [{series_id}]: sin datos (esperado y permanente, ver fetch_usa_macro) — {e}")
+        else:
+            logger.warning(f"FRED error [{series_id}]: {e}")
         return None, None
  
  
@@ -128,7 +139,7 @@ def fetch_usa_macro():
     # (Se eliminó el fallback a MANEMP: es nivel de empleo manufacturero en
     # miles de personas, unidad incompatible con el rango de normalización
     # 40-62 calibrado para un índice PMI 0-100; usarlo distorsionaba el score.)
-    val, dt = _fred_latest("NAPMPI")
+    val, dt = _fred_latest("NAPMPI", expected_gap=True)
     data["ism_mfg"] = {"valor": val, "fecha": dt}
  
     # DXY
@@ -150,33 +161,75 @@ def fetch_usa_macro():
 # BCRA (Argentina) — API pública
 # ─────────────────────────────────────────────
  
-# API alternativa estadisticasbcra.com (no requiere auth, API oficial v2 deprecada)
-BCRA_ENDPOINTS = {
-    "tasa_plazo_fijo": "https://api.estadisticasbcra.com/tasa_depositos_30_dias",
-    "reservas":        "https://api.estadisticasbcra.com/reservas",
-    "tipo_cambio":     "https://api.estadisticasbcra.com/usd_of",
+# FIX 03/09/2026 (auditoría de log real): api.estadisticasbcra.com (la API
+# vieja, que requería BCRA_TOKEN) fue formalmente DEPRECADA por su dueño --
+# NO es un token vencido para renovar, el servicio entero dejó de operar.
+# Confirmado leyendo estadisticasbcra.com/api/documentation en vivo:
+# "this API has been formally deprecated and is no longer operational [...]
+# migrate to the official BCRA API". Se reemplaza acá por la API oficial y
+# gratuita del BCRA (Estadísticas Monetarias v4.0, sin autenticación --
+# confirmado en el manual oficial: "Autenticación: No requerida").
+# https://www.bcra.gob.ar/en/central-bank-api-catalog/
+#
+# idVariable=1 = "Reservas internacionales" (confirmado literal en el
+# ejemplo de respuesta del manual oficial, en millones de USD).
+# idVariable=44 = TAMAR bancos privados (según una fuente de terceros que
+# referencia esta misma API v4.0/Monetarias, NO confirmado contra el manual
+# oficial del BCRA, que no publica un índice id->nombre navegable en el PDF)
+# -- A VALIDAR en el primer run real contra la sección "Principales
+# Variables" de bcra.gob.ar antes de confiar en el valor a ciegas.
+BCRA_TOKEN = os.getenv("BCRA_TOKEN", "")  # ya no se usa -- ver nota arriba; se
+# deja leído (no se borra la env var sola) para no romper si algo más del
+# código llegara a importarla, pero ningún fetch de acá abajo la consume.
+BCRA_API_BASE = "https://api.bcra.gob.ar/estadisticas/v4.0/monetarias"
+BCRA_ID_VARIABLE = {
+    "reservas":    1,
+    "tasa_tamar":  44,
 }
- 
- 
-def _bcra_latest(url):
-    """Obtiene el último valor desde api.estadisticasbcra.com."""
-    if not BCRA_TOKEN:
-        logger.warning(
-            "[macro_auto] BCRA_TOKEN no configurado en el entorno -- "
-            "se omite la llamada y se usa el fallback existente para esta variable."
-        )
-        return None, None
+
+
+def _bcra_oficial_latest(id_variable: int, dias_atras: int = 10):
+    """
+    Último valor disponible para una variable monetaria de la API oficial
+    del BCRA v4.0 (sin auth). Se pide un rango de `dias_atras` días en vez
+    de un único día porque la serie no publica fines de semana ni
+    feriados bancarios -- pedir solo "hoy" puede volver vacío sin que eso
+    signifique que la API está caída.
+
+    Devuelve (valor, fecha) del registro más reciente del rango, o
+    (None, None) si la respuesta viene vacía o falla la request. Nunca
+    levanta excepción hacia el caller -- mismo contrato que _fred_latest.
+    """
     try:
-        headers = {"Authorization": f"BEARER {BCRA_TOKEN}"}
-        r = requests.get(url, timeout=15, headers=headers)
+        hasta = datetime.now().strftime("%Y-%m-%d")
+        desde = (datetime.now() - timedelta(days=dias_atras)).strftime("%Y-%m-%d")
+        url = f"{BCRA_API_BASE}/{id_variable}"
+        r = requests.get(
+            url,
+            params={"desde": desde, "hasta": hasta},
+            timeout=15,
+            headers={"User-Agent": "InversionesBursatiles/1.0"},
+        )
         r.raise_for_status()
-        data = r.json()
-        if data and len(data) > 0:
-            latest = data[-1]
-            return float(latest.get("v", 0)), latest.get("d", "")
-        return None, None
+        payload = r.json()
+        resultados = payload.get("results", [])
+        if not resultados:
+            return None, None
+        detalle = resultados[0].get("detalle", [])
+        if not detalle:
+            return None, None
+        # El manual oficial muestra el ejemplo de respuesta ordenado por
+        # fecha descendente (2025-05-26 antes que 2025-05-23) -- se toma el
+        # primer elemento como el más reciente, pero se valida igual
+        # tomando el max() por fecha para no depender de un orden no
+        # documentado explícitamente como contrato de la API.
+        mas_reciente = max(detalle, key=lambda d: d.get("fecha", ""))
+        valor = mas_reciente.get("valor")
+        if valor is None:
+            return None, None
+        return float(valor), mas_reciente.get("fecha", "")
     except Exception as e:
-        logger.warning(f"BCRA error: {e}")
+        logger.warning(f"[macro_auto] BCRA API oficial error [idVariable={id_variable}]: {e}")
         return None, None
  
  
@@ -204,30 +257,35 @@ def fetch_argentina_macro():
     val, dt = _with_last_known_fallback("tipo_cambio", _fetch_tipo_cambio)
     data["tipo_cambio"] = {"valor": val, "fecha": dt or ""}
  
-    # Tasa plazo fijo — BCRA estadisticasbcra.com en vivo, fallback a último conocido
-    try:
-        val, dt = _bcra_latest(BCRA_ENDPOINTS["tasa_plazo_fijo"])
-        if val is not None:
-            data["tasa_tamar"] = {"valor": val, "fecha": dt or datetime.now().strftime("%Y-%m-%d")}
-        else:
-            data["tasa_tamar"] = {"valor": 29.0, "fecha": "2026-05-01"}  # fallback último conocido
-    except Exception as e:
-        logger.warning(f"TAMAR error: {e}")
-        data["tasa_tamar"] = {"valor": 29.0, "fecha": "2026-05-01"}
+    # Tasa TAMAR — API oficial BCRA v4.0 (sin auth, ver comentario arriba de
+    # BCRA_API_BASE). _with_last_known_fallback ya generaliza el patrón
+    # primary->último-valor-cacheado que antes estaba hardcodeado acá a
+    # 29.0 -- ahora cae al último valor REAL cacheado, no a un número fijo
+    # que envejece sin que nadie lo note.
+    def _fetch_tamar():
+        val, dt = _bcra_oficial_latest(BCRA_ID_VARIABLE["tasa_tamar"])
+        if val is None:
+            return None, None
+        # A VALIDAR (ver comentario en BCRA_ID_VARIABLE): fuente de
+        # terceros indica que este idVariable viene en TNA decimal
+        # (ej. 0.2225 = 22.25%), pero RANGES["arg_tasa"] = (60.0, 5.0)
+        # espera puntos porcentuales (el fallback viejo era 29.0, no
+        # 0.29). Se multiplica por 100 acá; si el primer run real muestra
+        # un score ARG absurdo por esta variable, es el primer sospechoso.
+        return round(val * 100, 2), dt
+
+    val, dt = _with_last_known_fallback("tasa_tamar", _fetch_tamar)
+    data["tasa_tamar"] = {"valor": val, "fecha": dt or ""}
  
-    # Reservas — intentar BCRA, fallback
-    try:
-        r = requests.get("https://api.estadisticasbcra.com/reservas", timeout=10, headers={"User-Agent": "InversionesBursatiles/1.0"})
-        if r.status_code == 200:
-            d = r.json()
-            if d:
-                data["reservas"] = {"valor": float(d[-1].get("v", 0)), "fecha": d[-1].get("d", "")}
-            else:
-                data["reservas"] = {"valor": 26500, "fecha": "fallback"}
-        else:
-            data["reservas"] = {"valor": 26500, "fecha": "fallback"}
-    except Exception:
-        data["reservas"] = {"valor": 26500, "fecha": "fallback"}
+    # Reservas internacionales — misma API oficial, idVariable=1, ya viene
+    # en millones de USD (confirmado en el manual, sin conversión). Antes
+    # el fallback era un 26500 hardcodeado sin fecha real; ahora usa la
+    # misma red de seguridad que el resto de las variables ARG.
+    def _fetch_reservas():
+        return _bcra_oficial_latest(BCRA_ID_VARIABLE["reservas"])
+
+    val, dt = _with_last_known_fallback("reservas", _fetch_reservas)
+    data["reservas"] = {"valor": val, "fecha": dt or ""}
  
     # Riesgo país — Ámbito
     # FIX 30/07/2026 (mismo lote que tipo_cambio arriba): sin red de

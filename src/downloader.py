@@ -13,6 +13,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import logging
 import time
+import random
 import os
 import json
 import pytz
@@ -114,6 +115,20 @@ SP500_TICKERS = {
 SP500_INDEX = "^GSPC" 
 MIN_ROWS      = 10
 MAX_CSV_AGE_DAYS = 3   # si el CSV tiene más de 3 días, intentar descarga directa
+
+# FIX 03/09/2026 (auditoría de log real, 2026-09-02/03): _download_direct()
+# solo validaba len(closes) >= MIN_ROWS -- eso cuenta DÍAS, no TICKERS. Un
+# batch de yf.download() rate-limiteado por Yahoo puede devolver un
+# DataFrame con 39/40 columnas vacías y aun así tener >=10 filas de fechas,
+# pasando el check como si fuera un éxito. Confirmado en producción: la fila
+# 2026-09-02 de sp500_cierres.csv quedó con 1/40 columnas con dato, porque
+# save_csvs() (ver pipeline.py) escribe lo que sea que download_all()
+# devuelva sin volver a chequear cobertura. Mismo umbral que ya usa
+# scripts/download_data.py (MIN_SUCCESS_RATE=0.5) para quedar consistentes
+# entre el script de GitHub Actions y el fallback de Railway.
+MIN_SUCCESS_RATE = 0.5
+DIRECT_DOWNLOAD_ATTEMPTS = 2   # mismo patrón de retry que scripts/download_data.py
+DIRECT_DOWNLOAD_BACKOFF  = (4, 8)  # segundos, rango aleatorio entre intentos
  
  
 # ─────────────────────────────────────────────
@@ -246,42 +261,75 @@ def _download_direct(tickers: dict, index_ticker: str, market_name: str) -> pd.D
     """
     Intento de descarga directa desde Yahoo Finance como último recurso.
     Puede fallar por rate limit desde Railway.
+
+    FIX 03/09/2026: antes era un único intento sin retry (a diferencia de
+    scripts/download_data.py, que sí reintenta) y solo validaba cantidad de
+    FILAS, no cobertura de TICKERS -- un batch parcialmente rate-limiteado
+    (ej. solo el índice con dato, todos los tickers individuales en NaN)
+    pasaba como "éxito" con >=10 filas igual. Ahora reintenta hasta
+    DIRECT_DOWNLOAD_ATTEMPTS veces con backoff, y exige que al menos
+    MIN_SUCCESS_RATE de las columnas tengan dato en la última fila -- si
+    no, se descarta el intento entero y NO se devuelve un DataFrame a medio
+    llenar (ver save_csvs() en este mismo módulo, que ya no confía
+    ciegamente en lo que le llega de acá tampoco, como defensa en
+    profundidad).
     """
     start, end = _get_period()
     all_tickers = list(tickers.keys()) + [index_ticker]
-    logger.info(f"[{market_name}] Intentando descarga directa Yahoo Finance ({len(all_tickers)} tickers)...")
-    try:
-        raw = yf.download(
-            tickers=all_tickers,
-            start=start,
-            end=end,
-            auto_adjust=True,
-            progress=False,
-            threads=False,
-        )
-        if isinstance(raw.columns, pd.MultiIndex):
-            closes = raw["Close"].copy()
-        else:
-            closes = raw[["Close"]].rename(columns={"Close": all_tickers[0]}).copy()
- 
-        rename_map = {t: n for t, n in tickers.items() if t in closes.columns}
-        idx_name = _index_display_name(market_name)
-        if index_ticker in closes.columns:
-            rename_map[index_ticker] = idx_name
-        closes = closes.rename(columns=rename_map)
-        closes.index = pd.to_datetime(closes.index)
-        closes.index.name = "Fecha"
-        closes = closes.sort_index().dropna(how="all")
- 
-        if len(closes) >= MIN_ROWS:
-            logger.info(f"[{market_name}] Descarga directa OK — {len(closes)} filas")
-            return closes
-        else:
-            logger.warning(f"[{market_name}] Descarga directa vacía ({len(closes)} filas)")
-            return None
-    except Exception as e:
-        logger.warning(f"[{market_name}] Descarga directa falló: {e}")
-        return None
+
+    for intento in range(1, DIRECT_DOWNLOAD_ATTEMPTS + 1):
+        logger.info(f"[{market_name}] Intentando descarga directa Yahoo Finance "
+                    f"({len(all_tickers)} tickers, intento {intento}/{DIRECT_DOWNLOAD_ATTEMPTS})...")
+        try:
+            raw = yf.download(
+                tickers=all_tickers,
+                start=start,
+                end=end,
+                auto_adjust=True,
+                progress=False,
+                threads=False,
+            )
+            if isinstance(raw.columns, pd.MultiIndex):
+                closes = raw["Close"].copy()
+            else:
+                closes = raw[["Close"]].rename(columns={"Close": all_tickers[0]}).copy()
+
+            rename_map = {t: n for t, n in tickers.items() if t in closes.columns}
+            idx_name = _index_display_name(market_name)
+            if index_ticker in closes.columns:
+                rename_map[index_ticker] = idx_name
+            closes = closes.rename(columns=rename_map)
+            closes.index = pd.to_datetime(closes.index)
+            closes.index.name = "Fecha"
+            closes = closes.sort_index().dropna(how="all")
+
+            if len(closes) < MIN_ROWS:
+                logger.warning(f"[{market_name}] Descarga directa vacía ({len(closes)} filas)")
+            else:
+                ultima_fila = closes.iloc[-1]
+                total_cols = len(closes.columns)
+                tickers_con_dato = int(ultima_fila.notna().sum())
+                tasa = tickers_con_dato / total_cols if total_cols else 0
+
+                if tasa >= MIN_SUCCESS_RATE:
+                    logger.info(f"[{market_name}] Descarga directa OK — {len(closes)} filas, "
+                                f"{tickers_con_dato}/{total_cols} tickers con dato ({tasa:.0%})")
+                    return closes
+                logger.warning(
+                    f"[{market_name}] Descarga directa con cobertura insuficiente: "
+                    f"{tickers_con_dato}/{total_cols} tickers ({tasa:.0%}) en la última fila "
+                    f"-- se descarta este intento (probable rate limit parcial de Yahoo)"
+                )
+        except Exception as e:
+            logger.warning(f"[{market_name}] Descarga directa falló (intento {intento}): {e}")
+
+        if intento < DIRECT_DOWNLOAD_ATTEMPTS:
+            espera = random.uniform(*DIRECT_DOWNLOAD_BACKOFF)
+            logger.info(f"[{market_name}] Reintentando descarga directa en {espera:.1f}s...")
+            time.sleep(espera)
+
+    logger.warning(f"[{market_name}] Descarga directa agotó los {DIRECT_DOWNLOAD_ATTEMPTS} intentos sin éxito")
+    return None
  
  
 # ─────────────────────────────────────────────
@@ -345,14 +393,47 @@ def download_all(data_dir: str = "data") -> dict:
  
  
 def save_csvs(data: dict, output_dir: str = "data") -> dict:
-    """Guarda los DataFrames como CSV (solo si vinieron de descarga directa)."""
+    """
+    Guarda los DataFrames como CSV.
+
+    FIX 03/09/2026: el docstring de esta función siempre dijo "solo si
+    vinieron de descarga directa", pero el código escribía SIEMPRE, sin
+    excepción -- pipeline.py la llama incondicionalmente después de
+    download_all() (que puede devolver el DataFrame bueno del CSV de
+    GitHub Actions, o el de _download_direct() como fallback). Con
+    _download_direct() ahora validando cobertura antes de devolver algo
+    (ver ese docstring), este caso ya no debería darse en la práctica --
+    pero se deja este chequeo igual como defensa en profundidad: si algún
+    DataFrame con cobertura insuficiente llega hasta acá por cualquier otro
+    camino futuro, NO se pisa el CSV persistido (se preserva el que ya
+    había, típicamente el bueno de GitHub Actions) en vez de contaminarlo.
+    """
     os.makedirs(output_dir, exist_ok=True)
     paths = {}
     for market, df in data.items():
         path = _csv_path(market, output_dir)
+
+        if df is None or df.empty:
+            logger.warning(f"[{market}] save_csvs: DataFrame vacío/None -- no se escribe {path}")
+            continue
+
+        ultima_fila = df.iloc[-1]
+        total_cols = len(df.columns)
+        tickers_con_dato = int(ultima_fila.notna().sum())
+        tasa = tickers_con_dato / total_cols if total_cols else 0
+
+        if tasa < MIN_SUCCESS_RATE:
+            logger.warning(
+                f"[{market}] save_csvs: cobertura insuficiente en la última fila "
+                f"({tickers_con_dato}/{total_cols}, {tasa:.0%}) -- NO se pisa {path}, "
+                f"se preserva el CSV existente"
+            )
+            continue
+
         df.to_csv(path, sep=";", decimal=",", encoding="utf-8-sig")
         paths[market] = path
-        logger.info(f"Guardado: {path} ({len(df)} filas)")
+        logger.info(f"Guardado: {path} ({len(df)} filas, {tickers_con_dato}/{total_cols} "
+                    f"tickers con dato en la última fila, {tasa:.0%})")
     return paths
 
 
