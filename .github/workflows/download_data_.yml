@@ -1,0 +1,85 @@
+name: Descargar datos de mercado
+on:
+  schedule:
+    - cron: '0 15 * * 1-5'
+    - cron: '0 18 * * 1-5'
+    - cron: '0 21 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: download-data
+  cancel-in-progress: false
+ 
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+ 
+      - name: Verificar cooldown 2h entre descargas
+        id: check
+        run: |
+          if [ -f data/download_status.json ]; then
+            LAST=$(python3 -c "import json; d=json.load(open('data/download_status.json')); print(d.get('timestamp_utc','2000-01-01T00:00:00Z'))" 2>/dev/null || echo "2000-01-01T00:00:00Z")
+            SKIP=$(python3 -c "
+            from datetime import datetime,timezone
+            try:
+              last=datetime.fromisoformat('$LAST'.replace('Z','+00:00'))
+              h=(datetime.now(timezone.utc)-last).total_seconds()/3600
+              print('true' if h<2.0 else 'false')
+            except: print('false')
+            " 2>/dev/null || echo "false")
+            echo "skip=$SKIP" >> $GITHUB_OUTPUT
+            echo "Resultado skip=$SKIP"
+          else
+            echo "Primera ejecucion."
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+ 
+      - name: Setup Python
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+ 
+      - name: Instalar dependencias
+        if: steps.check.outputs.skip != 'true'
+        run: pip install yfinance pandas numpy pytz
+ 
+      - name: Descargar datos de mercado
+        if: steps.check.outputs.skip != 'true'
+        run: python scripts/download_data.py
+ 
+      - name: Commit y push de los CSVs
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/merval_cierres.csv data/bovespa_cierres.csv data/sp500_cierres.csv data/download_status.json data/merval_high.csv data/merval_low.csv data/bovespa_high.csv data/bovespa_low.csv data/sp500_high.csv data/sp500_low.csv
+          git diff --cached --quiet && echo "Sin cambios" || git commit -m "data: actualizacion automatica $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git pull origin main --rebase --autostash
+          git push
+ 
+      - name: Disparar pipeline en Railway
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          echo "Disparando pipeline en Railway..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
+            --max-time 30 \
+            https://inversiones-bursatiles-production.up.railway.app/webhook/run)
+          echo "Railway respondio: HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Pipeline disparado exitosamente"
+          elif [ "$HTTP_CODE" = "409" ]; then
+            echo "Pipeline ya en ejecucion"
+          else
+            echo "Error al disparar pipeline (HTTP $HTTP_CODE) - revisar Railway"
+          fi
