@@ -453,6 +453,54 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             f'</div>'
         )
 
+    def _mc_merge_compra_entries(entries):
+        """
+        NUEVO (03/09/2026, pedido de Bruno tras auditar el panel 'Por
+        confianza del modelo' en vivo con 57 días de historia): el panel
+        de confianza mezcla los 3 mercados, y la paradoja de Simpson ya
+        documentada para ranking_top_vs_rest (v21.2 §6quater) también
+        aparece acá -- "Alta confianza" salía en -2.6% no porque el score
+        de confianza esté roto, sino porque el 67% de esas señales son de
+        MERVAL (mercado con retorno negativo ahora mismo, sin importar la
+        confianza), mientras "Muy baja confianza" salía en +3.1% porque
+        el 77% de esas señales son de SP500 (mercado con retorno positivo
+        ahora). Confirmado auditando confidence_x_signal_x_mercado
+        directamente en backtest_results.json real.
+
+        Este helper combina 2+ 'entries' con forma {count, h5d/h10d/h21d:
+        {samples, win_rate, expected_value, ...}, top_ticker, ...} en una
+        sola, sumando conteos y promediando win_rate/expected_value
+        ponderado por samples de cada horizonte -- se usa para juntar
+        COMPRA + COMPRA FUERTE bajo un mismo "compra" lógico, mismo
+        criterio que _es_compra() ya aplica en el resto de este archivo
+        para las listas de tickers de HOY.
+        """
+        entries = [e for e in entries if e]
+        if not entries:
+            return None
+        merged = {"count": sum(e.get("count", 0) for e in entries)}
+        for _hk in ("h5d", "h10d", "h21d"):
+            _parts = [e[_hk] for e in entries if e.get(_hk) and e[_hk].get("samples", 0) > 0]
+            _total_n = sum(p["samples"] for p in _parts)
+            if _total_n == 0:
+                continue
+            _wr = sum(p["win_rate"] * p["samples"] for p in _parts) / _total_n
+            _ev = sum(p["expected_value"] * p["samples"] for p in _parts) / _total_n
+            merged[_hk] = {"samples": _total_n, "win_rate": round(_wr, 3), "expected_value": round(_ev, 2)}
+        # Concentración: no tenemos los trades crudos acá para recalcular
+        # el top_ticker combinado con precisión, así que se prioriza no
+        # ocultar la advertencia -- si CUALQUIERA de las señales fuente
+        # está concentrada, se marca y se muestra su ticker (el de mayor
+        # conteo entre las concentradas).
+        _conc = [e for e in entries if e.get("concentracion_alta")]
+        if _conc:
+            _top = max(_conc, key=lambda e: e.get("count", 0))
+            merged["concentracion_alta"] = True
+            merged["top_ticker"] = _top.get("top_ticker")
+            merged["top_ticker_pct"] = _top.get("top_ticker_pct")
+            merged["tickers_unicos"] = _top.get("tickers_unicos")
+        return merged
+
     try:
         _signals_today = signals or []
 
@@ -540,6 +588,40 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
         mc_chips_mkt = "".join(
             _mc_chip(_mkt_names[_m], _by_mkt.get(_m)) for _m in _mkt_order if _m in _by_mkt
         )
+
+        # Cruce confianza × mercado (pedido de Bruno, 03/09/2026): ver
+        # docstring de _mc_merge_compra_entries arriba para el contexto
+        # completo -- el panel "Por confianza" mezcla los 3 mercados, y
+        # cuál mercado domina el conteo de cada nivel de confianza puede
+        # explicar el resultado tanto o más que la confianza en sí. Se
+        # combina COMPRA + COMPRA FUERTE (mismo criterio que _es_compra)
+        # por celda confianza×mercado usando confidence_x_signal_x_mercado
+        # (backtester.py, agregado 28/07/2026).
+        _cxm = _backtest.get("confidence_x_signal_x_mercado", {})
+        _cxm_parts = []
+        for _cl in _conf_order:
+            _by_signal_cl = _cxm.get(_cl, {})
+            for _m in _mkt_order:
+                _cell_entries = [
+                    _mkts.get(_m) for _sig, _mkts in _by_signal_cl.items() if "COMPRA" in _sig.upper()
+                ]
+                _merged = _mc_merge_compra_entries(_cell_entries)
+                if _merged is None:
+                    continue
+                _combo_label = f'{_cl} · {_mkt_names.get(_m, _m)}'
+                _cxm_parts.append(_mc_chip(_combo_label, _merged, border_color=_conf_colors.get(_cl, "#2a2a2a"), min_n=10))
+        mc_chips_cxm = "".join(_cxm_parts)
+        mc_cxm_section = ""
+        if mc_chips_cxm:
+            mc_cxm_section = (
+                '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">🎯🌎 Confianza × Mercado (cruce)</div>'
+                '<div style="font-size:10px;color:#666;margin-bottom:6px">El panel de arriba mezcla los 3 mercados en '
+                'cada nivel de confianza -- si un mercado domina el conteo de un nivel (ej. MERVAL en Alta), su '
+                'resultado tapa lo que pasa en los otros. Acá se ve la confianza DENTRO de cada mercado por '
+                'separado, solo señales de COMPRA/COMPRA FUERTE.</div>'
+                f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px;margin-bottom:10px">'
+                f'{mc_chips_cxm}</div>'
+            )
 
         _by_sec = _backtest.get("by_sector", {})
         _sec_evs = []
@@ -734,6 +816,7 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             'la señal. Esto muestra cómo le fue en la realidad a cada nivel:</div>'
             f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px;margin-bottom:10px">'
             f'{mc_chips_conf}</div>'
+            f'{mc_cxm_section}'
 
             '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">⚖️ Calidad del activo (V1) vs. '
             'momento de entrada (V2)</div>'
