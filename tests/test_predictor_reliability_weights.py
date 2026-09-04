@@ -81,21 +81,21 @@ def test_linear_baseline_siempre_cero_aunque_su_correlacion_no_sea_la_peor():
 def test_fallback_a_1_si_no_existe_el_archivo():
     # no se escribe el archivo -- VALIDATION_PATH apunta a un tmp_path vacío
     rel = predictor._load_reliability_weights()
-    assert rel == {"holt_winters": 1.0, "gradient_boosting": 1.0, "linear_baseline": 1.0}
+    assert rel == {"holt_winters": 1.0, "gradient_boosting": 1.0, "linear_baseline": 1.0, "random_forest": 1.0}
 
 
 def test_fallback_a_1_si_el_archivo_esta_corrupto(tmp_path):
     with open(predictor.VALIDATION_PATH, "w") as f:
         f.write("{ esto no es json valido")
     rel = predictor._load_reliability_weights()
-    assert rel == {"holt_winters": 1.0, "gradient_boosting": 1.0, "linear_baseline": 1.0}
+    assert rel == {"holt_winters": 1.0, "gradient_boosting": 1.0, "linear_baseline": 1.0, "random_forest": 1.0}
 
 
 def test_fallback_a_1_si_faltan_campos_esperados():
     with open(predictor.VALIDATION_PATH, "w") as f:
         json.dump({"generated": "2026-07-27", "global": {}}, f)
     rel = predictor._load_reliability_weights()
-    assert rel == {"holt_winters": 1.0, "gradient_boosting": 1.0, "linear_baseline": 1.0}
+    assert rel == {"holt_winters": 1.0, "gradient_boosting": 1.0, "linear_baseline": 1.0, "random_forest": 1.0}
 
 
 def test_get_reliability_weights_cachea_en_memoria():
