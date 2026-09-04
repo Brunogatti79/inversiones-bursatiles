@@ -53,7 +53,7 @@ class _CallRecorder:
         self.value = value
         self.confidence = confidence
 
-    def __call__(self, serie, horizon, context=None):
+    def __call__(self, serie, horizon, context=None, dates=None, market=None, history=None):
         self.calls.append(horizon)
         return self.value, self.confidence
 
@@ -86,8 +86,8 @@ class TestRFToggleDefault:
         valor que RF hubiera devuelto si corriera."""
         monkeypatch.delenv("ENABLE_RF_PREDICTOR", raising=False)
         monkeypatch.setattr(predictor, "_holt_winters", lambda serie, horizon: (8.0, 0.6))
-        monkeypatch.setattr(predictor, "_gradient_boosting", lambda serie, horizon, context=None: (8.0, 0.6))
-        monkeypatch.setattr(predictor, "_linear_baseline", lambda serie, horizon, context=None: (8.0, 0.6))
+        monkeypatch.setattr(predictor, "_gradient_boosting", lambda serie, horizon, context=None, dates=None, market=None, history=None: (8.0, 0.6))
+        monkeypatch.setattr(predictor, "_linear_baseline", lambda serie, horizon, context=None, dates=None, market=None, history=None: (8.0, 0.6))
         monkeypatch.setattr(predictor, "_random_forest", _CallRecorder(value=99.0, confidence=0.99))
 
         result = predictor.predict_ticker("TEST_RF_NO_DISTORT", _series(seed=3))
@@ -143,8 +143,8 @@ class TestEnsembleRobustness:
     def test_all_zero_confidence_does_not_raise_and_returns_finite_value(self, monkeypatch):
         monkeypatch.delenv("ENABLE_RF_PREDICTOR", raising=False)
         monkeypatch.setattr(predictor, "_holt_winters", lambda serie, horizon: (0.0, 0.0))
-        monkeypatch.setattr(predictor, "_gradient_boosting", lambda serie, horizon, context=None: (0.0, 0.0))
-        monkeypatch.setattr(predictor, "_linear_baseline", lambda serie, horizon, context=None: (0.0, 0.0))
+        monkeypatch.setattr(predictor, "_gradient_boosting", lambda serie, horizon, context=None, dates=None, market=None, history=None: (0.0, 0.0))
+        monkeypatch.setattr(predictor, "_linear_baseline", lambda serie, horizon, context=None, dates=None, market=None, history=None: (0.0, 0.0))
 
         result = predictor.predict_ticker("TEST_ALL_ZERO_CONFIDENCE", _series(seed=7))
 
