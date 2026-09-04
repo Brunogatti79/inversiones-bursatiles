@@ -453,54 +453,6 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             f'</div>'
         )
 
-    def _mc_merge_compra_entries(entries):
-        """
-        NUEVO (03/09/2026, pedido de Bruno tras auditar el panel 'Por
-        confianza del modelo' en vivo con 57 días de historia): el panel
-        de confianza mezcla los 3 mercados, y la paradoja de Simpson ya
-        documentada para ranking_top_vs_rest (v21.2 §6quater) también
-        aparece acá -- "Alta confianza" salía en -2.6% no porque el score
-        de confianza esté roto, sino porque el 67% de esas señales son de
-        MERVAL (mercado con retorno negativo ahora mismo, sin importar la
-        confianza), mientras "Muy baja confianza" salía en +3.1% porque
-        el 77% de esas señales son de SP500 (mercado con retorno positivo
-        ahora). Confirmado auditando confidence_x_signal_x_mercado
-        directamente en backtest_results.json real.
-
-        Este helper combina 2+ 'entries' con forma {count, h5d/h10d/h21d:
-        {samples, win_rate, expected_value, ...}, top_ticker, ...} en una
-        sola, sumando conteos y promediando win_rate/expected_value
-        ponderado por samples de cada horizonte -- se usa para juntar
-        COMPRA + COMPRA FUERTE bajo un mismo "compra" lógico, mismo
-        criterio que _es_compra() ya aplica en el resto de este archivo
-        para las listas de tickers de HOY.
-        """
-        entries = [e for e in entries if e]
-        if not entries:
-            return None
-        merged = {"count": sum(e.get("count", 0) for e in entries)}
-        for _hk in ("h5d", "h10d", "h21d"):
-            _parts = [e[_hk] for e in entries if e.get(_hk) and e[_hk].get("samples", 0) > 0]
-            _total_n = sum(p["samples"] for p in _parts)
-            if _total_n == 0:
-                continue
-            _wr = sum(p["win_rate"] * p["samples"] for p in _parts) / _total_n
-            _ev = sum(p["expected_value"] * p["samples"] for p in _parts) / _total_n
-            merged[_hk] = {"samples": _total_n, "win_rate": round(_wr, 3), "expected_value": round(_ev, 2)}
-        # Concentración: no tenemos los trades crudos acá para recalcular
-        # el top_ticker combinado con precisión, así que se prioriza no
-        # ocultar la advertencia -- si CUALQUIERA de las señales fuente
-        # está concentrada, se marca y se muestra su ticker (el de mayor
-        # conteo entre las concentradas).
-        _conc = [e for e in entries if e.get("concentracion_alta")]
-        if _conc:
-            _top = max(_conc, key=lambda e: e.get("count", 0))
-            merged["concentracion_alta"] = True
-            merged["top_ticker"] = _top.get("top_ticker")
-            merged["top_ticker_pct"] = _top.get("top_ticker_pct")
-            merged["tickers_unicos"] = _top.get("tickers_unicos")
-        return merged
-
     try:
         _signals_today = signals or []
 
@@ -514,7 +466,6 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
         # columna 🎯 de la tabla de señales) que tiene su propia escala.
         _conf_names  = {"🟢 Alta": "🟢 Confianza Alta (≥75)", "🟡 Media": "🟡 Confianza Media (55-74)",
                         "🟠 Baja": "🟠 Confianza Baja (35-54)", "🔴 Muy baja": "🔴 Confianza Muy baja (&lt;35)"}
-        _by_conf = _backtest.get("by_confidence_label", {})
         _conf_order = ["🟢 Alta", "🟡 Media", "🟠 Baja", "🔴 Muy baja"]
         # Pedido de Bruno (28/07/2026): listar los tickers de HOY en Alta y
         # Media confianza -- los conteos de arriba son históricos agregados,
@@ -522,65 +473,25 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
         # que pidió) -- Baja/Muy baja quedan sin la lista para no saturar el
         # panel con lo que en general no es accionable.
         _conf_ticker_labels = {"🟢 Alta", "🟡 Media"}
-        mc_chips_conf = "".join(
-            _mc_chip(_conf_names[_l], _by_conf.get(_l), border_color=_conf_colors[_l],
-                     extra_html=(_mc_ticker_badges([s for s in _signals_today if s.get("confidence_label") == _l and _es_compra(s)])
-                                 if _l in _conf_ticker_labels else ""))
-            for _l in _conf_order if _l in _by_conf
-        )
 
-        _by_cons = _backtest.get("by_consenso", {})
         _cons_meta = {
             "Consenso": ("🤝 Consenso (V1 y V2 de acuerdo)", None),
             "V1↓/V2↑ activo débil, buen entry": ("✅ Activo débil, buen timing", "V1 bajo, V2 alto"),
             "V1↑/V2↓ buen activo, mal timing":  ("⚠️ Buen activo, mal timing", "V1 alto, V2 bajo"),
         }
-        _cons_keys = sorted(_by_cons.keys(),
-                             key=lambda k: (k != "Consenso", -_by_cons[k].get("count", 0)))
-        # Pedido de Bruno (28/07/2026): listar tickers de HOY en "Consenso" y
-        # "Activo débil, buen timing" -- mismo criterio que arriba, acotado a
-        # las 2 categorías que pidió.
-        _cons_ticker_keys = {"Consenso", "V1↓/V2↑ activo débil, buen entry"}
-        mc_chips_cons = "".join(
-            _mc_chip(_cons_meta.get(_k, (_k, None))[0], _by_cons[_k], subtitle=_cons_meta.get(_k, (_k, None))[1],
-                     extra_html=(_mc_ticker_badges([s for s in _signals_today if s.get("consenso") == _k and _es_compra(s)])
-                                 if _k in _cons_ticker_keys else ""))
-            for _k in _cons_keys
-        )
-
-        # Cruce confianza × consenso (pedido de Bruno, 06/08/2026): los dos
-        # paneles de arriba muestran cada dimensión por separado, pero no
-        # cruzadas -- una celda como "🟢 Alta + activo débil, buen timing"
-        # puede tener un resultado completamente distinto al de "🔴 Muy
-        # baja + activo débil, buen timing" y esa diferencia se pierde al
-        # mirar solo los promedios de cada dimensión. Usa
-        # backtester._aggregate_cross(..., "confidence_label", "consenso")
-        # (backtester.py, agregado 05/08/2026), que ya viene con
-        # _diversity_metrics incluido -- de ahí que _mc_chip ya sepa
-        # mostrar la advertencia de concentración sin cambios adicionales.
         _cons_short = {
             "Consenso": "🤝 Consenso",
             "V1↓/V2↑ activo débil, buen entry": "✅ Activo débil, buen timing",
             "V1↑/V2↓ buen activo, mal timing":  "⚠️ Buen activo, mal timing",
         }
-        _cxc = _backtest.get("confidence_x_consenso", {})
-        _cxc_parts = []
-        for _cl in _conf_order:
-            _byc_cl = _cxc.get(_cl, {})
-            for _ck in sorted(_byc_cl.keys(), key=lambda k: (k != "Consenso", -_byc_cl[k].get("count", 0))):
-                _combo_label = f'{_cl} · {_cons_short.get(_ck, _ck)}'
-                _cxc_parts.append(_mc_chip(_combo_label, _byc_cl[_ck], border_color=_conf_colors.get(_cl, "#2a2a2a"), min_n=10))
-        mc_chips_cxc = "".join(_cxc_parts)
-        mc_cxc_section = ""
-        if mc_chips_cxc:
-            mc_cxc_section = (
-                '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">🎯⚖️ Confianza × V1 vs V2 (cruce)</div>'
-                '<div style="font-size:10px;color:#666;margin-bottom:6px">Los dos paneles de arriba por separado -- acá '
-                'cruzados, para ver si "buen timing con mala calidad" funciona distinto según cuán confiado estaba el '
-                'modelo en la señal. Con pocos días de historia, varias celdas todavía tienen pocas operaciones.</div>'
-                f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px;margin-bottom:10px">'
-                f'{mc_chips_cxc}</div>'
-            )
+        # Orden fijo (antes se ordenaba por count del agregado -- ya no
+        # aplica al desglosar por mercado, cada mercado tendría un orden
+        # distinto y sería confuso comparar entre tarjetas).
+        _cons_order = ["Consenso", "V1↓/V2↑ activo débil, buen entry", "V1↑/V2↓ buen activo, mal timing"]
+        # Pedido de Bruno (28/07/2026): listar tickers de HOY en "Consenso" y
+        # "Activo débil, buen timing" -- mismo criterio que arriba, acotado a
+        # las 2 categorías que pidió.
+        _cons_ticker_keys = {"Consenso", "V1↓/V2↑ activo débil, buen entry"}
 
         _mkt_names = {"MERVAL": "🇦🇷 MERVAL", "BOVESPA": "🇧🇷 BOVESPA", "SP500": "🇺🇸 S&amp;P 500"}
         _by_mkt = _backtest.get("by_market", {})
@@ -589,39 +500,81 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             _mc_chip(_mkt_names[_m], _by_mkt.get(_m)) for _m in _mkt_order if _m in _by_mkt
         )
 
-        # Cruce confianza × mercado (pedido de Bruno, 03/09/2026): ver
-        # docstring de _mc_merge_compra_entries arriba para el contexto
-        # completo -- el panel "Por confianza" mezcla los 3 mercados, y
-        # cuál mercado domina el conteo de cada nivel de confianza puede
-        # explicar el resultado tanto o más que la confianza en sí. Se
-        # combina COMPRA + COMPRA FUERTE (mismo criterio que _es_compra)
-        # por celda confianza×mercado usando confidence_x_signal_x_mercado
-        # (backtester.py, agregado 28/07/2026).
-        _cxm = _backtest.get("confidence_x_signal_x_mercado", {})
-        _cxm_parts = []
-        for _cl in _conf_order:
-            _by_signal_cl = _cxm.get(_cl, {})
-            for _m in _mkt_order:
-                _cell_entries = [
-                    _mkts.get(_m) for _sig, _mkts in _by_signal_cl.items() if "COMPRA" in _sig.upper()
-                ]
-                _merged = _mc_merge_compra_entries(_cell_entries)
-                if _merged is None:
-                    continue
-                _combo_label = f'{_cl} · {_mkt_names.get(_m, _m)}'
-                _cxm_parts.append(_mc_chip(_combo_label, _merged, border_color=_conf_colors.get(_cl, "#2a2a2a"), min_n=10))
-        mc_chips_cxm = "".join(_cxm_parts)
-        mc_cxm_section = ""
-        if mc_chips_cxm:
-            mc_cxm_section = (
-                '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">🎯🌎 Confianza × Mercado (cruce)</div>'
-                '<div style="font-size:10px;color:#666;margin-bottom:6px">El panel de arriba mezcla los 3 mercados en '
-                'cada nivel de confianza -- si un mercado domina el conteo de un nivel (ej. MERVAL en Alta), su '
-                'resultado tapa lo que pasa en los otros. Acá se ve la confianza DENTRO de cada mercado por '
-                'separado, solo señales de COMPRA/COMPRA FUERTE.</div>'
-                f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px;margin-bottom:10px">'
-                f'{mc_chips_cxm}</div>'
+        # REEMPLAZO 04/09/2026 (pedido de Bruno): los 3 paneles de arriba
+        # (Por confianza, Consenso V1/V2, Confianza × Consenso) mezclaban
+        # los 3 mercados en cada celda -- ya se confirmó en vivo (mismo día,
+        # auditoría del panel "Confianza × Mercado" agregado ayer) que eso
+        # es engañoso: un mercado con índice a la baja puede tapar el
+        # resultado de otro con índice al alza dentro de la misma celda de
+        # confianza. Se reemplazan los 3 paneles agregados por un bloque
+        # por mercado, cada uno con sus propios Confianza/Consenso/Cruce,
+        # usando confidence_x_mercado, consenso_x_mercado y
+        # confidence_x_consenso_x_mercado (backtester.py, agregado hoy --
+        # reutilizan _aggregate_cross/_aggregate_cross3 ya existentes, sin
+        # lógica de agregación nueva).
+        _cxmk_conf = _backtest.get("confidence_x_mercado", {})
+        _cxmk_cons = _backtest.get("consenso_x_mercado", {})
+        _cxmk_cxc  = _backtest.get("confidence_x_consenso_x_mercado", {})
+
+        _market_block_parts = []
+        for _m in _mkt_order:
+            if _m not in _by_mkt:
+                continue
+
+            _conf_chips_m = "".join(
+                _mc_chip(_conf_names[_cl], _cxmk_conf.get(_cl, {}).get(_m), border_color=_conf_colors[_cl],
+                         extra_html=(_mc_ticker_badges([s for s in _signals_today if s.get("mercado") == _m
+                                      and s.get("confidence_label") == _cl and _es_compra(s)])
+                                     if _cl in _conf_ticker_labels else ""))
+                for _cl in _conf_order if _cxmk_conf.get(_cl, {}).get(_m)
             )
+
+            _cons_chips_m = "".join(
+                _mc_chip(_cons_meta.get(_ck, (_ck, None))[0], _cxmk_cons.get(_ck, {}).get(_m),
+                         subtitle=_cons_meta.get(_ck, (_ck, None))[1], min_n=10,
+                         extra_html=(_mc_ticker_badges([s for s in _signals_today if s.get("mercado") == _m
+                                      and s.get("consenso") == _ck and _es_compra(s)])
+                                     if _ck in _cons_ticker_keys else ""))
+                for _ck in _cons_order if _cxmk_cons.get(_ck, {}).get(_m)
+            )
+
+            _cxc_chips_m_parts = []
+            for _cl in _conf_order:
+                for _ck in _cons_order:
+                    _cell = _cxmk_cxc.get(_cl, {}).get(_ck, {}).get(_m)
+                    if not _cell:
+                        continue
+                    _combo_label = f'{_cl} · {_cons_short.get(_ck, _ck)}'
+                    _cxc_chips_m_parts.append(
+                        _mc_chip(_combo_label, _cell, border_color=_conf_colors.get(_cl, "#2a2a2a"), min_n=8,
+                                 extra_html=_mc_ticker_badges([s for s in _signals_today if s.get("mercado") == _m
+                                              and s.get("confidence_label") == _cl and s.get("consenso") == _ck
+                                              and _es_compra(s)]))
+                    )
+            _cxc_chips_m = "".join(_cxc_chips_m_parts)
+
+            if not (_conf_chips_m or _cons_chips_m or _cxc_chips_m):
+                continue
+
+            _market_block_parts.append(
+                f'<div style="background:#0a0a10;border:1px solid #1c1c1c;border-radius:8px;'
+                f'padding:10px 14px;margin-bottom:10px">'
+                f'<div style="font-size:12.5px;color:#e5e5e5;font-weight:700;margin-bottom:8px">{_mkt_names[_m]}</div>'
+
+                f'<div style="font-size:10.5px;color:#888;font-weight:700;margin-bottom:4px">🎯 Por confianza</div>'
+                f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));'
+                f'gap:6px;margin-bottom:10px">{_conf_chips_m or "<div style=\'font-size:10px;color:#555\'>sin datos aún</div>"}</div>'
+
+                f'<div style="font-size:10.5px;color:#888;font-weight:700;margin-bottom:4px">⚖️ Consenso V1/V2</div>'
+                f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));'
+                f'gap:6px;margin-bottom:10px">{_cons_chips_m or "<div style=\'font-size:10px;color:#555\'>sin datos aún</div>"}</div>'
+
+                f'<div style="font-size:10.5px;color:#888;font-weight:700;margin-bottom:4px">🎯⚖️ Confianza × Consenso</div>'
+                f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));'
+                f'gap:6px">{_cxc_chips_m or "<div style=\'font-size:10px;color:#555\'>sin datos aún</div>"}</div>'
+                f'</div>'
+            )
+        mc_per_market_html = "".join(_market_block_parts)
 
         _by_sec = _backtest.get("by_sector", {})
         _sec_evs = []
@@ -810,22 +763,13 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             f'con {mc_days_hist} días de historia, diferencias menores a ±{_MC_NOISE_THRESHOLD}% todavía no son concluyentes.'
             '</div>'
 
-            '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">🎯 Por confianza del modelo</div>'
-            '<div style="font-size:10px;color:#666;margin-bottom:6px">El modelo combina 5 factores (predictor, '
-            'alineación de plazos, calidad de datos, consistencia V1/V2, volatilidad) en un puntaje 0-100 al emitir '
-            'la señal. Esto muestra cómo le fue en la realidad a cada nivel:</div>'
-            f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px;margin-bottom:10px">'
-            f'{mc_chips_conf}</div>'
-
-            '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">⚖️ Calidad del activo (V1) vs. '
-            'momento de entrada (V2)</div>'
-            '<div style="font-size:10px;color:#666;margin-bottom:6px">V1 mide si el activo es sólido de fondo; V2 si '
-            'es buen momento técnico para entrar. Cuando no coinciden, ¿cuál importó más?</div>'
-            f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:6px;margin-bottom:10px">'
-            f'{mc_chips_cons}</div>'
-
-            f'{mc_cxc_section}'
-            f'{mc_cxm_section}'
+            '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">🎯⚖️🌎 Confianza / Consenso / Cruce, por mercado</div>'
+            '<div style="font-size:10px;color:#666;margin-bottom:8px">El modelo combina 5 factores (predictor, '
+            'alineación de plazos, calidad de datos, consistencia V1/V2, volatilidad) en un puntaje de confianza '
+            '0-100; V1 mide si el activo es sólido de fondo, V2 si es buen momento técnico para entrar. Desglosado '
+            'por mercado porque un índice a la baja o al alza puede tapar el resultado real de los otros dos si se '
+            'mira todo mezclado:</div>'
+            f'{mc_per_market_html}'
 
             '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 6px">🌎 Por mercado</div>'
             f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px">'

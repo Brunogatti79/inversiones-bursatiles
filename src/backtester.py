@@ -567,6 +567,21 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         "confidence_x_signal_x_mercado": _aggregate_cross3(
             trades, "confidence_label", "signal", "mercado"
         ),
+        # Pedido de Bruno (04/09/2026): los paneles marginales de arriba
+        # (by_confidence_label, by_consenso, confidence_x_consenso) mezclan
+        # los 3 mercados -- ya se confirmó en vivo (auditoría del mismo día,
+        # ver confidence_x_signal_x_mercado) que un mercado con retorno de
+        # índice muy distinto a los otros dos puede tapar lo que pasa en el
+        # resto (paradoja de Simpson, mismo patrón que ranking_top_vs_rest
+        # vs ranking_top_vs_rest_by_market). Estas 3 claves reutilizan las
+        # mismas funciones genéricas de cruce, solo agregando "mercado"
+        # como dimensión -- sin lógica nueva, mismo criterio de
+        # muestra_insuficiente/diversidad que el resto.
+        "confidence_x_mercado":            _aggregate_cross(trades, "confidence_label", "mercado"),
+        "consenso_x_mercado":              _aggregate_cross(trades, "consenso", "mercado"),
+        "confidence_x_consenso_x_mercado": _aggregate_cross3(
+            trades, "confidence_label", "consenso", "mercado"
+        ),
         # Auditoría externa (28/07/2026), punto 3: ¿el predictor aporta valor
         # marginal real, o el edge viene de otro lado del modelo? Compara EV
         # real cuando el predictor confirma la señal vs. cuando la contradice.
