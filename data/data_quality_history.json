@@ -433,5 +433,30 @@
         ]
       }
     ]
+  },
+  {
+    "date": "2026-09-04",
+    "timestamp": "2026-09-04T09:57:18.347052",
+    "variables_obtenidas": {
+      "ARG": 9,
+      "BRA": 8,
+      "USA": 8
+    },
+    "anomalias": [
+      {
+        "mercado": "ARG",
+        "variable": "tasa_tamar",
+        "valor": 2450.0,
+        "modo_comparado": "fijo (RANGES)",
+        "rango_esperado": [
+          5.0,
+          60.0
+        ],
+        "limite_sano": [
+          -50.0,
+          115.0
+        ]
+      }
+    ]
   }
 ]
