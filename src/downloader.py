@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 MERVAL_TICKERS = {
     "GGAL.BA":  "Grupo Financiero Galicia",
     "BMA.BA":   "Banco Macro",
-    "PAMP.BA":  "Pampa Energía",
+    "PAMP.BA":  "Pampa Energia",
     "TXAR.BA":  "Ternium Argentina",
     "ALUA.BA":  "Aluar",
     "CRES.BA":  "Cresud",
@@ -42,7 +42,20 @@ MERVAL_TICKERS = {
     "EDN.BA":   "Edenor",
     "HARG.BA":  "Holcim Argentina",
     "TRAN.BA":  "Transener",
-    "MOLI.BA":  "Molinos Río de la Plata",
+    # FIX 04/09/2026 (hallazgo real: 17 tickers en los 3 mercados nunca
+    # generaban señal pese a tener precio real -- confirmado auditando por
+    # qué ITUB4 nunca tuvo COMPRA en 58 días pese a subir +4.86%). Causa:
+    # este diccionario y el de scripts/download_data.py (el que escribe
+    # las columnas del CSV real) son dos fuentes independientes que se
+    # desincronizaron -- este tenía tildes ("Río", "Energía"), el CSV real
+    # las tiene sin tilde ("Rio", "Energia"), así que el match en
+    # analyzer.py (`name if name in df.columns else ...`) fallaba en
+    # silencio y el ticker quedaba afuera de TODO análisis, sin error ni
+    # warning. Se adoptan acá los nombres SIN tilde (los que ya existen en
+    # el CSV real, con años de historia) -- cambiar el CSV en vez de este
+    # diccionario hubiera cortado la continuidad histórica de esas
+    # columnas.
+    "MOLI.BA":  "Molinos Rio de la Plata",
     "BYMA.BA":  "BYMA",
     "IRSA.BA":  "IRSA",
     "YPFD.BA":  "YPF",
@@ -53,29 +66,33 @@ MERVAL_INDEX = "^MERV"
 BOVESPA_TICKERS = {
     "PETR4.SA":  "Petrobras PN",
     "VALE3.SA":  "Vale",
-    "ITUB4.SA":  "Itaú Unibanco",
+    # FIX 04/09/2026: ver comentario extenso junto a MOLI.BA en
+    # MERVAL_TICKERS arriba -- mismo problema, 6 tickers acá (incluye
+    # ITUB4, ~8% del propio índice Ibovespa) nunca generaban señal por
+    # este mismo desajuste de tildes/apóstrofe contra el CSV real.
+    "ITUB4.SA":  "Itau Unibanco",
     "BBDC4.SA":  "Bradesco",
     "ABEV3.SA":  "Ambev",
     "WEGE3.SA":  "WEG",
     "RENT3.SA":  "Localiza",
-    "RDOR3.SA":  "Rede D'Or",
+    "RDOR3.SA":  "Rede D Or",
     "BBAS3.SA":  "Banco do Brasil",
     "MGLU3.SA":  "Magazine Luiza",
     "SUZB3.SA":  "Suzano",
     "EQTL3.SA":  "Equatorial",
-    "RAIZ4.SA":  "Raízen",
+    "RAIZ4.SA":  "Raizen",
     "HAPV3.SA":  "Hapvida",
     "LREN3.SA":  "Lojas Renner",
     "CSNA3.SA":  "CSN",
     "CYRE3.SA":  "Cyrela",
     "EGIE3.SA":  "Engie Brasil",
     "BPAC11.SA": "BTG Pactual",
-    "B3SA3.SA":  "B3 - Brasil Bolsa Balcão",
+    "B3SA3.SA":  "B3 - Brasil Bolsa Balcao",
     "EMBR3.SA":  "Embraer",
     "JBSS3.SA":  "JBS",
-    "ITSA4.SA":  "Itaúsa",
+    "ITSA4.SA":  "Itausa",
     "SANB11.SA": "Santander Brasil",
-    "VIVT3.SA":  "Vivo Telefônica Brasil",
+    "VIVT3.SA":  "Vivo Telefonica Brasil",
 }
 BOVESPA_INDEX = "^BVSP"
  
@@ -98,7 +115,9 @@ SP500_TICKERS = {
     "WMT":   "Walmart",
     "PG":    "Procter & Gamble",
     "KO":    "Coca-Cola",
-    "MCD":   "McDonald's",
+    # FIX 04/09/2026: mismo criterio de nombres sin apóstrofe/tilde que
+    # MERVAL/BOVESPA arriba, para que coincida con el CSV real.
+    "MCD":   "McDonalds",
     "CAT":   "Caterpillar",
     "BA":    "Boeing",
     "GE":    "GE Aerospace",
@@ -111,6 +130,19 @@ SP500_TICKERS = {
     "PBR":   "Petrobras ADR",
     "QCOM":  "Qualcomm",
     "EWZ":   "iShares MSCI Brazil ETF",
+    # FIX 04/09/2026: estos 8 ya se descargan en scripts/download_data.py
+    # desde hace tiempo (tienen precio real en sp500_cierres.csv) pero
+    # nunca estuvieron en este diccionario -- invisibles para
+    # analyzer.py/pipeline.py/predictor.py por completo, no por un
+    # desajuste de nombre sino porque directamente no existían acá.
+    "NFLX":  "Netflix",
+    "MA":    "Mastercard",
+    "AMD":   "Advanced Micro Devices",
+    "PLTR":  "Palantir",
+    "HD":    "Home Depot",
+    "CRM":   "Salesforce",
+    "BRK-B": "Berkshire Hathaway",
+    "ORCL":  "Oracle",
 }
 SP500_INDEX = "^GSPC" 
 MIN_ROWS      = 10
