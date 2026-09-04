@@ -816,7 +816,6 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             'la señal. Esto muestra cómo le fue en la realidad a cada nivel:</div>'
             f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px;margin-bottom:10px">'
             f'{mc_chips_conf}</div>'
-            f'{mc_cxm_section}'
 
             '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">⚖️ Calidad del activo (V1) vs. '
             'momento de entrada (V2)</div>'
@@ -826,6 +825,7 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             f'{mc_chips_cons}</div>'
 
             f'{mc_cxc_section}'
+            f'{mc_cxm_section}'
 
             '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 6px">🌎 Por mercado</div>'
             f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px">'
