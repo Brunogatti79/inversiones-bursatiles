@@ -30,8 +30,23 @@ def _isolate_predictor_state(tmp_path, monkeypatch):
     en memoria entre tests. predict_ticker cachea por ticker sin tener en
     cuenta el estado de ENABLE_RF_PREDICTOR, así que dos tests que usen el
     mismo nombre de ticker con distinto toggle se contaminarían entre sí
-    sin este reset -- por eso además cada test usa un ticker propio."""
+    sin este reset -- por eso además cada test usa un ticker propio.
+
+    FIX 04/09/2026: además aísla _get_reliability_weights() del contenido
+    real de data/predictor_validation.json. Sin esto, estos tests quedaban
+    expuestos a lo que sea que el archivo real tenga en un momento dado
+    (hoy: los 4 submodelos en correlación negativa) -- un tema totalmente
+    aparte de lo que este archivo prueba (el toggle de RF), y hacía que
+    los tests fallaran o pasaran según el estado de un archivo que no
+    tienen por qué conocer. Pesos neutros (1.0 para los 4) para que cada
+    test controle la confianza de cada submodelo únicamente vía sus propios
+    monkeypatches, no vía un archivo externo.
+    """
     monkeypatch.setattr(predictor, "CACHE_PATH", str(tmp_path / "pred_cache.json"))
+    monkeypatch.setattr(predictor, "_get_reliability_weights", lambda: {
+        "holt_winters": 1.0, "gradient_boosting": 1.0,
+        "linear_baseline": 1.0, "random_forest": 1.0,
+    })
     predictor._CACHE = {}
     predictor._CACHE_DATE = ""
     yield
