@@ -84,6 +84,134 @@ CACHE_PATH = "data/pred_cache.json"
 _CACHE: dict = {}
 _CACHE_DATE: str = ""
 
+# FIX 04/09/2026 (hallazgo real: predictor MERVAL con 35.1% de acierto
+# direccional a 21d -- peor que el azar -- auditoría en sesión con Bruno,
+# confirmado que se mantuvo predictor.py como "SUBA" ~4 semanas seguidas
+# mientras el índice caía -4% a -12% cada vez). Causa raíz encontrada en
+# _build_features(): sp500_trend_score/macro_score/cross_market_regime SÍ
+# estaban ahí como columnas, pero con np.full(len(s), valor_de_HOY) --
+# la misma constante repetida en cada fila del set de entrenamiento
+# (que cubre meses de historia). Un feature sin varianza no le enseña
+# nada a un árbol de decisión: el GBR terminaba prediciendo casi
+# exclusivamente en base a momentum/mean-reversion (RSI, distancia a
+# medias), que en una caída sostenida de semanas insiste en "sobrevendido,
+# viene el rebote" sin ninguna noción de que el régimen macro seguía mal.
+#
+# _load_historical_context_map() arma un mapa {fecha: {...}} con los
+# valores REALES de cada día, leídos de signals_history.json --
+# score_macro, vol_regime_mercado y cross_market_regime SÍ se persisten
+# por señal desde hace semanas, solo que nunca se habían usado para esto.
+# Cacheado en memoria (mismo proceso) porque se llama una vez por ticker
+# en run_predictions() -- no tiene sentido releer/reparsear el JSON
+# completo ~67 veces por corrida.
+_CONTEXT_HISTORY_CACHE: dict | None = None
+_SIGNALS_HISTORY_PATH = "data/signals_history.json"
+
+
+def _load_historical_context_map(history_path: str = _SIGNALS_HISTORY_PATH) -> dict:
+    """
+    Devuelve {fecha_str: {"MERVAL": {...}, "BOVESPA": {...}, "SP500": {...},
+    "cross_market_regime": str|None}}, leído de signals_history.json.
+
+    Por mercado se guarda score_macro y vol_regime_mercado (el primero que
+    aparezca ese día -- son valores de mercado, no de ticker, deberían
+    coincidir entre todos los tickers del mismo mercado el mismo día).
+    Para SP500 además se guarda market_trend_score, usado como proxy de
+    "sp500_trend_score" (el indicador líder global que usa cross_market.py)
+    -- no hay un campo separado con ese nombre exacto persistido
+    históricamente, pero el market_trend_score de un ticker SP500 ES ese
+    mismo número (cross_market.py usa SP500 como mercado líder).
+    cross_market_regime es global (no varía entre mercados el mismo día),
+    se guarda una sola vez por fecha.
+
+    Nunca levanta excepción hacia el caller -- si signals_history.json no
+    existe o está corrupto, devuelve {} y _build_features cae al
+    comportamiento viejo (broadcast del contexto de hoy).
+    """
+    global _CONTEXT_HISTORY_CACHE
+    if _CONTEXT_HISTORY_CACHE is not None:
+        return _CONTEXT_HISTORY_CACHE
+
+    result: dict = {}
+    try:
+        if os.path.exists(history_path):
+            with open(history_path) as f:
+                raw = json.load(f)
+            for date_str, entries in raw.items():
+                day = {"MERVAL": {}, "BOVESPA": {}, "SP500": {}, "cross_market_regime": None}
+                for e in entries:
+                    mkt = e.get("mercado")
+                    if mkt not in ("MERVAL", "BOVESPA", "SP500"):
+                        continue
+                    if "score_macro" not in day[mkt] and e.get("score_macro") is not None:
+                        day[mkt]["score_macro"] = e["score_macro"]
+                    if "vol_regime_mercado" not in day[mkt] and e.get("vol_regime_mercado"):
+                        day[mkt]["vol_regime_mercado"] = e["vol_regime_mercado"]
+                    if mkt == "SP500" and "market_trend_score" not in day["SP500"] \
+                       and e.get("market_trend_score") is not None:
+                        day["SP500"]["market_trend_score"] = e["market_trend_score"]
+                    if day["cross_market_regime"] is None and e.get("cross_market_regime"):
+                        day["cross_market_regime"] = e["cross_market_regime"]
+                result[date_str] = day
+    except Exception as e:
+        logger.warning(f"[predictor] No se pudo cargar historial de contexto: {e}")
+        result = {}
+
+    _CONTEXT_HISTORY_CACHE = result
+    return result
+
+
+def _context_series_for(history_map: dict, market: str, dates) -> dict | None:
+    """
+    Alinea el historial real de contexto a las fechas exactas de la serie
+    de precios de un ticker (`dates`), con forward-fill (si una fecha no
+    tiene dato propio, usa el último valor conocido ANTERIOR -- nunca el
+    de una fecha futura, para no filtrar información hacia atrás en el
+    tiempo) y un default neutro (50 / NORMAL / NEUTRAL) para el tramo
+    inicial sin ningún dato previo disponible.
+
+    Devuelve None si `history_map` está vacío (deja que el caller decida
+    el fallback) -- nunca levanta excepción.
+    """
+    if not history_map:
+        return None
+    try:
+        dates_idx = pd.DatetimeIndex(pd.to_datetime(dates))
+        hist_dates = sorted(history_map.keys())
+        hist_idx = pd.DatetimeIndex(pd.to_datetime(hist_dates))
+
+        macro_raw  = [history_map[d].get(market, {}).get("score_macro") for d in hist_dates]
+        vol_raw    = [history_map[d].get(market, {}).get("vol_regime_mercado") for d in hist_dates]
+        sp_raw     = [history_map[d].get("SP500", {}).get("market_trend_score") for d in hist_dates]
+        regime_raw = [history_map[d].get("cross_market_regime") for d in hist_dates]
+
+        def _align_numeric(raw_vals, default):
+            s = pd.Series(raw_vals, index=hist_idx).sort_index()
+            s = s[~s.index.duplicated(keep="last")]
+            union_idx = s.index.union(dates_idx)
+            aligned = s.reindex(union_idx).ffill().reindex(dates_idx)
+            return aligned.fillna(default).astype(float).values
+
+        def _align_categorical(raw_vals, mapping, default_code):
+            s = pd.Series(raw_vals, index=hist_idx).sort_index()
+            s = s[~s.index.duplicated(keep="last")]
+            union_idx = s.index.union(dates_idx)
+            aligned = s.reindex(union_idx).ffill().reindex(dates_idx)
+            return aligned.map(mapping).fillna(default_code).astype(float).values
+
+        return {
+            "macro_local": _align_numeric(macro_raw, 50.0) / 100.0,
+            "sp500_trend": _align_numeric(sp_raw, 50.0) / 100.0,
+            "vol_regime_v": _align_categorical(
+                vol_raw, {"LOW": 0.25, "NORMAL": 0.50, "HIGH": 0.75}, 0.50),
+            "regime_v": _align_categorical(
+                regime_raw, {"RISK_ON": 0.75, "NEUTRAL": 0.50, "RISK_OFF": 0.25}, 0.50),
+        }
+    except Exception as e:
+        logger.debug(f"[predictor] Contexto histórico no disponible, fallback a broadcast: {e}")
+        return None
+
+
 def _load_cache():
     global _CACHE, _CACHE_DATE
     today = date.today().isoformat()
@@ -102,6 +230,8 @@ def _load_cache():
         pass
     _CACHE = {}
     _CACHE_DATE = today
+    global _CONTEXT_HISTORY_CACHE
+    _CONTEXT_HISTORY_CACHE = None
 
 def _save_cache():
     try:
@@ -120,6 +250,76 @@ def _safe_float(v, default=None):
         return r if np.isfinite(r) else default
     except Exception:
         return default
+
+
+def _truncate_at_last_split(serie: pd.Series, threshold: float = 0.60) -> pd.Series:
+    """
+    FIX 04/09/2026 (mismo incidente YA documentado en backtester.py
+    _detect_split_horizon, 10/08/2026: YPF y Mirgor hicieron split 1:10 el
+    03/08/2026 -- ver ese docstring para el contexto completo). backtester.py
+    se protege truncando el TRADE en el salto (mira hacia ADELANTE desde
+    precio_entry), pero predictor.py nunca tuvo la misma protección porque
+    entrena sus modelos sobre la serie histórica completa hacia ATRÁS, un
+    código de ingesta de precios totalmente separado del backtester.
+
+    Caso real que confirmó que hacía falta: MIRG.BA dio pred_21d=-1307.42%
+    el 2026-08-04 -- exactamente un día después del split real de esa
+    misma acción (precio de $16.350 a $1.640, ratio ~10:1). Sin ajustar,
+    Holt-Winters/GBR/RF/Ridge fitean esa caída de -90% de un día para el
+    otro como si fuera un movimiento de mercado real.
+
+    Recorre la serie de atrás para adelante buscando el salto más
+    reciente (cambio relativo >= threshold, mismo 0.60 default que
+    backtester.py para quedar consistentes) entre dos precios
+    consecutivos, y devuelve solo el tramo POSTERIOR a ese salto -- el
+    tramo pre-split queda descartado, no se intenta reconstruir el ratio
+    para "corregir" los precios viejos (mismo argumento que backtester.py:
+    adivinar mal el ratio sería peor que no usar esos datos). Si no hay
+    ningún salto, devuelve la serie completa sin tocar.
+
+    Efecto colateral esperado y aceptado: un ticker recién splitteado
+    puede quedar sin predicción (por debajo del mínimo de observaciones)
+    hasta acumular suficiente historia post-split -- mismo trade-off que
+    ya aceptaste en backtester.py ("se prioriza no contaminar sobre no
+    perder esas observaciones").
+    """
+    if len(serie) < 2:
+        return serie
+    vals = serie.values
+    split_pos = None  # índice del primer valor YA post-split
+    for i in range(len(vals) - 1, 0, -1):
+        prev, curr = vals[i - 1], vals[i]
+        if prev is None or prev <= 0 or curr is None or curr <= 0:
+            continue
+        cambio = abs(float(curr) / float(prev) - 1)
+        if cambio >= threshold:
+            split_pos = i
+            break
+    if split_pos is None:
+        return serie
+    return serie.iloc[split_pos:]
+
+
+def _clamp_pred(value: float, horizon: int) -> tuple[float, bool]:
+    """
+    Clamp de sanidad defensivo (04/09/2026) -- segunda capa de protección,
+    además de _truncate_at_last_split(). Ese fix cubre la causa RAÍZ del
+    caso real encontrado (MIRG.BA, pred_21d=-1307% el 04/08, por un split
+    no ajustado), pero esto actúa como red de seguridad genérica ante
+    cualquier OTRO glitch numérico no relacionado a splits (outlier en el
+    CSV, fit inestable de Holt-Winters, etc.) -- un pred_21d por debajo de
+    -100% es matemáticamente imposible (el precio no puede caer más del
+    100%), así que un valor así SIEMPRE es un bug, nunca una predicción
+    válida real, sin importar la causa.
+
+    Límites deliberadamente generosos y escalados por horizonte -- no son
+    un límite de "qué tan lejos puede moverse el precio de verdad" (eso lo
+    filtran otras partes del sistema), son un piso/techo de sanidad
+    matemática nada más. Devuelve (valor_clampeado, se_clampeo).
+    """
+    upper = {5: 60.0, 10: 80.0, 21: 120.0}.get(horizon, 100.0)
+    clamped = max(-95.0, min(upper, value))
+    return clamped, (clamped != value)
 
 
 def _pred_signal(ret_21d: float) -> str:
@@ -167,12 +367,22 @@ def _holt_winters(serie: np.ndarray, horizon: int) -> tuple[float, float]:
     return _safe_float(pred_pct, 0.0), 0.45
 
 
-def _build_features(serie: np.ndarray, context: dict = None):
+def _build_features(serie: np.ndarray, context: dict = None,
+                     dates=None, market: str = None, history: dict = None):
     """
     Feature engineering compartido (10 features técnicas + 4 de contexto).
     Factorizado de _gradient_boosting para reusar en _random_forest y
     _linear_baseline (mejora 2.4) sin duplicar la lógica.
     Retorna (X, s) o (None, None) si la serie es muy corta.
+
+    `dates`/`market`/`history` (agregados 04/09/2026, ver comentario junto
+    a _load_historical_context_map): cuando los 3 están presentes, las 4
+    columnas de contexto (sp500_trend, macro_local, vol_regime, regime) se
+    alinean a la fecha real de CADA fila histórica en vez de repetir el
+    valor de hoy en todas -- ver docstring de _context_series_for. Si
+    falta alguno de los 3, o el historial no tiene datos, cae al
+    comportamiento viejo (broadcast de `context`) -- backward compatible,
+    ningún caller existente se rompe por no pasar estos parámetros.
     """
     s = pd.Series(serie)
     if len(s) < 25:
@@ -201,14 +411,35 @@ def _build_features(serie: np.ndarray, context: dict = None):
     dist_high  = ((s - high_52w) / high_52w.replace(0, 1)).fillna(0)
 
     ctx = context or {}
-    sp500_trend  = np.full(len(s), float(ctx.get("sp500_trend_score", 50)) / 100)
-    macro_local  = np.full(len(s), float(ctx.get("macro_score", 50)) / 100)
-    vol_regime_f = {"LOW": 0.25, "NORMAL": 0.50, "HIGH": 0.75}.get(
-                      ctx.get("vol_regime", "NORMAL"), 0.50)
-    vol_regime_v = np.full(len(s), vol_regime_f)
-    regime_enc   = {"RISK_ON": 0.75, "NEUTRAL": 0.50, "RISK_OFF": 0.25}.get(
-                      ctx.get("cross_market_regime", "NEUTRAL"), 0.50)
-    regime_v     = np.full(len(s), regime_enc)
+    hist_ctx = None
+    if dates is not None and market is not None and history:
+        hist_ctx = _context_series_for(history, market, dates)
+
+    if hist_ctx is not None and len(hist_ctx["macro_local"]) == len(s):
+        sp500_trend  = hist_ctx["sp500_trend"]
+        macro_local  = hist_ctx["macro_local"]
+        vol_regime_v = hist_ctx["vol_regime_v"]
+        regime_v     = hist_ctx["regime_v"]
+    else:
+        # Fallback: comportamiento viejo, mismo valor (de hoy) repetido en
+        # todas las filas -- se mantiene por compatibilidad para callers
+        # que no pasan dates/market/history, o para cuando el historial
+        # todavía no tiene datos suficientes.
+        sp500_trend  = np.full(len(s), float(ctx.get("sp500_trend_score", 50)) / 100)
+        # FIX 04/09/2026: si vino macro_scores_by_market (pipeline.py) y
+        # tenemos `market`, usar el macro score del mercado correcto en
+        # vez del "macro_score" plano, que siempre era el de SP500.
+        _macro_by_mkt = ctx.get("macro_scores_by_market") or {}
+        _macro_fallback = _macro_by_mkt.get(market) if market else None
+        if _macro_fallback is None:
+            _macro_fallback = ctx.get("macro_score", 50)
+        macro_local  = np.full(len(s), float(_macro_fallback) / 100)
+        vol_regime_f = {"LOW": 0.25, "NORMAL": 0.50, "HIGH": 0.75}.get(
+                          ctx.get("vol_regime", "NORMAL"), 0.50)
+        vol_regime_v = np.full(len(s), vol_regime_f)
+        regime_enc   = {"RISK_ON": 0.75, "NEUTRAL": 0.50, "RISK_OFF": 0.25}.get(
+                          ctx.get("cross_market_regime", "NEUTRAL"), 0.50)
+        regime_v     = np.full(len(s), regime_enc)
 
     X = np.column_stack([
         r3, r5, r10, r21,
@@ -221,7 +452,8 @@ def _build_features(serie: np.ndarray, context: dict = None):
     return X, s
 
 
-def _gradient_boosting(serie: np.ndarray, horizon: int, context: dict = None) -> tuple[float, float]:
+def _gradient_boosting(serie: np.ndarray, horizon: int, context: dict = None,
+                        dates=None, market: str = None, history: dict = None) -> tuple[float, float]:
     """
     Gradient Boosting Regressor con features de rolling.
     Retorna (forecast_pct_change, confidence 0-1).
@@ -234,7 +466,7 @@ def _gradient_boosting(serie: np.ndarray, horizon: int, context: dict = None) ->
         from sklearn.ensemble import GradientBoostingRegressor
         from sklearn.model_selection import cross_val_score
 
-        X, s = _build_features(serie, context)
+        X, s = _build_features(serie, context, dates=dates, market=market, history=history)
         if X is None:
             return 0.0, 0.3
 
@@ -284,7 +516,8 @@ def _gradient_boosting(serie: np.ndarray, horizon: int, context: dict = None) ->
         return 0.0, 0.30
 
 
-def _random_forest(serie: np.ndarray, horizon: int, context: dict = None) -> tuple[float, float]:
+def _random_forest(serie: np.ndarray, horizon: int, context: dict = None,
+                    dates=None, market: str = None, history: dict = None) -> tuple[float, float]:
     """
     Mejora 2.4: Random Forest Regressor — mismo feature set que el GBR pero
     vía bagging en vez de boosting. Aporta diversidad real al ensemble: GBR
@@ -306,7 +539,7 @@ def _random_forest(serie: np.ndarray, horizon: int, context: dict = None) -> tup
     try:
         from sklearn.ensemble import RandomForestRegressor
 
-        X, s = _build_features(serie, context)
+        X, s = _build_features(serie, context, dates=dates, market=market, history=history)
         if X is None:
             return 0.0, 0.3
 
@@ -350,7 +583,8 @@ def _random_forest(serie: np.ndarray, horizon: int, context: dict = None) -> tup
         return 0.0, 0.30
 
 
-def _linear_baseline(serie: np.ndarray, horizon: int, context: dict = None) -> tuple[float, float]:
+def _linear_baseline(serie: np.ndarray, horizon: int, context: dict = None,
+                      dates=None, market: str = None, history: dict = None) -> tuple[float, float]:
     """
     Mejora 2.4: baseline lineal (Ridge regularizado) sobre el mismo feature
     set. Sirve como control de cordura del ensemble: si GBR/RF predicen un
@@ -368,7 +602,7 @@ def _linear_baseline(serie: np.ndarray, horizon: int, context: dict = None) -> t
     try:
         from sklearn.linear_model import Ridge
 
-        X, s = _build_features(serie, context)
+        X, s = _build_features(serie, context, dates=dates, market=market, history=history)
         if X is None:
             return 0.0, 0.25
 
@@ -410,11 +644,18 @@ def _linear_baseline(serie: np.ndarray, horizon: int, context: dict = None) -> t
 # ── Predicción por ticker ──────────────────────────────────────────────────────
 
 def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
-                    include_submodels: bool = False) -> dict:
+                    include_submodels: bool = False,
+                    market: str = None, history: dict = None) -> dict:
     """
     Genera predicciones ensemble para un ticker dado su serie de precios.
     Retorna dict con pred_5d, pred_10d, pred_21d, pred_target,
     pred_confidence, pred_signal, pred_method, pred_direction_agree.
+
+    `market`/`history` (agregados 04/09/2026): ver comentario junto a
+    _load_historical_context_map -- permiten que el GBR/RF/Ridge usen el
+    régimen/macro REAL de cada fecha histórica en vez de repetir el de
+    hoy. Opcionales (default None) por compatibilidad -- sin ellos, cae
+    al comportamiento viejo (broadcast de `context`).
 
     include_submodels=True (default False, sin efecto en producción):
     agrega result["submodels"] con el (valor, confianza) crudo de cada uno
@@ -443,9 +684,16 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
 
     try:
         serie = serie.dropna()
+        # FIX 04/09/2026: descartar el tramo pre-split si lo hay -- ver
+        # docstring de _truncate_at_last_split. Tiene que ir ANTES del
+        # chequeo de longitud mínima: un ticker recién splitteado con
+        # poca historia post-split debe caer al "sin datos aún" (result
+        # default), no fitear sobre una discontinuidad de -90%.
+        serie = _truncate_at_last_split(serie)
         if len(serie) < 30:
             return result
 
+        dates = serie.index
         arr = serie.values.astype(float)
         price_last = float(arr[-1])
 
@@ -454,8 +702,8 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
         hw21, conf_hw21 = _holt_winters(arr, 21)
 
         # ── Modelo 2: Gradient Boosting
-        gb5,  conf_gb5  = _gradient_boosting(arr, 5,  context=context)
-        gb21, conf_gb21 = _gradient_boosting(arr, 21, context=context)
+        gb5,  conf_gb5  = _gradient_boosting(arr, 5,  context=context, dates=dates, market=market, history=history)
+        gb21, conf_gb21 = _gradient_boosting(arr, 21, context=context, dates=dates, market=market, history=history)
 
         # ── Modelo 3: Random Forest (mejora 2.4 — diversidad real vs GBR)
         # DESACTIVADO TEMPORALMENTE (incidente 23/06/2026): es el modelo más
@@ -465,15 +713,15 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
         # Reactivar con env var ENABLE_RF_PREDICTOR=true una vez confirmado
         # que el contenedor soporta la carga (ver Metrics de memoria en Railway).
         if os.getenv("ENABLE_RF_PREDICTOR", "false").lower() == "true":
-            rf5,  conf_rf5  = _random_forest(arr, 5,  context=context)
-            rf21, conf_rf21 = _random_forest(arr, 21, context=context)
+            rf5,  conf_rf5  = _random_forest(arr, 5,  context=context, dates=dates, market=market, history=history)
+            rf21, conf_rf21 = _random_forest(arr, 21, context=context, dates=dates, market=market, history=history)
         else:
             rf5,  conf_rf5  = 0.0, 0.0
             rf21, conf_rf21 = 0.0, 0.0
 
         # ── Modelo 4: Baseline lineal (mejora 2.4 — control de cordura/overfitting)
-        ln5,  conf_ln5  = _linear_baseline(arr, 5,  context=context)
-        ln21, conf_ln21 = _linear_baseline(arr, 21, context=context)
+        ln5,  conf_ln5  = _linear_baseline(arr, 5,  context=context, dates=dates, market=market, history=history)
+        ln21, conf_ln21 = _linear_baseline(arr, 21, context=context, dates=dates, market=market, history=history)
 
         # Mejora 27/07/2026: ponderar cada submodelo por su precisión REAL
         # validada (correlación global en predictor_validation.json), no solo
@@ -511,17 +759,31 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
         p21, c21 = ensemble((hw21, conf_hw21), (gb21, conf_gb21), (rf21, conf_rf21), (ln21, conf_ln21))
 
         # pred_10d: predicción real a 10d (no interpolación)
-        gb10, conf_gb10 = _gradient_boosting(arr, 10, context=context)
+        gb10, conf_gb10 = _gradient_boosting(arr, 10, context=context, dates=dates, market=market, history=history)
         hw10, conf_hw10 = _holt_winters(arr, 10)
         if os.getenv("ENABLE_RF_PREDICTOR", "false").lower() == "true":
-            rf10, conf_rf10 = _random_forest(arr, 10, context=context)
+            rf10, conf_rf10 = _random_forest(arr, 10, context=context, dates=dates, market=market, history=history)
         else:
             rf10, conf_rf10 = 0.0, 0.0
-        ln10, conf_ln10 = _linear_baseline(arr, 10, context=context)
+        ln10, conf_ln10 = _linear_baseline(arr, 10, context=context, dates=dates, market=market, history=history)
         conf_hw10 = round(conf_hw10 * _rel["holt_winters"], 4)
         conf_gb10 = round(conf_gb10 * _rel["gradient_boosting"], 4)
         conf_ln10 = round(conf_ln10 * _rel["linear_baseline"], 4)
         p10, c10 = ensemble((hw10, conf_hw10), (gb10, conf_gb10), (rf10, conf_rf10), (ln10, conf_ln10))
+
+        # FIX 04/09/2026: clamp de sanidad defensivo -- ver docstring de
+        # _clamp_pred. Se loguea si alguno se clampeó, para poder ir
+        # auditando si aparecen más casos además del de MIRG.BA (que ya
+        # debería quedar cubierto por _truncate_at_last_split, esto es
+        # la red de seguridad de más atrás).
+        p5,  clamped5  = _clamp_pred(p5, 5)
+        p10, clamped10 = _clamp_pred(p10, 10)
+        p21, clamped21 = _clamp_pred(p21, 21)
+        if clamped5 or clamped10 or clamped21:
+            logger.warning(
+                f"[predictor] {ticker}: predicción fuera de rango plausible, clampeada "
+                f"(5d={p5} 10d={p10} 21d={p21}) -- revisar posible split no detectado u otro outlier"
+            )
 
         # Target precio a 21d
         target = round(price_last * (1 + p21 / 100), 2)
@@ -569,6 +831,11 @@ def run_predictions(signals: list[dict], price_data: dict, ticker_cols: dict = N
     Retorna la lista de señales actualizada.
     """
     _load_cache()
+    # FIX 04/09/2026: se carga UNA vez por corrida (no por ticker) -- ver
+    # docstring de _load_historical_context_map. `context` (el snapshot de
+    # hoy) se sigue pasando igual, queda como fallback para fechas sin
+    # datos en el historial.
+    history_map = _load_historical_context_map()
     enriched = 0
     skipped  = 0
 
@@ -630,7 +897,7 @@ def run_predictions(signals: list[dict], price_data: dict, ticker_cols: dict = N
             skipped += 1
             continue
 
-        pred = predict_ticker(ticker, serie, context=context)
+        pred = predict_ticker(ticker, serie, context=context, market=market, history=history_map)
 
         # Determinar si la predicción coincide con la señal del modelo
         signal_up = "COMPRA" in s.get("signal", "")

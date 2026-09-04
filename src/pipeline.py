@@ -411,11 +411,20 @@ def run_pipeline():
         logger.info("4b/8 Generando predicciones ensemble...")
         try:
             from src.predictor import run_predictions
+            # FIX 04/09/2026 (mismo hallazgo que el fix de contexto histórico
+            # en predictor.py): "macro_score" acá siempre tomaba
+            # macro_scores.get("SP500", ...) -- una acción de MERVAL recibía
+            # el macro score de EEUU como fallback, nunca el de Argentina.
+            # Se pasa el dict completo (macro_scores_by_market) para que
+            # _build_features() pueda elegir el del mercado correcto; se
+            # mantiene "macro_score" (SP500) solo por compatibilidad hacia
+            # atrás si algo más lo llegara a leer.
             predictor_context = {
-                "sp500_trend_score":   cross_market.get("sp500_trend_score", 50),
-                "macro_score":         macro_scores.get("SP500", 50),
-                "vol_regime":          vol_regime.get("global_regime", "NORMAL"),
-                "cross_market_regime": cross_market.get("regime", "NEUTRAL"),
+                "sp500_trend_score":     cross_market.get("sp500_trend_score", 50),
+                "macro_score":           macro_scores.get("SP500", 50),
+                "macro_scores_by_market": dict(macro_scores),
+                "vol_regime":            vol_regime.get("global_regime", "NORMAL"),
+                "cross_market_regime":   cross_market.get("regime", "NEUTRAL"),
             }
             all_signals = run_predictions(
                 all_signals,
