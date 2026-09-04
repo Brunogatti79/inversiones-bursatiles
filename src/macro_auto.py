@@ -15,6 +15,7 @@ import os
 import logging
 import json
 import base64
+import io
 import requests
 import numpy as np
 import pandas as pd
@@ -775,6 +776,69 @@ def _bcb_latest(series_id):
         return None, None
  
  
+# FIX 04/09/2026 -- ver comentario extenso junto al llamado en
+# fetch_brasil_macro() sobre por qué se reemplaza el scraping de Ámbito.
+_DAMODARAN_URL = "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/ctryprem.html"
+_DAMODARAN_CACHE: dict | None = None  # cachea la tabla completa en memoria
+# por proceso -- el archivo se actualiza 2-3 veces por año, no tiene
+# sentido volver a pedir/parsear la tabla de ~180 países por cada mercado
+# que la consulte en la misma corrida.
+
+
+def _fetch_damodaran_country_risk(country: str):
+    """
+    Country Risk Premium / Default Spread por país, de Aswath Damodaran
+    (NYU Stern) -- tabla pública, sin auth, sin key. Devuelve el "Adj.
+    Default Spread" en BASIS POINTS (no "Country Risk Premium", que ya
+    trae aplicado un multiplicador de volatilidad de equity -- usar esa
+    columna sobreestimaría el riesgo respecto a lo que espera
+    RANGES["bra_riesgo"]/["arg_riesgo"], calibrado en escala de EMBI/bps
+    puros, no de equity risk premium).
+
+    Nunca levanta excepción hacia el caller -- (None, None) si falla
+    la request, si el país no aparece en la tabla, o si el formato de la
+    página cambió de forma que no se puede parsear (esto último se loguea
+    como warning explícito, para no fallar en silencio si Damodaran
+    reestructura la tabla en el futuro).
+    """
+    global _DAMODARAN_CACHE
+    try:
+        if _DAMODARAN_CACHE is None:
+            r = requests.get(_DAMODARAN_URL, timeout=15, headers={"User-Agent": "InversionesBursatiles/1.0"})
+            r.raise_for_status()
+            tablas = pd.read_html(io.StringIO(r.text))
+            # La tabla de países (>150 filas) es muy distinguible de
+            # cualquier otra tabla chica que pueda haber en la página.
+            _DAMODARAN_CACHE = max(tablas, key=len)
+
+        tabla = _DAMODARAN_CACHE
+        col_pais = tabla.columns[0]
+        fila = tabla[tabla[col_pais].astype(str).str.strip() == country]
+        if fila.empty:
+            logger.warning(f"[macro_auto] Damodaran: país {country!r} no encontrado en la tabla")
+            return None, None
+
+        # El header real viene con espacios internos irregulares (ej.
+        # "Adj. Default  Spread", doble espacio) -- se busca por
+        # coincidencia parcial normalizada en vez de un string exacto,
+        # para no romper si el espaciado cambia en una actualización futura.
+        col_spread = next(
+            (c for c in tabla.columns if "default" in str(c).lower() and "spread" in str(c).lower()),
+            None,
+        )
+        if col_spread is None:
+            logger.warning("[macro_auto] Damodaran: no se encontró la columna de Default Spread")
+            return None, None
+
+        spread_str = str(fila.iloc[0][col_spread]).replace("%", "").strip()
+        spread_pct = float(spread_str)
+        spread_bps = round(spread_pct * 100, 1)
+        return spread_bps, datetime.now().strftime("%Y-%m-%d")
+    except Exception as e:
+        logger.warning(f"[macro_auto] Damodaran country risk error [{country}]: {e}")
+        return None, None
+
+
 def fetch_brasil_macro():
     """Obtiene variables macro de Brasil."""
     data = {}
@@ -823,21 +887,25 @@ def fetch_brasil_macro():
         )
         data["tasa_real"] = {"valor": None, "fecha": ""}
 
-    # Riesgo país Brasil (EMBI) — scraping
-    try:
-        r = requests.get("https://mercados.ambito.com/riesgo-pais-historico/brasil", timeout=10, headers={"User-Agent": "InversionesBursatiles/1.0"})
-        if r.status_code == 200:
-            rp_data = r.json()
-            if isinstance(rp_data, list) and len(rp_data) > 0:
-                val = float(str(rp_data[-1].get("valor", "0")).replace(".", "").replace(",", "."))
-                data["riesgo_pais"] = {"valor": val, "fecha": ""}
-            else:
-                data["riesgo_pais"] = {"valor": None, "fecha": ""}
-        else:
-            data["riesgo_pais"] = {"valor": None, "fecha": ""}
-    except Exception as e:
-        logger.warning(f"Riesgo país BRA error: {e}")
-        data["riesgo_pais"] = {"valor": None, "fecha": ""}
+    # Riesgo país Brasil — MIGRADO 04/09/2026 de scraping de Ámbito a
+    # Damodaran Country Risk Premium (NYU Stern), fuente académica pública
+    # estándar, sin auth. Motivo: el EMBI+ oficial (JP Morgan, vía
+    # Ipeadata) fue DISCONTINUADO en julio 2024 -- no existe un reemplazo
+    # API directo del EMBI clásico, así que no es "cambiar de proveedor",
+    # es que la fuente original dejó de existir. Damodaran es la
+    # alternativa más citada en la práctica (ver blog Trevisan, orden de
+    # preferencia post-discontinuación: Damodaran > CDS 5y > World Gov
+    # Bonds). Se actualiza ~2-3 veces por año (no diario) -- consistente
+    # con el resto de las variables de esta magnitud (ninguna de las 27
+    # variables macro se mueve a diario tampoco). _with_last_known_fallback
+    # (mismo patrón que el resto de este archivo) cubre los días entre
+    # actualizaciones.
+    def _fetch_riesgo_pais_bra():
+        val, dt = _fetch_damodaran_country_risk("Brazil")
+        return val, dt
+
+    val, dt = _with_last_known_fallback("riesgo_pais_bra", _fetch_riesgo_pais_bra)
+    data["riesgo_pais"] = {"valor": val, "fecha": dt or ""}
  
     # PMI Manufacturero Brasil — REEMPLAZADO 30/07/2026 (auditoría de log,
     # confirmado con Bruno). El series_id anterior (BRAPMIMANMISMEI) devolvía
