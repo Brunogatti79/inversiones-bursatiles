@@ -74,6 +74,12 @@ GAPS_FUNDAMENTALES_CONOCIDOS = {
     "SANB11.SA", "VIVT3.SA", "EMBR3.SA", "JBSS3.SA",                # nuevos de esta sesión
     "SUPV.BA", "TECO2.BA", "COME.BA", "HARG.BA", "MOLI.BA",
     "RAIZ4.SA", "HAPV3.SA", "CSNA3.SA",                             # preexistentes, no ETF
+    "AMD", "BRK-B", "CRM", "HD", "MA", "NFLX", "ORCL", "PLTR",      # FIX 04/09/2026:
+    # recién agregados a SP500_TICKERS (ver test_sp500_count) -- estaban
+    # invisibles para TODO el análisis hasta hoy, así que lógicamente
+    # tampoco tienen fila en ratios_consolidado_quant.csv todavía. Van a
+    # operar con Score Fundamental en default hasta que se les cargue
+    # ratios reales (roadmap: automatizar ratios_consolidado_quant.csv).
 }
 
 
@@ -89,11 +95,18 @@ class TestTickerUniverseCount:
 
     def test_sp500_count(self):
         _, _, sp500 = _all_tickers()
-        assert len(sp500) == 31
+        # FIX 04/09/2026: 31 -> 39. Los 8 nuevos (AMD, BRK-B, CRM, HD, MA,
+        # NFLX, ORCL, PLTR) ya se descargaban en scripts/download_data.py
+        # desde hace tiempo (precio real en sp500_cierres.csv) pero nunca
+        # habían estado en src/downloader.py -- invisibles para todo el
+        # análisis. Ver también GAPS_FUNDAMENTALES_CONOCIDOS abajo: recién
+        # activados, todavía no tienen fila en ratios_consolidado_quant.csv.
+        assert len(sp500) == 39
 
-    def test_total_is_78(self):
+    def test_total_is_86(self):
         merval, bovespa, sp500 = _all_tickers()
-        assert len(merval) + len(bovespa) + len(sp500) == 78
+        # FIX 04/09/2026: 78 -> 86 (22 MERVAL + 25 BOVESPA + 39 SP500).
+        assert len(merval) + len(bovespa) + len(sp500) == 86
 
     def test_new_tickers_present(self):
         """Los 8 tickers agregados sin que ninguna doc de arquitectura
