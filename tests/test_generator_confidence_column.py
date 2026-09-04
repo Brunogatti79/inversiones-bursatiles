@@ -116,22 +116,30 @@ class TestConfidencePanelRanges:
         en confidence_score.py (_label): ≥75 Alta, 55-74 Media, 35-54 Baja,
         <35 Muy baja -- si alguna vez se recalibran esos umbrales ahí, hay
         que actualizar este texto también (o mejor, leerlo de una constante
-        compartida en vez de tenerlo repetido en 2 archivos)."""
+        compartida en vez de tenerlo repetido en 2 archivos).
+
+        FIX 04/09/2026 (pedido de Bruno): el panel de confianza pasó de
+        agregado a desglosado por mercado (confidence_x_mercado en vez de
+        by_confidence_label) -- el fixture se actualiza a la forma nueva,
+        pero la intención del test (que las 4 etiquetas de rango aparezcan
+        en el HTML) no cambia.
+        """
         # Aislar el backtest_results.json real del repo -- este test no debe
         # depender de qué haya hoy en data/, solo de que el texto de rango
-        # aparezca cuando SÍ hay datos de by_confidence_label.
+        # aparezca cuando SÍ hay datos de confidence_x_mercado.
         backtest_path = tmp_path.parent / "data_test_backtest.json"
         monkeypatch.chdir(tmp_path)
         os.makedirs("data", exist_ok=True)
         import json
         with open("data/backtest_results.json", "w") as f:
             json.dump({
-                "by_confidence_label": {
-                    "🟢 Alta": {"10d": {"samples": 11, "win_rate": 0.55, "expected_value": 0.7}},
-                    "🟡 Media": {"10d": {"samples": 66, "win_rate": 0.59, "expected_value": 0.7}},
-                    "🟠 Baja": {"10d": {"samples": 123, "win_rate": 0.46, "expected_value": -0.5}},
-                    "🔴 Muy baja": {"10d": {"samples": 8, "win_rate": 0.50, "expected_value": -5.0}},
-                }
+                "confidence_x_mercado": {
+                    "🟢 Alta":     {"SP500": {"10d": {"samples": 11,  "win_rate": 0.55, "expected_value": 0.7}}},
+                    "🟡 Media":    {"SP500": {"10d": {"samples": 66,  "win_rate": 0.59, "expected_value": 0.7}}},
+                    "🟠 Baja":     {"SP500": {"10d": {"samples": 123, "win_rate": 0.46, "expected_value": -0.5}}},
+                    "🔴 Muy baja": {"SP500": {"10d": {"samples": 8,   "win_rate": 0.50, "expected_value": -5.0}}},
+                },
+                "by_market": {"SP500": {"10d": {"samples": 200, "win_rate": 0.52, "expected_value": 0.1}}},
             }, f)
 
         args = dict(_basic_args)
