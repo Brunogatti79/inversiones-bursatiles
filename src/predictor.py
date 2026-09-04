@@ -41,8 +41,22 @@ def _load_reliability_weights() -> dict:
     comportamiento respecto a antes de este fix) si el archivo no existe
     todavía, no tiene la forma esperada, o falla la lectura — para no romper
     una corrida si predictor_validation.py todavía no corrió ni una vez.
+
+    FIX 04/09/2026 (hallazgo real, sesión con Bruno -- URGENTE porque afecta
+    plata real, no solo cosmético): este mecanismo se escribió el 27/07,
+    ANTES de que ENABLE_RF_PREDICTOR se activara en Railway. random_forest
+    nunca tuvo una clave acá, así que su confianza NUNCA se multiplicaba por
+    nada -- mientras holt_winters/gradient_boosting quedaban correctamente
+    en 0 (correlación real negativa), random_forest pasaba sin filtro con
+    SU PROPIA correlación real también negativa (-0.039, prácticamente
+    igual de malo que gradient_boosting). Resultado: ensemble() descartaba
+    los 3 modelos correctamente filtrados y dejaba a RF como único
+    sobreviviente -- el "ensemble" terminaba siendo 100% un modelo tan malo
+    como los que sí se excluían. Confirmado en producción: 19 tickers del
+    04/09 (incluye NVDA, AMZN, META, HAPV3.SA, LREN3.SA) tuvieron su señal
+    bajada de COMPRA a NEUTRAL/VENTA basándose pred_21d de RF sin filtrar.
     """
-    default = {"holt_winters": 1.0, "gradient_boosting": 1.0, "linear_baseline": 1.0}
+    default = {"holt_winters": 1.0, "gradient_boosting": 1.0, "linear_baseline": 1.0, "random_forest": 1.0}
     try:
         with open(VALIDATION_PATH) as f:
             data = json.load(f)
@@ -54,16 +68,25 @@ def _load_reliability_weights() -> dict:
     glob = data.get("global") or {}
     corr_hw  = (glob.get("holt_winters") or {}).get("correlation")
     corr_gbr = (glob.get("gradient_boosting") or {}).get("correlation")
+    corr_rf  = (glob.get("random_forest") or {}).get("correlation")
     if corr_hw is None or corr_gbr is None:
         return default
 
     corr_hw  = max(0.0, float(corr_hw))
     corr_gbr = max(0.0, float(corr_gbr))
-    best = max(corr_hw, corr_gbr) or 1.0
+    # random_forest solo se activó recientemente en producción -- puede no
+    # tener todavía una entrada en predictor_validation.json (archivo
+    # generado antes de esa activación, o corrida vieja). Si no hay dato,
+    # se lo trata como 0.0 (no confiar por default en algo no validado
+    # todavía) en vez de 1.0 (que lo dejaría pasar sin filtro, exactamente
+    # el bug que se está arreglando acá).
+    corr_rf  = max(0.0, float(corr_rf)) if corr_rf is not None else 0.0
+    best = max(corr_hw, corr_gbr, corr_rf) or 1.0
 
     return {
         "holt_winters":      round(corr_hw / best, 3),
         "gradient_boosting": round(corr_gbr / best, 3),
+        "random_forest":     round(corr_rf / best, 3),
         "linear_baseline":   0.0,  # decisión explícita 27/07/2026: correlación negativa, se excluye
     }
 
@@ -735,6 +758,10 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
         conf_gb21 = round(conf_gb21 * _rel["gradient_boosting"], 4)
         conf_ln5  = round(conf_ln5  * _rel["linear_baseline"], 4)
         conf_ln21 = round(conf_ln21 * _rel["linear_baseline"], 4)
+        # FIX 04/09/2026: random_forest nunca se filtraba -- ver docstring
+        # de _load_reliability_weights().
+        conf_rf5  = round(conf_rf5  * _rel["random_forest"], 4)
+        conf_rf21 = round(conf_rf21 * _rel["random_forest"], 4)
 
         # ── Ensemble ponderado por confianza (generalizado a N modelos)
         def ensemble(*pairs):
@@ -769,6 +796,7 @@ def predict_ticker(ticker: str, serie: pd.Series, context: dict = None,
         conf_hw10 = round(conf_hw10 * _rel["holt_winters"], 4)
         conf_gb10 = round(conf_gb10 * _rel["gradient_boosting"], 4)
         conf_ln10 = round(conf_ln10 * _rel["linear_baseline"], 4)
+        conf_rf10 = round(conf_rf10 * _rel["random_forest"], 4)
         p10, c10 = ensemble((hw10, conf_hw10), (gb10, conf_gb10), (rf10, conf_rf10), (ln10, conf_ln10))
 
         # FIX 04/09/2026: clamp de sanidad defensivo -- ver docstring de
