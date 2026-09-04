@@ -266,13 +266,25 @@ def fetch_argentina_macro():
         val, dt = _bcra_oficial_latest(BCRA_ID_VARIABLE["tasa_tamar"])
         if val is None:
             return None, None
-        # A VALIDAR (ver comentario en BCRA_ID_VARIABLE): fuente de
-        # terceros indica que este idVariable viene en TNA decimal
-        # (ej. 0.2225 = 22.25%), pero RANGES["arg_tasa"] = (60.0, 5.0)
-        # espera puntos porcentuales (el fallback viejo era 29.0, no
-        # 0.29). Se multiplica por 100 acá; si el primer run real muestra
-        # un score ARG absurdo por esta variable, es el primer sospechoso.
-        return round(val * 100, 2), dt
+        # FIX 04/09/2026 (confirmado con el primer run real: el ×100 de
+        # abajo devolvía tasa_tamar=2450, imposible contra
+        # RANGES["arg_tasa"]=(60.0, 5.0)). La nota "A VALIDAR" original
+        # asumía que la API cruda del BCRA devuelve TNA decimal (ej.
+        # 0.2225 = 22.25%) según una fuente de terceros -- pero esa misma
+        # fuente aclara, leída con más cuidado, que es SU capa procesada
+        # la que está en decimal ("el silver upstream conserva el
+        # PORCENTAJE; la VIEW aplica la división por 100") -- o sea que
+        # la API cruda del BCRA (la que llama esta función) ya devuelve
+        # el porcentaje directo (ej. 24.50), sin necesidad de multiplicar.
+        # Sanity check: si algún día vuelve un valor fuera de [0, 100],
+        # es señal de que el formato cambió de nuevo -- se loguea en vez
+        # de devolverlo silencioso para no repetir este mismo incidente.
+        if not (0 <= val <= 100):
+            logger.warning(
+                f"[macro_auto] tasa_tamar fuera de rango plausible ({val}) -- "
+                f"posible cambio de formato en la API del BCRA, revisar antes de confiar"
+            )
+        return round(val, 2), dt
 
     val, dt = _with_last_known_fallback("tasa_tamar", _fetch_tamar)
     data["tasa_tamar"] = {"valor": val, "fecha": dt or ""}
