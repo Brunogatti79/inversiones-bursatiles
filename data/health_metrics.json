@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-09-05T17:32:15.086940",
-  "last_run_utc": "2026-09-05T20:32:15.087062",
-  "last_success": "2026-09-05T17:32:15.086940",
+  "last_run": "2026-09-06T17:37:35.646846",
+  "last_run_utc": "2026-09-06T20:37:35.646879",
+  "last_success": "2026-09-06T17:37:35.646846",
   "consecutive_failures": 0,
   "duration_history": [
-    99.1,
     95.1,
     83.7,
     209.1,
@@ -13,11 +12,12 @@
     142.1,
     181.8,
     79.8,
-    135.1
+    135.1,
+    455.6
   ],
-  "duration_avg_sec": 139.8,
-  "duration_p95_sec": 218.2,
-  "duration_last_sec": 135.1,
+  "duration_avg_sec": 168.1,
+  "duration_p95_sec": 341.5,
+  "duration_last_sec": 455.6,
   "signals_count": 84,
   "buy_signals": 19,
   "sell_signals": 30,
@@ -27,16 +27,6 @@
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 56/100), correlación moderada entre mercados. MERVAL en modo idiosincrá",
   "validacion_nivel": "OK",
   "runs_log": [
-    {
-      "ts": "2026-08-29",
-      "success": true,
-      "duration": 121.3
-    },
-    {
-      "ts": "2026-08-29",
-      "success": true,
-      "duration": 77.0
-    },
     {
       "ts": "2026-08-30",
       "success": true,
@@ -196,29 +186,34 @@
       "ts": "2026-09-05",
       "success": true,
       "duration": 135.1
+    },
+    {
+      "ts": "2026-09-06",
+      "success": true,
+      "duration": 455.6
     }
   ],
   "pipeline_runs_today": 1,
-  "pipeline_runs_week": 34,
+  "pipeline_runs_week": 33,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
-  "data_freshness_h": 0.0,
+  "data_freshness_h": 0.1,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
   "global_confidence_score": 37.6,
   "global_confidence_label": "🟠 Baja",
   "kill_switch_active": false,
-  "optimized_weights_days": 59,
+  "optimized_weights_days": 60,
   "exposure_factor_shadow": 0.387,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
   "backtest_ev_21d": -5.15,
-  "backtest_total_trades": 3618,
+  "backtest_total_trades": 3685,
   "predictor_dir_acc": 0.519,
   "predictor_mae": 10.19,
-  "backtest_generated": "2026-09-05",
+  "backtest_generated": "2026-09-06",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 2.1,
+  "ccl_age_minutes": 7.4,
   "last_ccl_value": 1582.0
 }
