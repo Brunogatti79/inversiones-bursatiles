@@ -85,6 +85,8 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/portfolio — Ver posiciones actuales\n"
         "/backfill_stops — Asignar stop/target a posiciones sin uno (correr 1 vez post-fix)\n"
         "/bootstrap_macro — Precarga 3 años de historia FRED (1 sola vez)\n"
+        "/fundamentals_fmp — Prueba chica (AAPL, MELI) de ratios FMP\n"
+        "/fundamentals_fmp aplicar — Batch completo SP500/CEDEARs vía FMP\n"
         "/help — Esta ayuda\n\n"
         "Ejemplos:\n"
         "<code>/compra GGAL.BA 1.59 100</code>  (precio en USD)\n"
@@ -443,6 +445,70 @@ async def cmd_backfill_stops(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 f"{len(con_dato)} con dato, {len(sin_dato)} sin dato, {len(ya_en_riesgo)} ya en riesgo")
 
 
+async def cmd_fundamentals_fmp(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /fundamentals_fmp          -> prueba chica (AAPL, MELI), NO escribe ni pushea nada
+    /fundamentals_fmp aplicar  -> batch completo (todos los tickers SP500/CEDEARs
+                                   menos ETFs), escribe el CSV y pushea a GitHub
+
+    Actualiza ratios_consolidado_quant.csv para el segmento S&P 500/CEDEARs
+    vía FMP (ver src/fundamental_auto.py). NUNCA toca filas de MERVAL/BOVESPA
+    -- FMP free tier las bloquea como premium (confirmado 07/09/2026).
+
+    Requiere FMP_API_KEY configurada en las variables de entorno de Railway.
+    """
+    args = context.args
+    aplicar = bool(args) and args[0].strip().lower() in ("aplicar", "confirmar", "si", "sí")
+
+    if not os.getenv("FMP_API_KEY"):
+        await update.message.reply_text(
+            "⚠️ Falta configurar <code>FMP_API_KEY</code> en las variables de entorno de Railway.",
+            parse_mode="HTML"
+        )
+        return
+
+    if aplicar:
+        await update.message.reply_text(
+            "📊 Corriendo batch completo (SP500/CEDEARs, ~36 tickers)…\nEsto puede tardar 1-2 minutos.",
+            parse_mode="HTML"
+        )
+    else:
+        await update.message.reply_text(
+            "🔍 Corriendo prueba chica (AAPL, MELI) — no se escribe ni pushea nada todavía…",
+            parse_mode="HTML"
+        )
+
+    import asyncio
+    from src.fundamental_auto import update_fundamentals_csv
+    try:
+        loop = asyncio.get_event_loop()
+        if aplicar:
+            summary = await loop.run_in_executor(
+                None, lambda: update_fundamentals_csv(dry_run=False, push=True)
+            )
+        else:
+            summary = await loop.run_in_executor(
+                None, lambda: update_fundamentals_csv(tickers=["AAPL", "MELI"], dry_run=True)
+            )
+
+        lines = [f"<b>{'✅ Batch aplicado' if aplicar else '🔍 Prueba chica (dry-run)'}</b>\n"]
+        if summary["updated"]:
+            lines.append(f"Actualizados ({len(summary['updated'])}): {', '.join(summary['updated'][:15])}")
+        if summary["added"]:
+            lines.append(f"Nuevos ({len(summary['added'])}): {', '.join(summary['added'][:15])}")
+        if summary["skipped"]:
+            lines.append(f"Sin datos en FMP ({len(summary['skipped'])}): {', '.join(summary['skipped'][:15])}")
+        if summary["errors"]:
+            lines.append(f"⚠️ Errores ({len(summary['errors'])}): {', '.join(summary['errors'][:15])}")
+        if not aplicar:
+            lines.append("\n👉 Si los datos de arriba se ven bien: <code>/fundamentals_fmp aplicar</code>")
+
+        await update.message.reply_text("\n".join(lines), parse_mode="HTML")
+    except Exception as e:
+        logger.error(f"Error en /fundamentals_fmp: {e}")
+        await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
+
+
 # ─────────────────────────────────────────────
 # Inicialización
 # ─────────────────────────────────────────────
@@ -465,6 +531,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("portfolio", cmd_portfolio))
     app.add_handler(CommandHandler("bootstrap_macro", cmd_bootstrap_macro))
     app.add_handler(CommandHandler("backfill_stops", cmd_backfill_stops))
+    app.add_handler(CommandHandler("fundamentals_fmp", cmd_fundamentals_fmp))
  
     return app
  
