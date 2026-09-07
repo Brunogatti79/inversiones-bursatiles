@@ -87,6 +87,8 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/bootstrap_macro — Precarga 3 años de historia FRED (1 sola vez)\n"
         "/fundamentals_fmp — Prueba chica (AAPL, MELI) de ratios FMP\n"
         "/fundamentals_fmp aplicar — Batch completo SP500/CEDEARs vía FMP\n"
+        "/fundamentals_av — Prueba chica (LLY) de ratios Alpha Vantage\n"
+        "/fundamentals_av aplicar — Batch completo (14 tickers bloqueados por FMP)\n"
         "/help — Esta ayuda\n\n"
         "Ejemplos:\n"
         "<code>/compra GGAL.BA 1.59 100</code>  (precio en USD)\n"
@@ -509,6 +511,75 @@ async def cmd_fundamentals_fmp(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
 
 
+async def cmd_fundamentals_av(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /fundamentals_av          -> prueba chica (LLY), NO escribe ni pushea nada
+    /fundamentals_av aplicar  -> batch completo de los 14 tickers que FMP
+                                  bloquea (ver src/fundamental_auto_av.py)
+
+    Fuente de respaldo vía Alpha Vantage para el subconjunto SP500/CEDEARs
+    que FMP free tier rechaza como "Special Endpoint" premium. Requiere
+    ALPHA_VANTAGE_API_KEY en las variables de entorno de Railway.
+
+    ⚠️ Cuota MUY ajustada (25 requests/día free tier) -- el batch completo
+    usa ~14, sin margen para correrlo dos veces el mismo día. Si ves
+    "cuota agotada" en la respuesta, esperá al día siguiente.
+    """
+    args = context.args
+    aplicar = bool(args) and args[0].strip().lower() in ("aplicar", "confirmar", "si", "sí")
+
+    if not os.getenv("ALPHA_VANTAGE_API_KEY"):
+        await update.message.reply_text(
+            "⚠️ Falta configurar <code>ALPHA_VANTAGE_API_KEY</code> en las variables de entorno de Railway.",
+            parse_mode="HTML"
+        )
+        return
+
+    if aplicar:
+        await update.message.reply_text(
+            "📊 Corriendo batch completo vía Alpha Vantage (14 tickers, ~5 min por el límite de 5 calls/min)…",
+            parse_mode="HTML"
+        )
+    else:
+        await update.message.reply_text(
+            "🔍 Corriendo prueba chica (LLY) — no se escribe ni pushea nada todavía…",
+            parse_mode="HTML"
+        )
+
+    import asyncio
+    from src.fundamental_auto_av import update_fundamentals_csv_av
+    try:
+        loop = asyncio.get_event_loop()
+        if aplicar:
+            summary = await loop.run_in_executor(
+                None, lambda: update_fundamentals_csv_av(dry_run=False, push=True)
+            )
+        else:
+            summary = await loop.run_in_executor(
+                None, lambda: update_fundamentals_csv_av(tickers=["LLY"], dry_run=True)
+            )
+
+        lines = [f"<b>{'✅ Batch aplicado (Alpha Vantage)' if aplicar else '🔍 Prueba chica (dry-run)'}</b>\n"]
+        if summary["updated"]:
+            lines.append(f"Actualizados ({len(summary['updated'])}): {', '.join(summary['updated'])}")
+        if summary["added"]:
+            lines.append(f"Nuevos ({len(summary['added'])}): {', '.join(summary['added'])}")
+        if summary["skipped"]:
+            lines.append(f"Sin datos ({len(summary['skipped'])}): {', '.join(summary['skipped'])}")
+        if summary.get("quota_exceeded"):
+            lines.append(f"⏸️ Cuota diaria agotada, quedaron pendientes ({len(summary['quota_exceeded'])}): "
+                          f"{', '.join(summary['quota_exceeded'])} — reintentar mañana")
+        if summary["errors"]:
+            lines.append(f"⚠️ Errores ({len(summary['errors'])}): {', '.join(summary['errors'])}")
+        if not aplicar:
+            lines.append("\n👉 Si el dato de arriba se ve bien: <code>/fundamentals_av aplicar</code>")
+
+        await update.message.reply_text("\n".join(lines), parse_mode="HTML")
+    except Exception as e:
+        logger.error(f"Error en /fundamentals_av: {e}")
+        await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
+
+
 # ─────────────────────────────────────────────
 # Inicialización
 # ─────────────────────────────────────────────
@@ -532,6 +603,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("bootstrap_macro", cmd_bootstrap_macro))
     app.add_handler(CommandHandler("backfill_stops", cmd_backfill_stops))
     app.add_handler(CommandHandler("fundamentals_fmp", cmd_fundamentals_fmp))
+    app.add_handler(CommandHandler("fundamentals_av", cmd_fundamentals_av))
  
     return app
  
