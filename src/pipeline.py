@@ -51,7 +51,7 @@ DATA_DIR     = "data"
 
 def apply_prediction_override(signals: list[dict], predictor_health: dict = None) -> list[dict]:
     """
-    Post-proceso: ajusta señales cuando predictor contradice V1.
+    Post-proceso: ajusta señales cuando predictor contradice al modelo.
     Principio: el predictor tiene la ultima palabra en timing de entrada.
     Reglas:
       - pred_21d < 0%  + COMPRA* → NEUTRAL  (no entrar si baja proyectada)
@@ -68,73 +68,104 @@ def apply_prediction_override(signals: list[dict], predictor_health: dict = None
     predictor que el propio sistema marca como DEGRADED (accuracy < 0.45)
     -- en ese caso se omite la Regla 1 (la más agresiva en volumen, dispara
     con solo pred_21d<0) y se deja intacta la Regla 2 (estructural, no
-    depende del predictor). Con WARNING (0.45-0.54, que es el estado real
-    de hoy) la Regla 1 sigue activa pero ya viene atenuada indirectamente:
-    apply_health_to_signals() ya bajó pred_confidence por el mismo motivo.
+    depende del predictor). Con WARNING (0.45-0.54) la Regla 1 sigue activa
+    pero ya viene atenuada indirectamente: apply_health_to_signals() ya bajó
+    pred_confidence por el mismo motivo.
 
-    Gating adicional por mercado (auditoría 26/06/2026, fase 2): el breakdown
-    de predictor_validation.json muestra que el predictor es directamente
-    contraproducente en MERVAL específicamente — directional accuracy 45,6%
-    (peor que monedazo) y correlación -0,111 (negativa: cuando predice más
-    suba, en promedio pasa lo contrario) — mientras que en BOVESPA y SP500
-    sí muestra accuracy >52% con correlación positiva débil. El gate global
-    por health_status mezcla los 3 mercados y no captura esto: con
-    WARNING global, la Regla 1 seguía aplicándose también a señales MERVAL,
-    pese a que ahí el predictor empeora la decisión en vez de mejorarla. Se
-    omite la Regla 1 para MERVAL independientemente del health_status
-    global, hasta que predictor_validation muestre accuracy >50% con
-    correlación no-negativa específicamente para ese mercado.
+    FIX CRÍTICO 07/09/2026 (auditoría real, no teórica -- confirmado que
+    Regla 1 y Regla 2 NUNCA dispararon ni una sola vez en 61 días / 4.155
+    señales de producción, pese a estar "activa" desde el 25/06/2026):
+    is_buy chequeaba únicamente `signal` (V1, calidad del activo). Pero V1 y
+    V2 (timing de entrada) pueden -- y suelen -- disagreer: en 61 días,
+    V1=COMPRA + pred_21d<0 ocurrió 36 veces (todas en MERVAL, ya exceptuado
+    más abajo); V2=COMPRA + pred_21d<0 ocurrió 212 veces en BOVESPA/SP500
+    (confirmado en vivo: CSNA3.SA hoy con pred_21d=-21.7% seguía mostrando
+    🟢 COMPRA sin ninguna advertencia). portfolio_optimizer.py -- quien
+    realmente asigna capital -- chequea `signal_v2 in BUY_SIGNALS or signal
+    in BUY_SIGNALS` (OR, no solo V1). is_buy ahora replica ese mismo OR, y
+    cuando una regla dispara, degrada AMBOS campos (antes solo tocaba
+    `signal` y sincronizaba `signal_v2` de forma condicional e incompleta)
+    -- así el dashboard no vuelve a mostrar V1/V2 inconsistentes entre sí
+    después de un override, y portfolio_optimizer no puede colarse por el
+    campo que quedó sin tocar.
+
+    Gating adicional por mercado (auditoría 26/06/2026, extendida 07/09/2026
+    con datos reales de 61 días vía backtester._build_trades, comparando
+    EV de señales COMPRA en desacuerdo con el predictor vs. el resto de las
+    COMPRA del mismo mercado):
+      - MERVAL: predictor con directional accuracy 45,6% (peor que
+        monedazo) y correlación -0,111 (26/06/2026). Confirmado de nuevo
+        con el backtest de EV (07/09/2026): desacuerdo -7.17% vs resto
+        -6.77% -- sin diferencia real (n=121 vs 236), el patrón de MERVAL
+        es "todo el mercado rinde mal", no algo específico del desacuerdo.
+        Regla 1 omitida.
+      - SP500: el desacuerdo predictor-vs-modelo es una señal POSITIVA acá,
+        no negativa -- EV +10.69% (n=38, p=0.0002) contra +0.31% (n=56,
+        no significativo) del resto de las COMPRA. Aplicar la Regla 1 acá
+        suprimiría exactamente las señales que mejor rinden. Regla 1
+        omitida (nuevo, 07/09/2026).
+      - BOVESPA: patrón inverso a SP500 y confirmado por primera vez con
+        historia suficiente -- EV -10.52% (n=68, p<0.0001) contra -4.22%
+        (n=21, no significativo) del resto. Acá el veto SÍ agrega valor
+        real. Regla 1 se deja activa.
+    Re-evaluar estos 3 gates cuando predictor_validation.json / el backtest
+    tengan un salto material de historia (no antes) -- no re-proponer sin
+    evidencia nueva, mismo criterio que el resto del proyecto.
     """
     health_status = (predictor_health or {}).get("health", "UNKNOWN")
     skip_pred_rule = health_status == "DEGRADED"
 
     overrides = 0
     for s in signals:
-        pred_21d  = s.get("pred_21d")
-        ret_anual = s.get("ret_anual", 0) or 0
-        signal    = s.get("signal", "")
-        mercado   = s.get("mercado", "")
-        is_buy    = "COMPRA" in signal
+        pred_21d   = s.get("pred_21d")
+        ret_anual  = s.get("ret_anual", 0) or 0
+        signal     = s.get("signal", "")
+        signal_v2  = s.get("signal_v2", "")
+        mercado    = s.get("mercado", "")
+        is_buy     = ("COMPRA" in signal) or ("COMPRA" in signal_v2)
 
         reasons = []
+        nuevo_signal = None
 
         # Regla 1: prediccion negativa → no comprar
-        # (omitida si el predictor está DEGRADED globalmente — ver docstring —
-        #  o si el mercado es MERVAL, donde el predictor mide peor que
-        #  monedazo con correlación negativa — ver docstring)
-        skip_pred_rule_this_signal = skip_pred_rule or (mercado == "MERVAL")
+        # (omitida si el predictor está DEGRADED globalmente, o si el
+        #  mercado es MERVAL o SP500 -- ver docstring para la evidencia
+        #  específica de cada uno)
+        skip_pred_rule_this_signal = skip_pred_rule or (mercado in ("MERVAL", "SP500"))
         if pred_21d is not None and is_buy and not skip_pred_rule_this_signal:
             if pred_21d < -10:
-                s["signal"] = "🔴 VENTA"
+                nuevo_signal = "🔴 VENTA"
                 reasons.append(f"Pred21d {pred_21d:.1f}% (BAJA FUERTE)")
             elif pred_21d < -5:
-                s["signal"] = "🟠 VENTA PARCIAL"
+                nuevo_signal = "🟠 VENTA PARCIAL"
                 reasons.append(f"Pred21d {pred_21d:.1f}% (menor a -5%)")
             elif pred_21d < 0:
-                s["signal"] = "🟡 NEUTRAL/ESPERAR"
+                nuevo_signal = "🟡 NEUTRAL/ESPERAR"
                 reasons.append(f"Pred21d {pred_21d:.1f}% (negativa)")
 
         # Regla 2: caida estructural anual severa (no depende del predictor,
-        # nunca se omite)
-        if ret_anual < -40 and "COMPRA" in s.get("signal", ""):
-            s["signal"] = "🟡 NEUTRAL/ESPERAR"
+        # nunca se omite por mercado/salud)
+        if ret_anual < -40 and is_buy:
+            nuevo_signal = "🟡 NEUTRAL/ESPERAR"
             reasons.append(f"Ret.anual {ret_anual:.1f}% (menor a -40% estructural)")
 
-        if reasons:
+        if nuevo_signal is not None:
+            # Degradar AMBOS campos -- portfolio_optimizer.py mira signal O
+            # signal_v2 (OR), así que dejar uno sin tocar reabre el agujero
+            # que causó que esto nunca disparara en producción.
+            s["signal"]    = nuevo_signal
+            s["signal_v2"] = nuevo_signal
             s["signal_override"] = " | ".join(reasons)
-            # Sincronizar signal_v2 si también era compra
-            if "COMPRA" in s.get("signal_v2", ""):
-                s["signal_v2"] = s["signal"]
             overrides += 1
 
     if skip_pred_rule:
         logger.info(
-            f"Prediction override: Regla 1 OMITIDA (predictor_health=DEGRADED) | "
+            f"Prediction override: Regla 1 OMITIDA globalmente (predictor_health=DEGRADED) | "
             f"{overrides} señales ajustadas solo por Regla 2 (estructural)"
         )
     else:
         logger.info(f"Prediction override: {overrides} señales ajustadas por predictor/tendencia "
-                     f"(predictor_health={health_status})")
+                     f"(predictor_health={health_status}, Regla 1 omitida en MERVAL y SP500)")
     return signals
 
 
