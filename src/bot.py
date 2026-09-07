@@ -89,6 +89,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/fundamentals_fmp aplicar — Batch completo SP500/CEDEARs vía FMP\n"
         "/fundamentals_av — Prueba chica (LLY) de ratios Alpha Vantage\n"
         "/fundamentals_av aplicar — Batch completo (14 tickers bloqueados por FMP)\n"
+        "/diagnostico_racha — Trades por día vs. por racha (shadow, §6.2)\n"
         "/help — Esta ayuda\n\n"
         "Ejemplos:\n"
         "<code>/compra GGAL.BA 1.59 100</code>  (precio en USD)\n"
@@ -580,6 +581,44 @@ async def cmd_fundamentals_av(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
 
 
+async def cmd_diagnostico_racha(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /diagnostico_racha — corre el diagnóstico oficial de trades por día vs.
+    por racha de señal (ver scripts/diagnostico_trades_racha.py, §6.2 del
+    documento de arquitectura). SHADOW: no toca producción, no afecta
+    señales/Kelly/capital. Persiste el resultado en
+    data/trades_racha_diagnostic.json y lo pushea a GitHub.
+    """
+    await update.message.reply_text(
+        "📊 Corriendo diagnóstico trades por día vs. por racha (shadow, no toca producción)…",
+        parse_mode="HTML"
+    )
+
+    import asyncio
+    from scripts.diagnostico_trades_racha import main as run_diagnostico
+    try:
+        loop = asyncio.get_event_loop()
+        summary = await loop.run_in_executor(None, run_diagnostico)
+
+        lines = ["<b>📊 Diagnóstico trades por día vs. por racha</b>\n"]
+        lines.append(f"Muestra: {summary['n_compras_por_dia']} por día → "
+                      f"{summary['n_compras_por_racha']} por racha "
+                      f"(-{summary['reduccion_pct']:.1f}%)\n")
+        for mercado, d in summary["by_market"].items():
+            pd_, pr = d.get("por_dia"), d.get("por_racha")
+            if not pd_ or not pr:
+                continue
+            lines.append(
+                f"<b>{mercado}</b>: día n={pd_['samples']} EV={pd_['expected_value']:.2f}% "
+                f"(sig={pd_['significativo_95']}) | racha n={pr['samples']} "
+                f"EV={pr['expected_value']:.2f}% (sig={pr['significativo_95']})"
+            )
+        await update.message.reply_text("\n".join(lines), parse_mode="HTML")
+    except Exception as e:
+        logger.error(f"Error en /diagnostico_racha: {e}")
+        await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
+
+
 # ─────────────────────────────────────────────
 # Inicialización
 # ─────────────────────────────────────────────
@@ -604,6 +643,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("backfill_stops", cmd_backfill_stops))
     app.add_handler(CommandHandler("fundamentals_fmp", cmd_fundamentals_fmp))
     app.add_handler(CommandHandler("fundamentals_av", cmd_fundamentals_av))
+    app.add_handler(CommandHandler("diagnostico_racha", cmd_diagnostico_racha))
  
     return app
  
