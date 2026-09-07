@@ -208,10 +208,16 @@ class TestApplyPredictionOverrideMervalGate:
         out = apply_prediction_override(signals, predictor_health={"health": "OK"})
         assert out[0]["signal"] == "🟠 VENTA PARCIAL"
 
-    def test_rule1_still_applies_for_sp500_with_healthy_predictor(self):
+    def test_rule1_skipped_for_sp500_with_healthy_predictor(self):
+        """FIX 07/09/2026: SP500 se agrega a la excepción -- backtest real de
+        61 días muestra que el desacuerdo predictor-vs-modelo rinde MEJOR
+        que el resto de las COMPRA en SP500 (+10.69% vs +0.31%, p=0.0002),
+        al revés de BOVESPA. Aplicar el veto acá suprimiría exactamente las
+        señales que mejor rinden -- ver docstring de apply_prediction_override."""
         signals = [_signal(pred_21d=-7.0, mercado="SP500")]
         out = apply_prediction_override(signals, predictor_health={"health": "OK"})
-        assert out[0]["signal"] == "🟠 VENTA PARCIAL"
+        assert out[0]["signal"] == "🟢 COMPRA"
+        assert "signal_override" not in out[0]
 
     def test_rule2_structural_still_applies_to_merval(self):
         """La Regla 2 (caída anual estructural) NO depende del predictor por
@@ -227,3 +233,44 @@ class TestApplyPredictionOverrideMervalGate:
         signals = [_signal(pred_21d=-2.0, mercado="MERVAL")]
         out = apply_prediction_override(signals, predictor_health={"health": "DEGRADED"})
         assert out[0]["signal"] == "🟢 COMPRA"
+
+
+class TestApplyPredictionOverrideV1V2Gap:
+    """FIX CRÍTICO 07/09/2026: auditoría real (no teórica) encontró que
+    Regla 1 y Regla 2 NUNCA dispararon en 61 días / 4.155 señales de
+    producción. Causa raíz: is_buy solo miraba `signal` (V1, calidad),
+    nunca `signal_v2` (V2, timing de entrada -- el campo que realmente usa
+    portfolio_optimizer.py para asignar capital, vía `signal_v2 in
+    BUY_SIGNALS or signal in BUY_SIGNALS`). V1 y V2 pueden disagreer (es
+    justamente el caso "V1↓/V2↑ activo débil, buen entry" documentado en
+    la arquitectura) -- y en la práctica V1=COMPRA + pred_21d<0 casi nunca
+    ocurre fuera de MERVAL, mientras V2=COMPRA + pred_21d<0 ocurrió 212
+    veces en 61 días solo en BOVESPA/SP500. Este bloque cubre exactamente
+    ese gap para que no se reintroduzca en un refactor futuro."""
+
+    def test_fires_when_only_v2_says_buy(self):
+        """Caso real confirmado en producción 07/09/2026 (CSNA3.SA,
+        BOVESPA): V1=NEUTRAL, V2=COMPRA, pred_21d muy negativo. Antes del
+        fix, is_buy=False (solo miraba V1) y esto NUNCA disparaba."""
+        signals = [_signal(signal="🟡 NEUTRAL/ESPERAR", signal_v2="🟢 COMPRA",
+                            pred_21d=-21.7, mercado="BOVESPA")]
+        out = apply_prediction_override(signals, predictor_health={"health": "OK"})
+        assert out[0]["signal_v2"] == "🔴 VENTA"
+        assert "signal_override" in out[0]
+
+    def test_does_not_fire_when_neither_field_says_buy(self):
+        signals = [_signal(signal="🟡 NEUTRAL/ESPERAR", signal_v2="🟡 NEUTRAL/ESPERAR",
+                            pred_21d=-21.7, mercado="BOVESPA")]
+        out = apply_prediction_override(signals, predictor_health={"health": "OK"})
+        assert "signal_override" not in out[0]
+
+    def test_both_fields_downgraded_together_not_just_one(self):
+        """FIX 07/09/2026: antes solo se tocaba `signal` y se sincronizaba
+        `signal_v2` de forma condicional/incompleta -- dejaba estados
+        inconsistentes (uno degradado, el otro no) que además podían seguir
+        colando capital vía el OR de portfolio_optimizer.py."""
+        signals = [_signal(signal="🟢 COMPRA", signal_v2="⭐ COMPRA FUERTE",
+                            pred_21d=-12.0, mercado="BOVESPA")]
+        out = apply_prediction_override(signals, predictor_health={"health": "OK"})
+        assert out[0]["signal"] == "🔴 VENTA"
+        assert out[0]["signal_v2"] == "🔴 VENTA"

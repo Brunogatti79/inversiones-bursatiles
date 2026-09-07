@@ -64,22 +64,22 @@ def _all_tickers():
 # P/E/ROE/etc. es CORRECTA, no un gap a resolver.
 ETFS_SIN_FUNDAMENTALS = {"COPX", "IBB", "EWZ"}
 
-# Gaps reales conocidos al momento de este relevamiento (25/06/2026) --
-# si esta lista deja de coincidir con la realidad del CSV, el test de abajo
-# avisa explícitamente qué cambió (se resolvió un gap viejo, o apareció uno
+# Gaps reales conocidos al momento de este relevamiento -- si esta lista
+# deja de coincidir con la realidad del CSV, el test de abajo avisa
+# explícitamente qué cambió (se resolvió un gap viejo, o apareció uno
 # nuevo) en vez de fallar en silencio o ignorar el problema para siempre.
+#
+# FIX 07/09/2026: los 13 tickers SP500/CEDEARs que estaban acá (MELI, RIO,
+# PBR, QCOM, GLOB, AMD, BRK-B, CRM, HD, MA, NFLX, ORCL, PLTR) se resolvieron
+# esta sesión vía src/fundamental_auto.py (FMP) + src/fundamental_auto_av.py
+# (Alpha Vantage, fallback para los que FMP free tier bloquea como "Special
+# Endpoint" premium). Los ~16 que quedan son 100% MERVAL/BOVESPA -- ninguna
+# de las dos APIs los cubre en free tier (confirmado en vivo esa sesión).
 GAPS_FUNDAMENTALES_CONOCIDOS = {
-    "MELI", "RIO", "PBR", "QCOM", "GLOB",                          # preexistentes, no ETF
     "YPFD.BA", "BBAR.BA", "B3SA3.SA", "ITSA4.SA",
-    "SANB11.SA", "VIVT3.SA", "EMBR3.SA", "JBSS3.SA",                # nuevos de esta sesión
+    "SANB11.SA", "VIVT3.SA", "EMBR3.SA", "JBSS3.SA",
     "SUPV.BA", "TECO2.BA", "COME.BA", "HARG.BA", "MOLI.BA",
-    "RAIZ4.SA", "HAPV3.SA", "CSNA3.SA",                             # preexistentes, no ETF
-    "AMD", "BRK-B", "CRM", "HD", "MA", "NFLX", "ORCL", "PLTR",      # FIX 04/09/2026:
-    # recién agregados a SP500_TICKERS (ver test_sp500_count) -- estaban
-    # invisibles para TODO el análisis hasta hoy, así que lógicamente
-    # tampoco tienen fila en ratios_consolidado_quant.csv todavía. Van a
-    # operar con Score Fundamental en default hasta que se les cargue
-    # ratios reales (roadmap: automatizar ratios_consolidado_quant.csv).
+    "RAIZ4.SA", "HAPV3.SA", "CSNA3.SA",
 }
 
 
