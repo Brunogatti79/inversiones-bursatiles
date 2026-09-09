@@ -225,7 +225,7 @@ def _build_oportunidades(signals, price_data):
     # Bruno (28/07/2026): que las combinaciones Alta+Compra ya validadas
     # contra el historial real floten arriba, en vez de competir en pie
     # de igualdad con señales sin ese respaldo.
-    _REGLA_RANK = {'validada': 0, 'sin_evidencia': 1, 'no_aplica': 2, 'no_valida': 3}
+    _REGLA_RANK = {'validada': 0, 'sin_evidencia_solida': 1, 'no_aplica': 2, 'no_valida': 3}
     fichas.sort(key=lambda f: (_REGLA_RANK.get(f.get('regla_compra_estado'), 2), -f['opportunity_score']))
     return fichas
  
@@ -873,59 +873,98 @@ def _render_macro_panel(signals: list, extra_html: str = "") -> str:
     )
 
 
-def _estado_regla_compra(signal_v2: str, confidence_label, conf_x_signal: dict,
-                          min_samples: int = 15) -> tuple:
+def _estado_regla_compra(signal_v2: str, confidence_label, mercado: str,
+                          conf_x_signal_x_mercado: dict,
+                          min_samples_horizonte: int = 15,
+                          min_tickers: int = 5) -> tuple:
     """
     Evalúa si una señal cumple la regla de compra que Bruno pidió validar
-    con datos reales (27/07/2026): "COMPRA o COMPRA FUERTE + confianza Alta,
-    siempre que la historia diga que se gana". A propósito NO asume que
-    COMPRA FUERTE rinde igual que COMPRA solo porque ambas son señales de
-    compra -- chequea la celda REAL de confidence_x_signal (backtester.py,
-    v4.14) para cada combinación por separado.
+    con datos reales (27/07/2026): "COMPRA o COMPRA FUERTE + confianza X,
+    siempre que la historia diga que se gana".
+
+    FIX 09/09/2026 (hallazgo real, sesión con Bruno -- Paradoja de Simpson
+    confirmada en producción): la versión anterior usaba la celda GLOBAL
+    de confidence_x_signal (MERVAL+BOVESPA+SP500 mezclados). Esa celda daba
+    "🟢 Alta + 🟢 COMPRA" como NO_VALIDA (EV -2.8% a 21d, n=175, p=0.0) y
+    disparaba el ⚠️ en TODOS los tickers de SP500 con esa combinación --
+    pero la celda de ESE MISMO cruce, segmentada solo a SP500
+    (confidence_x_signal_x_mercado), da EV +4.2% a 21d, win_rate 79.2%,
+    n=24, p=0.0001: exactamente lo opuesto. El resultado global estaba
+    dominado por MERVAL (EV -4.76%, n=324), que es el mercado con más señales
+    de este tipo -- SP500 y BOVESPA quedaban invisibles en el promedio.
+    Ahora SIEMPRE se segmenta por mercado antes de evaluar; nunca se cae a
+    la celda global (eso sería reintroducir el mismo problema).
+
+    Además, a pedido explícito de Bruno ("lo que no aporta información
+    certera, se saca; si la muestra es chica y no representativa, tampoco
+    la ponemos como opción"), se endurecen 3 criterios que antes no se
+    chequeaban:
+      1) Se prioriza el horizonte h21d (el que de verdad importa para la
+         decisión -- antes se usaba "el que tenga más muestra" entre
+         h5d/h10d, ignorando h21d por completo) y se cae a h10d y luego h5d
+         SOLO si el horizonte preferido no tiene muestra o significancia
+         propia -- nunca se mezclan horizontes.
+      2) Se exige significancia estadística real (significativo_95, IC95
+         ya calculado en backtester.py) además de la muestra mínima -- un
+         EV positivo con n chico y sin significancia no cuenta como
+         evidencia, cuenta como "sin evidencia sólida".
+      3) Se exige diversidad de tickers (tickers_unicos >= min_tickers) y
+         se descarta si concentracion_alta -- un resultado impulsado por
+         1-2 tickers no es una regla generalizable, es una anécdota.
+
+    Ya NO se restringe a confidence_label=="🟢 Alta" -- se evalúa la
+    combinación real (label × señal × mercado) sin asumir de antemano cuál
+    es la buena, para no repetir el mismo tipo de sesgo con otra etiqueta.
 
     Devuelve (estado, detalle):
-      "no_aplica"      -- la señal no es COMPRA/COMPRA FUERTE, o la
-                          confianza no es Alta. No es una mala señal, la
-                          regla simplemente no aplica acá.
-      "sin_evidencia"  -- SÍ es COMPRA/COMPRA FUERTE + Alta, pero esa
-                          combinación específica todavía no tiene muestra
-                          suficiente en el historial real (ej. COMPRA
-                          FUERTE + Alta, que a la fecha de este fix no
-                          tenía ni un solo caso real). No se descarta, pero
-                          tampoco se puede afirmar que rinde bien todavía.
-      "validada"       -- hay muestra real suficiente Y el expected_value
-                          histórico de esa combinación específica es
-                          positivo.
-      "no_valida"      -- hay muestra real suficiente pero el resultado
-                          histórico de esa combinación específica es
-                          negativo -- aunque sea "Alta + Compra", los datos
-                          dicen que no conviene.
+      "no_aplica"            -- la señal no es COMPRA/COMPRA FUERTE. La
+                                 regla es sobre decisiones de compra, no
+                                 aplica a NEUTRAL/VENTA.
+      "sin_evidencia_solida" -- es COMPRA/COMPRA FUERTE, pero en NINGÚN
+                                 horizonte (21d/10d/5d) para ESTE mercado
+                                 hay a la vez muestra suficiente,
+                                 significancia estadística Y diversidad de
+                                 tickers. No se afirma que rinda bien NI que
+                                 rinda mal -- no hay dato confiable, así que
+                                 no debe aparecer como opción de compra.
+      "validada"              -- el horizonte preferido disponible cumple
+                                 muestra + significancia + diversidad Y el
+                                 expected_value es positivo, PARA ESTE
+                                 MERCADO específicamente.
+      "no_valida"             -- cumple los mismos requisitos de calidad de
+                                 muestra pero el expected_value es
+                                 negativo, PARA ESTE MERCADO específicamente.
 
-    detalle: None, o {"n": muestras, "wr": win_rate, "ev": expected_value}
-    del horizonte con más muestra real disponible entre h5d/h10d.
+    detalle: None, o {"n", "wr", "ev", "p", "horizonte", "tickers_unicos"}
     """
-    if confidence_label != "🟢 Alta" or signal_v2 not in ("🟢 COMPRA", "⭐ COMPRA FUERTE"):
+    if signal_v2 not in ("🟢 COMPRA", "⭐ COMPRA FUERTE"):
         return ("no_aplica", None)
 
-    cell = (conf_x_signal or {}).get(confidence_label, {}).get(signal_v2)
-    if not cell:
-        return ("sin_evidencia", None)
+    cell = ((conf_x_signal_x_mercado or {}).get(confidence_label, {})
+            .get(signal_v2, {}) or {}).get(mercado)
 
-    h5  = cell.get("h5d") or {}
-    h10 = cell.get("h10d") or {}
-    n5  = h5.get("samples") or 0
-    n10 = h10.get("samples") or 0
+    if not cell or cell.get("muestra_insuficiente"):
+        return ("sin_evidencia_solida", None)
 
-    if cell.get("muestra_insuficiente") or (n5 < min_samples and n10 < min_samples):
-        return ("sin_evidencia", {"n": cell.get("count", 0)})
+    n_tickers = cell.get("tickers_unicos") or 0
+    if cell.get("concentracion_alta") or n_tickers < min_tickers:
+        return ("sin_evidencia_solida", {"n": cell.get("count", 0), "tickers_unicos": n_tickers})
 
-    best = h5 if n5 >= n10 else h10
-    ev = best.get("expected_value")
-    detalle = {"n": best.get("samples"), "wr": best.get("win_rate"), "ev": ev}
+    for horizonte in ("h21d", "h10d", "h5d"):
+        hd = cell.get(horizonte) or {}
+        n  = hd.get("samples") or 0
+        if n >= min_samples_horizonte and hd.get("significativo_95"):
+            ev = hd.get("expected_value")
+            detalle = {
+                "n": n, "wr": hd.get("win_rate"), "ev": ev,
+                "p": hd.get("p_value"), "horizonte": horizonte,
+                "tickers_unicos": n_tickers,
+            }
+            if ev is not None and ev > 0:
+                return ("validada", detalle)
+            return ("no_valida", detalle)
 
-    if ev is not None and ev > 0:
-        return ("validada", detalle)
-    return ("no_valida", detalle)
+    return ("sin_evidencia_solida", {"n": cell.get("count", 0), "tickers_unicos": n_tickers})
 
 
 def _render_history_depth_banner(path: str = "data/signals_history.json") -> str:
@@ -1008,11 +1047,17 @@ def generate_dashboard(
     # necesita leer regla_compra_estado/confidence_label de cada señal
     # para poder agruparlas; antes se calculaba después, así que la tab
     # Oportunidades nunca tenía ese dato disponible.
+    # FIX 09/09/2026: se usa confidence_x_signal_x_mercado (segmentado por
+    # mercado) en vez de confidence_x_signal (global) -- ver docstring de
+    # _estado_regla_compra() para el hallazgo real que motivó el cambio
+    # (Paradoja de Simpson: la celda global escondía que "Alta+Compra" es
+    # excelente en SP500 y mala en MERVAL, promediándolas en una sola cifra
+    # negativa que terminaba marcando con ⚠️ también a los tickers de SP500).
     try:
         with open("data/backtest_results.json") as _cxf:
-            _conf_x_signal = json.load(_cxf).get("confidence_x_signal", {})
+            _conf_x_signal_x_mercado = json.load(_cxf).get("confidence_x_signal_x_mercado", {})
     except Exception:
-        _conf_x_signal = {}
+        _conf_x_signal_x_mercado = {}
 
     # Footer del header: versión y pesos reales del modelo (antes hardcodeado
     # como "Modelo v2.0 — 50/30/20" desde hacía varias versiones, desconectado
@@ -1034,13 +1079,47 @@ def generate_dashboard(
         footer_model_html = "Modelo — versión no disponible"
 
     for _s in signals:
+        _sig_original = _s.get("signal_v2") or _s.get("signal", "")
         _estado, _detalle = _estado_regla_compra(
-            _s.get("signal_v2") or _s.get("signal", ""),
+            _sig_original,
             _s.get("confidence_label"),
-            _conf_x_signal,
+            _s.get("mercado"),
+            _conf_x_signal_x_mercado,
         )
         _s["regla_compra_estado"] = _estado
         _s["regla_compra_detalle"] = _detalle
+
+        # FIX 09/09/2026 (pedido explícito de Bruno): "si no está confirmado,
+        # no se debe informar para ningún tipo de acción a seguir". No basta
+        # con reordenar o poner un ícono al lado -- hay que evitar que se
+        # PUEDA leer como COMPRA en cualquier lugar del dashboard. Se
+        # reescribe signal_v2 ACÁ, antes de que cualquier otra parte de la
+        # función lo lea (Panorama, Conclusiones -- compras Y radar --,
+        # Oportunidades, tablas por mercado: todos leen signal_v2, todos
+        # corren después de este loop en generate_dashboard()).
+        #
+        # Deliberadamente NO se toca "signal" (V1) -- ese campo lo usa
+        # generate_excel() de forma independiente para las fichas Excel, y
+        # representa la señal V1 propia, no el estado de confirmación de V2.
+        # Sobrescribir solo signal_v2 alcanza: todo el dashboard usa el
+        # patrón "s.signal_v2||s.signal" como fallback, así que con
+        # signal_v2 ya presente (aunque gateado) nunca cae a signal.
+        #
+        # Trampa a evitar: el texto NUEVO no puede contener la palabra
+        # "COMPRA" -- los filtros de compras-block, radar y los paneles de
+        # Panorama buscan esa substring literal; si el texto la sigue
+        # teniendo (ej. "COMPRA (sin confirmar)"), lo siguen contando como
+        # compra real. Por eso la etiqueta es "SIN CONFIRMAR", nunca una
+        # variante de "COMPRA".
+        #
+        # Esto NO toca signal_v2 en signals_history.json/analyzer.py/
+        # tracker.py -- generator.py es pura capa de renderizado, no
+        # alimenta hacia atrás al pipeline -- la evidencia real
+        # (confidence_x_signal_x_mercado) sigue midiéndose sobre la señal
+        # sin filtrar, para poder seguir auditando la regla en el tiempo.
+        if _estado in ("no_valida", "sin_evidencia_solida") and _sig_original in ("🟢 COMPRA", "⭐ COMPRA FUERTE"):
+            _s["signal_v2_original"] = _sig_original
+            _s["signal_v2"] = "🔵 SIN CONFIRMAR ⚠️" if _estado == "no_valida" else "🔵 SIN CONFIRMAR"
 
     # Construir fichas de oportunidades
     fichas = []
@@ -1810,6 +1889,7 @@ function sw(id,el){{
 }}
  
 function sigColor(s){{
+  if(s.indexOf('SIN CONFIRMAR')>=0)  return '#60a5fa';
   if(s.indexOf('COMPRA FUERTE')>=0) return '#ffd700';
   if(s.indexOf('COMPRA')>=0)        return '#4ade80';
   if(s.indexOf('NEUTRAL')>=0)       return '#fbbf24';
@@ -1817,41 +1897,44 @@ function sigColor(s){{
   return '#f87171';
 }}
 
-// Badge de "regla de compra validada por datos" (pedido de Bruno, 27/07/2026):
-// COMPRA/COMPRA FUERTE + confianza Alta, chequeado contra el cruce real
-// confidence_x_signal (backtester.py v4.14) por analyzer.py/generator.py y
-// guardado por señal en s.regla_compra_estado -- ver _estado_regla_compra()
-// en el backend. NO es un cálculo del lado del cliente: acá solo se decide
-// cómo pintarlo.
+// Badge de "regla de compra validada por datos" (pedido de Bruno, 27/07/2026,
+// corregido 09/09/2026): COMPRA/COMPRA FUERTE + confianza X, chequeado contra
+// el cruce real confidence_x_signal_x_mercado (backtester.py) -- SEGMENTADO
+// POR MERCADO, nunca la celda global (fix Paradoja de Simpson: la celda
+// global promediaba MERVAL/BOVESPA/SP500 y podía marcar ⚠️ en un mercado
+// donde la combinación en realidad rinde bien, o ✅ donde en realidad rinde
+// mal). Guardado por señal en s.regla_compra_estado -- ver
+// _estado_regla_compra() en el backend. NO es un cálculo del lado del
+// cliente: acá solo se decide cómo pintarlo.
 function _reglaBadge(s){{
   var st=s.regla_compra_estado, d=s.regla_compra_detalle||{{}};
+  var horiz=d.horizonte?d.horizonte.replace('h','').replace('d',' días'):'?';
   if(st==='validada'){{
     var wr=d.wr!=null?Math.round(d.wr*100)+'%':'?';
     var ev=d.ev!=null?((d.ev>=0?'+':'')+d.ev.toFixed(1)+'%'):'?';
-    return ' <span title="Regla validada con datos reales: n='+d.n+', acierto '+wr+', resultado promedio '+ev+'" style="cursor:help">✅</span>';
+    return ' <span title="Regla validada con datos reales de ESTE mercado a '+horiz+': n='+d.n+' ('+d.tickers_unicos+' tickers distintos), acierto '+wr+', resultado promedio '+ev+', p='+d.p+'" style="cursor:help">✅</span>';
   }}
-  if(st==='sin_evidencia'){{
-    return ' <span title="Cumple Compra/Compra Fuerte + Alta, pero todavía no hay suficientes casos reales de ESTA combinación específica para confirmar si rinde bien -- no descartar, pero tampoco asumir" style="cursor:help">🔵</span>';
+  if(st==='sin_evidencia_solida'){{
+    return ' <span title="Compra/Compra Fuerte, pero en este mercado no hay todavía (muestra suficiente + significancia estadística + diversidad de tickers) al mismo tiempo para confirmar si rinde bien o mal -- no se muestra como opción validada" style="cursor:help">🔵</span>';
   }}
   if(st==='no_valida'){{
     var wr2=d.wr!=null?Math.round(d.wr*100)+'%':'?';
     var ev2=d.ev!=null?((d.ev>=0?'+':'')+d.ev.toFixed(1)+'%'):'?';
-    return ' <span title="Es Compra/Compra Fuerte + Alta, pero el historial real de ESTA combinación da resultado negativo: n='+d.n+', acierto '+wr2+', resultado promedio '+ev2+'" style="cursor:help">⚠️</span>';
+    return ' <span title="En ESTE mercado, a '+horiz+', el historial real de esta combinación da resultado negativo: n='+d.n+' ('+d.tickers_unicos+' tickers distintos), acierto '+wr2+', resultado promedio '+ev2+', p='+d.p+'" style="cursor:help">⚠️</span>';
   }}
   return '';
 }}
 
 // Prioridad de orden por regla de compra validada (pedido de Bruno,
-// 28/07/2026: "reordenar y agrupar en cada ventana" las combinaciones
-// Alta+Compra ya validadas contra el historial real). Reutilizado en
-// buildTable(), compras-block, radar-block y op-rg -- una sola fuente de
+// 28/07/2026, corregido 09/09/2026 -- ver _estado_regla_compra()). Reutilizado
+// en buildTable(), compras-block, radar-block y op-rg -- una sola fuente de
 // verdad para no repetir el mapeo en cada sort.
-//   validada (0)      -- Alta+Compra/Compra Fuerte con EV histórico positivo
-//   sin_evidencia (1) -- cumple Alta+Compra pero sin muestra suficiente aún
-//   no_aplica (2)     -- no es Alta+Compra/Compra Fuerte (default, sin cambio de orden)
-//   no_valida (3)     -- Alta+Compra pero el historial real da resultado negativo -- se hunde
+//   validada (0)              -- Compra/Compra Fuerte con EV histórico positivo, EN ESTE MERCADO, con muestra+significancia+diversidad reales
+//   sin_evidencia_solida (1)  -- cumple Compra/Compra Fuerte pero sin evidencia sólida en este mercado todavía
+//   no_aplica (2)             -- no es Compra/Compra Fuerte (default, sin cambio de orden)
+//   no_valida (3)             -- Compra/Compra Fuerte pero el historial real de ESTE mercado da resultado negativo -- se hunde
 function reglaRank(s){{
-  var m={{'validada':0,'sin_evidencia':1,'no_aplica':2,'no_valida':3}};
+  var m={{'validada':0,'sin_evidencia_solida':1,'no_aplica':2,'no_valida':3}};
   var r=m[s.regla_compra_estado];
   return r==null?2:r;
 }}
@@ -1901,7 +1984,7 @@ function onSortClick(tbId,market,key){{
 }}
 
 function buildTable(tbId,market){{
-var signalOrder={{'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🟡 NEUTRAL/ESPERAR':2,'🟠 VENTA PARCIAL':3,'🔴 VENTA':4}};
+var signalOrder={{'⭐ COMPRA FUERTE':0,'🟢 COMPRA':1,'🔵 SIN CONFIRMAR':2,'🔵 SIN CONFIRMAR ⚠️':2,'🟡 NEUTRAL/ESPERAR':3,'🟠 VENTA PARCIAL':4,'🔴 VENTA':5}};
 var mktOrder={{'MERVAL':1,'BOVESPA':2,'SP500':3}};
 var rows=market?SIGNALS.filter(function(s){{return s.mercado===market;}}):SIGNALS.slice();
 var st=tableSort[tbId];
