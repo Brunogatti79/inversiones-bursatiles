@@ -87,6 +87,14 @@ def update_history(signals: list[dict], max_days: int = 60):
             # futuro de pesos (ej. si el peso del predictor vuelve a bajar
             # o sube) contra datos reales en vez de tests unitarios solos.
             "confidence_breakdown": s.get("confidence_breakdown", {}),
+            # ── Confidence experimental (10/09/2026, modo auditoría) ─────
+            # Ver confidence_score.py::_calc_confidence_experimental --
+            # predictor_weight=0, resto de los pesos reescalados. Se
+            # persiste desde el día 1 para poder comparar su desempeño
+            # real contra confidence_score (producción) apenas haya
+            # suficiente historia, sin tener que reconstruirlo después.
+            "confidence_score_experimental": s.get("confidence_score_experimental"),
+            "confidence_label_experimental": s.get("confidence_label_experimental", ""),
             # ── Stops / Targets (para backtesting) ──────────────────
             "atr_stop":      s.get("atr_stop", 0),
             "atr_target":    s.get("atr_target", 0),

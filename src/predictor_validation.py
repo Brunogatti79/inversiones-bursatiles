@@ -63,6 +63,15 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 VALIDATION_PATH = "data/predictor_validation.json"
+# FIX 10/09/2026 (Predictor Lab, roadmap acordado con Bruno el mismo día):
+# VALIDATION_PATH se sobreescribe en cada corrida -- nunca acumuló serie
+# histórica, así que "¿esto viene pasando hace semanas o es nuevo?" no se
+# podía responder (confirmado en auditoría: solo 1 commit en toda la vida
+# del archivo). HISTORY_PATH es aditivo: cada corrida agrega una entrada
+# nueva keyeada por fecha, sin tocar el comportamiento de VALIDATION_PATH
+# (que _load_reliability_weights() sigue leyendo como snapshot único, sin
+# cambios). Puramente informativo -- nada lee HISTORY_PATH para pesos todavía.
+HISTORY_PATH    = "data/predictor_validation_history.json"
 MIN_TRAIN       = 90          # días mínimos de historia antes del primer snapshot
 SNAPSHOT_FREQ   = 21          # ~1 snapshot por mes (más espaciado que historical_replay
                                # a propósito: el ensemble completo es mucho más caro por
@@ -127,6 +136,7 @@ def run_predictor_validation(price_data: dict, ticker_cols: dict) -> dict:
     }
 
     _save_validation(result)
+    _append_to_history(result)
     logger.info(
         f"[predictor_validation] ✅ {len(records)} registros | "
         f"predictor dir_acc={result['global']['predictor']['directional_accuracy']} vs "
@@ -361,6 +371,97 @@ def _save_validation(result: dict):
         f"auto: predictor_validation {datetime.now().strftime('%Y-%m-%d %H:%M')} "
         f"({result.get('n_snapshots', 0)} snapshots)",
     )
+
+
+def _load_history() -> dict:
+    from src.github_persistence import load_json
+    return load_json(HISTORY_PATH, default={})
+
+
+def _append_to_history(result: dict, max_entries: int = 52):
+    """
+    Guarda un resumen liviano de esta corrida en HISTORY_PATH, keyeado por
+    fecha (YYYY-MM-DD). No guarda los records crudos (eso vive solo en
+    VALIDATION_PATH, snapshot único) -- solo las métricas agregadas que
+    hacen falta para responder "¿esto viene pasando hace semanas?" sin
+    tener que reconstruirlo desde otro lado.
+
+    max_entries=52 -- ~1 año de corridas semanales, mismo criterio de
+    retención acotada que signals_history.json (max_days) y el resto del
+    proyecto: nunca crecer indefinidamente.
+    """
+    history = _load_history()
+    today = date.today().isoformat()
+
+    def _slim(cell):
+        if not cell:
+            return None
+        return {
+            "directional_accuracy": cell.get("directional_accuracy"),
+            "mae": cell.get("mae"),
+            "correlation": cell.get("correlation"),
+            "n": cell.get("n"),
+        }
+
+    entry = {
+        "generated":   result.get("generated"),
+        "n_snapshots": result.get("n_snapshots"),
+        "global": {
+            modelo: _slim(result.get("global", {}).get(modelo))
+            for modelo in ["predictor", "zero", "momentum", "historical_avg"]
+        },
+        "by_market": {
+            mkt: {
+                modelo: _slim((cell or {}).get(modelo))
+                for modelo in ["predictor", "zero", "momentum", "historical_avg"]
+            }
+            for mkt, cell in (result.get("by_market") or {}).items()
+        },
+    }
+
+    history[today] = entry  # sobreescribe si ya corrió hoy -- 1 entrada por día, no por corrida
+
+    # Purga: quedarse solo con las últimas max_entries fechas
+    if len(history) > max_entries:
+        fechas_ordenadas = sorted(history.keys())
+        for f in fechas_ordenadas[:-max_entries]:
+            del history[f]
+
+    os.makedirs("data", exist_ok=True)
+    with open(HISTORY_PATH, "w") as f:
+        json.dump(history, f, ensure_ascii=False, indent=None)
+
+    from src.github_persistence import push_file
+    push_file(
+        HISTORY_PATH,
+        f"auto: predictor_validation_history {today} ({len(history)} entradas)",
+    )
+
+
+def get_history_summary(last_n: int = 8) -> list[dict]:
+    """
+    Serie de las últimas `last_n` corridas, ordenada por fecha, para
+    dashboard/Telegram/lectura humana. Cada elemento: fecha + accuracy/corr
+    del predictor real vs baseline "zero" en el horizonte global -- lo
+    mínimo para ver de un vistazo si el predictor viene mejorando o no.
+    """
+    history = _load_history()
+    fechas = sorted(history.keys())[-last_n:]
+    out = []
+    for f in fechas:
+        e = history[f]
+        pred = (e.get("global") or {}).get("predictor") or {}
+        zero = (e.get("global") or {}).get("zero") or {}
+        out.append({
+            "fecha": f,
+            "n_snapshots": e.get("n_snapshots"),
+            "predictor_dir_acc": pred.get("directional_accuracy"),
+            "predictor_corr": pred.get("correlation"),
+            "predictor_mae": pred.get("mae"),
+            "zero_dir_acc": zero.get("directional_accuracy"),
+            "zero_mae": zero.get("mae"),
+        })
+    return out
 
 
 def get_validation_summary() -> dict:

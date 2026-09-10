@@ -102,6 +102,21 @@ def enrich_confidence_scores(signals: list[dict], vol_regime: dict = None) -> li
             sig["confidence_label"] = "Media"
             sig["confidence_breakdown"] = {}
 
+        # ── Confidence experimental (10/09/2026, modo auditoría) ────────
+        # Puramente informativo -- ver docstring de _calc_confidence_
+        # experimental(). Nunca debe alimentar Kelly ni gating; si esto
+        # falla, no debe tumbar el cálculo del campo de producción de
+        # arriba (por eso va en su propio try/except, después).
+        try:
+            cs_exp, label_exp, breakdown_exp = _calc_confidence_experimental(sig, global_regime)
+            sig["confidence_score_experimental"] = cs_exp
+            sig["confidence_label_experimental"] = label_exp
+            sig["confidence_breakdown_experimental"] = breakdown_exp
+        except Exception:
+            sig["confidence_score_experimental"] = None
+            sig["confidence_label_experimental"] = None
+            sig["confidence_breakdown_experimental"] = {}
+
     buy_count = len([s for s in signals if s.get("confidence_score", 0) >= 75
                      and "COMPRA" in (s.get("signal_v2") or "")])
     logger.info(f"[confidence] {enriched} señales enriquecidas | Alta conf+compra: {buy_count}")
@@ -194,6 +209,91 @@ def _calc_confidence(sig: dict, global_regime: str) -> tuple[float, str, dict]:
     score = round(min(100, max(0, score)), 1)
 
     # Label
+    if score >= 75:
+        label = "🟢 Alta"
+    elif score >= 55:
+        label = "🟡 Media"
+    elif score >= 35:
+        label = "🟠 Baja"
+    else:
+        label = "🔴 Muy baja"
+
+    return score, label, breakdown
+
+
+def _calc_confidence_experimental(sig: dict, global_regime: str) -> tuple[float, str, dict]:
+    """
+    Versión experimental de confidence_score, con predictor_weight=0.
+
+    FIX 10/09/2026 (auditoría real con Claude, ver predictor_status_audit_
+    10092026.md §11): dentro de confidence_score, predictor_pts (15%) mostró
+    correlación NEGATIVA y significativa contra ret_5d real (n=225, corr=-0.29,
+    p<0.0001) -- el componente con más peso, alignment_pts (33%), mostró señal
+    positiva débil (corr=+0.149, p=0.025). Al sumarse, ambos se cancelan
+    parcialmente y el total da correlación ≈0 (-0.002, p=0.97) pese a que hay
+    señal real adentro. Esta función reconstruye el score SIN el componente
+    predictor, redistribuyendo su peso proporcionalmente entre los otros 4
+    (33/85, 26/85, 13/85, 13/85 -- escalado a que sumen 100 de nuevo).
+
+    NO reemplaza a _calc_confidence(): corre en paralelo, se persiste como
+    campo separado (confidence_score_experimental / confidence_label_
+    experimental), y NO alimenta Kelly, gating de señales, ni ninguna otra
+    decisión -- exclusivamente informativo, modo auditoría (decisión
+    explícita de Bruno, 10/09/2026: "no confiar en él para decisiones").
+    """
+    score = 0.0
+    REESCALA = 100.0 / 85.0  # 85 = 33+26+13+13, el total sin el 15% de predictor
+
+    # ── Alignment de timeframes (33% del total original -> 33/85 del experimental) ──
+    alignment = sig.get("alignment_label", "")
+    align_map = {
+        "TRIPLE CONFIRMACIÓN": 33,
+        "DOBLE CONFIRMACIÓN":  24,
+        "SIN DATOS":           16,
+        "SEÑALES MIXTAS":      11,
+        "CONFLICTO PARCIAL":    7,
+        "CONFLICTO TOTAL":      0,
+    }
+    align_pts = align_map.get(alignment, 16) * REESCALA
+    score += align_pts
+
+    # ── Quality checks (26% original) ──────────────────────────────────
+    quality = sig.get("quality_flag", "🟢")
+    quality_pts = {"🟢": 26, "🟡": 16, "🔴": 4}.get(quality, 16) * REESCALA
+    score += quality_pts
+
+    # ── Consistencia V1/V2 (13% original) ──────────────────────────────
+    score_v1 = float(sig.get("score_final", 50) or 50)
+    score_v2 = float(sig.get("score_final_v2", 50) or 50)
+    diff = abs(score_v1 - score_v2)
+    if diff < 10:
+        consist_pts = 13
+    elif diff < 20:
+        consist_pts = 9
+    elif diff < 30:
+        consist_pts = 5
+    else:
+        consist_pts = 1
+    consist_pts = consist_pts * REESCALA
+    score += consist_pts
+
+    # ── Régimen de volatilidad (13% original) ──────────────────────────
+    vol_pts = {"LOW": 13, "NORMAL": 9, "HIGH": 4}.get(global_regime, 9) * REESCALA
+    score += vol_pts
+
+    breakdown = {
+        "alignment_label": alignment,
+        "alignment_pts":   round(align_pts, 2),
+        "quality_flag":    quality,
+        "quality_pts":     round(quality_pts, 2),
+        "consistency_pts": round(consist_pts, 2),
+        "vol_regime_usado": global_regime,
+        "vol_pts":         round(vol_pts, 2),
+        "predictor_pts":   0.0,  # explícito: predictor_weight=0 en esta versión
+    }
+
+    score = round(min(100, max(0, score)), 1)
+
     if score >= 75:
         label = "🟢 Alta"
     elif score >= 55:
