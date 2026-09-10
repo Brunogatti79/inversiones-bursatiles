@@ -88,7 +88,46 @@ SECTOR_SCORES_DEFAULT = {
     "SALUD": 46.0,
     "TECNOLOGÍA": 42.0,
 }
- 
+
+# FIX 10/09/2026 (auditoría real con Claude, ver predictor_status_audit_10092026.md
+# §18-25): SECTOR_SCORES_DEFAULT es global para los 3 mercados, y el parámetro
+# `market` de _dynamic_sector_score() nunca se usaba para diferenciar -- en
+# BOVESPA esto se tradujo en un score_sectorial con correlación -0.652 contra
+# ret_21d real (n=102, spread top-bottom -37.17pp: el sector con PEOR resultado
+# real, SALUD, recibía el score más alto de la tabla, y FINANCIERO -- el segundo
+# MEJOR resultado real -- el score más bajo).
+#
+# SECTOR_SCORES_BOVESPA se calibró con el EV real a 21d por sector sobre 61 días
+# de historia (n=102 señales COMPRA), y se validó fuera de muestra (train/test
+# temporal, 3 ventanas distintas: 40/60, 50/50, 60/40) contra dos alternativas:
+# (a) eliminar el componente sectorial de Asset Quality, (b) dejarlo como estaba.
+# Recalibrar superó a eliminar en las 3 ventanas (corr test ~0.30->~0.38, spread
+# top-bottom casi se duplica) -- evidencia consistente, no de una sola muestra.
+# El ranking de sectores (peor a mejor) fue IDÉNTICO en las 3 ventanas de
+# entrenamiento, lo cual es inusual y da confianza adicional al orden relativo.
+#
+# Escala 30-55 elegida por rank (no por magnitud de EV) para no sobreajustar a
+# sectores con pocos tickers -- UTILITIES/INDUSTRIAL/FINANCIERO tienen n<=6 en
+# esta calibración y deben tratarse como provisionales, a revisar cuando la
+# muestra crezca. TECNOLOGÍA/TELECOM/ENERGÍA no tuvieron ninguna señal COMPRA
+# en BOVESPA en estos 61 días -- sin cobertura, caen al fallback de
+# SECTOR_SCORES_DEFAULT (ver _dynamic_sector_score) hasta que haya historia
+# propia para calibrarlos.
+#
+# Alcance deliberadamente acotado a BOVESPA: NO se replica este patrón en
+# MERVAL ni SP500 -- no fueron auditados con el mismo rigor y no hay evidencia
+# de que el mismo problema (o la misma solución) aplique ahí. Decisión
+# explícita de Bruno (10/09/2026): GO a BOVESPA, NO GO a MERVAL/SP500.
+SECTOR_SCORES_BOVESPA = {
+    "SALUD": 30.0,          # n=17
+    "CONSUMO": 34.2,        # n=29
+    "UTILITIES": 38.3,      # n=6  -- muestra chica, provisional
+    "INDUSTRIAL": 42.5,     # n=2  -- muestra chica, provisional
+    "INMOBILIARIO": 46.7,   # n=20
+    "FINANCIERO": 50.8,     # n=6  -- muestra chica, provisional
+    "MATERIALES": 55.0,     # n=22
+}
+
 # Mejora 1: Matriz de sensibilidad sectorial a variables macro
 SECTOR_MACRO_SENSITIVITY = {
     "FINANCIERO":    (+0.8, -0.3, +0.5, -0.2),
@@ -712,7 +751,17 @@ def _adx(high_series, low_series, close_series, period=14):
 # ─────────────────────────────────────────────
  
 def _dynamic_sector_score(sector, macro_score, market):
-    base = SECTOR_SCORES_DEFAULT.get(sector, 42.0)
+    # FIX 10/09/2026 (ver SECTOR_SCORES_BOVESPA arriba para la evidencia y el
+    # alcance): antes `market` se recibía y nunca se usaba -- el base score era
+    # siempre SECTOR_SCORES_DEFAULT sin importar el mercado. Ahora BOVESPA usa
+    # su propia tabla calibrada; MERVAL y SP500 no cambian de comportamiento
+    # (fallback a SECTOR_SCORES_DEFAULT, igual que siempre). Si un sector de
+    # BOVESPA no está en SECTOR_SCORES_BOVESPA (TECNOLOGÍA/TELECOM/ENERGÍA --
+    # sin señales COMPRA en la calibración), cae también a SECTOR_SCORES_DEFAULT.
+    if market == "BOVESPA":
+        base = SECTOR_SCORES_BOVESPA.get(sector, SECTOR_SCORES_DEFAULT.get(sector, 42.0))
+    else:
+        base = SECTOR_SCORES_DEFAULT.get(sector, 42.0)
     sens = SECTOR_MACRO_SENSITIVITY.get(sector, (0, 0, 0, 0))
     macro_delta = (macro_score - 50) / 50
     adjustment = macro_delta * sum(sens) / len(sens) * 10
