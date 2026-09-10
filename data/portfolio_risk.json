@@ -7,13 +7,13 @@
     "matriz": {
       "CEPU.BA": {
         "CEPU.BA": 1.0,
-        "COME.BA": 0.044,
+        "COME.BA": 0.58,
         "TRAN.BA": 0.315,
         "COPX": 0.001,
-        "GLOB": 0.028,
-        "HAPV3.SA": 0.149,
+        "GLOB": 0.027,
+        "HAPV3.SA": 0.148,
         "PBR": 0.188,
-        "RIO": 0.029,
+        "RIO": 0.028,
         "GGAL.BA": 0.753,
         "GOOGL": 0.036,
         "EDN.BA": 0.013,
@@ -22,26 +22,26 @@
         "TECO2.BA": 0.538
       },
       "COME.BA": {
-        "CEPU.BA": 0.044,
+        "CEPU.BA": 0.58,
         "COME.BA": 1.0,
-        "TRAN.BA": 0.082,
-        "COPX": -0.103,
-        "GLOB": 0.089,
-        "HAPV3.SA": 0.101,
-        "PBR": 0.161,
-        "RIO": -0.071,
-        "GGAL.BA": 0.019,
-        "GOOGL": 0.232,
-        "EDN.BA": 0.527,
-        "BMA.BA": 0.468,
-        "TSLA": -0.02,
-        "TECO2.BA": 0.02
+        "TRAN.BA": 0.251,
+        "COPX": 0.041,
+        "GLOB": 0.2,
+        "HAPV3.SA": 0.092,
+        "PBR": 0.013,
+        "RIO": 0.133,
+        "GGAL.BA": 0.536,
+        "GOOGL": 0.018,
+        "EDN.BA": 0.044,
+        "BMA.BA": 0.046,
+        "TSLA": -0.163,
+        "TECO2.BA": 0.535
       },
       "TRAN.BA": {
         "CEPU.BA": 0.315,
-        "COME.BA": 0.082,
+        "COME.BA": 0.251,
         "TRAN.BA": 1.0,
-        "COPX": -0.01,
+        "COPX": -0.009,
         "GLOB": 0.003,
         "HAPV3.SA": 0.126,
         "PBR": -0.248,
@@ -51,97 +51,97 @@
         "EDN.BA": 0.258,
         "BMA.BA": 0.279,
         "TSLA": -0.232,
-        "TECO2.BA": 0.364
+        "TECO2.BA": 0.363
       },
       "COPX": {
         "CEPU.BA": 0.001,
-        "COME.BA": -0.103,
-        "TRAN.BA": -0.01,
+        "COME.BA": 0.041,
+        "TRAN.BA": -0.009,
         "COPX": 1.0,
-        "GLOB": -0.113,
-        "HAPV3.SA": 0.182,
-        "PBR": -0.022,
+        "GLOB": -0.111,
+        "HAPV3.SA": 0.185,
+        "PBR": -0.021,
         "RIO": 0.846,
-        "GGAL.BA": 0.186,
+        "GGAL.BA": 0.185,
         "GOOGL": 0.107,
-        "EDN.BA": -0.003,
+        "EDN.BA": -0.002,
         "BMA.BA": -0.138,
-        "TSLA": 0.412,
-        "TECO2.BA": 0.064
+        "TSLA": 0.413,
+        "TECO2.BA": 0.062
       },
       "GLOB": {
-        "CEPU.BA": 0.028,
-        "COME.BA": 0.089,
+        "CEPU.BA": 0.027,
+        "COME.BA": 0.2,
         "TRAN.BA": 0.003,
-        "COPX": -0.113,
+        "COPX": -0.111,
         "GLOB": 1.0,
-        "HAPV3.SA": -0.192,
+        "HAPV3.SA": -0.193,
         "PBR": -0.106,
-        "RIO": 0.057,
+        "RIO": 0.058,
         "GGAL.BA": 0.07,
         "GOOGL": 0.155,
         "EDN.BA": -0.101,
         "BMA.BA": 0.09,
         "TSLA": 0.004,
-        "TECO2.BA": 0.065
+        "TECO2.BA": 0.064
       },
       "HAPV3.SA": {
-        "CEPU.BA": 0.149,
-        "COME.BA": 0.101,
+        "CEPU.BA": 0.148,
+        "COME.BA": 0.092,
         "TRAN.BA": 0.126,
-        "COPX": 0.182,
-        "GLOB": -0.192,
+        "COPX": 0.185,
+        "GLOB": -0.193,
         "HAPV3.SA": 1.0,
-        "PBR": 0.022,
-        "RIO": 0.209,
-        "GGAL.BA": 0.233,
+        "PBR": 0.021,
+        "RIO": 0.211,
+        "GGAL.BA": 0.234,
         "GOOGL": 0.23,
         "EDN.BA": 0.193,
         "BMA.BA": -0.019,
-        "TSLA": 0.093,
-        "TECO2.BA": 0.139
+        "TSLA": 0.094,
+        "TECO2.BA": 0.138
       },
       "PBR": {
         "CEPU.BA": 0.188,
-        "COME.BA": 0.161,
+        "COME.BA": 0.013,
         "TRAN.BA": -0.248,
-        "COPX": -0.022,
+        "COPX": -0.021,
         "GLOB": -0.106,
-        "HAPV3.SA": 0.022,
+        "HAPV3.SA": 0.021,
         "PBR": 1.0,
-        "RIO": 0.05,
+        "RIO": 0.051,
         "GGAL.BA": 0.022,
         "GOOGL": -0.071,
-        "EDN.BA": 0.073,
-        "BMA.BA": 0.033,
-        "TSLA": 0.02,
+        "EDN.BA": 0.072,
+        "BMA.BA": 0.032,
+        "TSLA": 0.021,
         "TECO2.BA": 0.074
       },
       "RIO": {
-        "CEPU.BA": 0.029,
-        "COME.BA": -0.071,
+        "CEPU.BA": 0.028,
+        "COME.BA": 0.133,
         "TRAN.BA": -0.002,
         "COPX": 0.846,
-        "GLOB": 0.057,
-        "HAPV3.SA": 0.209,
-        "PBR": 0.05,
+        "GLOB": 0.058,
+        "HAPV3.SA": 0.211,
+        "PBR": 0.051,
         "RIO": 1.0,
-        "GGAL.BA": 0.172,
+        "GGAL.BA": 0.171,
         "GOOGL": 0.116,
         "EDN.BA": -0.082,
         "BMA.BA": -0.14,
         "TSLA": 0.239,
-        "TECO2.BA": 0.054
+        "TECO2.BA": 0.052
       },
       "GGAL.BA": {
         "CEPU.BA": 0.753,
-        "COME.BA": 0.019,
+        "COME.BA": 0.536,
         "TRAN.BA": 0.333,
-        "COPX": 0.186,
+        "COPX": 0.185,
         "GLOB": 0.07,
-        "HAPV3.SA": 0.233,
+        "HAPV3.SA": 0.234,
         "PBR": 0.022,
-        "RIO": 0.172,
+        "RIO": 0.171,
         "GGAL.BA": 1.0,
         "GOOGL": 0.058,
         "EDN.BA": -0.083,
@@ -151,7 +151,7 @@
       },
       "GOOGL": {
         "CEPU.BA": 0.036,
-        "COME.BA": 0.232,
+        "COME.BA": 0.018,
         "TRAN.BA": 0.029,
         "COPX": 0.107,
         "GLOB": 0.155,
@@ -163,16 +163,16 @@
         "EDN.BA": 0.146,
         "BMA.BA": -0.196,
         "TSLA": 0.414,
-        "TECO2.BA": -0.126
+        "TECO2.BA": -0.125
       },
       "EDN.BA": {
         "CEPU.BA": 0.013,
-        "COME.BA": 0.527,
+        "COME.BA": 0.044,
         "TRAN.BA": 0.258,
-        "COPX": -0.003,
+        "COPX": -0.002,
         "GLOB": -0.101,
         "HAPV3.SA": 0.193,
-        "PBR": 0.073,
+        "PBR": 0.072,
         "RIO": -0.082,
         "GGAL.BA": -0.083,
         "GOOGL": 0.146,
@@ -183,12 +183,12 @@
       },
       "BMA.BA": {
         "CEPU.BA": -0.118,
-        "COME.BA": 0.468,
+        "COME.BA": 0.046,
         "TRAN.BA": 0.279,
         "COPX": -0.138,
         "GLOB": 0.09,
         "HAPV3.SA": -0.019,
-        "PBR": 0.033,
+        "PBR": 0.032,
         "RIO": -0.14,
         "GGAL.BA": -0.164,
         "GOOGL": -0.196,
@@ -199,12 +199,12 @@
       },
       "TSLA": {
         "CEPU.BA": -0.015,
-        "COME.BA": -0.02,
+        "COME.BA": -0.163,
         "TRAN.BA": -0.232,
-        "COPX": 0.412,
+        "COPX": 0.413,
         "GLOB": 0.004,
-        "HAPV3.SA": 0.093,
-        "PBR": 0.02,
+        "HAPV3.SA": 0.094,
+        "PBR": 0.021,
         "RIO": 0.239,
         "GGAL.BA": -0.058,
         "GOOGL": 0.414,
@@ -215,15 +215,15 @@
       },
       "TECO2.BA": {
         "CEPU.BA": 0.538,
-        "COME.BA": 0.02,
-        "TRAN.BA": 0.364,
-        "COPX": 0.064,
-        "GLOB": 0.065,
-        "HAPV3.SA": 0.139,
+        "COME.BA": 0.535,
+        "TRAN.BA": 0.363,
+        "COPX": 0.062,
+        "GLOB": 0.064,
+        "HAPV3.SA": 0.138,
         "PBR": 0.074,
-        "RIO": 0.054,
+        "RIO": 0.052,
         "GGAL.BA": 0.607,
-        "GOOGL": -0.126,
+        "GOOGL": -0.125,
         "EDN.BA": 0.012,
         "BMA.BA": -0.039,
         "TSLA": -0.156,
@@ -262,6 +262,13 @@
       {
         "par": [
           "CEPU.BA",
+          "COME.BA"
+        ],
+        "correlacion": 0.58
+      },
+      {
+        "par": [
+          "CEPU.BA",
           "TECO2.BA"
         ],
         "correlacion": 0.538
@@ -269,16 +276,16 @@
       {
         "par": [
           "COME.BA",
-          "EDN.BA"
+          "GGAL.BA"
         ],
-        "correlacion": 0.527
+        "correlacion": 0.536
       },
       {
         "par": [
           "COME.BA",
-          "BMA.BA"
+          "TECO2.BA"
         ],
-        "correlacion": 0.468
+        "correlacion": 0.535
       },
       {
         "par": [
@@ -292,14 +299,7 @@
           "COPX",
           "TSLA"
         ],
-        "correlacion": 0.412
-      },
-      {
-        "par": [
-          "TRAN.BA",
-          "TECO2.BA"
-        ],
-        "correlacion": 0.364
+        "correlacion": 0.413
       }
     ]
   },
@@ -307,10 +307,10 @@
     "status": "ok",
     "confidence": 0.95,
     "horizon_days": 1,
-    "var_pct": 1.92,
-    "var_usd": 130.59,
-    "valor_portfolio_cubierto_usd": 6810.98,
-    "valor_portfolio_total_usd": 6810.98,
+    "var_pct": 1.96,
+    "var_usd": 133.45,
+    "valor_portfolio_cubierto_usd": 6809.9,
+    "valor_portfolio_total_usd": 6809.9,
     "pct_portfolio_cubierto": 100.0,
     "tickers_con_datos": 14,
     "tickers_sin_datos": 0,
@@ -319,10 +319,10 @@
   },
   "exposicion": {
     "status": "ok",
-    "valor_total_usd": 6810.98,
+    "valor_total_usd": 6809.9,
     "por_mercado": {
       "MERVAL": {
-        "valor_usd": 3233.4,
+        "valor_usd": 3233.89,
         "pct": 47.5
       },
       "SP500": {
@@ -330,8 +330,8 @@
         "pct": 44.1
       },
       "BOVESPA": {
-        "valor_usd": 576.88,
-        "pct": 8.5
+        "valor_usd": 575.31,
+        "pct": 8.4
       }
     },
     "por_sector": {
@@ -340,27 +340,27 @@
         "pct": 24.3
       },
       "ENERGÍA": {
-        "valor_usd": 1149.82,
+        "valor_usd": 1150.1,
         "pct": 16.9
       },
       "UTILITIES": {
-        "valor_usd": 984.78,
+        "valor_usd": 984.75,
         "pct": 14.5
       },
       "CONSUMO": {
-        "valor_usd": 897.08,
+        "valor_usd": 896.46,
         "pct": 13.2
       },
       "FINANCIERO": {
-        "valor_usd": 611.4,
+        "valor_usd": 611.61,
         "pct": 9.0
       },
       "SALUD": {
-        "valor_usd": 576.88,
-        "pct": 8.5
+        "valor_usd": 575.31,
+        "pct": 8.4
       },
       "TELECOM": {
-        "valor_usd": 559.7,
+        "valor_usd": 560.35,
         "pct": 8.2
       },
       "TECNOLOGÍA": {
@@ -369,5 +369,5 @@
       }
     }
   },
-  "generated": "2026-09-10T17:48:42.401468"
+  "generated": "2026-09-10T20:03:27.965922"
 }
