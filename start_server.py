@@ -495,6 +495,9 @@ def _sync_all_data_from_github():
             "historical_replay.json",     # fix 24/06: antes se perdía en cada redeploy
             "system_confidence.json",     # mejora 4.3: confidence global + kill switch
             "predictor_validation.json",  # Prioridad 3: predictor vs baselines (desde el día 1)
+            "predictor_validation_history.json",  # Predictor Lab (10/09/2026): serie semanal,
+                                             # aditiva -- responde "¿esto viene pasando hace
+                                             # semanas?" que antes no se podía contestar.
             "pattern_discovery_log.json",   # v4.16: snapshot + histórico de nuevos_evidencia/
                                              # cambio_de_signo del cruce confidence_x_signal --
                                              # el mecanismo real de "el modelo va aprendiendo,
