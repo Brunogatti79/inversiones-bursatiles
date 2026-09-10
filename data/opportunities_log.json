@@ -18338,5 +18338,97 @@
         "sp500_trend_score": 48.0
       }
     }
+  ],
+  "2026-09-10": [
+    {
+      "ticker": "CAT",
+      "empresa": "Caterpillar",
+      "mercado": "SP500",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 803.32,
+      "entrada": 795.28,
+      "stop": 787.32,
+      "target": 827.84,
+      "riesgo_pct": 1.0,
+      "reward_pct": 4.1,
+      "rr_ratio": 0.63,
+      "score_macro": 27.5,
+      "score_tecnico": 42.2,
+      "score_fundamental": 80.0,
+      "score_final_v1": 54.0,
+      "asset_quality": 48.8,
+      "entry_score": 72.0,
+      "score_final_v2": 63.4,
+      "ranking_accionable": 53.8,
+      "volatility_score": 37.3,
+      "adx": 0.0,
+      "alignment_score": 50,
+      "alignment_label": "NEUTRAL",
+      "weekly_trend": "LATERAL",
+      "monthly_trend": "ALCISTA",
+      "rsi": 45.9,
+      "momentum_21d": -6.1,
+      "pred_5d": 1.31,
+      "pred_10d": 3.19,
+      "pred_21d": 10.54,
+      "pred_confidence": 0.497,
+      "pred_signal": "📈 SUBA",
+      "opportunity_score": 58.1,
+      "index_snapshot": {
+        "actual": 7592.0,
+        "ret_dia": -0.59,
+        "ret_anual": 16.22
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 44.0
+      }
+    },
+    {
+      "ticker": "GLOB",
+      "empresa": "Globant",
+      "mercado": "SP500",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 88.6,
+      "entrada": 87.71,
+      "stop": 35.31,
+      "target": 40.62,
+      "riesgo_pct": 59.7,
+      "reward_pct": -53.7,
+      "rr_ratio": 0.91,
+      "score_macro": 27.5,
+      "score_tecnico": 58.0,
+      "score_fundamental": 74.0,
+      "score_final_v1": 49.8,
+      "asset_quality": 46.7,
+      "entry_score": 76.9,
+      "score_final_v2": 67.4,
+      "ranking_accionable": 51.7,
+      "volatility_score": 20.0,
+      "adx": 0.0,
+      "alignment_score": 95,
+      "alignment_label": "TRIPLE CONFIRMACIÓN",
+      "weekly_trend": "BAJISTA",
+      "monthly_trend": "BAJISTA",
+      "rsi": 38.8,
+      "momentum_21d": -4.7,
+      "pred_5d": 3.38,
+      "pred_10d": 5.05,
+      "pred_21d": 3.92,
+      "pred_confidence": 0.479,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 54.4,
+      "index_snapshot": {
+        "actual": 7592.0,
+        "ret_dia": -0.59,
+        "ret_anual": 16.22
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 44.0
+      }
+    }
   ]
 }
