@@ -18430,5 +18430,97 @@
         "sp500_trend_score": 44.0
       }
     }
+  ],
+  "2026-09-11": [
+    {
+      "ticker": "BA",
+      "empresa": "Boeing",
+      "mercado": "SP500",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 62.99,
+      "entrada": 61.77,
+      "stop": 204.57,
+      "target": 218.39,
+      "riesgo_pct": -231.2,
+      "reward_pct": 253.6,
+      "rr_ratio": 5.0,
+      "score_macro": 27.5,
+      "score_tecnico": 44.5,
+      "score_fundamental": 78.9,
+      "score_final_v1": 56.2,
+      "asset_quality": 48.4,
+      "entry_score": 69.7,
+      "score_final_v2": 62.0,
+      "ranking_accionable": 55.7,
+      "volatility_score": 51.0,
+      "adx": 0.0,
+      "alignment_score": 50,
+      "alignment_label": "NEUTRAL",
+      "weekly_trend": "ALCISTA",
+      "monthly_trend": "ALCISTA",
+      "rsi": 44.7,
+      "momentum_21d": -8.5,
+      "pred_5d": 1.47,
+      "pred_10d": 4.22,
+      "pred_21d": 3.3,
+      "pred_confidence": 0.513,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 79.2,
+      "index_snapshot": {
+        "actual": 7671.0,
+        "ret_dia": 1.04,
+        "ret_anual": 16.44
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 48.0
+      }
+    },
+    {
+      "ticker": "CAT",
+      "empresa": "Caterpillar",
+      "mercado": "SP500",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 822.54,
+      "entrada": 809.26,
+      "stop": 804.97,
+      "target": 849.46,
+      "riesgo_pct": 0.5,
+      "reward_pct": 5.0,
+      "rr_ratio": 1.36,
+      "score_macro": 27.5,
+      "score_tecnico": 44.8,
+      "score_fundamental": 80.0,
+      "score_final_v1": 56.6,
+      "asset_quality": 48.8,
+      "entry_score": 66.2,
+      "score_final_v2": 60.4,
+      "ranking_accionable": 52.3,
+      "volatility_score": 37.1,
+      "adx": 0.0,
+      "alignment_score": 50,
+      "alignment_label": "NEUTRAL",
+      "weekly_trend": "ALCISTA",
+      "monthly_trend": "ALCISTA",
+      "rsi": 48.2,
+      "momentum_21d": -3.8,
+      "pred_5d": 1.63,
+      "pred_10d": 2.65,
+      "pred_21d": 11.14,
+      "pred_confidence": 0.5,
+      "pred_signal": "📈 SUBA",
+      "opportunity_score": 64.0,
+      "index_snapshot": {
+        "actual": 7671.0,
+        "ret_dia": 1.04,
+        "ret_anual": 16.44
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 48.0
+      }
+    }
   ]
 }
