@@ -2651,5 +2651,41 @@
       }
     },
     "predictor_accuracy": 0.492
+  },
+  {
+    "date": "2026-09-15",
+    "version": "4.16",
+    "total_trades": 3871,
+    "days_history": 61,
+    "by_market": {
+      "MERVAL": {
+        "n": 1134,
+        "horizon": "21d",
+        "win_rate": 0.255,
+        "avg_ret": -5.66,
+        "expected_value": -5.66,
+        "sharpe": -0.64,
+        "max_drawdown": -100.0
+      },
+      "BOVESPA": {
+        "n": 994,
+        "horizon": "21d",
+        "win_rate": 0.513,
+        "avg_ret": 0.32,
+        "expected_value": 0.32,
+        "sharpe": 0.02,
+        "max_drawdown": -100.0
+      },
+      "SP500": {
+        "n": 1743,
+        "horizon": "21d",
+        "win_rate": 0.598,
+        "avg_ret": 2.51,
+        "expected_value": 2.51,
+        "sharpe": 0.32,
+        "max_drawdown": -44.52
+      }
+    },
+    "predictor_accuracy": 0.49
   }
 ]
