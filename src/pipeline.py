@@ -445,17 +445,15 @@ def run_pipeline():
         # NO modifica señales ni Kelly -- ver src/earnings_calendar.py.
         # Try/except propio: si Yahoo falla, el pipeline sigue y los campos
         # quedan en None (desconocido), nunca en False.
+        # FIX 25/09 (primer run real, 0/84): Yahoo bloquea a Railway -- el
+        # fetch lo hace GitHub Actions (scripts/download_data.py); acá solo
+        # se trae la versión fresca del repo y se lee. Railway no escribe
+        # earnings_calendar.json.
         try:
             from src.earnings_calendar import (
-                refresh_earnings_calendar, load_calendar, inject_earnings_shadow,
+                sync_calendar_from_github, inject_earnings_shadow,
             )
-            try:
-                _ecal = refresh_earnings_calendar(
-                    [s.get("ticker") for s in all_signals if s.get("ticker")]
-                )
-            except Exception as e:
-                logger.warning(f"Earnings calendar refresh falló, uso cache: {e}")
-                _ecal = load_calendar()
+            _ecal = sync_calendar_from_github()
             _ecov = inject_earnings_shadow(all_signals, _ecal)
             logger.info("Shadow(earnings) cobertura: " + " | ".join(
                 f"{m} {c['conocido']}/{c['n']} (blackout {c['blackout']})"

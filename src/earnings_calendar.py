@@ -41,10 +41,21 @@ llega a Yahoo) -- por eso:
     fix del ISM en macro_auto: dato ausente queda ausente, no se inventa).
   * Cada refresh loguea cobertura por mercado.
 
+DÓNDE CORRE CADA PARTE (fix 25/09/2026, primer run real)
+--------------------------------------------------------
+El primer run en Railway trajo 0/84 tickers, AAPL incluido: Yahoo bloquea
+a Railway (ya documentado en downloader._download_direct -- por eso los
+precios se bajan desde GitHub Actions). Mismo patrón que los CSVs:
+  * FETCH: scripts/download_data.py (GitHub Actions) llama
+    refresh_earnings_calendar(push=False) y el workflow commitea el JSON.
+  * LECTURA: pipeline.py (Railway) hace sync_calendar_from_github() y solo
+    lee. Railway NUNCA escribe este archivo -- un solo escritor.
+
 PERSISTENCIA
 ------------
-data/earnings_calendar.json vía github_persistence.save_json + sync al
-arrancar (start_server.py). Las fechas se MERGEAN (unión) entre refreshes:
+data/earnings_calendar.json: lo escribe Actions (commit del workflow), se
+sincroniza al arrancar Railway (start_server.py) y se re-lee fresco en cada
+run del pipeline. Las fechas se MERGEAN (unión) entre refreshes:
 así el histórico de fechas crece aunque Yahoo deje de devolver las viejas,
 y queda disponible para el backtest retroactivo
 (scripts/diagnostico_earnings_blackout.py).
@@ -65,6 +76,9 @@ REFRESH_DAYS = 7            # Yahoo rate-limitea: refresh semanal, no por run
 PRE_BLACKOUT_BDAYS = 10     # umbral pre-registrado (ver docstring)
 YF_LIMIT = 24               # ~4 próximos + ~20 trimestres pasados
 SLEEP_BETWEEN = 0.4         # segundos entre tickers
+MIN_COVERAGE_RETRY = 0.5    # si el último refresh cubrió menos, reintenta sin esperar 7 días
+
+_fetch_errors: list[str] = []   # muestra de errores del último refresh (para el log)
 
 # Fallback a ADR cuando el ticker local no devuelve fechas. Misma empresa ->
 # misma fecha de publicación. Solo se incluyen equivalencias 1:1 de emisor
@@ -107,7 +121,7 @@ def fetch_earnings_dates_yf(symbol: str) -> list[str]:
             if df is not None and len(df):
                 dates.update(filter(None, (_to_iso(x) for x in df.index)))
         except Exception as e:
-            logger.debug(f"[earnings] get_earnings_dates {symbol}: {e}")
+            _fetch_errors.append(f"{symbol} get_earnings_dates: {type(e).__name__}: {e}"[:200])
         try:
             cal = tk.calendar
             if isinstance(cal, dict):
@@ -116,9 +130,9 @@ def fetch_earnings_dates_yf(symbol: str) -> list[str]:
                     ed = [ed]
                 dates.update(filter(None, (_to_iso(x) for x in ed)))
         except Exception as e:
-            logger.debug(f"[earnings] calendar {symbol}: {e}")
+            _fetch_errors.append(f"{symbol} calendar: {type(e).__name__}: {e}"[:200])
     except Exception as e:
-        logger.debug(f"[earnings] yfinance no disponible para {symbol}: {e}")
+        _fetch_errors.append(f"{symbol} yfinance: {type(e).__name__}: {e}"[:200])
     return sorted(dates)
 
 
@@ -155,6 +169,11 @@ def _needs_refresh(cal: dict, tickers: list[str], now: datetime) -> bool:
         return True
     if age >= REFRESH_DAYS:
         return True
+    # FIX 25/09: un refresh fallido (0/84 en el primer run) no puede contar
+    # como "fresco" por 7 días -- se reintenta en la próxima corrida.
+    total = cal.get("last_refresh_total") or 0
+    if total and (cal.get("last_refresh_ok") or 0) / total < MIN_COVERAGE_RETRY:
+        return True
     # tickers nuevos en el universo que nunca se intentaron
     return any(t not in cal.get("tickers", {}) for t in tickers)
 
@@ -175,13 +194,14 @@ def refresh_earnings_calendar(tickers: list[str], *, force: bool = False,
         return cal
 
     entries = cal.setdefault("tickers", {})
+    _fetch_errors.clear()
     ok = 0
     for i, t in enumerate(sorted(set(tickers))):
         prev = entries.get(t, {})
         try:
             dates, source = _fetch_with_fallback(t, fetcher)
         except Exception as e:
-            logger.debug(f"[earnings] fallo {t}: {e}")
+            _fetch_errors.append(f"{t}: {type(e).__name__}: {e}"[:200])
             dates, source = [], None
         merged = sorted(set(prev.get("dates", [])) | set(dates))
         entries[t] = {
@@ -198,9 +218,29 @@ def refresh_earnings_calendar(tickers: list[str], *, force: bool = False,
     cal["pre_blackout_bdays"] = PRE_BLACKOUT_BDAYS
     cal["last_refresh_ok"] = ok
     cal["last_refresh_total"] = len(set(tickers))
+    cal["last_error_samples"] = _fetch_errors[:5]
     save_json(path, cal, message=f"auto: earnings_calendar.json {now:%Y-%m-%d}", push=push)
-    logger.info(f"[earnings] Refresh: {ok}/{len(set(tickers))} tickers con fechas")
+    total = len(set(tickers))
+    msg = f"[earnings] Refresh: {ok}/{total} tickers con fechas"
+    if total and ok / total < MIN_COVERAGE_RETRY:
+        logger.warning(msg + f" -- cobertura baja, se reintenta en la próxima corrida. "
+                             f"Errores ({len(_fetch_errors)}): {_fetch_errors[:3]}")
+    else:
+        logger.info(msg)
     return cal
+
+
+def sync_calendar_from_github(path: str | None = None) -> dict:
+    """Railway: trae la versión fresca que commiteó Actions (sin redeploy,
+    mismo patrón que downloader.reload_price_csvs_fresh) y la lee. Si el
+    pull falla, usa la copia local del sync de arranque."""
+    path = path or CACHE_PATH
+    try:
+        from src.github_persistence import pull_file
+        pull_file(path)
+    except Exception as e:
+        logger.warning(f"[earnings] pull_file falló, uso copia local: {e}")
+    return load_calendar(path)
 
 
 # ── Campos shadow por señal ──────────────────────────────────────────────────
