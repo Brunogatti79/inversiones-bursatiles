@@ -25,6 +25,9 @@ import src.predictor_validation as pv
 @pytest.fixture(autouse=True)
 def _isolate_validation_path(tmp_path, monkeypatch):
     monkeypatch.setattr(pv, "VALIDATION_PATH", str(tmp_path / "predictor_validation.json"))
+    # FIX 25/09/2026: HISTORY_PATH no estaba aislado -- cada corrida de la
+    # suite modificaba data/predictor_validation_history.json real.
+    monkeypatch.setattr(pv, "HISTORY_PATH", str(tmp_path / "predictor_validation_history.json"))
 
 
 def _trending_series(n=300, drift=0.3, noise=1.0, seed=0):

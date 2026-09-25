@@ -392,7 +392,9 @@ class TestBuildTradesNewFields:
         # _build_trades() excluye los últimos 5 días de sorted_dates (no hay
         # futuro suficiente todavía) -- se necesitan >5 fechas para que
         # "2026-05-01" quede dentro de la ventana evaluable.
-        self.sorted_dates = [f"2026-05-{d:02d}" for d in range(1, 8)]
+        # 01/05/2026 es viernes; hasta el 09 hay 6 días hábiles (fix 25/09:
+        # _build_trades() descarta fines de semana y excluye los últimos 5).
+        self.sorted_dates = [f"2026-05-{d:02d}" for d in range(1, 10)]
 
     def _history_entry(self, **overrides):
         base = {
@@ -649,7 +651,7 @@ class TestBuildTradesFactorDominante:
         sin ajustar daba retornos artificiales de ~-90%. Ver docstring de
         _detect_split_horizon()."""
         history = {
-            "2026-08-01": [{
+            "2026-07-01": [{
                 "ticker": "YPFD.BA", "signal": "🟢 COMPRA", "precio": 81325.0,
                 "atr_stop": 75000.0, "atr_target": 90000.0, "sector": "Energía",
                 "mercado": "MERVAL",
@@ -658,11 +660,11 @@ class TestBuildTradesFactorDominante:
         # Split real: 03/08 el precio cae ~90% de golpe (evento corporativo)
         price_index = {
             "YPFD.BA": {
-                "2026-08-01": 81325.0, "2026-08-02": 81325.0,
-                "2026-08-03": 8105.0, "2026-08-04": 8105.0, "2026-08-05": 7840.0,
-                "2026-08-06": 7835.0, "2026-08-07": 7775.0, "2026-08-08": 7775.0,
-                "2026-08-09": 7775.0, "2026-08-10": 8105.0, "2026-08-11": 8000.0,
-                "2026-08-12": 8010.0, "2026-08-13": 7990.0, "2026-08-14": 8020.0,
+                "2026-07-01": 81325.0, "2026-07-02": 81325.0,
+                "2026-07-03": 8105.0, "2026-07-04": 8105.0, "2026-07-05": 7840.0,
+                "2026-07-06": 7835.0, "2026-07-07": 7775.0, "2026-07-08": 7775.0,
+                "2026-07-09": 7775.0, "2026-07-10": 8105.0, "2026-07-11": 8000.0,
+                "2026-07-12": 8010.0, "2026-07-13": 7990.0, "2026-07-14": 8020.0,
             }
         }
         sorted_dates = list(price_index["YPFD.BA"].keys())
@@ -679,14 +681,14 @@ class TestBuildTradesFactorDominante:
 
     def test_sin_split_no_se_marca_y_retornos_se_calculan_normal(self):
         history = {
-            "2026-08-01": [{
+            "2026-07-01": [{
                 "ticker": "GGAL.BA", "signal": "🟢 COMPRA", "precio": 100.0,
                 "atr_stop": 90.0, "atr_target": 120.0, "sector": "Financiero",
                 "mercado": "MERVAL",
             }],
         }
         price_index = {
-            "GGAL.BA": {f"2026-08-{d:02d}": 100.0 + d for d in range(1, 15)}
+            "GGAL.BA": {f"2026-07-{d:02d}": 100.0 + d for d in range(1, 15)}
         }
         sorted_dates = list(price_index["GGAL.BA"].keys())
         trades = _build_trades(history, sorted_dates, price_index)
@@ -697,22 +699,22 @@ class TestBuildTradesFactorDominante:
         """Si el split ocurre entre 5d y 10d, ret_5d debe seguir siendo
         válido (todo pre-split), y ret_10d/ret_21d deben quedar en None."""
         history = {
-            "2026-08-01": [{
+            "2026-07-01": [{
                 "ticker": "TEST.BA", "signal": "🟢 COMPRA", "precio": 100.0,
                 "atr_stop": 90.0, "atr_target": 120.0, "sector": "Financiero",
                 "mercado": "MERVAL",
             }],
         }
-        precios = {"2026-08-01": 100.0}
+        precios = {"2026-07-01": 100.0}
         base_date = 2
         # 7 dias organicos post-entry (index 0-6 -> day 1-7), split en day 8
         organicos = [101, 102, 101.5, 103, 102.5, 104, 103.5]
         for i, p in enumerate(organicos):
-            precios[f"2026-08-{base_date+i:02d}"] = p
+            precios[f"2026-07-{base_date+i:02d}"] = p
         # split (90% caida) en el 8vo dia futuro
-        precios["2026-08-10"] = 10.35
+        precios["2026-07-10"] = 10.35
         for i in range(11, 25):
-            precios[f"2026-08-{i:02d}"] = 10.0 + (i % 3)
+            precios[f"2026-07-{i:02d}"] = 10.0 + (i % 3)
         sorted_dates = list(precios.keys())
         trades = _build_trades(history, sorted_dates, {"TEST.BA": precios})
         t = trades[0]
@@ -840,3 +842,54 @@ class TestDetectSplitHorizon:
     def test_precio_none_en_la_lista_no_crashea(self):
         future = [None, 101.0, 99.0]
         assert _detect_split_horizon(100.0, future) == 3  # sin split real, no trunca
+
+
+
+class TestBuildTradesDiasHabiles:
+    """Fix 25/09/2026: signals_history.json tiene claves de días calendario;
+    sábado y domingo repetían el cierre del viernes y entraban como trades
+    independientes (pseudoreplicación, 4041 -> 2867 trades reales)."""
+
+    def _entry(self):
+        return {"ticker": "GGAL.BA", "mercado": "MERVAL", "signal_v2": "🟢 COMPRA",
+                "precio": 100.0, "atr_stop": 95.0, "atr_target": 110.0}
+
+    def test_fines_de_semana_no_generan_trades(self):
+        from src.backtester import _build_trades
+        precios = {f"2026-06-{d:02d}": 100.0 + d for d in range(1, 30)}
+        fechas = [f"2026-06-{d:02d}" for d in range(1, 22)]   # 01/06/2026 = lunes
+        history = {f: [self._entry()] for f in fechas}
+        trades = _build_trades(history, fechas, {"GGAL.BA": precios})
+        from datetime import datetime as _dt
+        dias = {t.get("signal_date") or t.get("fecha") for t in trades}
+        assert len(trades) == 15 - 5          # 15 hábiles del 01 al 21, menos los últimos 5
+        assert all(d is None or _dt.strptime(d, "%Y-%m-%d").weekday() < 5 for d in dias)
+
+    def test_es_dia_habil(self):
+        from src.backtester import _es_dia_habil
+        assert _es_dia_habil("2026-09-25") and not _es_dia_habil("2026-09-26")
+        assert not _es_dia_habil("2026-09-27") and _es_dia_habil("fecha-rara")
+
+
+class TestQuantileSplitHorizonte:
+    """Fix 25/09/2026: con muestra suficiente a 21d, el split top/bottom no
+    mezcla horizontes; el fallback mixto queda marcado."""
+
+    def _t(self, rank, r21=None, r5=None):
+        return {"ranking": rank, "ret_21d": r21, "ret_10d": None, "ret_5d": r5}
+
+    def test_usa_solo_21d_con_muestra_suficiente(self):
+        from src.backtester import _quantile_split, MIN_TRADES_21D_HOMOGENEO
+        valid = [self._t(i, r21=float(i)) for i in range(MIN_TRADES_21D_HOMOGENEO)]
+        valid += [self._t(1000 + i, r5=99.0) for i in range(20)]   # recientes, solo 5d
+        out = _quantile_split(valid, "ranking")
+        assert out["horizonte"] == "h21d"
+        assert out["samples"] == MIN_TRADES_21D_HOMOGENEO
+        assert out["top_20pct"]["horizontes_mezclados"] is None
+
+    def test_fallback_mixto_marcado_en_arranque_en_frio(self):
+        from src.backtester import _quantile_split
+        valid = [self._t(i, r21=1.0) for i in range(5)] + [self._t(100 + i, r5=1.0) for i in range(20)]
+        out = _quantile_split(valid, "ranking")
+        assert out["horizonte"] == "mixto"
+        assert out["samples"] == 25

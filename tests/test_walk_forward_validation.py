@@ -28,8 +28,16 @@ from src.backtester import _walk_forward_validate_patterns
 
 
 def _dates(n, start="2026-01-01"):
+    # Días hábiles (fix 25/09/2026): _build_trades() descarta sábados y
+    # domingos, así que fechas corridas dejaban menos días evaluables que
+    # los que el test pretende construir.
     base = datetime.strptime(start, "%Y-%m-%d")
-    return [(base + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(n)]
+    out, d = [], base
+    while len(out) < n:
+        if d.weekday() < 5:
+            out.append(d.strftime("%Y-%m-%d"))
+        d += timedelta(days=1)
+    return out
 
 
 def _build_history_and_prices(n_signal_days, price_fn, ticker="TEST.BA",
