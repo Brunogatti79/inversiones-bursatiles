@@ -438,6 +438,32 @@ def run_pipeline():
                 cross_market.get("market_exposure_shadow", {}).get(_mkt)
             )
 
+        # ── Instrumentación 25/09/2026 (shadow mode, blackout pre-earnings,
+        # auditoría con Claude): el alpha negativo de BOVESPA fue casi
+        # entero HAPV3 (-33% el 13/08, 5/6 COMPRA en las 2 semanas previas).
+        # Graba a cuántas ruedas está el próximo resultado, point-in-time.
+        # NO modifica señales ni Kelly -- ver src/earnings_calendar.py.
+        # Try/except propio: si Yahoo falla, el pipeline sigue y los campos
+        # quedan en None (desconocido), nunca en False.
+        try:
+            from src.earnings_calendar import (
+                refresh_earnings_calendar, load_calendar, inject_earnings_shadow,
+            )
+            try:
+                _ecal = refresh_earnings_calendar(
+                    [s.get("ticker") for s in all_signals if s.get("ticker")]
+                )
+            except Exception as e:
+                logger.warning(f"Earnings calendar refresh falló, uso cache: {e}")
+                _ecal = load_calendar()
+            _ecov = inject_earnings_shadow(all_signals, _ecal)
+            logger.info("Shadow(earnings) cobertura: " + " | ".join(
+                f"{m} {c['conocido']}/{c['n']} (blackout {c['blackout']})"
+                for m, c in sorted(_ecov.items())
+            ))
+        except Exception as e:
+            logger.warning(f"Shadow earnings no disponible: {e}")
+
         # 4b. PREDICCIONES ENSEMBLE (5d / 10d / 21d)
         logger.info("4b/8 Generando predicciones ensemble...")
         try:

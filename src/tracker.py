@@ -150,6 +150,16 @@ def update_history(signals: list[dict], max_days: int = 60):
             # tendencia local del mercado, NO aplicado a ningún cálculo de
             # capital todavía -- ver cross_market.py::compute_market_exposure_shadow.
             "market_exposure_shadow": s.get("market_exposure_shadow"),
+            # ── Instrumentación 25/09/2026 (shadow mode, blackout
+            # pre-earnings, auditoría con Claude): point-in-time, no se puede
+            # reconstruir después porque las fechas estimadas de Yahoo se
+            # mueven. None = desconocido (no es "sin resultados cerca").
+            # Ver src/earnings_calendar.py.
+            "earnings_next_date":       s.get("earnings_next_date"),
+            "earnings_days_to":         s.get("earnings_days_to"),
+            "earnings_blackout_shadow": s.get("earnings_blackout_shadow"),
+            "earnings_last_date":       s.get("earnings_last_date"),
+            "earnings_source":          s.get("earnings_source"),
             # ── Fix 27/07/2026 (roadmap externo P4/P6): estos campos ya
             # estaban en la señal en vivo (analyzer.py, v4.10/v4.11) pero
             # faltaba agregarlos acá -- sin esto, signals_history.json (la
