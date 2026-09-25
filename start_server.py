@@ -486,6 +486,10 @@ def _sync_all_data_from_github():
             "macro_score_history.json",
             "macro_raw_history.json",
             "signals_history.json",
+            "earnings_calendar.json",       # 25/09/2026: shadow blackout pre-earnings --
+                                             # las fechas se acumulan (merge) entre refreshes;
+                                             # sin sync, cada redeploy vuelve a pedir todo a
+                                             # Yahoo y se pierde el histórico acumulado.
             "health_metrics.json",
             "backtest_results.json",
             "opportunities_log.json",
