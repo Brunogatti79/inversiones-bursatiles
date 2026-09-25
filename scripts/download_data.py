@@ -411,6 +411,28 @@ def main():
         # No hacer sys.exit(1) para que el workflow haga commit de lo que se pudo bajar
     else:
         logger.info("=== Descarga completada exitosamente ===")
+
+    _refresh_earnings_calendar()
+
+
+def _refresh_earnings_calendar():
+    """Shadow blackout pre-earnings (25/09/2026). Corre ACÁ (GitHub Actions)
+    y no en Railway porque Yahoo bloquea a Railway: el primer intento desde
+    el pipeline trajo 0/84 tickers. Refresh semanal (o antes si la cobertura
+    del último fue < 50%); push=False porque el commit lo hace el workflow.
+    Nunca rompe la descarga de precios."""
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from src.earnings_calendar import refresh_earnings_calendar, load_calendar
+        tickers = set(load_calendar().get("tickers", {}))   # universo que ya vio el pipeline
+        for d in (MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TICKERS):
+            tickers |= set(d)
+        cal = refresh_earnings_calendar(sorted(tickers), push=False)
+        logger.info(f"[earnings] calendario: {cal.get('last_refresh_ok')}/"
+                    f"{cal.get('last_refresh_total')} con fechas "
+                    f"(generated {cal.get('generated')})")
+    except Exception as e:
+        logger.warning(f"[earnings] refresh falló (no afecta precios): {e}")
  
  
 if __name__ == "__main__":
