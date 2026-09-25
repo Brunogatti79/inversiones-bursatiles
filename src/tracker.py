@@ -184,6 +184,18 @@ def update_history(signals: list[dict], max_days: int = 60):
  
     logger.info(f"Histórico actualizado: {len(history)} días guardados")
     _push_signals_history_to_github()
+
+    # ── Archivo permanente append-only (25/09/2026, plan semana 1 con
+    # Claude): signals_history.json es rolling 61 días y poda la muestra;
+    # esto la conserva para siempre, un archivo por mes. Ver
+    # src/signals_archive.py. Aislado: una falla acá nunca afecta al
+    # pipeline ni a signals_history.json.
+    try:
+        from src.signals_archive import archive_day
+        archive_day(today, history.get(today, []))
+    except Exception as e:
+        logger.error(f"[signals_archive] Falló el archivado de {today}: {e}")
+
     return history
 
 
