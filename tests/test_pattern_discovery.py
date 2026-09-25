@@ -127,12 +127,28 @@ class TestBannerEnDashboard:
             "by_confidence_label": {}, "by_consenso": {}, "by_market": {}, "by_sector": {},
             "stop_target": {}, "confidence_quantiles": {}, "ranking_top_vs_rest": {},
             "pattern_discoveries_nuevas": [
-                {"tipo": "nueva_evidencia", "combinacion": "🟢 Alta + 🟢 COMPRA", "n": 41, "ev": 0.95},
+                {"tipo": "nueva_evidencia", "combinacion": "🟢 Alta + 🟢 COMPRA", "n": 41, "ev": 0.95,
+                 "significativo_95": True},
             ],
         }
         html = _render_model_conclusions_panel(backtest, [])
         assert "Patrones nuevos detectados esta corrida" in html
         assert "🟢 Alta + 🟢 COMPRA" in html
+
+    def test_patron_sin_significancia_no_se_muestra(self):
+        """Fix 25/09/2026: patrones globales sin test de significancia (ej.
+        "Media + VENTA", n=20, EV +0.92) no se exponen como hallazgo."""
+        backtest = {
+            "days_history": 19, "total_trades": 938,
+            "by_signal": {}, "confidence_calibration": {}, "confidence_calibration_curve": {},
+            "by_confidence_label": {}, "by_consenso": {}, "by_market": {}, "by_sector": {},
+            "stop_target": {}, "confidence_quantiles": {}, "ranking_top_vs_rest": {},
+            "pattern_discoveries_nuevas": [
+                {"tipo": "nueva_evidencia", "combinacion": "🟡 Media + 🔴 VENTA", "n": 20, "ev": 0.92},
+            ],
+        }
+        html = _render_model_conclusions_panel(backtest, [])
+        assert "Patrones nuevos detectados" not in html
 
     def test_banner_ausente_sin_discoveries(self):
         backtest = {

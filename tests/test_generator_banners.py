@@ -262,54 +262,62 @@ class TestRenderRankingEdgePanel:
         assert _render_ranking_edge_panel({}) == ""
         assert _render_ranking_edge_panel(None) == ""
 
-    def test_con_historical_edge_score_muestra_top_y_bottom(self):
-        backtest = {
-            "historical_edge_score": {
-                "🟢 Alta + 🟢 COMPRA":  {"score": 90.0, "n": 50, "ev": 3.0, "significativo_95": True},
-                "🟠 Baja + 🟢 COMPRA":  {"score": 20.0, "n": 40, "ev": -5.36, "significativo_95": True},
-                "🟡 Media + 🟡 NEUTRAL/ESPERAR": {"score": 55.0, "n": 200, "ev": 0.5, "significativo_95": False},
-            },
-        }
-        html = _render_ranking_edge_panel(backtest)
-        assert "Edge Histórico del Ranking" in html
-        assert "no fue reproducible" in html  # advertencia siempre visible
-        assert "🟢 Alta + 🟢 COMPRA" in html
-        assert "🟠 Baja + 🟢 COMPRA" in html
+    # ── Contrato nuevo (fix 25/09/2026, auditoría de datos expuestos) ──
+    # El panel muestra ranking_top_vs_rest_by_market. Los números GLOBALES
+    # (ranking_top_vs_rest, historical_edge_score) mezclan mercados --
+    # paradoja de Simpson -- y ya no se exponen.
 
-    def test_con_ranking_top_vs_rest_muestra_contraste(self):
-        backtest = {
-            "ranking_top_vs_rest": {
-                "top_20pct":    {"samples": 375, "expected_value": 3.48},
-                "bottom_20pct": {"samples": 375, "expected_value": -3.27},
-            },
+    @staticmethod
+    def _by_market(**overrides):
+        base = {
+            "MERVAL":  {"horizonte": "h21d", "top_20pct": {"samples": 94, "expected_value": -6.17},
+                        "bottom_20pct": {"samples": 94, "expected_value": -2.21}},
+            "BOVESPA": {"horizonte": "h21d", "top_20pct": {"samples": 78, "expected_value": 10.65},
+                        "bottom_20pct": {"samples": 78, "expected_value": 7.23}},
+            "SP500":   {"horizonte": "h21d", "top_20pct": {"samples": 138, "expected_value": 2.30},
+                        "bottom_20pct": {"samples": 138, "expected_value": 1.99}},
         }
-        html = _render_ranking_edge_panel(backtest)
-        assert "Top 20% (n=375)" in html
-        assert "Bottom 20% (n=375)" in html
+        base.update(overrides)
+        return {"ranking_top_vs_rest_by_market": base}
 
-    def test_entradas_con_n_none_no_crashean_el_sort(self):
-        """Regresión: historical_edge_score con score=None en alguna celda
-        (grupo sin muestra suficiente) no debe romper el sorted()."""
+    def test_muestra_los_tres_mercados_con_su_lectura(self):
+        html = _render_ranking_edge_panel(self._by_market())
+        assert "Edge Histórico del Ranking — por mercado" in html
+        assert "Top 20% (n=94)" in html and "Bottom 20% (n=138)" in html
+        assert "el ranking ordena al revés" in html        # MERVAL
+        assert "el ranking ordena bien" in html            # BOVESPA
+        assert "sin diferencia material" in html           # SP500: +0.31pp < 0.5
+        assert "retorno a 21 ruedas" in html
+
+    def test_numeros_globales_ya_no_se_muestran(self):
         backtest = {
-            "historical_edge_score": {
-                "🔴 Muy baja + 🔴 VENTA": {"score": None, "n": 2, "ev": None, "significativo_95": False},
-                "🟢 Alta + 🟢 COMPRA":    {"score": 90.0, "n": 50, "ev": 3.0, "significativo_95": True},
-            },
+            "ranking_top_vs_rest": {"top_20pct": {"samples": 375, "expected_value": 3.48},
+                                    "bottom_20pct": {"samples": 375, "expected_value": -3.27}},
+            "historical_edge_score": {"🟢 Alta + 🟢 COMPRA": {"score": 90.0, "n": 50, "ev": 3.0}},
         }
-        html = _render_ranking_edge_panel(backtest)
-        assert "Edge Histórico del Ranking" in html
+        assert _render_ranking_edge_panel(backtest) == ""
+        html = _render_ranking_edge_panel({**backtest, **self._by_market()})
+        assert "🟢 Alta + 🟢 COMPRA" not in html
+        assert "n=375" not in html
+
+    def test_mercado_sin_muestra_o_ev_none_no_rompe(self):
+        html = _render_ranking_edge_panel(self._by_market(
+            MERVAL={"samples": 3, "note": "Necesita ≥10 trades"},
+            BOVESPA={"top_20pct": {"samples": 10, "expected_value": None},
+                     "bottom_20pct": {"samples": 10, "expected_value": 1.0}},
+        ))
+        assert "SP500" in html and "MERVAL" not in html and "BOVESPA" not in html
+
+    def test_marca_horizontes_mezclados_en_arranque_en_frio(self):
+        html = _render_ranking_edge_panel(self._by_market(
+            SP500={"horizonte": "mixto", "top_20pct": {"samples": 20, "expected_value": 1.0},
+                   "bottom_20pct": {"samples": 20, "expected_value": 0.1}}))
+        assert "horizontes mezclados" in html
 
     def test_no_conecta_a_kelly_ni_ranking_verificacion_textual(self):
-        """No es un test funcional real (eso lo verifica el resto de la
-        suite de portfolio_optimizer/analyzer) -- solo confirma que el
-        panel es explícito sobre que es informativo, para que quien lea
-        el dashboard no asuma que ya está accionando sobre esto."""
-        backtest = {"ranking_top_vs_rest": {
-            "top_20pct": {"samples": 10, "expected_value": 1.0},
-            "bottom_20pct": {"samples": 10, "expected_value": -1.0},
-        }}
-        html = _render_ranking_edge_panel(backtest)
+        html = _render_ranking_edge_panel(self._by_market())
         assert "no conectado a Kelly" in html
+        assert "Provisorio" in html
 
 
 class TestRenderMacroPanel:
