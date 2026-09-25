@@ -704,12 +704,27 @@ def _build_price_index(price_data: dict, ticker_cols: dict) -> dict:
 # Construcción de trades
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _es_dia_habil(fecha: str) -> bool:
+    try:
+        return datetime.strptime(fecha[:10], "%Y-%m-%d").weekday() < 5
+    except Exception:
+        return True   # clave con formato inesperado: no se descarta en silencio
+
+
 def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
     """
     Para cada señal en cada fecha, calcula los outcomes.
     Excluye los últimos 5 días (no hay suficiente futuro aún).
     """
     trades = []
+    # FIX 25/09/2026 (auditoría con Claude, VERIFICADO): signals_history.json
+    # tiene claves de días CALENDARIO -- el pipeline corre también sábado y
+    # domingo. El sábado lleva el cierre del viernes y el domingo es copia
+    # exacta del sábado, así que cada viernes entraba hasta 3 veces como
+    # trades independientes (pseudoreplicación: 4041 trades -> 2867 reales
+    # al 25/09). Se evalúan solo días hábiles. Feriados de un mercado puntual
+    # no se filtran acá (pocos, y el precio de entrada sí es el del día).
+    sorted_dates = [d for d in sorted_dates if _es_dia_habil(d)]
     evaluation_dates = sorted_dates[:-5] if len(sorted_dates) > 5 else []
 
     for signal_date in evaluation_dates:
@@ -1510,6 +1525,9 @@ def _top_bottom(trades: list, top: bool = True) -> list:
     ]
 
 
+MIN_TRADES_21D_HOMOGENEO = 50   # 10 por bucket top/bottom 20%
+
+
 def _best_ret(trade: dict) -> tuple:
     """
     Helper compartido (fix 23/07/2026, roadmap externo #9): elige el
@@ -1543,9 +1561,23 @@ def _quantile_split(valid: list, score_key: str, top_pct: float = 0.20) -> dict 
     que no se lea como una comparación 100% homogénea todavía -- se
     homogeniza sola a 21d en cuanto haya suficiente historia real.
     """
+    # FIX 25/09/2026 (auditoría con Claude): la promesa de arriba ("se
+    # homogeniza sola a 21d") nunca se cumplía -- _best_ret() toma el
+    # horizonte más largo DE CADA TRADE, y los trades recientes siempre
+    # tienen solo 5d/10d, así que los buckets seguían mezclando [21, 10, 5]
+    # con 61 días de historia. Ahora: si hay muestra suficiente con
+    # ret_21d, se usa SOLO 21d; el fallback mixto queda para arranque en
+    # frío y marcado en "horizonte".
+    with21 = [t for t in valid if t.get("ret_21d") is not None]
+    if len(with21) >= MIN_TRADES_21D_HOMOGENEO:
+        valid, horizonte = with21, "h21d"
+    else:
+        horizonte = "mixto"
+
     n = len(valid)
     if n < 10:
-        return {"samples": n, "note": f"Necesita ≥10 trades con {score_key} para un split confiable"}
+        return {"samples": n, "horizonte": horizonte,
+                "note": f"Necesita ≥10 trades con {score_key} para un split confiable"}
 
     sorted_t = sorted(valid, key=lambda t: t[score_key])
     cut = max(1, int(n * top_pct))
@@ -1568,6 +1600,7 @@ def _quantile_split(valid: list, score_key: str, top_pct: float = 0.20) -> dict 
 
     return {
         "samples":      n,
+        "horizonte":    horizonte,
         "top_20pct":    _bucket(top),
         "bottom_20pct": _bucket(bottom),
         "middle_60pct": _bucket(middle),
