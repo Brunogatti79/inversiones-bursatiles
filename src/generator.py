@@ -162,9 +162,16 @@ def _build_oportunidades(signals, price_data):
         _conf_score = s.get('confidence_score')
         _conf_norm  = _conf_score if _conf_score is not None else ((s.get('pred_confidence') or 0) * 100)
         _rr_val     = min(5.0, s.get('rr_ratio') or rr or 0)
-        _pred_norm  = min(100, max(0, (_pred21 + 15) / 30 * 100))  # -15%..+15% → 0..100
         _rr_norm    = min(100, _rr_val / 5 * 100)                   # 0..5x     → 0..100
-        opp_score   = round(_pred_norm * 0.40 + _rr_norm * 0.35 + _conf_norm * 0.25, 1)
+        # FIX 25/09/2026 (con Bruno): se saca pred_21d de la fórmula. El
+        # predictor no tiene poder predictivo (validación 20/09: acierto 51%,
+        # correlación -0.016) y, si se reactiva solo en una validación
+        # semanal, su 40% volvería a mover el orden por ruido. Su peso se
+        # reparte en proporción: R/R 0.35/0.60 = 58.3%, confianza 0.25/0.60
+        # = 41.7%. Con el predictor en 0 (neutral = 50 normalizado, 20 pts
+        # iguales para todas), el score nuevo es una transformación lineal
+        # del anterior: mismo orden, y el umbral 50 equivale exactamente a 50.
+        opp_score   = round(_rr_norm * (0.35 / 0.60) + _conf_norm * (0.25 / 0.60), 1)
 
         fichas.append({
             'ticker': ticker, 'empresa': empresa, 'market': market,
@@ -203,7 +210,7 @@ def _build_oportunidades(signals, price_data):
             'pred_confidence':  s.get('pred_confidence'),
             'pred_signal':      s.get('pred_signal', ''),
             'pred_direction_agree': s.get('pred_direction_agree', False),
-            # ── Opportunity Score (40% pred_21d + 35% R/R + 25% confidence_score) ──
+            # ── Opportunity Score (58% R/R + 42% confidence_score; sin predictor desde 25/09) ──
             'opportunity_score': opp_score,
             # ── Confianza compuesta + validación por historial (pedido de
             # Bruno, 28/07/2026) -- antes ausentes de la ficha, por eso la
@@ -2227,7 +2234,8 @@ buildTable('tbl-merval','MERVAL'); buildTable('tbl-bovespa','BOVESPA'); buildTab
 buildStats('merval-stats','merval'); buildStats('bovespa-stats','bovespa'); buildStats('sp500-stats','sp500');
  
 // ── OPPORTUNITY SCORE ──────────────────────────────────────────────────────
-// Fórmula institucional: 40% pred_21d + 35% R/R + 25% confianza
+// Fórmula: 58% R/R + 42% confianza (fix 25/09/2026: se sacó el 40% de pred_21d --
+// predictor sin poder predictivo, acierto 51%; ver _build_oportunidades en Python).
 // Corrección (auditoría externa 28/07/2026): el 25% de "confianza" usaba
 // pred_confidence (confianza del predictor ARIMA/GBR solo sobre su propio
 // pronóstico, accuracy ~50% medida en backtester). Ahora usa
@@ -2236,18 +2244,16 @@ buildStats('merval-stats','merval'); buildStats('bovespa-stats','bovespa'); buil
 // (_build_oportunidades). Fallback a pred_confidence*100 solo si una señal
 // vieja no trae confidence_score todavía.
 function computeOpportunityScore(s){{
-  var pred21   = s.pred_21d!=null ? s.pred_21d : 0;
   var conf     = s.confidence_score!=null ? s.confidence_score : (s.pred_confidence!=null ? s.pred_confidence*100 : 0);
   var rr       = s.rr_ratio!=null ? s.rr_ratio : 0;
-  var predNorm = Math.min(100, Math.max(0, (pred21+15)/30*100));
   var rrNorm   = Math.min(100, rr/5*100);
-  return Math.round(predNorm*0.40 + rrNorm*0.35 + conf*0.25);
+  return Math.round(rrNorm*(0.35/0.60) + conf*(0.25/0.60));
 }}
 function flagOf(m){{ return m==='MERVAL'?'🇦🇷':m==='BOVESPA'?'🇧🇷':'🇺🇸'; }}
 
 // ── FILTRO TRIPLE ────────────────────────────────────────────────────────────
 // 1) señal V2 = COMPRA o COMPRA FUERTE
-// 2) opportunity_score >= 60
+// 2) opportunity_score >= 50
 // 3) top 25% del universo (score >= p75)
 var universe = SIGNALS.map(function(s){{
   return Object.assign({{}},s,{{opp_score:computeOpportunityScore(s)}});
@@ -2266,7 +2272,7 @@ var radarHtml=ranked.length===0
   ? '<div style="text-align:center;padding:48px 20px;color:#555;font-size:14px">'+
     '<div style="font-size:36px;margin-bottom:12px">🔍</div>'+
     '<div style="font-weight:700;color:#777;margin-bottom:8px">No hay oportunidades con convicción suficiente en este momento</div>'+
-    '<div style="font-size:12px;color:#444">El modelo requiere: señal COMPRA + Opportunity Score ≥ 60 + top 25% del universo</div>'+
+    '<div style="font-size:12px;color:#444">El modelo requiere: señal COMPRA + Opportunity Score ≥ 50 + top 25% del universo</div>'+
     '<div style="font-size:11px;color:#333;margin-top:8px">Umbral activo: score ≥ 50 y ≥ p75 ('+p75+')</div></div>'
   : ranked.map(function(s,i){{
   var pfm=s.max_12m>0?((s.max_12m-s.precio_actual)/s.max_12m*100).toFixed(1):'—';
@@ -2280,13 +2286,11 @@ var radarHtml=ranked.length===0
   var sig=s.signal_v2||s.signal||'';
   if(sig.indexOf('COMPRA FUERTE')>=0) tags.push('<span class="radar-tag tag-green">⭐ Compra Fuerte</span>');
   else tags.push('<span class="radar-tag tag-green">🟢 Compra</span>');
-  var sc=s.opp_score>=80?'#22c55e':s.opp_score>=65?'#86efac':'#fbbf24';
+  var sc=s.opp_score>=90?'#22c55e':s.opp_score>=75?'#86efac':'#fbbf24'; // escala nueva (25/09): 65→75 equivalente
   // Desglose del opportunity score
-  var pred21=s.pred_21d!=null?s.pred_21d:0;
-  var predNorm=Math.min(100,Math.max(0,(pred21+15)/30*100));
   var rrNorm=Math.min(100,(s.rr_ratio||0)/5*100);
   var confNorm=s.confidence_score!=null?s.confidence_score:(s.pred_confidence||0)*100;
-  var desglose='pred:'+(predNorm*0.40).toFixed(0)+' rr:'+(rrNorm*0.35).toFixed(0)+' conf:'+(confNorm*0.25).toFixed(0);
+  var desglose='rr:'+(rrNorm*(0.35/0.60)).toFixed(0)+' conf:'+(confNorm*(0.25/0.60)).toFixed(0);
   return '<div class="radar-card" style="cursor:pointer" onclick="sw(&apos;oportunidades&apos;,document.querySelector(&apos;.tab[onclick*=oportunidades]&apos;));showOpFicha(&apos;'+s.ticker+'&apos;)">'+
     '<div class="radar-rank" style="font-size:'+(i<3?'32px':'24px')+'">#'+(i+1)+'</div>'+
     '<div class="radar-info"><div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">'+
