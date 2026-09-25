@@ -236,32 +236,24 @@ def _build_oportunidades(signals, price_data):
  
 def _render_ranking_edge_panel(_backtest: dict) -> str:
     """
-    Panel "Edge Histórico del Ranking" (Panorama) -- auditoría externa
-    v20, prioridad #6 (10/08/2026). Expone historical_edge_score y
-    ranking_top_vs_rest, ya calculados por backtester.py desde hace
-    semanas pero deliberadamente NUNCA conectados a ranking_accionable ni
-    a ninguna decisión de capital -- ver docstring de esos campos en
-    backtester.py.
+    Panel "Edge Histórico del Ranking" (Panorama).
 
-    Sigue sin conectarse a nada accionable en este fix: es un panel
-    puramente informativo, mismo criterio que stability_score. La razón
-    concreta de por qué NO se conecta todavía, encontrada en la misma
-    sesión de este fix: al recalcular ranking_top_vs_rest desde cero con
-    los mismos datos versionados del repo, el resultado no coincidió con
-    el valor persistido en backtest_results.json (samples 1742 vs 1876,
-    y el EV del top 20% cambió de signo, -3.52% -> +3.48%) -- causa
-    raíz identificada: race condition entre el pipeline de Railway y el
-    workflow de GitHub Actions que actualiza los CSV de precio de forma
-    independiente, sin sincronización entre ambos. Hasta que eso no se
-    resuelva (decisión de infraestructura pendiente, no de este panel),
-    conectar este número a Kelly o al orden de señales sería apoyar una
-    decisión de capital en un valor que hoy no es reproducible corrida a
-    corrida -- de ahí el aviso explícito en el panel.
+    FIX 25/09/2026 (auditoría de datos expuestos, con Bruno): la versión
+    anterior mostraba el Top 20% vs Bottom 20% GLOBAL y las combinaciones
+    "mejor/peor edge histórico" (historical_edge_score), ambos mezclando
+    los 3 mercados -- la misma paradoja de Simpson ya documentada para
+    ranking_top_vs_rest (v21.2) y _estado_regla_compra (09/09). Ahora se
+    muestra ranking_top_vs_rest_by_market, homogéneo a 21 ruedas desde el
+    fix del backtester del 25/09 (sin fines de semana, sin mezclar
+    horizontes). Lectura al 25/09: SP500 y BOVESPA el ranking ordena bien;
+    MERVAL al revés (top -6.17% vs bottom -2.21%).
+
+    Sigue siendo informativo: no se conecta a Kelly ni al orden de señales.
+    La ventana evaluable a 21d es ~1 período independiente (ventana rolling
+    de 61 días calendario), por eso se marca como provisorio.
     """
-    edge = (_backtest or {}).get("historical_edge_score") or {}
-    rtr  = (_backtest or {}).get("ranking_top_vs_rest") or {}
-
-    if not edge and not rtr:
+    rbm = (_backtest or {}).get("ranking_top_vs_rest_by_market") or {}
+    if not rbm:
         return ""
 
     def _fmt_ev(v):
@@ -271,54 +263,43 @@ def _render_ranking_edge_panel(_backtest: dict) -> str:
         return f'<span style="color:{color};font-weight:700">{v:+.2f}%</span>'
 
     rows_html = ""
-    if edge:
-        ranked = sorted(
-            [(k, v) for k, v in edge.items() if isinstance(v, dict) and v.get("n")],
-            key=lambda kv: kv[1].get("score") or 0, reverse=True,
-        )
-        top3 = ranked[:3]
-        bottom3 = ranked[-3:] if len(ranked) > 3 else []
-        for label, group in (("🟢 Mejor edge histórico", top3), ("🔴 Peor edge histórico", bottom3)):
-            if not group:
-                continue
-            rows_html += f'<div style="font-size:10px;color:#888;margin-top:6px">{label}</div>'
-            for combo, v in group:
-                rows_html += (
-                    '<div style="display:flex;justify-content:space-between;font-size:11px;'
-                    'padding:2px 0;border-bottom:1px solid #222">'
-                    f'<span style="color:#ccc">{combo}</span>'
-                    f'<span style="color:#666">n={v.get("n")}</span>'
-                    f'{_fmt_ev(v.get("ev"))}'
-                    '</div>'
-                )
-
-    rtr_html = ""
-    top20, bot20 = rtr.get("top_20pct") or {}, rtr.get("bottom_20pct") or {}
-    if top20.get("samples") and bot20.get("samples"):
-        rtr_html = (
-            '<div style="font-size:10px;color:#888;margin-top:10px">Top 20% vs Bottom 20% del ranking accionable</div>'
-            '<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0">'
-            f'<span style="color:#ccc">Top 20% (n={top20.get("samples")})</span>{_fmt_ev(top20.get("expected_value"))}'
-            '</div>'
-            '<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0">'
-            f'<span style="color:#ccc">Bottom 20% (n={bot20.get("samples")})</span>{_fmt_ev(bot20.get("expected_value"))}'
+    for mk, flag in (("MERVAL", "🇦🇷"), ("BOVESPA", "🇧🇷"), ("SP500", "🇺🇸")):
+        d = rbm.get(mk) or {}
+        top, bot = d.get("top_20pct") or {}, d.get("bottom_20pct") or {}
+        ev_t, ev_b = top.get("expected_value"), bot.get("expected_value")
+        if not (top.get("samples") and bot.get("samples")) or ev_t is None or ev_b is None:
+            continue
+        diff = ev_t - ev_b
+        if abs(diff) < 0.5:   # umbral de materialidad (learnings)
+            lectura, col = "sin diferencia material", "#888"
+        elif diff > 0:
+            lectura, col = "el ranking ordena bien", "#4ade80"
+        else:
+            lectura, col = "⚠️ el ranking ordena al revés", "#f87171"
+        hz = "21 ruedas" if d.get("horizonte") == "h21d" else "horizontes mezclados (poca historia)"
+        rows_html += (
+            '<div style="padding:5px 0;border-bottom:1px solid #222;font-size:11px">'
+            f'<div style="display:flex;justify-content:space-between;gap:8px">'
+            f'<span style="color:#ccc;font-weight:700">{flag} {mk}</span>'
+            f'<span style="color:{col}">{lectura}</span></div>'
+            '<div style="display:flex;justify-content:space-between;gap:8px;color:#888;margin-top:2px">'
+            f'<span>Top 20% (n={top.get("samples")}) {_fmt_ev(ev_t)}</span>'
+            f'<span>Bottom 20% (n={bot.get("samples")}) {_fmt_ev(ev_b)}</span></div>'
+            f'<div style="font-size:9px;color:#555">retorno a {hz}</div>'
             '</div>'
         )
-
-    if not rows_html and not rtr_html:
+    if not rows_html:
         return ""
 
     return f'''
     <div style="background:#111;border:1px solid #222;border-radius:8px;padding:14px;margin-top:12px">
-      <div style="font-size:13px;font-weight:700;color:#eee;margin-bottom:4px">📊 Edge Histórico del Ranking</div>
+      <div style="font-size:13px;font-weight:700;color:#eee;margin-bottom:4px">📊 Edge Histórico del Ranking — por mercado</div>
       <div style="font-size:10px;color:#f59e0b;margin-bottom:6px">
-        ⚠️ Informativo, no conectado a Kelly ni al orden de señales -- ver auditoría 10/08/2026:
-        este número no fue reproducible corrida a corrida en la última verificación (posible
-        desincronización entre pipeline y actualización de precios). No usar para decisiones de
-        capital hasta resolver eso.
+        ⚠️ Provisorio: la ventana evaluable a 21 ruedas equivale a ~1 período independiente.
+        Informativo, no conectado a Kelly ni al orden de señales. Se muestra por mercado porque
+        el número global mezcla escalas de ranking distintas (paradoja de Simpson).
       </div>
       {rows_html}
-      {rtr_html}
     </div>
     '''
 
@@ -583,6 +564,12 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             if _sh and _sh.get("samples", 0) >= 15 and _sh.get("expected_value") is not None:
                 _sec_evs.append((_sname, _sh["expected_value"], _sh["samples"]))
         mc_best_sector_line = mc_worst_sector_line = ""
+        # FIX 25/09/2026 (auditoría de datos expuestos): by_sector del
+        # backtester mezcla los 3 mercados (no existe sector × mercado), así
+        # que "mejor/peor sector" es propenso a Simpson -- SALUD, por ejemplo,
+        # junta BOVESPA y SP500 con resultados opuestos. Se deja de mostrar
+        # hasta que el backtester lo segmente por mercado.
+        _sec_evs = []
         if _sec_evs:
             _sec_evs.sort(key=lambda x: x[1])
             _worst_name, _worst_ev, _worst_n = _sec_evs[0]
@@ -721,6 +708,12 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
         # comparó esta corrida contra la anterior -- acá solo se muestra lo
         # que encontró, sin volver a calcular nada.
         _discoveries = _backtest.get("pattern_discoveries_nuevas", []) or []
+        # FIX 25/09/2026 (auditoría de datos expuestos): los patrones se
+        # detectan sobre combinaciones GLOBALES (mezclan mercados) y sin test
+        # de significancia -- ej. "Media + VENTA", n=20, EV +0.92%. Mostrar
+        # eso como descubrimiento es ruido presentado como hallazgo. Solo se
+        # exponen los que traigan significativo_95=True (hoy ninguno).
+        _discoveries = [d for d in _discoveries if d.get("significativo_95") is True]
         _discoveries_html = ""
         if _discoveries:
             _items = []
@@ -1205,6 +1198,38 @@ def generate_dashboard(
     history_depth_banner = _render_history_depth_banner()
 
     signals_json     = json.dumps(signals,     ensure_ascii=False)
+
+    # FIX 25/09/2026 (auditoría de datos expuestos): el predictor quedó con
+    # reliability_weights = 0 en los 4 modelos (validación 20/09: acierto
+    # direccional 51%, correlación -0.016, error peor que predecir 0) y
+    # devuelve pred_21d = 0 / LATERAL en todas las señales. Mostrar ese
+    # valor uniforme como si fuera una predicción es ruido: mientras esté
+    # inactivo, los elementos de predicción no se renderizan.
+    _pred_activo = any(abs(s.get("pred_21d") or 0) > 1e-9 for s in signals)
+    pred_activo_js = "true" if _pred_activo else "false"
+
+    # Pesos V1 reales por mercado (weight_optimizer los muta en runtime), para
+    # que la ficha no muestre el "35M+35T+10S+20F" hardcodeado.
+    try:
+        from src.analyzer import W_POR_MERCADO as _WPM, W_DEFAULT as _WD
+        _w_v1 = {k: dict(v) for k, v in _WPM.items()}
+        _w_v1["_DEFAULT"] = dict(_WD)
+    except Exception:
+        _w_v1 = {"_DEFAULT": {"macro": 0.35, "tecnico": 0.35, "sector": 0.10, "fundamental": 0.20}}
+    w_v1_json = json.dumps(_w_v1)
+
+    # Kelly: si asigna el mismo % a todas las compras, decirlo -- la
+    # variación del % sugerido viene solo de risk parity.
+    _buys = [s for s in signals if "COMPRA" in (s.get("signal_v2") or "")]
+    _kh = {round(float(s["kelly_half"]), 2) for s in _buys if s.get("kelly_half") is not None}
+    kelly_note_html = ""
+    if len(_buys) > 1 and len(_kh) == 1:
+        kelly_note_html = (
+            '<div style="font-size:11px;color:#f59e0b;margin:-8px 0 14px;line-height:1.5">'
+            f'⚠️ Hoy Kelly asigna lo mismo a todas las compras ({next(iter(_kh)):.1f}%): el historial '
+            'no alcanza para diferenciarlas. La diferencia entre los % sugeridos viene solo de '
+            'risk parity (menos volatilidad → más peso), no de una ventaja esperada mayor.</div>'
+        )
     index_stats_json = json.dumps(index_stats, ensure_ascii=False)
     fichas_json      = json.dumps(fichas,      ensure_ascii=False, default=str)
     railway_url      = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
@@ -1683,12 +1708,15 @@ def generate_dashboard(
   <!-- ── 0) PRÓXIMO DÓLAR — PRIMERO ── -->
   <div class="section-title" style="color:#fbbf24;margin-bottom:6px">💵 ¿Dónde poner el próximo dólar?</div>
   <div class="concl-subtitle" style="margin-bottom:16px">Asignación óptima de capital nuevo · Criterio: mayor retorno esperado (Score V2 × R/R) · Primero posiciones existentes con señal positiva, luego nuevas</div>
+  {kelly_note_html}
   <div id="capital-block"></div>
 
   <!-- ── A) SCATTER Score V2 vs Predicción 21d ── -->
+  <div id="scatter-wrap">
   <div class="section-title" style="color:#a78bfa;margin-bottom:4px">📊 Mapa de Señales — Score V2 vs Predicción 21d</div>
   <div style="font-size:12px;color:#555;margin-bottom:10px">Cuadrante superior derecho = consenso modelo + predictor. Cada punto es un ticker. Hover para detalles.</div>
   <div class="chart-scatter"><canvas id="chartScatter"></canvas></div>
+  </div>
 
   <!-- ── B) HEATMAP sectores × mercados ── -->
   <div class="section-title" style="color:#5ba3ff;margin-bottom:4px">🌡️ Heatmap — Score Promedio por Sector × Mercado</div>
@@ -1848,6 +1876,21 @@ function sw(id,el){{
 <script>
 try {{
 var SIGNALS = {signals_json};
+var PRED_ACTIVO = {pred_activo_js}; // fix 25/09/2026: predictor con pesos 0 -> no mostrar predicciones
+var W_V1 = {w_v1_json};
+function wOf(m){{return W_V1[m]||W_V1['_DEFAULT']||{{}};}}
+function wPct(m,k){{var v=wOf(m)[k];return v!=null?Math.round(v*100)+'%':'—';}}
+function wLabel(m){{var w=wOf(m);return Math.round((w.macro||0)*100)+'M+'+Math.round((w.tecnico||0)*100)+'T+'+Math.round((w.sector||0)*100)+'S+'+Math.round((w.fundamental||0)*100)+'F';}}
+function sigOf(t){{for(var i=0;i<SIGNALS.length;i++){{if(SIGNALS[i].ticker===t)return SIGNALS[i];}}return null;}}
+// fix 25/09/2026: resultados trimestrales en <=10 ruedas (shadow earnings). Informativo:
+// el diagnóstico retroactivo mostró que cerca del resultado el retorno medio no es peor,
+// pero la volatilidad y el riesgo de cola suben -- sirve para dimensionar, no para vetar.
+function earnBadge(s){{
+  if(!s||s.earnings_blackout_shadow!==true||s.earnings_days_to==null) return '';
+  var sig=s.signal_v2||s.signal||'';
+  if(sig.indexOf('COMPRA')<0&&sig.indexOf('SIN CONFIRMAR')<0) return '';
+  return ' <span title="Publica resultados el '+(s.earnings_next_date||'')+' ('+s.earnings_days_to+' ruedas). Cerca del resultado suben la volatilidad y el riesgo de cola; el retorno medio no es peor. Informativo." style="background:rgba(96,165,250,.15);color:#60a5fa;font-size:9px;padding:1px 5px;border-radius:8px;white-space:nowrap">📅 '+s.earnings_days_to+'r</span>';
+}}
 var PORTFOLIO = {portfolio_json};
 var PORTFOLIO_ALERTS = {portfolio_alerts_json};
 var RAILWAY_API_URL  = 'https://inversiones-bursatiles-production.up.railway.app';
@@ -2020,7 +2063,7 @@ var aq=s.asset_quality||0, es=s.entry_score||0, rr=s.rr_ratio||0, sv2=s.score_fi
 var mktSep='';
 if(!market&&s.mercado!==lastMkt){{lastMkt=s.mercado;var fl=s.mercado==='MERVAL'?'🇦🇷':s.mercado==='BOVESPA'?'🇧🇷':'🇺🇸';mktSep='<tr><td colspan="12" style="background:#111118;padding:8px 12px;font-weight:700;color:#5ba3ff;font-size:13px;border-bottom:2px solid #5ba3ff">'+fl+' '+s.mercado+'</td></tr>';}}
 var rowStyle=s.regla_compra_estado==='validada'?' style="background:#0d1f14;box-shadow:inset 3px 0 0 #22c55e"':'';
-return mktSep+'<tr'+rowStyle+'><td class="ticker">'+s.ticker+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td>'+(s.confidence_label?'<td style="font-size:11px;font-weight:600;white-space:nowrap">'+s.confidence_label+_reglaBadge(s)+'</td>':'<td style="color:#444">—</td>')+(s.pred_21d!=null?'<td style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-size:11px;font-weight:700">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</td>':'<td style="color:#444">—</td>')+(s.pred_confidence?'<td style="color:#a78bfa;font-size:11px">'+Math.round(s.pred_confidence*100)+'%</td>':'<td style="color:#444">—</td>')+(s.alignment_label?'<td style="font-size:10px;font-weight:700;color:'+(s.alignment_label.indexOf('TRIPLE')>=0?'#4ade80':s.alignment_label.indexOf('DOBLE')>=0?'#a78bfa':s.alignment_label.indexOf('CONFLICTO')>=0?'#f87171':'#666')+'">'+(s.alignment_label.indexOf('TRIPLE')>=0?'3✓':s.alignment_label.indexOf('DOBLE')>=0?'2✓':'?')+'</td>':'<td style="color:#444">—</td>')+(s.monthly_trend&&s.monthly_trend!=='SIN DATOS'?'<td style="color:'+(s.monthly_trend==='ALCISTA'?'#4ade80':s.monthly_trend==='BAJISTA'?'#f87171':'#fbbf24')+';font-size:12px;font-weight:700">'+(s.monthly_trend==='ALCISTA'?'▲':s.monthly_trend==='BAJISTA'?'▼':'●')+'</td>':'<td style="color:#444">—</td>')+'</tr>';}}).join('');}}
+return mktSep+'<tr'+rowStyle+'><td class="ticker">'+s.ticker+earnBadge(s)+'</td><td style="color:#ccc">'+s.empresa.substring(0,22)+'</td><td>'+s.precio_actual.toLocaleString('es-AR')+'</td><td style="color:'+rc(s.ret_sem)+';font-weight:600">'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</td><td style="color:'+rc(s.ret_mes)+';font-weight:600">'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</td><td>'+s.rsi.toFixed(0)+'</td><td style="color:#bc8cff;font-weight:600">'+aq.toFixed(1)+'</td><td style="color:#5ba3ff;font-weight:600">'+es.toFixed(1)+'</td><td style="color:#fbbf24;font-weight:600">'+rr.toFixed(1)+'x</td><td style="color:'+sigColor(sig2)+';font-weight:700">'+sv2.toFixed(1)+'</td><td style="font-weight:900;color:#fff">'+ra.toFixed(1)+'</td><td style="color:'+sigColor(sig2)+';font-weight:600">'+sig2+'</td>'+(s.confidence_label?'<td style="font-size:11px;font-weight:600;white-space:nowrap">'+s.confidence_label+_reglaBadge(s)+'</td>':'<td style="color:#444">—</td>')+(PRED_ACTIVO&&s.pred_21d!=null?'<td style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-size:11px;font-weight:700">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</td>':'<td style="color:#444">—</td>')+(PRED_ACTIVO&&s.pred_confidence?'<td style="color:#a78bfa;font-size:11px">'+Math.round(s.pred_confidence*100)+'%</td>':'<td style="color:#444">—</td>')+(s.alignment_label?'<td style="font-size:10px;font-weight:700;color:'+(s.alignment_label.indexOf('TRIPLE')>=0?'#4ade80':s.alignment_label.indexOf('DOBLE')>=0?'#a78bfa':s.alignment_label.indexOf('CONFLICTO')>=0?'#f87171':'#666')+'">'+(s.alignment_label.indexOf('TRIPLE')>=0?'3✓':s.alignment_label.indexOf('DOBLE')>=0?'2✓':'?')+'</td>':'<td style="color:#444">—</td>')+(s.monthly_trend&&s.monthly_trend!=='SIN DATOS'?'<td style="color:'+(s.monthly_trend==='ALCISTA'?'#4ade80':s.monthly_trend==='BAJISTA'?'#f87171':'#fbbf24')+';font-size:12px;font-weight:700">'+(s.monthly_trend==='ALCISTA'?'▲':s.monthly_trend==='BAJISTA'?'▼':'●')+'</td>':'<td style="color:#444">—</td>')+'</tr>';}}).join('');}}
 function buildStats(divId,marketKey){{
   var st=IDX[marketKey]||{{}};
   var d=document.getElementById(divId); if(!d) return;
@@ -2069,7 +2112,9 @@ if(sL.length) new Chart(document.getElementById('chartSP500'),{{type:'line',data
 // A) SCATTER: Score V2 vs Predicción 21d
 // ══════════════════════════════════════════════════════════════════════════
 (function(){{
-  var el=document.getElementById('chartScatter'); if(!el) return;
+  var el=document.getElementById('chartScatter');
+  if(!PRED_ACTIVO){{ var _sw=document.getElementById('scatter-wrap'); if(_sw) _sw.style.display='none'; return; }}
+  if(!el) return;
   var mkColors={{'MERVAL':'rgba(91,163,255,0.85)','BOVESPA':'rgba(74,222,128,0.85)','SP500':'rgba(251,191,36,0.85)'}};
   var datasets={{}};
   SIGNALS.forEach(function(s){{
@@ -2254,8 +2299,8 @@ var radarHtml=ranked.length===0
     '<span style="color:'+rc(s.ret_mes)+'">Mes: '+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</span>'+
     '<span>RSI: '+s.rsi.toFixed(0)+'</span>'+
     (s.rr_ratio!=null?'<span style="color:#fbbf24">R/R: '+s.rr_ratio.toFixed(1)+'x</span>':'')+
-    (s.pred_21d!=null?'<span style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-weight:700">21d:'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</span>':'')+
-    (s.pred_confidence?'<span style="color:#a78bfa">🎯'+Math.round(s.pred_confidence*100)+'%</span>':'')+'</div>'+
+    (PRED_ACTIVO&&s.pred_21d!=null?'<span style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-weight:700">21d:'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</span>':'')+
+    (PRED_ACTIVO&&s.pred_confidence?'<span style="color:#a78bfa">🎯'+Math.round(s.pred_confidence*100)+'%</span>':'')+'</div>'+
     '<div class="radar-signals">'+tags.join('')+'</div>'+
     '<div class="radar-bar-wrap"><div class="radar-bar" style="width:'+s.opp_score+'%;background:'+sc+'"></div></div>'+
     '<div style="font-size:9px;color:#444;margin-top:2px">'+desglose+'</div></div>'+
@@ -2296,7 +2341,7 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
     '<span style="color:'+rc(s.ret_mes)+'">Mes: <b>'+(s.ret_mes>=0?'+':'')+s.ret_mes.toFixed(1)+'%</b></span>'+
     '<span style="color:'+rc(s.ret_anual)+'">Anual: <b>'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(1)+'%</b></span>'+
     '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+(s.signal_override?'<span style="background:#92400e;color:#fef3c7;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px">⚡ '+s.signal_override+'</span>':'')+
-    ((s.pred_5d!=null||s.pred_21d!=null)?'<span style="color:#a78bfa;font-size:10px;font-weight:700">📈 PRED:</span>'+
+    ((PRED_ACTIVO&&(s.pred_5d!=null||s.pred_21d!=null))?'<span style="color:#a78bfa;font-size:10px;font-weight:700">📈 PRED:</span>'+
       (s.pred_5d!=null?'<span style="color:'+(s.pred_5d>=0?'#4ade80':'#f87171')+';font-size:11px">5d:'+(s.pred_5d>=0?'+':'')+s.pred_5d.toFixed(1)+'%</span>':'')+
       (s.pred_10d!=null?'<span style="color:'+(s.pred_10d>=0?'#4ade80':'#f87171')+';font-size:11px">10d:'+(s.pred_10d>=0?'+':'')+s.pred_10d.toFixed(1)+'%</span>':'')+
       (s.pred_21d!=null?'<span style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-size:11px">21d:'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</span>':'')+
@@ -2328,7 +2373,7 @@ document.getElementById('compras-block').innerHTML=compras.length?compras.map(fu
     (s.rr_ratio!=null?'<div class="dl">R/R Ratio <b style="color:#fbbf24">'+s.rr_ratio.toFixed(2)+'x</b></div>':'')+
     (s.atr_stop!=null?'<div class="dl">ATR Stop <b style="color:#fb923c">'+s.atr_stop.toLocaleString(\'es-AR\')+'</b></div>':'')+
     (s.atr_target!=null?'<div class="dl">ATR Target <b style="color:#bc8cff">'+s.atr_target.toLocaleString(\'es-AR\')+'</b></div>':'')+
-    ((s.pred_5d!=null||s.pred_21d!=null)?'<div class="dl" style="grid-column:1/-1;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;margin-top:4px"><b style="color:#a78bfa">🔭 PREDICCIÓN ENSEMBLE</b></div>'+
+    ((PRED_ACTIVO&&(s.pred_5d!=null||s.pred_21d!=null))?'<div class="dl" style="grid-column:1/-1;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;margin-top:4px"><b style="color:#a78bfa">🔭 PREDICCIÓN ENSEMBLE</b></div>'+
       (s.pred_5d!=null?'<div class="dl">Pred. 5d <b style="color:'+(s.pred_5d>=0?'#4ade80':'#f87171')+'">'+(s.pred_5d>=0?'+':'')+s.pred_5d.toFixed(1)+'%</b></div>':'')+
       (s.pred_21d!=null?'<div class="dl">Pred. 21d <b style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+'">'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</b></div>':'')+
       (s.pred_target?'<div class="dl">Target pred. <b style="color:#bc8cff">'+s.pred_target.toLocaleString(\'es-AR\')+'</b></div>':'')+
@@ -2414,7 +2459,7 @@ ventas.forEach(function(s,i){{
     '<span style="color:'+rc(s.ret_sem)+'">Sem: <b>'+(s.ret_sem>=0?'+':'')+s.ret_sem.toFixed(1)+'%</b></span>'+
     '<span style="color:'+rc(s.ret_anual)+'">Anual: <b>'+(s.ret_anual>=0?'+':'')+s.ret_anual.toFixed(1)+'%</b></span>'+
     '<span>💰 '+s.precio_actual.toLocaleString('es-AR')+'</span>'+(s.signal_override?'<span style="background:#92400e;color:#fef3c7;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px">⚡ '+s.signal_override+'</span>':'')+
-    ((s.pred_5d!=null||s.pred_21d!=null)?'<span style="color:#a78bfa;font-size:10px;font-weight:700">📈 PRED:</span>'+
+    ((PRED_ACTIVO&&(s.pred_5d!=null||s.pred_21d!=null))?'<span style="color:#a78bfa;font-size:10px;font-weight:700">📈 PRED:</span>'+
       (s.pred_5d!=null?'<span style="color:'+(s.pred_5d>=0?'#4ade80':'#f87171')+';font-size:11px">5d:'+(s.pred_5d>=0?'+':'')+s.pred_5d.toFixed(1)+'%</span>':'')+
       (s.pred_10d!=null?'<span style="color:'+(s.pred_10d>=0?'#4ade80':'#f87171')+';font-size:11px">10d:'+(s.pred_10d>=0?'+':'')+s.pred_10d.toFixed(1)+'%</span>':'')+
       (s.pred_21d!=null?'<span style="color:'+(s.pred_21d>=0?'#4ade80':'#f87171')+';font-size:11px">21d:'+(s.pred_21d>=0?'+':'')+s.pred_21d.toFixed(1)+'%</span>':'')+
@@ -2539,7 +2584,7 @@ document.getElementById('ventas-block').innerHTML=ventasHtml||'<div style="color
       : c.weekly&&c.weekly.indexOf('BAJISTA')>=0
       ? '<span style="background:rgba(248,113,113,.15);color:#f87171;font-size:9px;padding:1px 6px;border-radius:10px">📉 Semanal Bajista</span>'
       : '';
-    var agreeBadge=c.pred_agree===true
+    var agreeBadge=!PRED_ACTIVO?'':c.pred_agree===true
       ? '<span style="background:rgba(74,222,128,.15);color:#4ade80;font-size:9px;padding:1px 6px;border-radius:10px">✅ Predictor confirma</span>'
       : c.pred_agree===false
       ? '<span style="background:rgba(251,191,36,.15);color:#fbbf24;font-size:9px;padding:1px 6px;border-radius:10px">⚠️ Predictor diverge</span>'
@@ -2576,8 +2621,8 @@ document.getElementById('ventas-block').innerHTML=ventasHtml||'<div style="color
         '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;margin-bottom:10px">'+
           _cap_metric('Score V2',   c.sv2!=null?c.sv2.toFixed(0):'—',       '#fbbf24')+
           _cap_metric('R/R',        c.rr>0?c.rr.toFixed(2)+'x':'—',         rrCol)+
-          (c.pred_21d!=null?_cap_metric('Pred.21d',(c.pred_21d>=0?'+':'')+c.pred_21d.toFixed(1)+'%', predCol):'')+
-          (c.pred_5d!=null?_cap_metric('Pred.5d',(c.pred_5d>=0?'+':'')+c.pred_5d.toFixed(1)+'%',c.pred_5d>=0?'#4ade80':'#f87171'):'')+
+          (PRED_ACTIVO&&c.pred_21d!=null?_cap_metric('Pred.21d',(c.pred_21d>=0?'+':'')+c.pred_21d.toFixed(1)+'%', predCol):'')+
+          (PRED_ACTIVO&&c.pred_5d!=null?_cap_metric('Pred.5d',(c.pred_5d>=0?'+':'')+c.pred_5d.toFixed(1)+'%',c.pred_5d>=0?'#4ade80':'#f87171'):'')+
           (c.pred_conf!=null?_cap_metric('Confianza',Math.round(c.pred_conf*100)+'%','#a78bfa'):'')+
           _cap_metric('Score Macro',c.score_mac!=null?c.score_mac.toFixed(0):'—','#5ba3ff')+
           _cap_metric('Score Téc.',c.score_tec!=null?c.score_tec.toFixed(0):'—','#22d3ee')+
@@ -2593,7 +2638,7 @@ document.getElementById('ventas-block').innerHTML=ventasHtml||'<div style="color
           (c.atr_stop!=null?'<span style="background:rgba(251,146,60,.12);color:#fb923c;padding:2px 8px;border-radius:6px">🛡 Stop '+c.atr_stop.toLocaleString('es-AR')+'</span>':'')+
           (c.atr_target!=null?'<span style="background:rgba(74,222,128,.12);color:#4ade80;padding:2px 8px;border-radius:6px">🎯 Target '+c.atr_target.toLocaleString('es-AR')+'</span>':'')+
           (c.horizonte!=='—'?'<span style="background:rgba(91,163,255,.12);color:#5ba3ff;padding:2px 8px;border-radius:6px">⏱ '+c.horizonte+'</span>':'')+
-          (c.pred_signal?'<span style="background:rgba(167,139,250,.12);color:#a78bfa;padding:2px 8px;border-radius:6px">'+c.pred_signal+'</span>':'')+
+          (PRED_ACTIVO&&c.pred_signal?'<span style="background:rgba(167,139,250,.12);color:#a78bfa;padding:2px 8px;border-radius:6px">'+c.pred_signal+'</span>':'')+
         '</div>'+
 
         // ── fila 4 (si en cartera): P&L actual
@@ -2676,8 +2721,9 @@ if(fichasFiltradas.length===0){{
         '<div class="op-m"><span class="op-mv" style="color:'+(f.rsi<40?'#4ade80':f.rsi>65?'#f87171':'#fbbf24')+'">'+fn(f.rsi,1)+'</span><span class="op-ml">RSI</span></div>'+
         '<div class="op-m"><span class="op-mv" style="color:#f87171">-'+fn(f.dist_max,1)+'%</span><span class="op-ml">vs Máx</span></div>'+
         '<div class="op-m"><span class="op-mv" style="color:#bc8cff">'+fn(f.rr,1)+'x</span><span class="op-ml">R/R</span></div>'+
-        (f.pred_21d!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.pred_21d>=0?'#4ade80':'#f87171')+';font-weight:700">'+(f.pred_21d>=0?'+':'')+fn(f.pred_21d,1)+'%</span><span class="op-ml">📈 21d</span></div>':'')+
-        (f.pred_confidence?'<div class="op-m"><span class="op-mv" style="color:#a78bfa">'+Math.round(f.pred_confidence*100)+'%</span><span class="op-ml">🎯 conf.</span></div>':'')+
+        (PRED_ACTIVO&&f.pred_21d!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.pred_21d>=0?'#4ade80':'#f87171')+';font-weight:700">'+(f.pred_21d>=0?'+':'')+fn(f.pred_21d,1)+'%</span><span class="op-ml">📈 21d</span></div>':'')+
+        (PRED_ACTIVO&&f.pred_confidence?'<div class="op-m"><span class="op-mv" style="color:#a78bfa">'+Math.round(f.pred_confidence*100)+'%</span><span class="op-ml">🎯 conf.</span></div>':'')+
+        (function(){{var _s=sigOf(f.ticker);return earnBadge(_s)?'<div class="op-m"><span class="op-mv" style="color:#60a5fa">'+_s.earnings_days_to+'r</span><span class="op-ml">📅 result.</span></div>':'';}})()+
         (f.suggested_pct!=null&&f.suggested_pct>0?'<div class="op-m"><span class="op-mv" style="color:#fbbf24;font-weight:800">'+f.suggested_pct.toFixed(1)+'%</span><span class="op-ml">💰 alloc.</span></div>':'')+
         (f.exit_score!=null?'<div class="op-m"><span class="op-mv" style="color:'+(f.exit_score>=56?'#f87171':f.exit_score>=31?'#fbbf24':'#4ade80')+'">'+f.exit_score.toFixed(0)+'</span><span class="op-ml">exit⚡</span></div>':'')+
         '<span class="op-sig '+(f.signal.indexOf('FUERTE')>=0?'op-sig-f':'op-sig-c')+'">'+(f.signal_v2||f.signal)+'</span>';
@@ -2712,7 +2758,7 @@ if(fichasFiltradas.length===0){{
   var wrap = document.getElementById('op-candidatos-wrap');
   var cont = document.getElementById('op-candidatos');
   if(!wrap || !cont) return;
-  if(candidatos.length === 0){{ wrap.style.display='none'; return; }}
+  if(!PRED_ACTIVO || candidatos.length === 0){{ wrap.style.display='none'; return; }}
   wrap.style.display='block';
 
   // Para cada candidato — identificar qué criterios NO cumple
@@ -2843,14 +2889,14 @@ function showOpFicha(ticker){{
             '</span>'+
           '</div>'+
         '</div></div>'+
-      '<div class="op-card"><h3>🧮 Scoring Fase 2 (35M+35T+10S+20F)</h3>'+
-        '<div class="op-sc-row"><span class="op-sc-name">Macro (35%)</span>'+
+      '<div class="op-card"><h3>🧮 Scoring V1 ('+wLabel(f.market)+')</h3>'+
+        '<div class="op-sc-row"><span class="op-sc-name">Macro ('+wPct(f.market,'macro')+')</span>'+
           '<div><span class="op-sc-val" style="color:#fbbf24">'+fn(f.score_macro,1)+'</span>'+
           '<div class="op-sc-bar"><div class="op-sc-fill" style="width:'+f.score_macro+'%;background:#fbbf24"></div></div></div></div>'+
-        '<div class="op-sc-row"><span class="op-sc-name">Técnico (35%)</span>'+
+        '<div class="op-sc-row"><span class="op-sc-name">Técnico ('+wPct(f.market,'tecnico')+')</span>'+
           '<div><span class="op-sc-val" style="color:#5ba3ff">'+fn(f.score_tec,1)+'</span>'+
           '<div class="op-sc-bar"><div class="op-sc-fill" style="width:'+f.score_tec+'%;background:#5ba3ff"></div></div></div></div>'+
-        '<div class="op-sc-row"><span class="op-sc-name">Fundamental (20%)</span>'+
+        '<div class="op-sc-row"><span class="op-sc-name">Fundamental ('+wPct(f.market,'fundamental')+')</span>'+
           '<div><span class="op-sc-val" style="color:#bc8cff">'+fn(f.score_fund,1)+'</span>'+
           '<div class="op-sc-bar"><div class="op-sc-fill" style="width:'+f.score_fund+'%;background:#bc8cff"></div></div></div></div>'+
         '<div class="op-sc-row" style="border-bottom:none">'+
@@ -2887,7 +2933,7 @@ function showOpFicha(ticker){{
           (f.atr_percentile!=null?'<span>ATR% <b>'+fn(f.atr_percentile,0)+'</b></span>':'')+
         '</div>'+
       '</div>'+
-      ((f.pred_5d!=null||f.pred_21d!=null)?'<div class="op-card"><h3>🔭 Predicción Ensemble (5d / 21d)</h3>'+
+      ((PRED_ACTIVO&&(f.pred_5d!=null||f.pred_21d!=null))?'<div class="op-card"><h3>🔭 Predicción Ensemble (5d / 21d)</h3>'+
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">'+
           '<div style="background:#0d1117;border:1px solid #1a2030;border-radius:6px;padding:8px;text-align:center">'+
             '<div style="font-size:10px;color:#666;margin-bottom:3px">5 días</div>'+
