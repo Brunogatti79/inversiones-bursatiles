@@ -79,3 +79,26 @@ def test_badge_resultados_definido_y_conectado(tmp_path):
                                    earnings_next_date="2026-10-01")])
     assert "function earnBadge(s)" in html
     assert "+s.ticker+earnBadge(s)+" in html
+
+
+def test_opportunity_score_no_depende_del_predictor(tmp_path, monkeypatch):
+    """Fix 25/09/2026: el 40% de pred_21d se sacó de la fórmula (R/R 58% +
+    confianza 42%). Con pred_21d muy distinto, el score y el orden de las
+    fichas tienen que ser idénticos."""
+    import json as _json
+    import src.generator as g
+    # sin esto las COMPRA pasan a SIN CONFIRMAR y no hay fichas: test trivial
+    monkeypatch.setattr(g, "_estado_regla_compra", lambda *a, **k: ("validada", {}))
+    base = [_signal(confidence_score=70.0, rr_ratio=2.5),
+            _signal(ticker="AAPL", mercado="SP500", confidence_score=55.0, rr_ratio=3.5)]
+    def fichas(pred):
+        sigs = [dict(s, pred_21d=p) for s, p in zip(base, pred)]
+        html = _gen(tmp_path, sigs)
+        i = html.index("var FICHAS"); j = html.index("=", i) + 1
+        f = _json.JSONDecoder().raw_decode(html[j:].lstrip())[0]
+        return [(x["ticker"], x["opportunity_score"]) for x in f]
+    ref = fichas([0.0, 0.0])
+    assert len(ref) == 2 and all(sc > 0 for _, sc in ref)
+    assert ref == fichas([14.0, -14.0]) == fichas([-14.0, 14.0])
+    html = _gen(tmp_path, base)
+    assert "pred:'+(predNorm" not in html and "0.40 + rrNorm" not in html
