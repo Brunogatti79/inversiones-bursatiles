@@ -24,9 +24,11 @@ def _aislar(tmp_path, monkeypatch):
     monkeypatch.setattr(ec, "CACHE_PATH", str(tmp_path / "earnings_calendar.json"))
     import src.github_persistence as gp
     monkeypatch.setattr(gp, "push_file", lambda *a, **k: True)
+    real = os.path.join(REPO, "data", "earnings_calendar.json")
+    before = open(real, "rb").read() if os.path.exists(real) else None
     yield
-    assert not os.path.exists(os.path.join(REPO, "data", "earnings_calendar.json")), \
-        "un test escribió en data/ real"
+    after = open(real, "rb").read() if os.path.exists(real) else None
+    assert before == after, "un test escribió en data/ real"
 
 
 def _cal(dates, source="yf"):
@@ -116,6 +118,44 @@ class TestRefresh:
         assert cal["tickers"]["A"]["dates"] == []
         assert cal["last_refresh_ok"] == 0
 
+    def test_refresh_fallido_reintenta_sin_esperar_7_dias(self):
+        # Caso real 25/09: 0/84 no puede quedar "fresco" una semana.
+        now = datetime(2026, 9, 25)
+        ec.refresh_earnings_calendar(["A", "B"], now=now, fetcher=lambda s: [], sleep=0)
+        cal = ec.load_calendar()
+        assert ec._needs_refresh(cal, ["A", "B"], datetime(2026, 9, 25, 3))
+
+    def test_cobertura_suficiente_no_reintenta(self):
+        now = datetime(2026, 9, 25)
+        ec.refresh_earnings_calendar(["A", "B"], now=now,
+                                     fetcher=lambda s: ["2026-11-01"] if s == "A" else [], sleep=0)
+        assert not ec._needs_refresh(ec.load_calendar(), ["A", "B"], datetime(2026, 9, 26))
+
+    def test_errores_quedan_registrados_y_logueados(self, caplog):
+        import yfinance as yf
+        class Boom:
+            def __init__(self, s): pass
+            def get_earnings_dates(self, limit=12): raise RuntimeError("401 Unauthorized")
+            @property
+            def calendar(self): raise RuntimeError("401 Unauthorized")
+        import pytest as _p
+        mp = _p.MonkeyPatch(); mp.setattr(yf, "Ticker", Boom)
+        try:
+            with caplog.at_level("WARNING"):
+                cal = ec.refresh_earnings_calendar(["AAPL"], now=datetime(2026, 9, 25), sleep=0)
+        finally:
+            mp.undo()
+        assert any("401" in e for e in cal["last_error_samples"])
+        assert "cobertura baja" in caplog.text
+
+    def test_sync_desde_github_usa_local_si_pull_falla(self, monkeypatch):
+        import src.github_persistence as gp
+        ec.refresh_earnings_calendar(["A"], now=datetime(2026, 9, 25),
+                                     fetcher=lambda s: ["2026-11-01"], sleep=0)
+        def boom(p): raise RuntimeError("sin red")
+        monkeypatch.setattr(gp, "pull_file", boom)
+        assert ec.sync_calendar_from_github()["tickers"]["A"]["dates"] == ["2026-11-01"]
+
     def test_cache_corrupto_se_trata_como_vacio(self):
         with open(ec.CACHE_PATH, "w") as f:
             f.write("{no json")
@@ -160,6 +200,20 @@ class TestIntegracion:
         assert "inject_earnings_shadow(all_signals" in src
         assert "Shadow earnings no disponible" in src
         ast.parse(src)
+
+    def test_railway_no_pega_a_yahoo_ni_escribe_el_calendario(self):
+        # Primer run real 25/09: 0/84 desde Railway. Un solo escritor: Actions.
+        src = self._src("src/pipeline.py")
+        assert "refresh_earnings_calendar(" not in src
+        assert "sync_calendar_from_github()" in src
+
+    def test_actions_refresca_sin_push_y_workflow_lo_commitea(self):
+        dl = self._src("scripts/download_data.py")
+        assert "refresh_earnings_calendar(sorted(tickers), push=False)" in dl
+        assert "_refresh_earnings_calendar()" in dl
+        wf = self._src(".github/workflows/download_data.yml")
+        add = [l for l in wf.splitlines() if "git add" in l]
+        assert add and "data/earnings_calendar.json" in add[0]
 
     def test_start_server_sincroniza_calendario(self):
         tree = ast.parse(self._src("start_server.py"))
