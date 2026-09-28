@@ -29,10 +29,12 @@ local y el ADR: con precios ajustados por dividendos el cociente se deforma.
   CCL_YPF  = YPFD.BA / YPF            (1 ADR = 1 acción)
   CCL      = mediana de ambos cuando los dos existen
 
-Uso:
-  Telegram: /backfill_precios            → prueba chica (2 tickers x mercado, no pushea)
-            /backfill_precios aplicar    → completo (~95 tickers, ~5-8 min) + push
-  CLI:      python -m scripts.backfill_precios_10y [--aplicar] [--no-push]
+Uso (recomendado): GitHub → Actions → "Backfill research 10y" → Run workflow.
+  Corre con yfinance actualizado (el de Railway está fijado en 0.2.54 y
+  Yahoo ya no le responde) y commitea data/research/ con git.
+Uso alternativo:
+  Telegram: /backfill_precios [aplicar]   (depende del yfinance de Railway)
+  CLI:      python scripts/backfill_precios_10y.py [--aplicar] [--no-push]
 
 Advertencias que viajan en backfill_meta.json:
   - Sesgo de supervivencia: solo tickers actuales.
@@ -159,6 +161,8 @@ def _bajar_mercado(mercado: str, tickers: dict, indice: str, prueba: bool):
             logger.info(f"[backfill] {mercado} ✓ {t} ({meta[col]['filas']} filas)")
         if i < len(lista) - 1:
             time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
+    if not closes:  # todo falló: sin esto pd.DataFrame({}) trae RangeIndex y rompe .dayofweek
+        return pd.DataFrame(), pd.DataFrame(), meta, fallidos
     close_df = pd.DataFrame(closes).sort_index()
     vol_df = pd.DataFrame(vols).sort_index()
     close_df = close_df[close_df.index.dayofweek < 5].dropna(how="all")
@@ -176,6 +180,8 @@ def _bajar_fx() -> tuple[pd.DataFrame, dict]:
             series[t] = h["Close"]
             meta[t] = _calidad(h["Close"])
         time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
+    if not series:
+        return pd.DataFrame(), meta
     fx = pd.DataFrame(series).sort_index()
     fx = fx[fx.index.dayofweek < 5]
     if {"GGAL", "GGAL.BA"} <= set(fx.columns):
@@ -201,6 +207,7 @@ def main(aplicar: bool = False, push: bool = True) -> dict:
         "generated": datetime.now().isoformat(timespec="seconds"),
         "modo": "prueba" if prueba else "completo",
         "period": PERIOD,
+        "yfinance_version": getattr(yf, "__version__", "desconocida"),
         "advertencias": [
             "Sesgo de supervivencia: solo tickers actuales del universo.",
             "Cierres ajustados por splits y dividendos (auto_adjust=True); "
@@ -232,6 +239,18 @@ def main(aplicar: bool = False, push: bool = True) -> dict:
             "por_ticker": meta,
         }
 
+    total_ok = sum(d.get("tickers_ok", 0) for d in resumen["mercados"].values())
+    if total_ok == 0:
+        # Yahoo no responde desde este entorno: no seguir bajando FX ni pushear nada
+        resumen["error_global"] = (
+            f"0 series descargadas en los 3 mercados: Yahoo no responde desde este entorno "
+            f"(yfinance {resumen['yfinance_version']}). No se escribió ni pusheó nada."
+        )
+        resumen["duracion_seg"] = round(time.time() - t0, 1)
+        resumen["pusheados"] = []
+        resumen["telegram_lines"] = _telegram_lines(resumen)
+        return resumen
+
     fx, meta_fx = _bajar_fx()
     if not fx.empty:
         p_fx = os.path.join(destino, "fx_10y.csv")
@@ -262,7 +281,10 @@ def main(aplicar: bool = False, push: bool = True) -> dict:
 
 
 def _telegram_lines(r: dict) -> list:
-    L = [f"<b>📦 Backfill precios {r['period']} ({r['modo']})</b> — {r.get('duracion_seg', '?')} s"]
+    L = [f"<b>📦 Backfill precios {r['period']} ({r['modo']})</b> — {r.get('duracion_seg', '?')} s · yfinance {r.get('yfinance_version')}"]
+    if r.get("error_global"):
+        L.append(f"❌ {r['error_global']}")
+        return L
     for mk, d in r["mercados"].items():
         if "error" in d:
             L.append(f"<b>{mk.upper()}</b>: ❌ {d['error']}")
@@ -294,3 +316,5 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     out = main(aplicar="--aplicar" in sys.argv, push="--no-push" not in sys.argv)
     print("\n".join(out["telegram_lines"]))
+    if out.get("error_global"):
+        sys.exit(1)  # que el workflow de GitHub Actions quede en rojo
