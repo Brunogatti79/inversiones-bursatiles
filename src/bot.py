@@ -90,6 +90,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/fundamentals_av — Prueba chica (LLY) de ratios Alpha Vantage\n"
         "/fundamentals_av aplicar — Batch completo (14 tickers bloqueados por FMP)\n"
         "/diagnostico_racha — Trades por día vs. por racha (shadow, §6.2)\n"
+        "/diagnostico_ic — Ordenamiento por mercado + motor walk-forward (shadow)\n"
         "/help — Esta ayuda\n\n"
         "Ejemplos:\n"
         "<code>/compra GGAL.BA 1.59 100</code>  (precio en USD)\n"
@@ -618,6 +619,31 @@ async def cmd_diagnostico_racha(update: Update, context: ContextTypes.DEFAULT_TY
         logger.error(f"Error en /diagnostico_racha: {e}")
         await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
 
+async def cmd_diagnostico_ic(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /diagnostico_ic — corre scripts/diagnostico_ic.py. SHADOW: no toca
+    señales, signal_v2, Kelly ni portfolio_optimizer. Mide, POR MERCADO, si
+    los scores del modelo ordenan el retorno a 21d (IC por bloque) y corre el
+    motor walk-forward de factores de precio (cada mercado elige sus propios
+    factores y signos con datos pasados). Persiste data/diagnostico_ic.json.
+    """
+    await update.message.reply_text(
+        "🔬 Corriendo diagnóstico IC + motor por mercado (shadow, no toca producción)… ~1 min",
+        parse_mode="HTML"
+    )
+
+    import asyncio
+    from scripts.diagnostico_ic import main as run_diagnostico_ic
+    try:
+        loop = asyncio.get_event_loop()
+        res = await loop.run_in_executor(None, run_diagnostico_ic)
+        texto = "\n".join(res.get("telegram_lines") or ["Sin resultados"])
+        for i in range(0, len(texto), 3900):
+            await update.message.reply_text(texto[i:i + 3900], parse_mode="HTML")
+    except Exception as e:
+        logger.error(f"Error en /diagnostico_ic: {e}")
+        await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
+
 
 # ─────────────────────────────────────────────
 # Inicialización
@@ -644,6 +670,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("fundamentals_fmp", cmd_fundamentals_fmp))
     app.add_handler(CommandHandler("fundamentals_av", cmd_fundamentals_av))
     app.add_handler(CommandHandler("diagnostico_racha", cmd_diagnostico_racha))
+    app.add_handler(CommandHandler("diagnostico_ic", cmd_diagnostico_ic))
  
     return app
  
