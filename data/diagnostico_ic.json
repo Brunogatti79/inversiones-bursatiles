@@ -1,0 +1,6036 @@
+{
+  "generated": "2026-09-28T17:37:40",
+  "shadow": true,
+  "fuente_motor": "csv",
+  "parametros": {
+    "H": 21,
+    "TOP_N": 5,
+    "BUFFER_N": 8,
+    "MIN_TRAIN_BLOCKS": 4,
+    "T_MIN": 1.0,
+    "T_MIN_LARGO": 2.0,
+    "BLOQUES_LARGO": 20,
+    "SHARE_MIN": 0.6,
+    "IC_MIN": 0.03,
+    "TREND_MA": 100,
+    "costo_pata_pct": {
+      "MERVAL": 0.605,
+      "BOVESPA": 0.605,
+      "SP500": 0.605
+    }
+  },
+  "advertencias": [
+    "Universo = tickers actuales (sesgo de supervivencia).",
+    "MERVAL en ARS: el alpha vs canasta es invariante a la moneda, los acumulados absolutos NO son retornos en USD.",
+    "Factores de precio solamente: macro y fundamentales no tienen histórico point-in-time para testearse igual."
+  ],
+  "A_scores_modelo": {
+    "MERVAL": {
+      "scores": {
+        "ranking": {
+          "ic_medio": 0.081,
+          "pct_fechas_pos": 0.55,
+          "bloques": [
+            0.027,
+            0.128
+          ],
+          "bloque_parcial": 0.104,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 1.52,
+          "n_fechas": 49
+        },
+        "score_v1": {
+          "ic_medio": 0.054,
+          "pct_fechas_pos": 0.69,
+          "bloques": [
+            -0.061,
+            0.089
+          ],
+          "bloque_parcial": 0.292,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 0.5,
+          "t_bloques": 0.19,
+          "n_fechas": 49
+        },
+        "score_v2": {
+          "ic_medio": 0.105,
+          "pct_fechas_pos": 0.69,
+          "bloques": [
+            0.038,
+            0.14
+          ],
+          "bloque_parcial": 0.198,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 1.76,
+          "n_fechas": 49
+        },
+        "confidence_score": {
+          "ic_medio": 0.035,
+          "pct_fechas_pos": 0.54,
+          "bloques": [
+            0.085,
+            -0.049
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 0.5,
+          "t_bloques": 0.27,
+          "n_fechas": 46
+        },
+        "asset_quality": {
+          "ic_medio": 0.217,
+          "pct_fechas_pos": 0.82,
+          "bloques": [
+            0.102,
+            0.267
+          ],
+          "bloque_parcial": 0.413,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 2.23,
+          "n_fechas": 49
+        },
+        "entry_score": {
+          "ic_medio": 0.051,
+          "pct_fechas_pos": 0.63,
+          "bloques": [
+            0.017,
+            0.07
+          ],
+          "bloque_parcial": 0.093,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 1.63,
+          "n_fechas": 49
+        },
+        "score_tecnico": {
+          "ic_medio": -0.062,
+          "pct_fechas_pos": 0.45,
+          "bloques": [
+            -0.046,
+            -0.165
+          ],
+          "bloque_parcial": 0.204,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": -1.78,
+          "n_fechas": 49
+        },
+        "score_fund": {
+          "ic_medio": 0.179,
+          "pct_fechas_pos": 0.8,
+          "bloques": [
+            0.056,
+            0.24
+          ],
+          "bloque_parcial": 0.368,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 1.61,
+          "n_fechas": 49
+        },
+        "score_sectorial": {
+          "ic_medio": 0.346,
+          "pct_fechas_pos": 1.0,
+          "bloques": [
+            0.42,
+            0.293
+          ],
+          "bloque_parcial": 0.284,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 5.62,
+          "n_fechas": 49
+        },
+        "rr_ratio": {
+          "ic_medio": 0.083,
+          "pct_fechas_pos": 0.65,
+          "bloques": [
+            0.085,
+            0.093
+          ],
+          "bloque_parcial": 0.043,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 22.0,
+          "n_fechas": 49
+        },
+        "pred_21d": {
+          "ic_medio": 0.088,
+          "pct_fechas_pos": 0.65,
+          "bloques": [
+            0.227,
+            -0.119
+          ],
+          "bloque_parcial": 0.29,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 0.5,
+          "t_bloques": 0.31,
+          "n_fechas": 49
+        }
+      },
+      "compra_v2_alpha_bruto_pp": {
+        "medio": 0.07,
+        "pct_fechas_pos": 0.45,
+        "bloques": [
+          0.11,
+          -0.09
+        ],
+        "bloque_parcial": 0.39
+      }
+    },
+    "BOVESPA": {
+      "scores": {
+        "ranking": {
+          "ic_medio": 0.138,
+          "pct_fechas_pos": 0.79,
+          "bloques": [
+            0.161,
+            0.181
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 16.55,
+          "n_fechas": 48
+        },
+        "score_v1": {
+          "ic_medio": -0.145,
+          "pct_fechas_pos": 0.33,
+          "bloques": [
+            -0.189,
+            -0.104
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": -3.44,
+          "n_fechas": 48
+        },
+        "score_v2": {
+          "ic_medio": 0.048,
+          "pct_fechas_pos": 0.58,
+          "bloques": [
+            0.022,
+            0.033
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 4.96,
+          "n_fechas": 48
+        },
+        "confidence_score": {
+          "ic_medio": 0.055,
+          "pct_fechas_pos": 0.64,
+          "bloques": [
+            0.066,
+            0.043
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 4.83,
+          "n_fechas": 45
+        },
+        "asset_quality": {
+          "ic_medio": -0.038,
+          "pct_fechas_pos": 0.38,
+          "bloques": [
+            -0.075,
+            0.041
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 0.5,
+          "t_bloques": -0.29,
+          "n_fechas": 48
+        },
+        "entry_score": {
+          "ic_medio": 0.112,
+          "pct_fechas_pos": 0.65,
+          "bloques": [
+            0.084,
+            0.108
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 7.89,
+          "n_fechas": 48
+        },
+        "score_tecnico": {
+          "ic_medio": -0.087,
+          "pct_fechas_pos": 0.35,
+          "bloques": [
+            -0.161,
+            0.025
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 0.5,
+          "t_bloques": -0.73,
+          "n_fechas": 48
+        },
+        "score_fund": {
+          "ic_medio": 0.037,
+          "pct_fechas_pos": 0.6,
+          "bloques": [
+            -0.019,
+            0.113
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 0.5,
+          "t_bloques": 0.71,
+          "n_fechas": 48
+        },
+        "score_sectorial": {
+          "ic_medio": -0.303,
+          "pct_fechas_pos": 0.0,
+          "bloques": [
+            -0.398,
+            -0.205
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": -3.13,
+          "n_fechas": 48
+        },
+        "rr_ratio": {
+          "ic_medio": 0.052,
+          "pct_fechas_pos": 0.58,
+          "bloques": [
+            0.011,
+            0.046
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 1.62,
+          "n_fechas": 48
+        },
+        "pred_21d": {
+          "ic_medio": -0.024,
+          "pct_fechas_pos": 0.38,
+          "bloques": [
+            -0.013,
+            -0.002
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": -1.32,
+          "n_fechas": 48
+        }
+      },
+      "compra_v2_alpha_bruto_pp": {
+        "medio": -0.49,
+        "pct_fechas_pos": 0.44,
+        "bloques": [
+          0.05,
+          -1.36
+        ],
+        "bloque_parcial": null
+      }
+    },
+    "SP500": {
+      "scores": {
+        "ranking": {
+          "ic_medio": -0.002,
+          "pct_fechas_pos": 0.49,
+          "bloques": [
+            0.054,
+            -0.113
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 0.5,
+          "t_bloques": -0.36,
+          "n_fechas": 47
+        },
+        "score_v1": {
+          "ic_medio": -0.261,
+          "pct_fechas_pos": 0.02,
+          "bloques": [
+            -0.218,
+            -0.35
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": -4.29,
+          "n_fechas": 47
+        },
+        "score_v2": {
+          "ic_medio": 0.068,
+          "pct_fechas_pos": 0.7,
+          "bloques": [
+            -0.016,
+            0.086
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 0.5,
+          "t_bloques": 0.68,
+          "n_fechas": 47
+        },
+        "confidence_score": {
+          "ic_medio": -0.019,
+          "pct_fechas_pos": 0.39,
+          "bloques": [
+            0.022,
+            -0.066
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 0.5,
+          "t_bloques": -0.5,
+          "n_fechas": 44
+        },
+        "asset_quality": {
+          "ic_medio": -0.151,
+          "pct_fechas_pos": 0.17,
+          "bloques": [
+            -0.165,
+            -0.233
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": -5.81,
+          "n_fechas": 47
+        },
+        "entry_score": {
+          "ic_medio": 0.147,
+          "pct_fechas_pos": 0.85,
+          "bloques": [
+            0.042,
+            0.213
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 1.49,
+          "n_fechas": 47
+        },
+        "score_tecnico": {
+          "ic_medio": -0.292,
+          "pct_fechas_pos": 0.04,
+          "bloques": [
+            -0.375,
+            -0.175
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": -2.76,
+          "n_fechas": 47
+        },
+        "score_fund": {
+          "ic_medio": -0.132,
+          "pct_fechas_pos": 0.17,
+          "bloques": [
+            -0.139,
+            -0.223
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": -4.29,
+          "n_fechas": 47
+        },
+        "score_sectorial": {
+          "ic_medio": -0.128,
+          "pct_fechas_pos": 0.28,
+          "bloques": [
+            -0.258,
+            -0.069
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": -1.74,
+          "n_fechas": 47
+        },
+        "rr_ratio": {
+          "ic_medio": 0.163,
+          "pct_fechas_pos": 0.85,
+          "bloques": [
+            0.114,
+            0.18
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 1.0,
+          "t_bloques": 4.45,
+          "n_fechas": 47
+        },
+        "pred_21d": {
+          "ic_medio": -0.041,
+          "pct_fechas_pos": 0.53,
+          "bloques": [
+            -0.059,
+            0.05
+          ],
+          "bloque_parcial": null,
+          "n_bloques": 2,
+          "pct_bloques_mismo_signo": 0.5,
+          "t_bloques": -0.09,
+          "n_fechas": 47
+        }
+      },
+      "compra_v2_alpha_bruto_pp": {
+        "medio": 4.05,
+        "pct_fechas_pos": 0.62,
+        "bloques": [
+          -0.47
+        ],
+        "bloque_parcial": 15.9
+      }
+    }
+  },
+  "B_motor": {
+    "MERVAL": {
+      "expandido": {
+        "n_saltos_neutralizados": 1,
+        "universo": 22,
+        "ic_factores_muestra_completa": {
+          "rev5": {
+            "ic_medio": 0.075,
+            "pct_fechas_pos": 0.63,
+            "bloques": [
+              0.105,
+              0.155,
+              0.1,
+              -0.041,
+              0.007,
+              -0.012,
+              0.252,
+              0.239,
+              -0.057,
+              0.214,
+              0.024
+            ],
+            "bloque_parcial": -0.097,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.73,
+            "t_bloques": 2.62,
+            "n_fechas": 250
+          },
+          "rev21": {
+            "ic_medio": 0.143,
+            "pct_fechas_pos": 0.68,
+            "bloques": [
+              0.352,
+              0.317,
+              0.131,
+              0.174,
+              -0.117,
+              0.327,
+              0.274,
+              0.17,
+              -0.009,
+              0.243,
+              -0.187
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.73,
+            "t_bloques": 2.76,
+            "n_fechas": 234
+          },
+          "mom63": {
+            "ic_medio": -0.114,
+            "pct_fechas_pos": 0.27,
+            "bloques": [
+              -0.229,
+              -0.169,
+              -0.024,
+              -0.169,
+              0.226,
+              -0.377,
+              0.027,
+              -0.172,
+              -0.206
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.78,
+            "t_bloques": -2.09,
+            "n_fechas": 192
+          },
+          "mom126": {
+            "ic_medio": -0.038,
+            "pct_fechas_pos": 0.43,
+            "bloques": [
+              -0.017,
+              0.007,
+              -0.077,
+              0.108,
+              0.016,
+              -0.255
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 6,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.72,
+            "n_fechas": 129
+          },
+          "dist_max": {
+            "ic_medio": -0.029,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              -0.059,
+              -0.024,
+              0.238,
+              -0.178,
+              0.107,
+              -0.168,
+              0.072,
+              -0.14,
+              -0.181
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -0.75,
+            "n_fechas": 193
+          },
+          "dist_min": {
+            "ic_medio": -0.127,
+            "pct_fechas_pos": 0.32,
+            "bloques": [
+              0.001,
+              -0.15,
+              -0.239,
+              -0.153,
+              -0.134,
+              0.166,
+              0.064,
+              -0.312,
+              -0.379
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -2.14,
+            "n_fechas": 193
+          },
+          "dist_ma50": {
+            "ic_medio": -0.121,
+            "pct_fechas_pos": 0.28,
+            "bloques": [
+              -0.388,
+              0.012,
+              -0.229,
+              0.03,
+              -0.232,
+              -0.261,
+              -0.139,
+              -0.012,
+              -0.179,
+              0.023
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.7,
+            "t_bloques": -3.0,
+            "n_fechas": 216
+          },
+          "ma50_slope": {
+            "ic_medio": -0.111,
+            "pct_fechas_pos": 0.3,
+            "bloques": [
+              -0.275,
+              -0.21,
+              -0.19,
+              0.002,
+              -0.196,
+              0.091,
+              -0.125,
+              0.118,
+              -0.359
+            ],
+            "bloque_parcial": 0.068,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -2.32,
+            "n_fechas": 206
+          },
+          "vol21": {
+            "ic_medio": 0.027,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              0.383,
+              0.287,
+              -0.038,
+              -0.103,
+              -0.208,
+              0.019,
+              -0.094,
+              0.255,
+              0.249,
+              0.014,
+              -0.394
+            ],
+            "bloque_parcial": -0.139,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.47,
+            "n_fechas": 240
+          },
+          "vol63": {
+            "ic_medio": -0.038,
+            "pct_fechas_pos": 0.41,
+            "bloques": [
+              0.128,
+              0.059,
+              -0.161,
+              -0.364,
+              0.1,
+              -0.271,
+              0.504,
+              0.034,
+              -0.113,
+              -0.258
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.42,
+            "n_fechas": 215
+          },
+          "max_ret21": {
+            "ic_medio": 0.018,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              0.242,
+              0.202,
+              0.066,
+              -0.129,
+              -0.235,
+              0.009,
+              -0.103,
+              0.328,
+              0.194,
+              -0.006,
+              -0.355
+            ],
+            "bloque_parcial": -0.019,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.3,
+            "n_fechas": 240
+          },
+          "rsi14": {
+            "ic_medio": -0.136,
+            "pct_fechas_pos": 0.29,
+            "bloques": [
+              -0.322,
+              -0.322,
+              -0.074,
+              -0.004,
+              -0.128,
+              -0.13,
+              -0.297,
+              -0.298,
+              0.027,
+              -0.27,
+              0.018
+            ],
+            "bloque_parcial": 0.317,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.82,
+            "t_bloques": -3.82,
+            "n_fechas": 245
+          },
+          "beta63": {
+            "ic_medio": -0.009,
+            "pct_fechas_pos": 0.46,
+            "bloques": [
+              0.049,
+              0.134,
+              -0.099,
+              -0.312,
+              0.003,
+              -0.336,
+              0.615,
+              0.262,
+              -0.076,
+              -0.263
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.02,
+            "n_fechas": 215
+          }
+        },
+        "periodos": [
+          {
+            "entrada": "2026-01-29",
+            "salida": "2026-03-03",
+            "picks": [
+              "TXAR.BA",
+              "ALUA.BA",
+              "HARG.BA",
+              "LOMA.BA",
+              "MOLI.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.08,
+                "t": 1.89,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -22.33,
+            "neto_pct": -23.27,
+            "canasta_pct": -19.87,
+            "indice_pct": -19.13,
+            "alpha_neto_pp": -3.4,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-03-03",
+            "salida": "2026-04-06",
+            "picks": [
+              "ALUA.BA",
+              "HARG.BA",
+              "COME.BA",
+              "BBAR.BA",
+              "SUPV.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.065,
+                "t": 1.82,
+                "bloques": 5
+              },
+              "rev21": {
+                "ic": 0.243,
+                "t": 4.54,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": 0.095,
+                "t": 1.14,
+                "bloques": 4
+              },
+              "rsi14": {
+                "ic": -0.181,
+                "t": -2.18,
+                "bloques": 4
+              }
+            },
+            "rotacion": 0.6,
+            "bruto_pct": 23.56,
+            "neto_pct": 22.67,
+            "canasta_pct": 16.23,
+            "indice_pct": 15.76,
+            "alpha_neto_pp": 6.44,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-04-06",
+            "salida": "2026-05-05",
+            "picks": [
+              "SUPV.BA",
+              "MIRG.BA",
+              "TECO2.BA",
+              "MOLI.BA",
+              "TRAN.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.052,
+                "t": 1.64,
+                "bloques": 6
+              },
+              "rev21": {
+                "ic": 0.171,
+                "t": 2.06,
+                "bloques": 5
+              },
+              "rsi14": {
+                "ic": -0.17,
+                "t": -2.62,
+                "bloques": 5
+              }
+            },
+            "rotacion": 0.8,
+            "bruto_pct": -5.54,
+            "neto_pct": -6.45,
+            "canasta_pct": -8.71,
+            "indice_pct": -8.22,
+            "alpha_neto_pp": 2.25,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-05-05",
+            "salida": "2026-06-03",
+            "picks": [
+              "SUPV.BA",
+              "GGAL.BA",
+              "COME.BA",
+              "EDN.BA",
+              "BMA.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.081,
+                "t": 2.06,
+                "bloques": 7
+              },
+              "rev21": {
+                "ic": 0.197,
+                "t": 2.72,
+                "bloques": 6
+              },
+              "mom63": {
+                "ic": -0.148,
+                "t": -3.39,
+                "bloques": 4
+              },
+              "dist_min": {
+                "ic": -0.135,
+                "t": -2.71,
+                "bloques": 4
+              },
+              "dist_ma50": {
+                "ic": -0.161,
+                "t": -2.02,
+                "bloques": 5
+              },
+              "ma50_slope": {
+                "ic": -0.168,
+                "t": -2.83,
+                "bloques": 4
+              },
+              "rsi14": {
+                "ic": -0.163,
+                "t": -3.06,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.8,
+            "bruto_pct": 18.16,
+            "neto_pct": 17.03,
+            "canasta_pct": 9.07,
+            "indice_pct": 14.68,
+            "alpha_neto_pp": 7.95,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-06-03",
+            "salida": "2026-07-02",
+            "picks": [
+              "MIRG.BA",
+              "TRAN.BA",
+              "CRES.BA",
+              "BYMA.BA",
+              "TGSU2.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.101,
+                "t": 2.56,
+                "bloques": 8
+              },
+              "rev21": {
+                "ic": 0.208,
+                "t": 3.34,
+                "bloques": 7
+              },
+              "dist_min": {
+                "ic": -0.135,
+                "t": -3.49,
+                "bloques": 5
+              },
+              "dist_ma50": {
+                "ic": -0.178,
+                "t": -2.64,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": -0.174,
+                "t": -3.75,
+                "bloques": 5
+              },
+              "rsi14": {
+                "ic": -0.183,
+                "t": -3.72,
+                "bloques": 7
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -0.74,
+            "neto_pct": -1.93,
+            "canasta_pct": -0.36,
+            "indice_pct": -0.22,
+            "alpha_neto_pp": -1.58,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-02",
+            "salida": "2026-07-31",
+            "picks": [
+              "MIRG.BA",
+              "TRAN.BA",
+              "TGSU2.BA",
+              "COME.BA",
+              "HARG.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.083,
+                "t": 2.14,
+                "bloques": 9
+              },
+              "rev21": {
+                "ic": 0.203,
+                "t": 3.75,
+                "bloques": 8
+              },
+              "mom63": {
+                "ic": -0.124,
+                "t": -1.47,
+                "bloques": 6
+              },
+              "dist_min": {
+                "ic": -0.085,
+                "t": -1.43,
+                "bloques": 6
+              },
+              "dist_ma50": {
+                "ic": -0.172,
+                "t": -3.01,
+                "bloques": 7
+              },
+              "ma50_slope": {
+                "ic": -0.13,
+                "t": -2.23,
+                "bloques": 6
+              },
+              "rsi14": {
+                "ic": -0.197,
+                "t": -4.39,
+                "bloques": 8
+              }
+            },
+            "rotacion": 0.4,
+            "bruto_pct": 3.41,
+            "neto_pct": 2.91,
+            "canasta_pct": 2.05,
+            "indice_pct": 4.25,
+            "alpha_neto_pp": 0.86,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-31",
+            "salida": "2026-08-31",
+            "picks": [
+              "MIRG.BA",
+              "TRAN.BA",
+              "COME.BA",
+              "MOLI.BA",
+              "VALO.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.096,
+                "t": 2.59,
+                "bloques": 10
+              },
+              "rev21": {
+                "ic": 0.18,
+                "t": 3.37,
+                "bloques": 9
+              },
+              "mom63": {
+                "ic": -0.102,
+                "t": -1.38,
+                "bloques": 7
+              },
+              "dist_ma50": {
+                "ic": -0.152,
+                "t": -2.85,
+                "bloques": 8
+              },
+              "ma50_slope": {
+                "ic": -0.129,
+                "t": -2.63,
+                "bloques": 7
+              },
+              "rsi14": {
+                "ic": -0.172,
+                "t": -3.68,
+                "bloques": 9
+              }
+            },
+            "rotacion": 0.4,
+            "bruto_pct": 0.96,
+            "neto_pct": 0.47,
+            "canasta_pct": -5.64,
+            "indice_pct": -7.82,
+            "alpha_neto_pp": 6.11,
+            "invertido": true,
+            "apuesta": true
+          }
+        ],
+        "resumen_oos": {
+          "n_periodos": 7,
+          "n_con_apuesta": 7,
+          "alpha_neto_medio_pp": 2.66,
+          "pct_periodos_alpha_pos": 0.71,
+          "t_alpha": 1.63,
+          "acumulado_motor_neto_pct": 4.49,
+          "acumulado_canasta_pct": -11.02,
+          "acumulado_indice_pct": -5.52,
+          "rotacion_media": 0.71,
+          "desde": "2026-01-29",
+          "hasta": "2026-08-31",
+          "por_anio": {
+            "2026": {
+              "n": 7,
+              "alpha_medio_pp": 2.66,
+              "pct_pos": 0.71
+            }
+          }
+        },
+        "hoy": {
+          "fecha": "2026-09-25",
+          "factores": {
+            "rev5": {
+              "ic": 0.09,
+              "t": 2.62,
+              "bloques": 11
+            },
+            "rev21": {
+              "ic": 0.152,
+              "t": 2.76,
+              "bloques": 11
+            },
+            "mom63": {
+              "ic": -0.121,
+              "t": -2.09,
+              "bloques": 9
+            },
+            "dist_min": {
+              "ic": -0.126,
+              "t": -2.14,
+              "bloques": 9
+            },
+            "dist_ma50": {
+              "ic": -0.137,
+              "t": -3.0,
+              "bloques": 10
+            },
+            "ma50_slope": {
+              "ic": -0.127,
+              "t": -2.32,
+              "bloques": 9
+            },
+            "rsi14": {
+              "ic": -0.164,
+              "t": -3.82,
+              "bloques": 11
+            }
+          },
+          "picks": [
+            "SUPV.BA",
+            "BBAR.BA",
+            "BMA.BA",
+            "GGAL.BA",
+            "HARG.BA"
+          ],
+          "scores": {
+            "SUPV.BA": 0.315,
+            "BBAR.BA": 0.271,
+            "BMA.BA": 0.265,
+            "GGAL.BA": 0.246,
+            "HARG.BA": 0.219
+          }
+        }
+      },
+      "ventana_6_bloques": {
+        "n_saltos_neutralizados": 1,
+        "universo": 22,
+        "ic_factores_muestra_completa": {
+          "rev5": {
+            "ic_medio": 0.075,
+            "pct_fechas_pos": 0.63,
+            "bloques": [
+              0.105,
+              0.155,
+              0.1,
+              -0.041,
+              0.007,
+              -0.012,
+              0.252,
+              0.239,
+              -0.057,
+              0.214,
+              0.024
+            ],
+            "bloque_parcial": -0.097,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.73,
+            "t_bloques": 2.62,
+            "n_fechas": 250
+          },
+          "rev21": {
+            "ic_medio": 0.143,
+            "pct_fechas_pos": 0.68,
+            "bloques": [
+              0.352,
+              0.317,
+              0.131,
+              0.174,
+              -0.117,
+              0.327,
+              0.274,
+              0.17,
+              -0.009,
+              0.243,
+              -0.187
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.73,
+            "t_bloques": 2.76,
+            "n_fechas": 234
+          },
+          "mom63": {
+            "ic_medio": -0.114,
+            "pct_fechas_pos": 0.27,
+            "bloques": [
+              -0.229,
+              -0.169,
+              -0.024,
+              -0.169,
+              0.226,
+              -0.377,
+              0.027,
+              -0.172,
+              -0.206
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.78,
+            "t_bloques": -2.09,
+            "n_fechas": 192
+          },
+          "mom126": {
+            "ic_medio": -0.038,
+            "pct_fechas_pos": 0.43,
+            "bloques": [
+              -0.017,
+              0.007,
+              -0.077,
+              0.108,
+              0.016,
+              -0.255
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 6,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.72,
+            "n_fechas": 129
+          },
+          "dist_max": {
+            "ic_medio": -0.029,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              -0.059,
+              -0.024,
+              0.238,
+              -0.178,
+              0.107,
+              -0.168,
+              0.072,
+              -0.14,
+              -0.181
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -0.75,
+            "n_fechas": 193
+          },
+          "dist_min": {
+            "ic_medio": -0.127,
+            "pct_fechas_pos": 0.32,
+            "bloques": [
+              0.001,
+              -0.15,
+              -0.239,
+              -0.153,
+              -0.134,
+              0.166,
+              0.064,
+              -0.312,
+              -0.379
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -2.14,
+            "n_fechas": 193
+          },
+          "dist_ma50": {
+            "ic_medio": -0.121,
+            "pct_fechas_pos": 0.28,
+            "bloques": [
+              -0.388,
+              0.012,
+              -0.229,
+              0.03,
+              -0.232,
+              -0.261,
+              -0.139,
+              -0.012,
+              -0.179,
+              0.023
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.7,
+            "t_bloques": -3.0,
+            "n_fechas": 216
+          },
+          "ma50_slope": {
+            "ic_medio": -0.111,
+            "pct_fechas_pos": 0.3,
+            "bloques": [
+              -0.275,
+              -0.21,
+              -0.19,
+              0.002,
+              -0.196,
+              0.091,
+              -0.125,
+              0.118,
+              -0.359
+            ],
+            "bloque_parcial": 0.068,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -2.32,
+            "n_fechas": 206
+          },
+          "vol21": {
+            "ic_medio": 0.027,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              0.383,
+              0.287,
+              -0.038,
+              -0.103,
+              -0.208,
+              0.019,
+              -0.094,
+              0.255,
+              0.249,
+              0.014,
+              -0.394
+            ],
+            "bloque_parcial": -0.139,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.47,
+            "n_fechas": 240
+          },
+          "vol63": {
+            "ic_medio": -0.038,
+            "pct_fechas_pos": 0.41,
+            "bloques": [
+              0.128,
+              0.059,
+              -0.161,
+              -0.364,
+              0.1,
+              -0.271,
+              0.504,
+              0.034,
+              -0.113,
+              -0.258
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.42,
+            "n_fechas": 215
+          },
+          "max_ret21": {
+            "ic_medio": 0.018,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              0.242,
+              0.202,
+              0.066,
+              -0.129,
+              -0.235,
+              0.009,
+              -0.103,
+              0.328,
+              0.194,
+              -0.006,
+              -0.355
+            ],
+            "bloque_parcial": -0.019,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.3,
+            "n_fechas": 240
+          },
+          "rsi14": {
+            "ic_medio": -0.136,
+            "pct_fechas_pos": 0.29,
+            "bloques": [
+              -0.322,
+              -0.322,
+              -0.074,
+              -0.004,
+              -0.128,
+              -0.13,
+              -0.297,
+              -0.298,
+              0.027,
+              -0.27,
+              0.018
+            ],
+            "bloque_parcial": 0.317,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.82,
+            "t_bloques": -3.82,
+            "n_fechas": 245
+          },
+          "beta63": {
+            "ic_medio": -0.009,
+            "pct_fechas_pos": 0.46,
+            "bloques": [
+              0.049,
+              0.134,
+              -0.099,
+              -0.312,
+              0.003,
+              -0.336,
+              0.615,
+              0.262,
+              -0.076,
+              -0.263
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.02,
+            "n_fechas": 215
+          }
+        },
+        "periodos": [
+          {
+            "entrada": "2026-01-29",
+            "salida": "2026-03-03",
+            "picks": [
+              "TXAR.BA",
+              "ALUA.BA",
+              "HARG.BA",
+              "LOMA.BA",
+              "MOLI.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.08,
+                "t": 1.89,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -22.33,
+            "neto_pct": -23.27,
+            "canasta_pct": -19.87,
+            "indice_pct": -19.13,
+            "alpha_neto_pp": -3.4,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-03-03",
+            "salida": "2026-04-06",
+            "picks": [
+              "ALUA.BA",
+              "HARG.BA",
+              "COME.BA",
+              "BBAR.BA",
+              "SUPV.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.065,
+                "t": 1.82,
+                "bloques": 5
+              },
+              "rev21": {
+                "ic": 0.243,
+                "t": 4.54,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": 0.095,
+                "t": 1.14,
+                "bloques": 4
+              },
+              "rsi14": {
+                "ic": -0.181,
+                "t": -2.18,
+                "bloques": 4
+              }
+            },
+            "rotacion": 0.6,
+            "bruto_pct": 23.56,
+            "neto_pct": 22.67,
+            "canasta_pct": 16.23,
+            "indice_pct": 15.76,
+            "alpha_neto_pp": 6.44,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-04-06",
+            "salida": "2026-05-05",
+            "picks": [
+              "SUPV.BA",
+              "MIRG.BA",
+              "TECO2.BA",
+              "MOLI.BA",
+              "TRAN.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.052,
+                "t": 1.64,
+                "bloques": 6
+              },
+              "rev21": {
+                "ic": 0.171,
+                "t": 2.06,
+                "bloques": 5
+              },
+              "rsi14": {
+                "ic": -0.17,
+                "t": -2.62,
+                "bloques": 5
+              }
+            },
+            "rotacion": 0.8,
+            "bruto_pct": -5.54,
+            "neto_pct": -6.45,
+            "canasta_pct": -8.71,
+            "indice_pct": -8.22,
+            "alpha_neto_pp": 2.25,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-05-05",
+            "salida": "2026-06-03",
+            "picks": [
+              "SUPV.BA",
+              "GGAL.BA",
+              "COME.BA",
+              "EDN.BA",
+              "BMA.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.077,
+                "t": 1.66,
+                "bloques": 6
+              },
+              "rev21": {
+                "ic": 0.197,
+                "t": 2.72,
+                "bloques": 6
+              },
+              "mom63": {
+                "ic": -0.148,
+                "t": -3.39,
+                "bloques": 4
+              },
+              "dist_min": {
+                "ic": -0.135,
+                "t": -2.71,
+                "bloques": 4
+              },
+              "dist_ma50": {
+                "ic": -0.161,
+                "t": -2.02,
+                "bloques": 5
+              },
+              "ma50_slope": {
+                "ic": -0.168,
+                "t": -2.83,
+                "bloques": 4
+              },
+              "rsi14": {
+                "ic": -0.163,
+                "t": -3.06,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.8,
+            "bruto_pct": 18.16,
+            "neto_pct": 17.03,
+            "canasta_pct": 9.07,
+            "indice_pct": 14.68,
+            "alpha_neto_pp": 7.95,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-06-03",
+            "salida": "2026-07-02",
+            "picks": [
+              "MIRG.BA",
+              "TRAN.BA",
+              "CRES.BA",
+              "BYMA.BA",
+              "TGSU2.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.091,
+                "t": 1.73,
+                "bloques": 6
+              },
+              "rev21": {
+                "ic": 0.184,
+                "t": 2.7,
+                "bloques": 6
+              },
+              "dist_min": {
+                "ic": -0.135,
+                "t": -3.49,
+                "bloques": 5
+              },
+              "dist_ma50": {
+                "ic": -0.178,
+                "t": -2.64,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": -0.174,
+                "t": -3.75,
+                "bloques": 5
+              },
+              "rsi14": {
+                "ic": -0.159,
+                "t": -3.11,
+                "bloques": 6
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -0.74,
+            "neto_pct": -1.93,
+            "canasta_pct": -0.36,
+            "indice_pct": -0.22,
+            "alpha_neto_pp": -1.58,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-02",
+            "salida": "2026-07-31",
+            "picks": [
+              "MIRG.BA",
+              "TRAN.BA",
+              "TGSU2.BA",
+              "COME.BA",
+              "HARG.BA"
+            ],
+            "factores": {
+              "rev21": {
+                "ic": 0.16,
+                "t": 2.54,
+                "bloques": 6
+              },
+              "mom63": {
+                "ic": -0.124,
+                "t": -1.47,
+                "bloques": 6
+              },
+              "dist_min": {
+                "ic": -0.085,
+                "t": -1.43,
+                "bloques": 6
+              },
+              "dist_ma50": {
+                "ic": -0.136,
+                "t": -2.59,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": -0.13,
+                "t": -2.23,
+                "bloques": 6
+              },
+              "rsi14": {
+                "ic": -0.155,
+                "t": -3.19,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.4,
+            "bruto_pct": 3.41,
+            "neto_pct": 2.91,
+            "canasta_pct": 2.05,
+            "indice_pct": 4.25,
+            "alpha_neto_pp": 0.86,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-31",
+            "salida": "2026-08-31",
+            "picks": [
+              "MIRG.BA",
+              "TRAN.BA",
+              "MOLI.BA",
+              "VALO.BA",
+              "BYMA.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.107,
+                "t": 1.85,
+                "bloques": 6
+              },
+              "rev21": {
+                "ic": 0.136,
+                "t": 1.98,
+                "bloques": 6
+              },
+              "dist_min": {
+                "ic": -0.075,
+                "t": -1.18,
+                "bloques": 6
+              },
+              "dist_ma50": {
+                "ic": -0.14,
+                "t": -2.78,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": -0.105,
+                "t": -2.07,
+                "bloques": 6
+              },
+              "rsi14": {
+                "ic": -0.139,
+                "t": -2.45,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.6,
+            "bruto_pct": -0.06,
+            "neto_pct": -0.78,
+            "canasta_pct": -5.64,
+            "indice_pct": -7.82,
+            "alpha_neto_pp": 4.86,
+            "invertido": true,
+            "apuesta": true
+          }
+        ],
+        "resumen_oos": {
+          "n_periodos": 7,
+          "n_con_apuesta": 7,
+          "alpha_neto_medio_pp": 2.48,
+          "pct_periodos_alpha_pos": 0.71,
+          "t_alpha": 1.57,
+          "acumulado_motor_neto_pct": 3.19,
+          "acumulado_canasta_pct": -11.02,
+          "acumulado_indice_pct": -5.52,
+          "rotacion_media": 0.74,
+          "desde": "2026-01-29",
+          "hasta": "2026-08-31",
+          "por_anio": {
+            "2026": {
+              "n": 7,
+              "alpha_medio_pp": 2.48,
+              "pct_pos": 0.71
+            }
+          }
+        },
+        "hoy": {
+          "fecha": "2026-09-25",
+          "factores": {
+            "rev5": {
+              "ic": 0.11,
+              "t": 1.92,
+              "bloques": 6
+            },
+            "rev21": {
+              "ic": 0.136,
+              "t": 1.7,
+              "bloques": 6
+            },
+            "mom63": {
+              "ic": -0.112,
+              "t": -1.31,
+              "bloques": 6
+            },
+            "dist_max": {
+              "ic": -0.081,
+              "t": -1.49,
+              "bloques": 6
+            },
+            "dist_min": {
+              "ic": -0.125,
+              "t": -1.45,
+              "bloques": 6
+            },
+            "dist_ma50": {
+              "ic": -0.133,
+              "t": -2.82,
+              "bloques": 6
+            },
+            "rsi14": {
+              "ic": -0.159,
+              "t": -2.53,
+              "bloques": 6
+            }
+          },
+          "picks": [
+            "BYMA.BA",
+            "SUPV.BA",
+            "HARG.BA",
+            "BBAR.BA",
+            "BMA.BA"
+          ],
+          "scores": {
+            "BYMA.BA": 0.139,
+            "SUPV.BA": 0.323,
+            "HARG.BA": 0.262,
+            "BBAR.BA": 0.235,
+            "BMA.BA": 0.224
+          }
+        }
+      },
+      "expandido_con_filtro_tendencia": {
+        "n_saltos_neutralizados": 1,
+        "universo": 22,
+        "ic_factores_muestra_completa": {
+          "rev5": {
+            "ic_medio": 0.075,
+            "pct_fechas_pos": 0.63,
+            "bloques": [
+              0.105,
+              0.155,
+              0.1,
+              -0.041,
+              0.007,
+              -0.012,
+              0.252,
+              0.239,
+              -0.057,
+              0.214,
+              0.024
+            ],
+            "bloque_parcial": -0.097,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.73,
+            "t_bloques": 2.62,
+            "n_fechas": 250
+          },
+          "rev21": {
+            "ic_medio": 0.143,
+            "pct_fechas_pos": 0.68,
+            "bloques": [
+              0.352,
+              0.317,
+              0.131,
+              0.174,
+              -0.117,
+              0.327,
+              0.274,
+              0.17,
+              -0.009,
+              0.243,
+              -0.187
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.73,
+            "t_bloques": 2.76,
+            "n_fechas": 234
+          },
+          "mom63": {
+            "ic_medio": -0.114,
+            "pct_fechas_pos": 0.27,
+            "bloques": [
+              -0.229,
+              -0.169,
+              -0.024,
+              -0.169,
+              0.226,
+              -0.377,
+              0.027,
+              -0.172,
+              -0.206
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.78,
+            "t_bloques": -2.09,
+            "n_fechas": 192
+          },
+          "mom126": {
+            "ic_medio": -0.038,
+            "pct_fechas_pos": 0.43,
+            "bloques": [
+              -0.017,
+              0.007,
+              -0.077,
+              0.108,
+              0.016,
+              -0.255
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 6,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.72,
+            "n_fechas": 129
+          },
+          "dist_max": {
+            "ic_medio": -0.029,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              -0.059,
+              -0.024,
+              0.238,
+              -0.178,
+              0.107,
+              -0.168,
+              0.072,
+              -0.14,
+              -0.181
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -0.75,
+            "n_fechas": 193
+          },
+          "dist_min": {
+            "ic_medio": -0.127,
+            "pct_fechas_pos": 0.32,
+            "bloques": [
+              0.001,
+              -0.15,
+              -0.239,
+              -0.153,
+              -0.134,
+              0.166,
+              0.064,
+              -0.312,
+              -0.379
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -2.14,
+            "n_fechas": 193
+          },
+          "dist_ma50": {
+            "ic_medio": -0.121,
+            "pct_fechas_pos": 0.28,
+            "bloques": [
+              -0.388,
+              0.012,
+              -0.229,
+              0.03,
+              -0.232,
+              -0.261,
+              -0.139,
+              -0.012,
+              -0.179,
+              0.023
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.7,
+            "t_bloques": -3.0,
+            "n_fechas": 216
+          },
+          "ma50_slope": {
+            "ic_medio": -0.111,
+            "pct_fechas_pos": 0.3,
+            "bloques": [
+              -0.275,
+              -0.21,
+              -0.19,
+              0.002,
+              -0.196,
+              0.091,
+              -0.125,
+              0.118,
+              -0.359
+            ],
+            "bloque_parcial": 0.068,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -2.32,
+            "n_fechas": 206
+          },
+          "vol21": {
+            "ic_medio": 0.027,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              0.383,
+              0.287,
+              -0.038,
+              -0.103,
+              -0.208,
+              0.019,
+              -0.094,
+              0.255,
+              0.249,
+              0.014,
+              -0.394
+            ],
+            "bloque_parcial": -0.139,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.47,
+            "n_fechas": 240
+          },
+          "vol63": {
+            "ic_medio": -0.038,
+            "pct_fechas_pos": 0.41,
+            "bloques": [
+              0.128,
+              0.059,
+              -0.161,
+              -0.364,
+              0.1,
+              -0.271,
+              0.504,
+              0.034,
+              -0.113,
+              -0.258
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.42,
+            "n_fechas": 215
+          },
+          "max_ret21": {
+            "ic_medio": 0.018,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              0.242,
+              0.202,
+              0.066,
+              -0.129,
+              -0.235,
+              0.009,
+              -0.103,
+              0.328,
+              0.194,
+              -0.006,
+              -0.355
+            ],
+            "bloque_parcial": -0.019,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.3,
+            "n_fechas": 240
+          },
+          "rsi14": {
+            "ic_medio": -0.136,
+            "pct_fechas_pos": 0.29,
+            "bloques": [
+              -0.322,
+              -0.322,
+              -0.074,
+              -0.004,
+              -0.128,
+              -0.13,
+              -0.297,
+              -0.298,
+              0.027,
+              -0.27,
+              0.018
+            ],
+            "bloque_parcial": 0.317,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.82,
+            "t_bloques": -3.82,
+            "n_fechas": 245
+          },
+          "beta63": {
+            "ic_medio": -0.009,
+            "pct_fechas_pos": 0.46,
+            "bloques": [
+              0.049,
+              0.134,
+              -0.099,
+              -0.312,
+              0.003,
+              -0.336,
+              0.615,
+              0.262,
+              -0.076,
+              -0.263
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.02,
+            "n_fechas": 215
+          }
+        },
+        "periodos": [
+          {
+            "entrada": "2026-01-29",
+            "salida": "2026-03-03",
+            "picks": [
+              "TXAR.BA",
+              "ALUA.BA",
+              "HARG.BA",
+              "LOMA.BA",
+              "MOLI.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.08,
+                "t": 1.89,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -22.33,
+            "neto_pct": -23.27,
+            "canasta_pct": -19.87,
+            "indice_pct": -19.13,
+            "alpha_neto_pp": -3.4,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-03-03",
+            "salida": "2026-04-06",
+            "picks": [
+              "ALUA.BA",
+              "HARG.BA",
+              "COME.BA",
+              "BBAR.BA",
+              "SUPV.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.065,
+                "t": 1.82,
+                "bloques": 5
+              },
+              "rev21": {
+                "ic": 0.243,
+                "t": 4.54,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": 0.095,
+                "t": 1.14,
+                "bloques": 4
+              },
+              "rsi14": {
+                "ic": -0.181,
+                "t": -2.18,
+                "bloques": 4
+              }
+            },
+            "rotacion": 0.6,
+            "bruto_pct": 23.56,
+            "neto_pct": 0.0,
+            "canasta_pct": 16.23,
+            "indice_pct": 15.76,
+            "alpha_neto_pp": -16.23,
+            "invertido": false,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-04-06",
+            "salida": "2026-05-05",
+            "picks": [
+              "SUPV.BA",
+              "MIRG.BA",
+              "TECO2.BA",
+              "MOLI.BA",
+              "TRAN.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.052,
+                "t": 1.64,
+                "bloques": 6
+              },
+              "rev21": {
+                "ic": 0.171,
+                "t": 2.06,
+                "bloques": 5
+              },
+              "rsi14": {
+                "ic": -0.17,
+                "t": -2.62,
+                "bloques": 5
+              }
+            },
+            "rotacion": 0.8,
+            "bruto_pct": -5.54,
+            "neto_pct": -6.45,
+            "canasta_pct": -8.71,
+            "indice_pct": -8.22,
+            "alpha_neto_pp": 2.25,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-05-05",
+            "salida": "2026-06-03",
+            "picks": [
+              "SUPV.BA",
+              "GGAL.BA",
+              "COME.BA",
+              "EDN.BA",
+              "BMA.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.081,
+                "t": 2.06,
+                "bloques": 7
+              },
+              "rev21": {
+                "ic": 0.197,
+                "t": 2.72,
+                "bloques": 6
+              },
+              "mom63": {
+                "ic": -0.148,
+                "t": -3.39,
+                "bloques": 4
+              },
+              "dist_min": {
+                "ic": -0.135,
+                "t": -2.71,
+                "bloques": 4
+              },
+              "dist_ma50": {
+                "ic": -0.161,
+                "t": -2.02,
+                "bloques": 5
+              },
+              "ma50_slope": {
+                "ic": -0.168,
+                "t": -2.83,
+                "bloques": 4
+              },
+              "rsi14": {
+                "ic": -0.163,
+                "t": -3.06,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.8,
+            "bruto_pct": 18.16,
+            "neto_pct": 0.0,
+            "canasta_pct": 9.07,
+            "indice_pct": 14.68,
+            "alpha_neto_pp": -9.07,
+            "invertido": false,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-06-03",
+            "salida": "2026-07-02",
+            "picks": [
+              "MIRG.BA",
+              "TRAN.BA",
+              "CRES.BA",
+              "BYMA.BA",
+              "TGSU2.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.101,
+                "t": 2.56,
+                "bloques": 8
+              },
+              "rev21": {
+                "ic": 0.208,
+                "t": 3.34,
+                "bloques": 7
+              },
+              "dist_min": {
+                "ic": -0.135,
+                "t": -3.49,
+                "bloques": 5
+              },
+              "dist_ma50": {
+                "ic": -0.178,
+                "t": -2.64,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": -0.174,
+                "t": -3.75,
+                "bloques": 5
+              },
+              "rsi14": {
+                "ic": -0.183,
+                "t": -3.72,
+                "bloques": 7
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -0.74,
+            "neto_pct": -1.93,
+            "canasta_pct": -0.36,
+            "indice_pct": -0.22,
+            "alpha_neto_pp": -1.58,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-02",
+            "salida": "2026-07-31",
+            "picks": [
+              "MIRG.BA",
+              "TRAN.BA",
+              "TGSU2.BA",
+              "COME.BA",
+              "HARG.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.083,
+                "t": 2.14,
+                "bloques": 9
+              },
+              "rev21": {
+                "ic": 0.203,
+                "t": 3.75,
+                "bloques": 8
+              },
+              "mom63": {
+                "ic": -0.124,
+                "t": -1.47,
+                "bloques": 6
+              },
+              "dist_min": {
+                "ic": -0.085,
+                "t": -1.43,
+                "bloques": 6
+              },
+              "dist_ma50": {
+                "ic": -0.172,
+                "t": -3.01,
+                "bloques": 7
+              },
+              "ma50_slope": {
+                "ic": -0.13,
+                "t": -2.23,
+                "bloques": 6
+              },
+              "rsi14": {
+                "ic": -0.197,
+                "t": -4.39,
+                "bloques": 8
+              }
+            },
+            "rotacion": 0.4,
+            "bruto_pct": 3.41,
+            "neto_pct": 2.91,
+            "canasta_pct": 2.05,
+            "indice_pct": 4.25,
+            "alpha_neto_pp": 0.86,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-31",
+            "salida": "2026-08-31",
+            "picks": [
+              "MIRG.BA",
+              "TRAN.BA",
+              "COME.BA",
+              "MOLI.BA",
+              "VALO.BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.096,
+                "t": 2.59,
+                "bloques": 10
+              },
+              "rev21": {
+                "ic": 0.18,
+                "t": 3.37,
+                "bloques": 9
+              },
+              "mom63": {
+                "ic": -0.102,
+                "t": -1.38,
+                "bloques": 7
+              },
+              "dist_ma50": {
+                "ic": -0.152,
+                "t": -2.85,
+                "bloques": 8
+              },
+              "ma50_slope": {
+                "ic": -0.129,
+                "t": -2.63,
+                "bloques": 7
+              },
+              "rsi14": {
+                "ic": -0.172,
+                "t": -3.68,
+                "bloques": 9
+              }
+            },
+            "rotacion": 0.4,
+            "bruto_pct": 0.96,
+            "neto_pct": 0.47,
+            "canasta_pct": -5.64,
+            "indice_pct": -7.82,
+            "alpha_neto_pp": 6.11,
+            "invertido": true,
+            "apuesta": true
+          }
+        ],
+        "resumen_oos": {
+          "n_periodos": 7,
+          "n_con_apuesta": 7,
+          "alpha_neto_medio_pp": -3.01,
+          "pct_periodos_alpha_pos": 0.43,
+          "t_alpha": -1.06,
+          "acumulado_motor_neto_pct": -27.22,
+          "acumulado_canasta_pct": -11.02,
+          "acumulado_indice_pct": -5.52,
+          "rotacion_media": 0.71,
+          "desde": "2026-01-29",
+          "hasta": "2026-08-31",
+          "por_anio": {
+            "2026": {
+              "n": 7,
+              "alpha_medio_pp": -3.01,
+              "pct_pos": 0.43
+            }
+          }
+        },
+        "hoy": {
+          "fecha": "2026-09-25",
+          "factores": {
+            "rev5": {
+              "ic": 0.09,
+              "t": 2.62,
+              "bloques": 11
+            },
+            "rev21": {
+              "ic": 0.152,
+              "t": 2.76,
+              "bloques": 11
+            },
+            "mom63": {
+              "ic": -0.121,
+              "t": -2.09,
+              "bloques": 9
+            },
+            "dist_min": {
+              "ic": -0.126,
+              "t": -2.14,
+              "bloques": 9
+            },
+            "dist_ma50": {
+              "ic": -0.137,
+              "t": -3.0,
+              "bloques": 10
+            },
+            "ma50_slope": {
+              "ic": -0.127,
+              "t": -2.32,
+              "bloques": 9
+            },
+            "rsi14": {
+              "ic": -0.164,
+              "t": -3.82,
+              "bloques": 11
+            }
+          },
+          "picks": [
+            "SUPV.BA",
+            "BBAR.BA",
+            "BMA.BA",
+            "GGAL.BA",
+            "HARG.BA"
+          ],
+          "scores": {
+            "SUPV.BA": 0.315,
+            "BBAR.BA": 0.271,
+            "BMA.BA": 0.265,
+            "GGAL.BA": 0.246,
+            "HARG.BA": 0.219
+          }
+        }
+      }
+    },
+    "BOVESPA": {
+      "expandido": {
+        "n_saltos_neutralizados": 0,
+        "universo": 23,
+        "ic_factores_muestra_completa": {
+          "rev5": {
+            "ic_medio": -0.036,
+            "pct_fechas_pos": 0.48,
+            "bloques": [
+              -0.136,
+              -0.113,
+              0.038,
+              0.003,
+              0.003,
+              -0.154,
+              -0.051,
+              0.045,
+              -0.024,
+              0.069,
+              -0.063
+            ],
+            "bloque_parcial": -0.048,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": -1.53,
+            "n_fechas": 249
+          },
+          "rev21": {
+            "ic_medio": 0.011,
+            "pct_fechas_pos": 0.48,
+            "bloques": [
+              -0.147,
+              -0.016,
+              0.174,
+              0.125,
+              -0.185,
+              0.002,
+              -0.194,
+              0.019,
+              0.176,
+              0.195,
+              -0.043
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.22,
+            "n_fechas": 233
+          },
+          "mom63": {
+            "ic_medio": -0.018,
+            "pct_fechas_pos": 0.46,
+            "bloques": [
+              0.005,
+              0.002,
+              0.165,
+              0.082,
+              0.045,
+              -0.047,
+              -0.177,
+              -0.045,
+              -0.172
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.44,
+            "t_bloques": -0.42,
+            "n_fechas": 191
+          },
+          "mom126": {
+            "ic_medio": 0.042,
+            "pct_fechas_pos": 0.65,
+            "bloques": [
+              0.129,
+              0.153,
+              -0.008,
+              0.168,
+              0.075,
+              -0.239
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 6,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": 0.74,
+            "n_fechas": 128
+          },
+          "dist_max": {
+            "ic_medio": 0.056,
+            "pct_fechas_pos": 0.61,
+            "bloques": [
+              0.149,
+              0.061,
+              0.303,
+              0.094,
+              0.11,
+              0.032,
+              0.068,
+              -0.096,
+              -0.175
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.78,
+            "t_bloques": 1.32,
+            "n_fechas": 192
+          },
+          "dist_min": {
+            "ic_medio": -0.051,
+            "pct_fechas_pos": 0.34,
+            "bloques": [
+              -0.073,
+              -0.1,
+              -0.19,
+              0.079,
+              0.171,
+              -0.134,
+              -0.187,
+              0.024,
+              -0.066
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -1.29,
+            "n_fechas": 192
+          },
+          "dist_ma50": {
+            "ic_medio": 0.007,
+            "pct_fechas_pos": 0.53,
+            "bloques": [
+              0.144,
+              -0.035,
+              -0.041,
+              0.196,
+              0.003,
+              0.158,
+              -0.033,
+              -0.247,
+              -0.177,
+              0.124
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": 0.2,
+            "n_fechas": 215
+          },
+          "ma50_slope": {
+            "ic_medio": 0.031,
+            "pct_fechas_pos": 0.55,
+            "bloques": [
+              0.321,
+              0.047,
+              0.1,
+              0.19,
+              -0.045,
+              0.02,
+              -0.082,
+              -0.199,
+              0.026
+            ],
+            "bloque_parcial": -0.101,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": 0.83,
+            "n_fechas": 205
+          },
+          "vol21": {
+            "ic_medio": -0.248,
+            "pct_fechas_pos": 0.16,
+            "bloques": [
+              -0.42,
+              -0.071,
+              -0.379,
+              -0.399,
+              -0.419,
+              -0.346,
+              0.021,
+              -0.209,
+              -0.319,
+              -0.305,
+              -0.074
+            ],
+            "bloque_parcial": 0.245,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.91,
+            "t_bloques": -5.58,
+            "n_fechas": 239
+          },
+          "vol63": {
+            "ic_medio": -0.247,
+            "pct_fechas_pos": 0.14,
+            "bloques": [
+              0.006,
+              -0.448,
+              -0.3,
+              -0.405,
+              -0.243,
+              -0.195,
+              -0.319,
+              -0.374,
+              -0.296,
+              0.015
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.8,
+            "t_bloques": -5.1,
+            "n_fechas": 214
+          },
+          "max_ret21": {
+            "ic_medio": -0.227,
+            "pct_fechas_pos": 0.21,
+            "bloques": [
+              -0.278,
+              0.088,
+              -0.265,
+              -0.458,
+              -0.366,
+              -0.261,
+              -0.083,
+              -0.186,
+              -0.373,
+              -0.396,
+              -0.071
+            ],
+            "bloque_parcial": 0.175,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.91,
+            "t_bloques": -4.85,
+            "n_fechas": 239
+          },
+          "rsi14": {
+            "ic_medio": 0.032,
+            "pct_fechas_pos": 0.49,
+            "bloques": [
+              0.205,
+              0.102,
+              -0.097,
+              -0.053,
+              0.113,
+              0.243,
+              0.145,
+              -0.035,
+              -0.099,
+              -0.22,
+              0.057
+            ],
+            "bloque_parcial": 0.014,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.76,
+            "n_fechas": 244
+          },
+          "beta63": {
+            "ic_medio": -0.112,
+            "pct_fechas_pos": 0.43,
+            "bloques": [
+              0.121,
+              -0.535,
+              0.004,
+              -0.199,
+              -0.058,
+              -0.08,
+              -0.303,
+              -0.034,
+              -0.164,
+              0.037
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.7,
+            "t_bloques": -2.01,
+            "n_fechas": 214
+          }
+        },
+        "periodos": [
+          {
+            "entrada": "2026-01-28",
+            "salida": "2026-03-02",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": -2.51,
+            "neto_pct": -2.51,
+            "canasta_pct": -2.51,
+            "indice_pct": 2.5,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-03-02",
+            "salida": "2026-03-31",
+            "picks": [
+              "EQTL3.SA",
+              "RENT3.SA",
+              "VIVT3.SA",
+              "EGIE3.SA",
+              "BBDC4.SA"
+            ],
+            "factores": {
+              "vol21": {
+                "ic": -0.317,
+                "t": -3.84,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": -0.229,
+                "t": -2.0,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -4.74,
+            "neto_pct": -5.89,
+            "canasta_pct": -5.47,
+            "indice_pct": -0.97,
+            "alpha_neto_pp": -0.42,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-03-31",
+            "salida": "2026-05-04",
+            "picks": [
+              "VIVT3.SA",
+              "EGIE3.SA",
+              "ABEV3.SA",
+              "SUZB3.SA",
+              "PETR4.SA"
+            ],
+            "factores": {
+              "vol21": {
+                "ic": -0.338,
+                "t": -5.02,
+                "bloques": 5
+              },
+              "vol63": {
+                "ic": -0.287,
+                "t": -2.8,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": -0.256,
+                "t": -2.76,
+                "bloques": 5
+              }
+            },
+            "rotacion": 0.6,
+            "bruto_pct": -3.68,
+            "neto_pct": -4.38,
+            "canasta_pct": -3.81,
+            "indice_pct": -0.99,
+            "alpha_neto_pp": -0.56,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-05-04",
+            "salida": "2026-06-02",
+            "picks": [
+              "VIVT3.SA",
+              "EGIE3.SA",
+              "ABEV3.SA",
+              "PETR4.SA",
+              "EQTL3.SA"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.064,
+                "t": 1.66,
+                "bloques": 4
+              },
+              "dist_max": {
+                "ic": 0.152,
+                "t": 2.83,
+                "bloques": 4
+              },
+              "dist_min": {
+                "ic": -0.071,
+                "t": -1.27,
+                "bloques": 4
+              },
+              "dist_ma50": {
+                "ic": 0.053,
+                "t": 1.09,
+                "bloques": 5
+              },
+              "ma50_slope": {
+                "ic": 0.164,
+                "t": 2.75,
+                "bloques": 4
+              },
+              "vol21": {
+                "ic": -0.339,
+                "t": -6.18,
+                "bloques": 6
+              },
+              "vol63": {
+                "ic": -0.278,
+                "t": -3.48,
+                "bloques": 5
+              },
+              "max_ret21": {
+                "ic": -0.257,
+                "t": -3.4,
+                "bloques": 6
+              },
+              "rsi14": {
+                "ic": 0.086,
+                "t": 1.54,
+                "bloques": 6
+              },
+              "beta63": {
+                "ic": -0.133,
+                "t": -1.18,
+                "bloques": 5
+              }
+            },
+            "rotacion": 0.2,
+            "bruto_pct": -3.86,
+            "neto_pct": -4.09,
+            "canasta_pct": -4.15,
+            "indice_pct": -6.14,
+            "alpha_neto_pp": 0.06,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-06-02",
+            "salida": "2026-07-02",
+            "picks": [
+              "EGIE3.SA",
+              "PETR4.SA",
+              "ITSA4.SA",
+              "ITUB4.SA",
+              "SANB11.SA"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.06,
+                "t": 2.0,
+                "bloques": 5
+              },
+              "dist_max": {
+                "ic": 0.143,
+                "t": 3.39,
+                "bloques": 5
+              },
+              "dist_ma50": {
+                "ic": 0.071,
+                "t": 1.62,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": 0.122,
+                "t": 1.96,
+                "bloques": 5
+              },
+              "vol21": {
+                "ic": -0.288,
+                "t": -4.15,
+                "bloques": 7
+              },
+              "vol63": {
+                "ic": -0.264,
+                "t": -3.96,
+                "bloques": 6
+              },
+              "max_ret21": {
+                "ic": -0.232,
+                "t": -3.38,
+                "bloques": 7
+              },
+              "rsi14": {
+                "ic": 0.094,
+                "t": 1.97,
+                "bloques": 7
+              },
+              "beta63": {
+                "ic": -0.124,
+                "t": -1.34,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.6,
+            "bruto_pct": -0.27,
+            "neto_pct": -0.99,
+            "canasta_pct": -3.01,
+            "indice_pct": -0.81,
+            "alpha_neto_pp": 2.02,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-02",
+            "salida": "2026-07-31",
+            "picks": [
+              "ITSA4.SA",
+              "ITUB4.SA",
+              "SANB11.SA",
+              "BBDC4.SA",
+              "ABEV3.SA"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.042,
+                "t": 1.39,
+                "bloques": 6
+              },
+              "dist_max": {
+                "ic": 0.125,
+                "t": 3.19,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": 0.105,
+                "t": 1.96,
+                "bloques": 6
+              },
+              "vol21": {
+                "ic": -0.278,
+                "t": -4.57,
+                "bloques": 8
+              },
+              "vol63": {
+                "ic": -0.272,
+                "t": -4.78,
+                "bloques": 7
+              },
+              "max_ret21": {
+                "ic": -0.226,
+                "t": -3.79,
+                "bloques": 8
+              },
+              "rsi14": {
+                "ic": 0.078,
+                "t": 1.76,
+                "bloques": 8
+              },
+              "beta63": {
+                "ic": -0.15,
+                "t": -1.82,
+                "bloques": 7
+              }
+            },
+            "rotacion": 0.4,
+            "bruto_pct": 2.76,
+            "neto_pct": 2.26,
+            "canasta_pct": 0.43,
+            "indice_pct": 3.02,
+            "alpha_neto_pp": 1.83,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-31",
+            "salida": "2026-08-31",
+            "picks": [
+              "ITSA4.SA",
+              "ITUB4.SA",
+              "BBDC4.SA",
+              "ABEV3.SA",
+              "SUZB3.SA"
+            ],
+            "factores": {
+              "mom126": {
+                "ic": 0.11,
+                "t": 2.74,
+                "bloques": 4
+              },
+              "dist_max": {
+                "ic": 0.117,
+                "t": 3.42,
+                "bloques": 7
+              },
+              "dist_min": {
+                "ic": -0.062,
+                "t": -1.19,
+                "bloques": 7
+              },
+              "ma50_slope": {
+                "ic": 0.079,
+                "t": 1.49,
+                "bloques": 7
+              },
+              "vol21": {
+                "ic": -0.282,
+                "t": -5.25,
+                "bloques": 9
+              },
+              "vol63": {
+                "ic": -0.285,
+                "t": -5.59,
+                "bloques": 8
+              },
+              "max_ret21": {
+                "ic": -0.243,
+                "t": -4.4,
+                "bloques": 9
+              },
+              "beta63": {
+                "ic": -0.135,
+                "t": -1.86,
+                "bloques": 8
+              }
+            },
+            "rotacion": 0.2,
+            "bruto_pct": -4.19,
+            "neto_pct": -4.42,
+            "canasta_pct": -3.18,
+            "indice_pct": -0.33,
+            "alpha_neto_pp": -1.24,
+            "invertido": true,
+            "apuesta": true
+          }
+        ],
+        "resumen_oos": {
+          "n_periodos": 7,
+          "n_con_apuesta": 6,
+          "alpha_neto_medio_pp": 0.24,
+          "pct_periodos_alpha_pos": 0.43,
+          "t_alpha": 0.52,
+          "acumulado_motor_neto_pct": -18.57,
+          "acumulado_canasta_pct": -19.87,
+          "acumulado_indice_pct": -3.93,
+          "rotacion_media": 0.43,
+          "desde": "2026-01-28",
+          "hasta": "2026-08-31",
+          "por_anio": {
+            "2026": {
+              "n": 7,
+              "alpha_medio_pp": 0.24,
+              "pct_pos": 0.43
+            }
+          }
+        },
+        "hoy": {
+          "fecha": "2026-09-25",
+          "factores": {
+            "dist_max": {
+              "ic": 0.061,
+              "t": 1.32,
+              "bloques": 9
+            },
+            "dist_min": {
+              "ic": -0.053,
+              "t": -1.29,
+              "bloques": 9
+            },
+            "vol21": {
+              "ic": -0.266,
+              "t": -5.58,
+              "bloques": 11
+            },
+            "vol63": {
+              "ic": -0.256,
+              "t": -5.1,
+              "bloques": 10
+            },
+            "max_ret21": {
+              "ic": -0.241,
+              "t": -4.85,
+              "bloques": 11
+            },
+            "beta63": {
+              "ic": -0.121,
+              "t": -2.01,
+              "bloques": 10
+            }
+          },
+          "picks": [
+            "ITSA4.SA",
+            "ITUB4.SA",
+            "BBDC4.SA",
+            "ABEV3.SA",
+            "SUZB3.SA"
+          ],
+          "scores": {
+            "ITSA4.SA": 0.166,
+            "ITUB4.SA": 0.161,
+            "BBDC4.SA": 0.144,
+            "ABEV3.SA": 0.345,
+            "SUZB3.SA": 0.141
+          }
+        }
+      },
+      "ventana_6_bloques": {
+        "n_saltos_neutralizados": 0,
+        "universo": 23,
+        "ic_factores_muestra_completa": {
+          "rev5": {
+            "ic_medio": -0.036,
+            "pct_fechas_pos": 0.48,
+            "bloques": [
+              -0.136,
+              -0.113,
+              0.038,
+              0.003,
+              0.003,
+              -0.154,
+              -0.051,
+              0.045,
+              -0.024,
+              0.069,
+              -0.063
+            ],
+            "bloque_parcial": -0.048,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": -1.53,
+            "n_fechas": 249
+          },
+          "rev21": {
+            "ic_medio": 0.011,
+            "pct_fechas_pos": 0.48,
+            "bloques": [
+              -0.147,
+              -0.016,
+              0.174,
+              0.125,
+              -0.185,
+              0.002,
+              -0.194,
+              0.019,
+              0.176,
+              0.195,
+              -0.043
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.22,
+            "n_fechas": 233
+          },
+          "mom63": {
+            "ic_medio": -0.018,
+            "pct_fechas_pos": 0.46,
+            "bloques": [
+              0.005,
+              0.002,
+              0.165,
+              0.082,
+              0.045,
+              -0.047,
+              -0.177,
+              -0.045,
+              -0.172
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.44,
+            "t_bloques": -0.42,
+            "n_fechas": 191
+          },
+          "mom126": {
+            "ic_medio": 0.042,
+            "pct_fechas_pos": 0.65,
+            "bloques": [
+              0.129,
+              0.153,
+              -0.008,
+              0.168,
+              0.075,
+              -0.239
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 6,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": 0.74,
+            "n_fechas": 128
+          },
+          "dist_max": {
+            "ic_medio": 0.056,
+            "pct_fechas_pos": 0.61,
+            "bloques": [
+              0.149,
+              0.061,
+              0.303,
+              0.094,
+              0.11,
+              0.032,
+              0.068,
+              -0.096,
+              -0.175
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.78,
+            "t_bloques": 1.32,
+            "n_fechas": 192
+          },
+          "dist_min": {
+            "ic_medio": -0.051,
+            "pct_fechas_pos": 0.34,
+            "bloques": [
+              -0.073,
+              -0.1,
+              -0.19,
+              0.079,
+              0.171,
+              -0.134,
+              -0.187,
+              0.024,
+              -0.066
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -1.29,
+            "n_fechas": 192
+          },
+          "dist_ma50": {
+            "ic_medio": 0.007,
+            "pct_fechas_pos": 0.53,
+            "bloques": [
+              0.144,
+              -0.035,
+              -0.041,
+              0.196,
+              0.003,
+              0.158,
+              -0.033,
+              -0.247,
+              -0.177,
+              0.124
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": 0.2,
+            "n_fechas": 215
+          },
+          "ma50_slope": {
+            "ic_medio": 0.031,
+            "pct_fechas_pos": 0.55,
+            "bloques": [
+              0.321,
+              0.047,
+              0.1,
+              0.19,
+              -0.045,
+              0.02,
+              -0.082,
+              -0.199,
+              0.026
+            ],
+            "bloque_parcial": -0.101,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": 0.83,
+            "n_fechas": 205
+          },
+          "vol21": {
+            "ic_medio": -0.248,
+            "pct_fechas_pos": 0.16,
+            "bloques": [
+              -0.42,
+              -0.071,
+              -0.379,
+              -0.399,
+              -0.419,
+              -0.346,
+              0.021,
+              -0.209,
+              -0.319,
+              -0.305,
+              -0.074
+            ],
+            "bloque_parcial": 0.245,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.91,
+            "t_bloques": -5.58,
+            "n_fechas": 239
+          },
+          "vol63": {
+            "ic_medio": -0.247,
+            "pct_fechas_pos": 0.14,
+            "bloques": [
+              0.006,
+              -0.448,
+              -0.3,
+              -0.405,
+              -0.243,
+              -0.195,
+              -0.319,
+              -0.374,
+              -0.296,
+              0.015
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.8,
+            "t_bloques": -5.1,
+            "n_fechas": 214
+          },
+          "max_ret21": {
+            "ic_medio": -0.227,
+            "pct_fechas_pos": 0.21,
+            "bloques": [
+              -0.278,
+              0.088,
+              -0.265,
+              -0.458,
+              -0.366,
+              -0.261,
+              -0.083,
+              -0.186,
+              -0.373,
+              -0.396,
+              -0.071
+            ],
+            "bloque_parcial": 0.175,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.91,
+            "t_bloques": -4.85,
+            "n_fechas": 239
+          },
+          "rsi14": {
+            "ic_medio": 0.032,
+            "pct_fechas_pos": 0.49,
+            "bloques": [
+              0.205,
+              0.102,
+              -0.097,
+              -0.053,
+              0.113,
+              0.243,
+              0.145,
+              -0.035,
+              -0.099,
+              -0.22,
+              0.057
+            ],
+            "bloque_parcial": 0.014,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.76,
+            "n_fechas": 244
+          },
+          "beta63": {
+            "ic_medio": -0.112,
+            "pct_fechas_pos": 0.43,
+            "bloques": [
+              0.121,
+              -0.535,
+              0.004,
+              -0.199,
+              -0.058,
+              -0.08,
+              -0.303,
+              -0.034,
+              -0.164,
+              0.037
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.7,
+            "t_bloques": -2.01,
+            "n_fechas": 214
+          }
+        },
+        "periodos": [
+          {
+            "entrada": "2026-01-28",
+            "salida": "2026-03-02",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": -2.51,
+            "neto_pct": -2.51,
+            "canasta_pct": -2.51,
+            "indice_pct": 2.5,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-03-02",
+            "salida": "2026-03-31",
+            "picks": [
+              "EQTL3.SA",
+              "RENT3.SA",
+              "VIVT3.SA",
+              "EGIE3.SA",
+              "BBDC4.SA"
+            ],
+            "factores": {
+              "vol21": {
+                "ic": -0.317,
+                "t": -3.84,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": -0.229,
+                "t": -2.0,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -4.74,
+            "neto_pct": -5.89,
+            "canasta_pct": -5.47,
+            "indice_pct": -0.97,
+            "alpha_neto_pp": -0.42,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-03-31",
+            "salida": "2026-05-04",
+            "picks": [
+              "VIVT3.SA",
+              "EGIE3.SA",
+              "ABEV3.SA",
+              "SUZB3.SA",
+              "PETR4.SA"
+            ],
+            "factores": {
+              "vol21": {
+                "ic": -0.338,
+                "t": -5.02,
+                "bloques": 5
+              },
+              "vol63": {
+                "ic": -0.287,
+                "t": -2.8,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": -0.256,
+                "t": -2.76,
+                "bloques": 5
+              }
+            },
+            "rotacion": 0.6,
+            "bruto_pct": -3.68,
+            "neto_pct": -4.38,
+            "canasta_pct": -3.81,
+            "indice_pct": -0.99,
+            "alpha_neto_pp": -0.56,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-05-04",
+            "salida": "2026-06-02",
+            "picks": [
+              "VIVT3.SA",
+              "EGIE3.SA",
+              "ABEV3.SA",
+              "PETR4.SA",
+              "EQTL3.SA"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.064,
+                "t": 1.66,
+                "bloques": 4
+              },
+              "dist_max": {
+                "ic": 0.152,
+                "t": 2.83,
+                "bloques": 4
+              },
+              "dist_min": {
+                "ic": -0.071,
+                "t": -1.27,
+                "bloques": 4
+              },
+              "dist_ma50": {
+                "ic": 0.053,
+                "t": 1.09,
+                "bloques": 5
+              },
+              "ma50_slope": {
+                "ic": 0.164,
+                "t": 2.75,
+                "bloques": 4
+              },
+              "vol21": {
+                "ic": -0.339,
+                "t": -6.18,
+                "bloques": 6
+              },
+              "vol63": {
+                "ic": -0.278,
+                "t": -3.48,
+                "bloques": 5
+              },
+              "max_ret21": {
+                "ic": -0.257,
+                "t": -3.4,
+                "bloques": 6
+              },
+              "rsi14": {
+                "ic": 0.086,
+                "t": 1.54,
+                "bloques": 6
+              },
+              "beta63": {
+                "ic": -0.133,
+                "t": -1.18,
+                "bloques": 5
+              }
+            },
+            "rotacion": 0.2,
+            "bruto_pct": -3.86,
+            "neto_pct": -4.09,
+            "canasta_pct": -4.15,
+            "indice_pct": -6.14,
+            "alpha_neto_pp": 0.06,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-06-02",
+            "salida": "2026-07-02",
+            "picks": [
+              "EGIE3.SA",
+              "PETR4.SA",
+              "ITSA4.SA",
+              "ITUB4.SA",
+              "VALE3.SA"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.06,
+                "t": 2.0,
+                "bloques": 5
+              },
+              "dist_max": {
+                "ic": 0.143,
+                "t": 3.39,
+                "bloques": 5
+              },
+              "dist_ma50": {
+                "ic": 0.071,
+                "t": 1.62,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": 0.122,
+                "t": 1.96,
+                "bloques": 5
+              },
+              "vol21": {
+                "ic": -0.266,
+                "t": -3.42,
+                "bloques": 6
+              },
+              "vol63": {
+                "ic": -0.264,
+                "t": -3.96,
+                "bloques": 6
+              },
+              "max_ret21": {
+                "ic": -0.224,
+                "t": -2.78,
+                "bloques": 6
+              },
+              "rsi14": {
+                "ic": 0.076,
+                "t": 1.45,
+                "bloques": 6
+              },
+              "beta63": {
+                "ic": -0.124,
+                "t": -1.34,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.6,
+            "bruto_pct": -1.43,
+            "neto_pct": -2.14,
+            "canasta_pct": -3.01,
+            "indice_pct": -0.81,
+            "alpha_neto_pp": 0.87,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-02",
+            "salida": "2026-07-31",
+            "picks": [
+              "PETR4.SA",
+              "ITSA4.SA",
+              "ITUB4.SA",
+              "VALE3.SA",
+              "SANB11.SA"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.042,
+                "t": 1.39,
+                "bloques": 6
+              },
+              "dist_max": {
+                "ic": 0.125,
+                "t": 3.19,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": 0.105,
+                "t": 1.96,
+                "bloques": 6
+              },
+              "vol21": {
+                "ic": -0.289,
+                "t": -4.18,
+                "bloques": 6
+              },
+              "vol63": {
+                "ic": -0.318,
+                "t": -8.15,
+                "bloques": 6
+              },
+              "max_ret21": {
+                "ic": -0.27,
+                "t": -5.01,
+                "bloques": 6
+              },
+              "beta63": {
+                "ic": -0.195,
+                "t": -2.4,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.2,
+            "bruto_pct": 4.86,
+            "neto_pct": 4.6,
+            "canasta_pct": 0.43,
+            "indice_pct": 3.02,
+            "alpha_neto_pp": 4.18,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-31",
+            "salida": "2026-08-31",
+            "picks": [
+              "PETR4.SA",
+              "ITSA4.SA",
+              "ITUB4.SA",
+              "ABEV3.SA",
+              "SUZB3.SA"
+            ],
+            "factores": {
+              "mom126": {
+                "ic": 0.11,
+                "t": 2.74,
+                "bloques": 4
+              },
+              "dist_max": {
+                "ic": 0.111,
+                "t": 2.8,
+                "bloques": 6
+              },
+              "vol21": {
+                "ic": -0.279,
+                "t": -4.15,
+                "bloques": 6
+              },
+              "vol63": {
+                "ic": -0.306,
+                "t": -9.52,
+                "bloques": 6
+              },
+              "max_ret21": {
+                "ic": -0.288,
+                "t": -5.1,
+                "bloques": 6
+              },
+              "beta63": {
+                "ic": -0.112,
+                "t": -2.36,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.4,
+            "bruto_pct": -1.5,
+            "neto_pct": -1.98,
+            "canasta_pct": -3.18,
+            "indice_pct": -0.33,
+            "alpha_neto_pp": 1.2,
+            "invertido": true,
+            "apuesta": true
+          }
+        ],
+        "resumen_oos": {
+          "n_periodos": 7,
+          "n_con_apuesta": 6,
+          "alpha_neto_medio_pp": 0.76,
+          "pct_periodos_alpha_pos": 0.57,
+          "t_alpha": 1.23,
+          "acumulado_motor_neto_pct": -15.58,
+          "acumulado_canasta_pct": -19.87,
+          "acumulado_indice_pct": -3.93,
+          "rotacion_media": 0.43,
+          "desde": "2026-01-28",
+          "hasta": "2026-08-31",
+          "por_anio": {
+            "2026": {
+              "n": 7,
+              "alpha_medio_pp": 0.76,
+              "pct_pos": 0.57
+            }
+          }
+        },
+        "hoy": {
+          "fecha": "2026-09-25",
+          "factores": {
+            "mom63": {
+              "ic": -0.052,
+              "t": -1.2,
+              "bloques": 6
+            },
+            "vol21": {
+              "ic": -0.205,
+              "t": -3.37,
+              "bloques": 6
+            },
+            "vol63": {
+              "ic": -0.235,
+              "t": -4.2,
+              "bloques": 6
+            },
+            "max_ret21": {
+              "ic": -0.228,
+              "t": -3.99,
+              "bloques": 6
+            },
+            "beta63": {
+              "ic": -0.1,
+              "t": -2.07,
+              "bloques": 6
+            }
+          },
+          "picks": [
+            "ITSA4.SA",
+            "ITUB4.SA",
+            "ABEV3.SA",
+            "VIVT3.SA",
+            "WEGE3.SA"
+          ],
+          "scores": {
+            "ITSA4.SA": 0.169,
+            "ITUB4.SA": 0.159,
+            "ABEV3.SA": 0.37,
+            "VIVT3.SA": 0.425,
+            "WEGE3.SA": 0.22
+          }
+        }
+      },
+      "expandido_con_filtro_tendencia": {
+        "n_saltos_neutralizados": 0,
+        "universo": 23,
+        "ic_factores_muestra_completa": {
+          "rev5": {
+            "ic_medio": -0.036,
+            "pct_fechas_pos": 0.48,
+            "bloques": [
+              -0.136,
+              -0.113,
+              0.038,
+              0.003,
+              0.003,
+              -0.154,
+              -0.051,
+              0.045,
+              -0.024,
+              0.069,
+              -0.063
+            ],
+            "bloque_parcial": -0.048,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": -1.53,
+            "n_fechas": 249
+          },
+          "rev21": {
+            "ic_medio": 0.011,
+            "pct_fechas_pos": 0.48,
+            "bloques": [
+              -0.147,
+              -0.016,
+              0.174,
+              0.125,
+              -0.185,
+              0.002,
+              -0.194,
+              0.019,
+              0.176,
+              0.195,
+              -0.043
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.22,
+            "n_fechas": 233
+          },
+          "mom63": {
+            "ic_medio": -0.018,
+            "pct_fechas_pos": 0.46,
+            "bloques": [
+              0.005,
+              0.002,
+              0.165,
+              0.082,
+              0.045,
+              -0.047,
+              -0.177,
+              -0.045,
+              -0.172
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.44,
+            "t_bloques": -0.42,
+            "n_fechas": 191
+          },
+          "mom126": {
+            "ic_medio": 0.042,
+            "pct_fechas_pos": 0.65,
+            "bloques": [
+              0.129,
+              0.153,
+              -0.008,
+              0.168,
+              0.075,
+              -0.239
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 6,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": 0.74,
+            "n_fechas": 128
+          },
+          "dist_max": {
+            "ic_medio": 0.056,
+            "pct_fechas_pos": 0.61,
+            "bloques": [
+              0.149,
+              0.061,
+              0.303,
+              0.094,
+              0.11,
+              0.032,
+              0.068,
+              -0.096,
+              -0.175
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.78,
+            "t_bloques": 1.32,
+            "n_fechas": 192
+          },
+          "dist_min": {
+            "ic_medio": -0.051,
+            "pct_fechas_pos": 0.34,
+            "bloques": [
+              -0.073,
+              -0.1,
+              -0.19,
+              0.079,
+              0.171,
+              -0.134,
+              -0.187,
+              0.024,
+              -0.066
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -1.29,
+            "n_fechas": 192
+          },
+          "dist_ma50": {
+            "ic_medio": 0.007,
+            "pct_fechas_pos": 0.53,
+            "bloques": [
+              0.144,
+              -0.035,
+              -0.041,
+              0.196,
+              0.003,
+              0.158,
+              -0.033,
+              -0.247,
+              -0.177,
+              0.124
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": 0.2,
+            "n_fechas": 215
+          },
+          "ma50_slope": {
+            "ic_medio": 0.031,
+            "pct_fechas_pos": 0.55,
+            "bloques": [
+              0.321,
+              0.047,
+              0.1,
+              0.19,
+              -0.045,
+              0.02,
+              -0.082,
+              -0.199,
+              0.026
+            ],
+            "bloque_parcial": -0.101,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": 0.83,
+            "n_fechas": 205
+          },
+          "vol21": {
+            "ic_medio": -0.248,
+            "pct_fechas_pos": 0.16,
+            "bloques": [
+              -0.42,
+              -0.071,
+              -0.379,
+              -0.399,
+              -0.419,
+              -0.346,
+              0.021,
+              -0.209,
+              -0.319,
+              -0.305,
+              -0.074
+            ],
+            "bloque_parcial": 0.245,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.91,
+            "t_bloques": -5.58,
+            "n_fechas": 239
+          },
+          "vol63": {
+            "ic_medio": -0.247,
+            "pct_fechas_pos": 0.14,
+            "bloques": [
+              0.006,
+              -0.448,
+              -0.3,
+              -0.405,
+              -0.243,
+              -0.195,
+              -0.319,
+              -0.374,
+              -0.296,
+              0.015
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.8,
+            "t_bloques": -5.1,
+            "n_fechas": 214
+          },
+          "max_ret21": {
+            "ic_medio": -0.227,
+            "pct_fechas_pos": 0.21,
+            "bloques": [
+              -0.278,
+              0.088,
+              -0.265,
+              -0.458,
+              -0.366,
+              -0.261,
+              -0.083,
+              -0.186,
+              -0.373,
+              -0.396,
+              -0.071
+            ],
+            "bloque_parcial": 0.175,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.91,
+            "t_bloques": -4.85,
+            "n_fechas": 239
+          },
+          "rsi14": {
+            "ic_medio": 0.032,
+            "pct_fechas_pos": 0.49,
+            "bloques": [
+              0.205,
+              0.102,
+              -0.097,
+              -0.053,
+              0.113,
+              0.243,
+              0.145,
+              -0.035,
+              -0.099,
+              -0.22,
+              0.057
+            ],
+            "bloque_parcial": 0.014,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.76,
+            "n_fechas": 244
+          },
+          "beta63": {
+            "ic_medio": -0.112,
+            "pct_fechas_pos": 0.43,
+            "bloques": [
+              0.121,
+              -0.535,
+              0.004,
+              -0.199,
+              -0.058,
+              -0.08,
+              -0.303,
+              -0.034,
+              -0.164,
+              0.037
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.7,
+            "t_bloques": -2.01,
+            "n_fechas": 214
+          }
+        },
+        "periodos": [
+          {
+            "entrada": "2026-01-28",
+            "salida": "2026-03-02",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": -2.51,
+            "neto_pct": -2.51,
+            "canasta_pct": -2.51,
+            "indice_pct": 2.5,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-03-02",
+            "salida": "2026-03-31",
+            "picks": [
+              "EQTL3.SA",
+              "RENT3.SA",
+              "VIVT3.SA",
+              "EGIE3.SA",
+              "BBDC4.SA"
+            ],
+            "factores": {
+              "vol21": {
+                "ic": -0.317,
+                "t": -3.84,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": -0.229,
+                "t": -2.0,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -4.74,
+            "neto_pct": -5.89,
+            "canasta_pct": -5.47,
+            "indice_pct": -0.97,
+            "alpha_neto_pp": -0.42,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-03-31",
+            "salida": "2026-05-04",
+            "picks": [
+              "VIVT3.SA",
+              "EGIE3.SA",
+              "ABEV3.SA",
+              "SUZB3.SA",
+              "PETR4.SA"
+            ],
+            "factores": {
+              "vol21": {
+                "ic": -0.338,
+                "t": -5.02,
+                "bloques": 5
+              },
+              "vol63": {
+                "ic": -0.287,
+                "t": -2.8,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": -0.256,
+                "t": -2.76,
+                "bloques": 5
+              }
+            },
+            "rotacion": 0.6,
+            "bruto_pct": -3.68,
+            "neto_pct": -4.38,
+            "canasta_pct": -3.81,
+            "indice_pct": -0.99,
+            "alpha_neto_pp": -0.56,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-05-04",
+            "salida": "2026-06-02",
+            "picks": [
+              "VIVT3.SA",
+              "EGIE3.SA",
+              "ABEV3.SA",
+              "PETR4.SA",
+              "EQTL3.SA"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.064,
+                "t": 1.66,
+                "bloques": 4
+              },
+              "dist_max": {
+                "ic": 0.152,
+                "t": 2.83,
+                "bloques": 4
+              },
+              "dist_min": {
+                "ic": -0.071,
+                "t": -1.27,
+                "bloques": 4
+              },
+              "dist_ma50": {
+                "ic": 0.053,
+                "t": 1.09,
+                "bloques": 5
+              },
+              "ma50_slope": {
+                "ic": 0.164,
+                "t": 2.75,
+                "bloques": 4
+              },
+              "vol21": {
+                "ic": -0.339,
+                "t": -6.18,
+                "bloques": 6
+              },
+              "vol63": {
+                "ic": -0.278,
+                "t": -3.48,
+                "bloques": 5
+              },
+              "max_ret21": {
+                "ic": -0.257,
+                "t": -3.4,
+                "bloques": 6
+              },
+              "rsi14": {
+                "ic": 0.086,
+                "t": 1.54,
+                "bloques": 6
+              },
+              "beta63": {
+                "ic": -0.133,
+                "t": -1.18,
+                "bloques": 5
+              }
+            },
+            "rotacion": 0.2,
+            "bruto_pct": -3.86,
+            "neto_pct": -4.09,
+            "canasta_pct": -4.15,
+            "indice_pct": -6.14,
+            "alpha_neto_pp": 0.06,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-06-02",
+            "salida": "2026-07-02",
+            "picks": [
+              "EGIE3.SA",
+              "PETR4.SA",
+              "ITSA4.SA",
+              "ITUB4.SA",
+              "SANB11.SA"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.06,
+                "t": 2.0,
+                "bloques": 5
+              },
+              "dist_max": {
+                "ic": 0.143,
+                "t": 3.39,
+                "bloques": 5
+              },
+              "dist_ma50": {
+                "ic": 0.071,
+                "t": 1.62,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": 0.122,
+                "t": 1.96,
+                "bloques": 5
+              },
+              "vol21": {
+                "ic": -0.288,
+                "t": -4.15,
+                "bloques": 7
+              },
+              "vol63": {
+                "ic": -0.264,
+                "t": -3.96,
+                "bloques": 6
+              },
+              "max_ret21": {
+                "ic": -0.232,
+                "t": -3.38,
+                "bloques": 7
+              },
+              "rsi14": {
+                "ic": 0.094,
+                "t": 1.97,
+                "bloques": 7
+              },
+              "beta63": {
+                "ic": -0.124,
+                "t": -1.34,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.6,
+            "bruto_pct": -0.27,
+            "neto_pct": 0.0,
+            "canasta_pct": -3.01,
+            "indice_pct": -0.81,
+            "alpha_neto_pp": 3.01,
+            "invertido": false,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-02",
+            "salida": "2026-07-31",
+            "picks": [
+              "ITSA4.SA",
+              "ITUB4.SA",
+              "SANB11.SA",
+              "BBDC4.SA",
+              "ABEV3.SA"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.042,
+                "t": 1.39,
+                "bloques": 6
+              },
+              "dist_max": {
+                "ic": 0.125,
+                "t": 3.19,
+                "bloques": 6
+              },
+              "ma50_slope": {
+                "ic": 0.105,
+                "t": 1.96,
+                "bloques": 6
+              },
+              "vol21": {
+                "ic": -0.278,
+                "t": -4.57,
+                "bloques": 8
+              },
+              "vol63": {
+                "ic": -0.272,
+                "t": -4.78,
+                "bloques": 7
+              },
+              "max_ret21": {
+                "ic": -0.226,
+                "t": -3.79,
+                "bloques": 8
+              },
+              "rsi14": {
+                "ic": 0.078,
+                "t": 1.76,
+                "bloques": 8
+              },
+              "beta63": {
+                "ic": -0.15,
+                "t": -1.82,
+                "bloques": 7
+              }
+            },
+            "rotacion": 0.4,
+            "bruto_pct": 2.76,
+            "neto_pct": 0.0,
+            "canasta_pct": 0.43,
+            "indice_pct": 3.02,
+            "alpha_neto_pp": -0.43,
+            "invertido": false,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-07-31",
+            "salida": "2026-08-31",
+            "picks": [
+              "ITSA4.SA",
+              "ITUB4.SA",
+              "BBDC4.SA",
+              "ABEV3.SA",
+              "SUZB3.SA"
+            ],
+            "factores": {
+              "mom126": {
+                "ic": 0.11,
+                "t": 2.74,
+                "bloques": 4
+              },
+              "dist_max": {
+                "ic": 0.117,
+                "t": 3.42,
+                "bloques": 7
+              },
+              "dist_min": {
+                "ic": -0.062,
+                "t": -1.19,
+                "bloques": 7
+              },
+              "ma50_slope": {
+                "ic": 0.079,
+                "t": 1.49,
+                "bloques": 7
+              },
+              "vol21": {
+                "ic": -0.282,
+                "t": -5.25,
+                "bloques": 9
+              },
+              "vol63": {
+                "ic": -0.285,
+                "t": -5.59,
+                "bloques": 8
+              },
+              "max_ret21": {
+                "ic": -0.243,
+                "t": -4.4,
+                "bloques": 9
+              },
+              "beta63": {
+                "ic": -0.135,
+                "t": -1.86,
+                "bloques": 8
+              }
+            },
+            "rotacion": 0.2,
+            "bruto_pct": -4.19,
+            "neto_pct": 0.0,
+            "canasta_pct": -3.18,
+            "indice_pct": -0.33,
+            "alpha_neto_pp": 3.18,
+            "invertido": false,
+            "apuesta": true
+          }
+        ],
+        "resumen_oos": {
+          "n_periodos": 7,
+          "n_con_apuesta": 6,
+          "alpha_neto_medio_pp": 0.69,
+          "pct_periodos_alpha_pos": 0.43,
+          "t_alpha": 1.1,
+          "acumulado_motor_neto_pct": -15.86,
+          "acumulado_canasta_pct": -19.87,
+          "acumulado_indice_pct": -3.93,
+          "rotacion_media": 0.43,
+          "desde": "2026-01-28",
+          "hasta": "2026-08-31",
+          "por_anio": {
+            "2026": {
+              "n": 7,
+              "alpha_medio_pp": 0.69,
+              "pct_pos": 0.43
+            }
+          }
+        },
+        "hoy": {
+          "fecha": "2026-09-25",
+          "factores": {
+            "dist_max": {
+              "ic": 0.061,
+              "t": 1.32,
+              "bloques": 9
+            },
+            "dist_min": {
+              "ic": -0.053,
+              "t": -1.29,
+              "bloques": 9
+            },
+            "vol21": {
+              "ic": -0.266,
+              "t": -5.58,
+              "bloques": 11
+            },
+            "vol63": {
+              "ic": -0.256,
+              "t": -5.1,
+              "bloques": 10
+            },
+            "max_ret21": {
+              "ic": -0.241,
+              "t": -4.85,
+              "bloques": 11
+            },
+            "beta63": {
+              "ic": -0.121,
+              "t": -2.01,
+              "bloques": 10
+            }
+          },
+          "picks": [
+            "ITSA4.SA",
+            "ITUB4.SA",
+            "BBDC4.SA",
+            "ABEV3.SA",
+            "SUZB3.SA"
+          ],
+          "scores": {
+            "ITSA4.SA": 0.166,
+            "ITUB4.SA": 0.161,
+            "BBDC4.SA": 0.144,
+            "ABEV3.SA": 0.345,
+            "SUZB3.SA": 0.141
+          }
+        }
+      }
+    },
+    "SP500": {
+      "expandido": {
+        "n_saltos_neutralizados": 0,
+        "universo": 39,
+        "ic_factores_muestra_completa": {
+          "rev5": {
+            "ic_medio": 0.018,
+            "pct_fechas_pos": 0.56,
+            "bloques": [
+              -0.01,
+              0.048,
+              0.075,
+              0.058,
+              -0.207,
+              0.023,
+              0.167,
+              -0.13,
+              0.07,
+              0.023,
+              0.031
+            ],
+            "bloque_parcial": 0.078,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.73,
+            "t_bloques": 0.43,
+            "n_fechas": 250
+          },
+          "rev21": {
+            "ic_medio": 0.02,
+            "pct_fechas_pos": 0.53,
+            "bloques": [
+              -0.1,
+              -0.019,
+              0.123,
+              -0.054,
+              -0.063,
+              0.12,
+              0.031,
+              -0.102,
+              0.001,
+              0.221,
+              0.034
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.57,
+            "n_fechas": 234
+          },
+          "mom63": {
+            "ic_medio": -0.095,
+            "pct_fechas_pos": 0.35,
+            "bloques": [
+              0.078,
+              0.218,
+              0.005,
+              0.029,
+              -0.13,
+              -0.117,
+              -0.161,
+              -0.497,
+              -0.272
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -1.34,
+            "n_fechas": 192
+          },
+          "mom126": {
+            "ic_medio": -0.058,
+            "pct_fechas_pos": 0.4,
+            "bloques": [
+              0.161,
+              0.003,
+              -0.083,
+              -0.022,
+              -0.303,
+              -0.133
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 6,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -1.0,
+            "n_fechas": 129
+          },
+          "dist_max": {
+            "ic_medio": -0.032,
+            "pct_fechas_pos": 0.39,
+            "bloques": [
+              -0.066,
+              0.163,
+              0.133,
+              -0.053,
+              -0.087,
+              0.0,
+              0.25,
+              -0.261,
+              -0.343
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -0.45,
+            "n_fechas": 193
+          },
+          "dist_min": {
+            "ic_medio": -0.059,
+            "pct_fechas_pos": 0.42,
+            "bloques": [
+              0.035,
+              0.106,
+              -0.063,
+              0.033,
+              0.016,
+              -0.005,
+              -0.245,
+              -0.314,
+              -0.119
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -1.32,
+            "n_fechas": 193
+          },
+          "dist_ma50": {
+            "ic_medio": -0.042,
+            "pct_fechas_pos": 0.44,
+            "bloques": [
+              0.09,
+              -0.077,
+              0.09,
+              0.117,
+              -0.066,
+              -0.137,
+              0.039,
+              0.039,
+              -0.3,
+              -0.169
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.87,
+            "n_fechas": 216
+          },
+          "ma50_slope": {
+            "ic_medio": -0.061,
+            "pct_fechas_pos": 0.47,
+            "bloques": [
+              0.105,
+              0.124,
+              0.324,
+              -0.206,
+              0.013,
+              -0.042,
+              -0.074,
+              -0.237,
+              -0.419
+            ],
+            "bloque_parcial": -0.228,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -0.62,
+            "n_fechas": 206
+          },
+          "vol21": {
+            "ic_medio": -0.016,
+            "pct_fechas_pos": 0.51,
+            "bloques": [
+              0.174,
+              -0.193,
+              0.028,
+              -0.106,
+              -0.229,
+              0.08,
+              0.285,
+              0.099,
+              -0.301,
+              -0.248,
+              0.123
+            ],
+            "bloque_parcial": 0.241,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.45,
+            "t_bloques": -0.44,
+            "n_fechas": 240
+          },
+          "vol63": {
+            "ic_medio": -0.053,
+            "pct_fechas_pos": 0.43,
+            "bloques": [
+              -0.185,
+              0.061,
+              -0.275,
+              -0.258,
+              0.058,
+              0.218,
+              0.06,
+              -0.374,
+              -0.101,
+              0.195
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.92,
+            "n_fechas": 215
+          },
+          "max_ret21": {
+            "ic_medio": -0.037,
+            "pct_fechas_pos": 0.39,
+            "bloques": [
+              0.131,
+              -0.091,
+              -0.143,
+              -0.16,
+              -0.138,
+              -0.008,
+              0.244,
+              0.121,
+              -0.26,
+              -0.288,
+              0.094
+            ],
+            "bloque_parcial": 0.175,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.64,
+            "t_bloques": -0.86,
+            "n_fechas": 240
+          },
+          "rsi14": {
+            "ic_medio": -0.005,
+            "pct_fechas_pos": 0.47,
+            "bloques": [
+              0.061,
+              0.0,
+              -0.118,
+              -0.069,
+              0.25,
+              -0.094,
+              -0.053,
+              0.142,
+              0.008,
+              -0.053,
+              -0.029
+            ],
+            "bloque_parcial": -0.161,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.12,
+            "n_fechas": 245
+          },
+          "beta63": {
+            "ic_medio": -0.031,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              -0.111,
+              0.174,
+              -0.272,
+              -0.419,
+              0.115,
+              0.344,
+              0.2,
+              -0.02,
+              -0.328,
+              -0.037
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.6,
+            "t_bloques": -0.45,
+            "n_fechas": 215
+          }
+        },
+        "periodos": [
+          {
+            "entrada": "2026-01-28",
+            "salida": "2026-02-27",
+            "picks": [
+              "UNH",
+              "GE",
+              "LLY",
+              "PLTR",
+              "BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.043,
+                "t": 2.31,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": 0.21,
+            "neto_pct": -0.99,
+            "canasta_pct": -1.09,
+            "indice_pct": -1.42,
+            "alpha_neto_pp": 0.09,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-02-27",
+            "salida": "2026-03-30",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": -6.64,
+            "neto_pct": -6.64,
+            "canasta_pct": -6.64,
+            "indice_pct": -7.78,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-03-30",
+            "salida": "2026-04-29",
+            "picks": [
+              "KO",
+              "JNJ",
+              "MCD",
+              "PG",
+              "CVX"
+            ],
+            "factores": {
+              "dist_ma50": {
+                "ic": 0.055,
+                "t": 1.23,
+                "bloques": 4
+              },
+              "vol63": {
+                "ic": -0.164,
+                "t": -2.11,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": -0.08,
+                "t": -1.48,
+                "bloques": 5
+              },
+              "beta63": {
+                "ic": -0.157,
+                "t": -1.23,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -3.13,
+            "neto_pct": -4.29,
+            "canasta_pct": 10.12,
+            "indice_pct": 12.49,
+            "alpha_neto_pp": -14.41,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-04-29",
+            "salida": "2026-05-29",
+            "picks": [
+              "KO",
+              "JNJ",
+              "MCD",
+              "CVX",
+              "BRK-B"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.083,
+                "t": 1.74,
+                "bloques": 4
+              },
+              "vol63": {
+                "ic": -0.12,
+                "t": -1.6,
+                "bloques": 5
+              },
+              "max_ret21": {
+                "ic": -0.068,
+                "t": -1.49,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.2,
+            "bruto_pct": -1.66,
+            "neto_pct": -1.9,
+            "canasta_pct": 6.21,
+            "indice_pct": 6.22,
+            "alpha_neto_pp": -8.11,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-05-29",
+            "salida": "2026-06-30",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": -3.44,
+            "neto_pct": -3.44,
+            "canasta_pct": -3.44,
+            "indice_pct": -1.06,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-06-30",
+            "salida": "2026-07-30",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": 2.0,
+            "neto_pct": 2.0,
+            "canasta_pct": 2.0,
+            "indice_pct": -0.82,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-07-30",
+            "salida": "2026-08-28",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": 6.06,
+            "neto_pct": 6.06,
+            "canasta_pct": 6.06,
+            "indice_pct": 3.69,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          }
+        ],
+        "resumen_oos": {
+          "n_periodos": 7,
+          "n_con_apuesta": 3,
+          "alpha_neto_medio_pp": -3.2,
+          "pct_periodos_alpha_pos": 0.14,
+          "t_alpha": -1.46,
+          "acumulado_motor_neto_pct": -9.34,
+          "acumulado_canasta_pct": 12.82,
+          "acumulado_indice_pct": 10.53,
+          "rotacion_media": 0.31,
+          "desde": "2026-01-28",
+          "hasta": "2026-08-28",
+          "por_anio": {
+            "2026": {
+              "n": 7,
+              "alpha_medio_pp": -3.2,
+              "pct_pos": 0.14
+            }
+          }
+        },
+        "hoy": {
+          "fecha": "2026-09-25",
+          "factores": {
+            "mom126": {
+              "ic": -0.063,
+              "t": -1.0,
+              "bloques": 6
+            }
+          },
+          "picks": [
+            "GLOB",
+            "WMT",
+            "MCD",
+            "NFLX",
+            "PBR"
+          ],
+          "scores": {
+            "GLOB": 0.474,
+            "WMT": 0.449,
+            "MCD": 0.423,
+            "NFLX": 0.397,
+            "PBR": 0.372
+          }
+        }
+      },
+      "ventana_6_bloques": {
+        "n_saltos_neutralizados": 0,
+        "universo": 39,
+        "ic_factores_muestra_completa": {
+          "rev5": {
+            "ic_medio": 0.018,
+            "pct_fechas_pos": 0.56,
+            "bloques": [
+              -0.01,
+              0.048,
+              0.075,
+              0.058,
+              -0.207,
+              0.023,
+              0.167,
+              -0.13,
+              0.07,
+              0.023,
+              0.031
+            ],
+            "bloque_parcial": 0.078,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.73,
+            "t_bloques": 0.43,
+            "n_fechas": 250
+          },
+          "rev21": {
+            "ic_medio": 0.02,
+            "pct_fechas_pos": 0.53,
+            "bloques": [
+              -0.1,
+              -0.019,
+              0.123,
+              -0.054,
+              -0.063,
+              0.12,
+              0.031,
+              -0.102,
+              0.001,
+              0.221,
+              0.034
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.57,
+            "n_fechas": 234
+          },
+          "mom63": {
+            "ic_medio": -0.095,
+            "pct_fechas_pos": 0.35,
+            "bloques": [
+              0.078,
+              0.218,
+              0.005,
+              0.029,
+              -0.13,
+              -0.117,
+              -0.161,
+              -0.497,
+              -0.272
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -1.34,
+            "n_fechas": 192
+          },
+          "mom126": {
+            "ic_medio": -0.058,
+            "pct_fechas_pos": 0.4,
+            "bloques": [
+              0.161,
+              0.003,
+              -0.083,
+              -0.022,
+              -0.303,
+              -0.133
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 6,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -1.0,
+            "n_fechas": 129
+          },
+          "dist_max": {
+            "ic_medio": -0.032,
+            "pct_fechas_pos": 0.39,
+            "bloques": [
+              -0.066,
+              0.163,
+              0.133,
+              -0.053,
+              -0.087,
+              0.0,
+              0.25,
+              -0.261,
+              -0.343
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -0.45,
+            "n_fechas": 193
+          },
+          "dist_min": {
+            "ic_medio": -0.059,
+            "pct_fechas_pos": 0.42,
+            "bloques": [
+              0.035,
+              0.106,
+              -0.063,
+              0.033,
+              0.016,
+              -0.005,
+              -0.245,
+              -0.314,
+              -0.119
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -1.32,
+            "n_fechas": 193
+          },
+          "dist_ma50": {
+            "ic_medio": -0.042,
+            "pct_fechas_pos": 0.44,
+            "bloques": [
+              0.09,
+              -0.077,
+              0.09,
+              0.117,
+              -0.066,
+              -0.137,
+              0.039,
+              0.039,
+              -0.3,
+              -0.169
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.87,
+            "n_fechas": 216
+          },
+          "ma50_slope": {
+            "ic_medio": -0.061,
+            "pct_fechas_pos": 0.47,
+            "bloques": [
+              0.105,
+              0.124,
+              0.324,
+              -0.206,
+              0.013,
+              -0.042,
+              -0.074,
+              -0.237,
+              -0.419
+            ],
+            "bloque_parcial": -0.228,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -0.62,
+            "n_fechas": 206
+          },
+          "vol21": {
+            "ic_medio": -0.016,
+            "pct_fechas_pos": 0.51,
+            "bloques": [
+              0.174,
+              -0.193,
+              0.028,
+              -0.106,
+              -0.229,
+              0.08,
+              0.285,
+              0.099,
+              -0.301,
+              -0.248,
+              0.123
+            ],
+            "bloque_parcial": 0.241,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.45,
+            "t_bloques": -0.44,
+            "n_fechas": 240
+          },
+          "vol63": {
+            "ic_medio": -0.053,
+            "pct_fechas_pos": 0.43,
+            "bloques": [
+              -0.185,
+              0.061,
+              -0.275,
+              -0.258,
+              0.058,
+              0.218,
+              0.06,
+              -0.374,
+              -0.101,
+              0.195
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.92,
+            "n_fechas": 215
+          },
+          "max_ret21": {
+            "ic_medio": -0.037,
+            "pct_fechas_pos": 0.39,
+            "bloques": [
+              0.131,
+              -0.091,
+              -0.143,
+              -0.16,
+              -0.138,
+              -0.008,
+              0.244,
+              0.121,
+              -0.26,
+              -0.288,
+              0.094
+            ],
+            "bloque_parcial": 0.175,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.64,
+            "t_bloques": -0.86,
+            "n_fechas": 240
+          },
+          "rsi14": {
+            "ic_medio": -0.005,
+            "pct_fechas_pos": 0.47,
+            "bloques": [
+              0.061,
+              0.0,
+              -0.118,
+              -0.069,
+              0.25,
+              -0.094,
+              -0.053,
+              0.142,
+              0.008,
+              -0.053,
+              -0.029
+            ],
+            "bloque_parcial": -0.161,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.12,
+            "n_fechas": 245
+          },
+          "beta63": {
+            "ic_medio": -0.031,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              -0.111,
+              0.174,
+              -0.272,
+              -0.419,
+              0.115,
+              0.344,
+              0.2,
+              -0.02,
+              -0.328,
+              -0.037
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.6,
+            "t_bloques": -0.45,
+            "n_fechas": 215
+          }
+        },
+        "periodos": [
+          {
+            "entrada": "2026-01-28",
+            "salida": "2026-02-27",
+            "picks": [
+              "UNH",
+              "GE",
+              "LLY",
+              "PLTR",
+              "BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.043,
+                "t": 2.31,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": 0.21,
+            "neto_pct": -0.99,
+            "canasta_pct": -1.09,
+            "indice_pct": -1.42,
+            "alpha_neto_pp": 0.09,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-02-27",
+            "salida": "2026-03-30",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": -6.64,
+            "neto_pct": -6.64,
+            "canasta_pct": -6.64,
+            "indice_pct": -7.78,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-03-30",
+            "salida": "2026-04-29",
+            "picks": [
+              "KO",
+              "JNJ",
+              "MCD",
+              "PG",
+              "CVX"
+            ],
+            "factores": {
+              "dist_ma50": {
+                "ic": 0.055,
+                "t": 1.23,
+                "bloques": 4
+              },
+              "vol63": {
+                "ic": -0.164,
+                "t": -2.11,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": -0.08,
+                "t": -1.48,
+                "bloques": 5
+              },
+              "beta63": {
+                "ic": -0.157,
+                "t": -1.23,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -3.13,
+            "neto_pct": -4.29,
+            "canasta_pct": 10.12,
+            "indice_pct": 12.49,
+            "alpha_neto_pp": -14.41,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-04-29",
+            "salida": "2026-05-29",
+            "picks": [
+              "KO",
+              "JNJ",
+              "MCD",
+              "CVX",
+              "BRK-B"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.083,
+                "t": 1.74,
+                "bloques": 4
+              },
+              "vol63": {
+                "ic": -0.12,
+                "t": -1.6,
+                "bloques": 5
+              },
+              "max_ret21": {
+                "ic": -0.068,
+                "t": -1.49,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.2,
+            "bruto_pct": -1.66,
+            "neto_pct": -1.9,
+            "canasta_pct": 6.21,
+            "indice_pct": 6.22,
+            "alpha_neto_pp": -8.11,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-05-29",
+            "salida": "2026-06-30",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": -3.44,
+            "neto_pct": -3.44,
+            "canasta_pct": -3.44,
+            "indice_pct": -1.06,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-06-30",
+            "salida": "2026-07-30",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": 2.0,
+            "neto_pct": 2.0,
+            "canasta_pct": 2.0,
+            "indice_pct": -0.82,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-07-30",
+            "salida": "2026-08-28",
+            "picks": [
+              "KO",
+              "V",
+              "BRK-B",
+              "BAC",
+              "JPM"
+            ],
+            "factores": {
+              "dist_max": {
+                "ic": 0.068,
+                "t": 1.24,
+                "bloques": 6
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": 1.53,
+            "neto_pct": 0.31,
+            "canasta_pct": 6.06,
+            "indice_pct": 3.69,
+            "alpha_neto_pp": -5.75,
+            "invertido": true,
+            "apuesta": true
+          }
+        ],
+        "resumen_oos": {
+          "n_periodos": 7,
+          "n_con_apuesta": 4,
+          "alpha_neto_medio_pp": -4.03,
+          "pct_periodos_alpha_pos": 0.14,
+          "t_alpha": -1.88,
+          "acumulado_motor_neto_pct": -14.26,
+          "acumulado_canasta_pct": 12.82,
+          "acumulado_indice_pct": 10.53,
+          "rotacion_media": 0.46,
+          "desde": "2026-01-28",
+          "hasta": "2026-08-28",
+          "por_anio": {
+            "2026": {
+              "n": 7,
+              "alpha_medio_pp": -4.03,
+              "pct_pos": 0.14
+            }
+          }
+        },
+        "hoy": {
+          "fecha": "2026-09-25",
+          "factores": {
+            "rev21": {
+              "ic": 0.051,
+              "t": 1.14,
+              "bloques": 6
+            },
+            "mom63": {
+              "ic": -0.191,
+              "t": -2.63,
+              "bloques": 6
+            },
+            "mom126": {
+              "ic": -0.063,
+              "t": -1.0,
+              "bloques": 6
+            },
+            "dist_min": {
+              "ic": -0.106,
+              "t": -1.77,
+              "bloques": 6
+            },
+            "dist_ma50": {
+              "ic": -0.099,
+              "t": -1.85,
+              "bloques": 6
+            },
+            "ma50_slope": {
+              "ic": -0.161,
+              "t": -2.48,
+              "bloques": 6
+            }
+          },
+          "picks": [
+            "HD",
+            "MCD",
+            "BA",
+            "GE",
+            "NFLX"
+          ],
+          "scores": {
+            "HD": 0.422,
+            "MCD": 0.387,
+            "BA": 0.319,
+            "GE": 0.31,
+            "NFLX": 0.28
+          }
+        }
+      },
+      "expandido_con_filtro_tendencia": {
+        "n_saltos_neutralizados": 0,
+        "universo": 39,
+        "ic_factores_muestra_completa": {
+          "rev5": {
+            "ic_medio": 0.018,
+            "pct_fechas_pos": 0.56,
+            "bloques": [
+              -0.01,
+              0.048,
+              0.075,
+              0.058,
+              -0.207,
+              0.023,
+              0.167,
+              -0.13,
+              0.07,
+              0.023,
+              0.031
+            ],
+            "bloque_parcial": 0.078,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.73,
+            "t_bloques": 0.43,
+            "n_fechas": 250
+          },
+          "rev21": {
+            "ic_medio": 0.02,
+            "pct_fechas_pos": 0.53,
+            "bloques": [
+              -0.1,
+              -0.019,
+              0.123,
+              -0.054,
+              -0.063,
+              0.12,
+              0.031,
+              -0.102,
+              0.001,
+              0.221,
+              0.034
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.57,
+            "n_fechas": 234
+          },
+          "mom63": {
+            "ic_medio": -0.095,
+            "pct_fechas_pos": 0.35,
+            "bloques": [
+              0.078,
+              0.218,
+              0.005,
+              0.029,
+              -0.13,
+              -0.117,
+              -0.161,
+              -0.497,
+              -0.272
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -1.34,
+            "n_fechas": 192
+          },
+          "mom126": {
+            "ic_medio": -0.058,
+            "pct_fechas_pos": 0.4,
+            "bloques": [
+              0.161,
+              0.003,
+              -0.083,
+              -0.022,
+              -0.303,
+              -0.133
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 6,
+            "pct_bloques_mismo_signo": 0.67,
+            "t_bloques": -1.0,
+            "n_fechas": 129
+          },
+          "dist_max": {
+            "ic_medio": -0.032,
+            "pct_fechas_pos": 0.39,
+            "bloques": [
+              -0.066,
+              0.163,
+              0.133,
+              -0.053,
+              -0.087,
+              0.0,
+              0.25,
+              -0.261,
+              -0.343
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -0.45,
+            "n_fechas": 193
+          },
+          "dist_min": {
+            "ic_medio": -0.059,
+            "pct_fechas_pos": 0.42,
+            "bloques": [
+              0.035,
+              0.106,
+              -0.063,
+              0.033,
+              0.016,
+              -0.005,
+              -0.245,
+              -0.314,
+              -0.119
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -1.32,
+            "n_fechas": 193
+          },
+          "dist_ma50": {
+            "ic_medio": -0.042,
+            "pct_fechas_pos": 0.44,
+            "bloques": [
+              0.09,
+              -0.077,
+              0.09,
+              0.117,
+              -0.066,
+              -0.137,
+              0.039,
+              0.039,
+              -0.3,
+              -0.169
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.87,
+            "n_fechas": 216
+          },
+          "ma50_slope": {
+            "ic_medio": -0.061,
+            "pct_fechas_pos": 0.47,
+            "bloques": [
+              0.105,
+              0.124,
+              0.324,
+              -0.206,
+              0.013,
+              -0.042,
+              -0.074,
+              -0.237,
+              -0.419
+            ],
+            "bloque_parcial": -0.228,
+            "n_bloques": 9,
+            "pct_bloques_mismo_signo": 0.56,
+            "t_bloques": -0.62,
+            "n_fechas": 206
+          },
+          "vol21": {
+            "ic_medio": -0.016,
+            "pct_fechas_pos": 0.51,
+            "bloques": [
+              0.174,
+              -0.193,
+              0.028,
+              -0.106,
+              -0.229,
+              0.08,
+              0.285,
+              0.099,
+              -0.301,
+              -0.248,
+              0.123
+            ],
+            "bloque_parcial": 0.241,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.45,
+            "t_bloques": -0.44,
+            "n_fechas": 240
+          },
+          "vol63": {
+            "ic_medio": -0.053,
+            "pct_fechas_pos": 0.43,
+            "bloques": [
+              -0.185,
+              0.061,
+              -0.275,
+              -0.258,
+              0.058,
+              0.218,
+              0.06,
+              -0.374,
+              -0.101,
+              0.195
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.5,
+            "t_bloques": -0.92,
+            "n_fechas": 215
+          },
+          "max_ret21": {
+            "ic_medio": -0.037,
+            "pct_fechas_pos": 0.39,
+            "bloques": [
+              0.131,
+              -0.091,
+              -0.143,
+              -0.16,
+              -0.138,
+              -0.008,
+              0.244,
+              0.121,
+              -0.26,
+              -0.288,
+              0.094
+            ],
+            "bloque_parcial": 0.175,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.64,
+            "t_bloques": -0.86,
+            "n_fechas": 240
+          },
+          "rsi14": {
+            "ic_medio": -0.005,
+            "pct_fechas_pos": 0.47,
+            "bloques": [
+              0.061,
+              0.0,
+              -0.118,
+              -0.069,
+              0.25,
+              -0.094,
+              -0.053,
+              0.142,
+              0.008,
+              -0.053,
+              -0.029
+            ],
+            "bloque_parcial": -0.161,
+            "n_bloques": 11,
+            "pct_bloques_mismo_signo": 0.55,
+            "t_bloques": 0.12,
+            "n_fechas": 245
+          },
+          "beta63": {
+            "ic_medio": -0.031,
+            "pct_fechas_pos": 0.45,
+            "bloques": [
+              -0.111,
+              0.174,
+              -0.272,
+              -0.419,
+              0.115,
+              0.344,
+              0.2,
+              -0.02,
+              -0.328,
+              -0.037
+            ],
+            "bloque_parcial": null,
+            "n_bloques": 10,
+            "pct_bloques_mismo_signo": 0.6,
+            "t_bloques": -0.45,
+            "n_fechas": 215
+          }
+        },
+        "periodos": [
+          {
+            "entrada": "2026-01-28",
+            "salida": "2026-02-27",
+            "picks": [
+              "UNH",
+              "GE",
+              "LLY",
+              "PLTR",
+              "BA"
+            ],
+            "factores": {
+              "rev5": {
+                "ic": 0.043,
+                "t": 2.31,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": 0.21,
+            "neto_pct": -0.99,
+            "canasta_pct": -1.09,
+            "indice_pct": -1.42,
+            "alpha_neto_pp": 0.09,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-02-27",
+            "salida": "2026-03-30",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": -6.64,
+            "neto_pct": -6.64,
+            "canasta_pct": -6.64,
+            "indice_pct": -7.78,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-03-30",
+            "salida": "2026-04-29",
+            "picks": [
+              "KO",
+              "JNJ",
+              "MCD",
+              "PG",
+              "CVX"
+            ],
+            "factores": {
+              "dist_ma50": {
+                "ic": 0.055,
+                "t": 1.23,
+                "bloques": 4
+              },
+              "vol63": {
+                "ic": -0.164,
+                "t": -2.11,
+                "bloques": 4
+              },
+              "max_ret21": {
+                "ic": -0.08,
+                "t": -1.48,
+                "bloques": 5
+              },
+              "beta63": {
+                "ic": -0.157,
+                "t": -1.23,
+                "bloques": 4
+              }
+            },
+            "rotacion": 1.0,
+            "bruto_pct": -3.13,
+            "neto_pct": 0.0,
+            "canasta_pct": 10.12,
+            "indice_pct": 12.49,
+            "alpha_neto_pp": -10.12,
+            "invertido": false,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-04-29",
+            "salida": "2026-05-29",
+            "picks": [
+              "KO",
+              "JNJ",
+              "MCD",
+              "CVX",
+              "BRK-B"
+            ],
+            "factores": {
+              "mom63": {
+                "ic": 0.083,
+                "t": 1.74,
+                "bloques": 4
+              },
+              "vol63": {
+                "ic": -0.12,
+                "t": -1.6,
+                "bloques": 5
+              },
+              "max_ret21": {
+                "ic": -0.068,
+                "t": -1.49,
+                "bloques": 6
+              }
+            },
+            "rotacion": 0.2,
+            "bruto_pct": -1.66,
+            "neto_pct": -1.9,
+            "canasta_pct": 6.21,
+            "indice_pct": 6.22,
+            "alpha_neto_pp": -8.11,
+            "invertido": true,
+            "apuesta": true
+          },
+          {
+            "entrada": "2026-05-29",
+            "salida": "2026-06-30",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": -3.44,
+            "neto_pct": -3.44,
+            "canasta_pct": -3.44,
+            "indice_pct": -1.06,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-06-30",
+            "salida": "2026-07-30",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": 2.0,
+            "neto_pct": 2.0,
+            "canasta_pct": 2.0,
+            "indice_pct": -0.82,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          },
+          {
+            "entrada": "2026-07-30",
+            "salida": "2026-08-28",
+            "picks": [],
+            "factores": {},
+            "rotacion": 0.0,
+            "bruto_pct": 6.06,
+            "neto_pct": 6.06,
+            "canasta_pct": 6.06,
+            "indice_pct": 3.69,
+            "alpha_neto_pp": 0.0,
+            "invertido": true,
+            "apuesta": false
+          }
+        ],
+        "resumen_oos": {
+          "n_periodos": 7,
+          "n_con_apuesta": 3,
+          "alpha_neto_medio_pp": -2.59,
+          "pct_periodos_alpha_pos": 0.14,
+          "t_alpha": -1.53,
+          "acumulado_motor_neto_pct": -5.28,
+          "acumulado_canasta_pct": 12.82,
+          "acumulado_indice_pct": 10.53,
+          "rotacion_media": 0.31,
+          "desde": "2026-01-28",
+          "hasta": "2026-08-28",
+          "por_anio": {
+            "2026": {
+              "n": 7,
+              "alpha_medio_pp": -2.59,
+              "pct_pos": 0.14
+            }
+          }
+        },
+        "hoy": {
+          "fecha": "2026-09-25",
+          "factores": {
+            "mom126": {
+              "ic": -0.063,
+              "t": -1.0,
+              "bloques": 6
+            }
+          },
+          "picks": [
+            "GLOB",
+            "WMT",
+            "MCD",
+            "NFLX",
+            "PBR"
+          ],
+          "scores": {
+            "GLOB": 0.474,
+            "WMT": 0.449,
+            "MCD": 0.423,
+            "NFLX": 0.397,
+            "PBR": 0.372
+          }
+        }
+      }
+    }
+  },
+  "telegram_lines": [
+    "<b>🔬 Diagnóstico IC + motor por mercado (shadow · csv)</b>",
+    "\n<b>MERVAL</b> (7 períodos fuera de muestra)\nAlpha neto medio: +2.66 pp · positivo 71% · t=1.63\nAcumulado motor +4.5% vs canasta -11.0%\nFactores hoy: rev5+, rev21+, mom63−, dist_min−, dist_ma50−, ma50_slope−, rsi14−\nPicks hoy: SUPV.BA, BBAR.BA, BMA.BA, GGAL.BA, HARG.BA",
+    "Scores modelo IC: score_sectorial +0.35 · asset_quality +0.22 · score_fund +0.18 … confidence_score +0.04 · score_tecnico -0.06",
+    "\n<b>BOVESPA</b> (7 períodos fuera de muestra)\nAlpha neto medio: +0.24 pp · positivo 43% · t=0.52\nAcumulado motor -18.6% vs canasta -19.9%\nFactores hoy: dist_max+, dist_min−, vol21−, vol63−, max_ret21−, beta63−\nPicks hoy: ITSA4.SA, ITUB4.SA, BBDC4.SA, ABEV3.SA, SUZB3.SA",
+    "Scores modelo IC: ranking +0.14 · entry_score +0.11 · confidence_score +0.06 … score_v1 -0.14 · score_sectorial -0.30",
+    "\n<b>SP500</b> (7 períodos fuera de muestra)\nAlpha neto medio: -3.20 pp · positivo 14% · t=-1.46\nAcumulado motor -9.3% vs canasta +12.8%\nFactores hoy: mom126−\nPicks hoy: GLOB, WMT, MCD, NFLX, PBR",
+    "Scores modelo IC: rr_ratio +0.16 · entry_score +0.15 · score_v2 +0.07 … score_v1 -0.26 · score_tecnico -0.29"
+  ]
+}
