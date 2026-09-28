@@ -35,6 +35,47 @@ RESULTS_PATH  = "data/backtest_results.json"
 # Horizontes a evaluar (días hábiles aproximados)
 HORIZONS = [5, 10, 21]
 
+# ── Fase 2b (28/09/2026, auditoría con Claude): costos y benchmark ──────────
+# Costo por pata (compra o venta) en % sobre el monto operado. Balanz:
+# comisión 0,50% + IVA 21% = 0,605% por pata (1,21% ida y vuelta). Queda
+# parametrizado por mercado para cargar los boletos reales cuando lleguen;
+# BACKTEST_COSTO_PATA_PCT (env, Railway) pisa los tres valores a la vez.
+COSTO_POR_PATA_PCT = {"MERVAL": 0.605, "BOVESPA": 0.605, "SP500": 0.605}
+_COSTO_DEFAULT_PCT = 0.605
+# Horizonte principal de las métricas de benchmark (alpha_21d_neto).
+BENCH_HORIZON = 21
+# Mínimo de tickers con retorno válido para que el equiponderado de un día
+# cuente (con menos, el "universo" es ruido de 2-3 acciones).
+EW_MIN_TICKERS = 5
+# Mapeo clave de price_data -> valor de "mercado" en las señales.
+_PRICE_KEY_TO_MERCADO = {"merval": "MERVAL", "bovespa": "BOVESPA", "sp500": "SP500"}
+
+
+def _costo_pata_pct(mercado: str) -> float:
+    env = os.environ.get("BACKTEST_COSTO_PATA_PCT")
+    if env:
+        try:
+            v = float(env.replace(",", "."))
+            if 0 <= v < 10:
+                return v
+        except ValueError:
+            logger.warning(f"Backtester: BACKTEST_COSTO_PATA_PCT inválido ({env!r}), uso default")
+    return COSTO_POR_PATA_PCT.get(mercado, _COSTO_DEFAULT_PCT)
+
+
+def _ret_neto(ret_bruto_pct: float, costo_pata_pct: float) -> float:
+    """Retorno neto de una ida y vuelta: se paga el costo al comprar
+    (P*(1+c)) y al vender (P1*(1-c)). Multiplicativo, no ret - 2c, para que
+    sea exacto también con retornos grandes."""
+    c = costo_pata_pct / 100
+    return ((1 + ret_bruto_pct / 100) * (1 - c) / (1 + c) - 1) * 100
+
+
+def _exceso(ret_pct: float, bench_pct: float) -> float:
+    """Retorno en exceso geométrico: (1+r)/(1+b)-1. Invariante a la moneda
+    (ARS vs USD da lo mismo), por eso MERVAL no necesita CCL para el alpha."""
+    return ((1 + ret_pct / 100) / (1 + bench_pct / 100) - 1) * 100
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Entrypoint principal
@@ -501,8 +542,13 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
     # Construir índice de precios: {ticker: {date_str: price}}
     price_index = _build_price_index(price_data, ticker_cols or {})
 
-    # Calcular trades
-    trades = _build_trades(history, sorted_dates, price_index)
+    # Calcular trades (Fase 2b: con contexto de benchmark por mercado)
+    try:
+        bench = _BenchmarkContext(price_data, ticker_cols or {}, price_index)
+    except Exception as e_b:
+        logger.warning(f"Backtester: benchmark no disponible — continuando sin él: {e_b}")
+        bench = None
+    trades = _build_trades(history, sorted_dates, price_index, bench=bench)
 
     if not trades:
         logger.info("Backtester: no hay trades calculables aún (esperando precios futuros)")
@@ -587,6 +633,33 @@ def run_backtest(price_data: dict, ticker_cols: dict = None) -> dict:
         # real cuando el predictor confirma la señal vs. cuando la contradice.
         "predictor_contribution": _predictor_contribution_analysis(trades),
     }
+
+    # Fase 2b (28/09/2026): benchmark + costos + alpha_21d_neto por mercado,
+    # por día y por racha. Envuelto aparte: no debe tumbar el resto.
+    #
+    # Fuente: signals_archive (append-only desde 22/06, no se poda), no la
+    # ventana rolling de 61 días de signals_history.json -- con 61 días el
+    # benchmark a 21d nunca llega a 3 ventanas independientes, que es el
+    # mínimo fijado para decidir. SOLO este bloque lee el archivo: el resto
+    # de las métricas (by_signal, cruces, Kelly) sigue sobre signals_history
+    # para no mezclar en un mismo deploy dos cambios de base (el fix de
+    # entrada de arriba y un cambio de muestra). Si el archivo no está o es
+    # más corto que el historial, cae a los trades de signals_history.
+    try:
+        bench_trades, fuente, n_fechas = trades, "signals_history", len(
+            [d for d in sorted_dates if _es_dia_habil(d)])
+        hist_arch = _load_archive_as_history()
+        if hist_arch and len(hist_arch) >= n_fechas:
+            fechas_arch = sorted(hist_arch.keys())
+            bench_trades = _build_trades(hist_arch, fechas_arch, price_index, bench=bench)
+            fuente, n_fechas = "signals_archive", len(fechas_arch)
+        results["benchmark"] = _benchmark_summary(bench_trades)
+        results["benchmark"]["fuente"] = fuente
+        results["benchmark"]["fechas_fuente"] = n_fechas
+        results["entry_audit"] = _entry_audit(trades)
+    except Exception as e_bm:
+        logger.warning(f"Backtester: benchmark_summary no crítico — continuando: {e_bm}")
+        results["benchmark"] = {}
 
     results["pattern_discoveries_nuevas"] = _detect_pattern_discoveries(
         results["confidence_x_signal"]
@@ -711,7 +784,120 @@ def _es_dia_habil(fecha: str) -> bool:
         return True   # clave con formato inesperado: no se descarta en silencio
 
 
-def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
+def _entry_from_index(ticker: str, signal_date: str, price_index: dict):
+    """(fecha, precio) del último cierre del CSV en o antes de signal_date --
+    mismo criterio de posición que _get_future_prices(), para que entrada y
+    salida salgan siempre de la MISMA serie."""
+    tp = price_index.get(ticker, {})
+    best = None
+    for d in tp:
+        if d <= signal_date and (best is None or d > best):
+            best = d
+    return (best, tp[best]) if best is not None else (None, None)
+
+
+def _resolve_entry(ticker: str, signal_date: str, precio_archivo: float, price_index: dict):
+    """
+    FIX 28/09/2026 (Fase 2b, auditoría con Claude, VERIFICADO en vivo):
+    la entrada era `precio` de signals_history.json (cierre crudo del día en
+    que corrió el pipeline) y la salida el CSV actual. Pero download_data.py
+    re-baja 401 días con auto_adjust=True en cada corrida, así que Yahoo
+    reescribe TODA la serie hacia atrás cada vez que hay un dividendo: cada
+    dividendo pagado después de la salida aparecía como pérdida del trade.
+    Caso real: TRAN.BA, `precio` archivado 18,3% arriba del CSV en todas las
+    fechas hasta el 03/09, igual desde el 04/09 (dividendo). Sesgo medido
+    sobre COMPRA a 21d: MERVAL -1,67pp, BOVESPA -0,50pp, SP500 -0,26pp.
+    Además 18-30% de las entradas archivadas eran el cierre del día previo.
+
+    Ahora la entrada sale del mismo CSV que la salida (retorno total,
+    dividendos incluidos). Si el CSV no tiene precio en o antes de la fecha
+    (ticker nuevo, serie corta) se cae al precio archivado, marcado en
+    `entry_source` para poder auditarlo.
+
+    Returns: (precio_entry, entry_source, factor) con factor = csv/archivo,
+    usado para reescalar atr_stop/atr_target (vienen en la escala cruda) sin
+    cambiar su distancia porcentual a la entrada.
+    """
+    _, p_csv = _entry_from_index(ticker, signal_date, price_index)
+    if p_csv and p_csv > 0 and precio_archivo > 0:
+        return p_csv, "csv", p_csv / precio_archivo
+    if p_csv and p_csv > 0:
+        return p_csv, "csv", 1.0
+    return precio_archivo, "archivo", 1.0
+
+
+def _signal_class(signal: str) -> str:
+    """COMPRA y COMPRA FUERTE forman la misma racha (mismo criterio que
+    diagnostico_trades_racha.py); el resto de las señales, por su texto."""
+    return "COMPRA" if "COMPRA" in (signal or "") else (signal or "")
+
+
+def _racha_starts(history: dict, business_dates: list) -> set:
+    """{(fecha, ticker)} que abren racha: el ticker no estaba el día hábil
+    anterior del historial, o estaba con otra clase de señal."""
+    starts, prev = set(), {}
+    for d in business_dates:
+        today = {}
+        for e in history.get(d, []):
+            t = e.get("ticker")
+            if not t:
+                continue
+            cls = _signal_class(e.get("signal_v2") or e.get("signal", ""))
+            today[t] = cls
+            if prev.get(t) != cls:
+                starts.add((d, t))
+        prev = today
+    return starts
+
+
+class _BenchmarkContext:
+    """Retornos a h días del índice y del universo equiponderado por
+    mercado, con la misma lógica de precios que los trades (entrada = último
+    cierre en o antes de la fecha, salida = h-ésimo cierre siguiente, tramos
+    con salto >=60% descartados). Cachea por (mercado, fecha, h)."""
+
+    def __init__(self, price_data: dict, ticker_cols: dict, price_index: dict):
+        self.price_index = price_index
+        self.index_key, self.universe = {}, {}
+        col_to_ticker = {v: k for k, v in (ticker_cols or {}).items()}
+        for key, df in (price_data or {}).items():
+            mercado = _PRICE_KEY_TO_MERCADO.get(str(key).lower())
+            if mercado is None or df is None or getattr(df, "empty", True):
+                continue
+            tickers = []
+            for col in df.columns:
+                if str(col).upper().startswith("INDICE"):
+                    self.index_key[mercado] = col
+                else:
+                    tickers.append(col_to_ticker.get(col, col))
+            self.universe[mercado] = tickers
+        self._cache = {}
+
+    def _ret(self, key: str, date: str, h: int):
+        _, p0 = _entry_from_index(key, date, self.price_index)
+        if not p0 or p0 <= 0:
+            return None
+        fut = _get_future_prices(key, date, self.price_index, max_horizon=h)
+        if len(fut) < h or _detect_split_horizon(p0, fut) < h:
+            return None
+        return (fut[h - 1] / p0 - 1) * 100
+
+    def get(self, mercado: str, date: str, h: int = BENCH_HORIZON):
+        ck = (mercado, date, h)
+        if ck in self._cache:
+            return self._cache[ck]
+        r_idx = None
+        if mercado in self.index_key:
+            r_idx = self._ret(self.index_key[mercado], date, h)
+        rets = [r for r in (self._ret(t, date, h) for t in self.universe.get(mercado, []))
+                if r is not None]
+        r_ew = float(np.mean(rets)) if len(rets) >= EW_MIN_TICKERS else None
+        self._cache[ck] = (r_idx, r_ew, len(rets))
+        return self._cache[ck]
+
+
+def _build_trades(history: dict, sorted_dates: list, price_index: dict,
+                  bench: "_BenchmarkContext | None" = None) -> list:
     """
     Para cada señal en cada fecha, calcula los outcomes.
     Excluye los últimos 5 días (no hay suficiente futuro aún).
@@ -726,6 +912,7 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
     # no se filtran acá (pocos, y el precio de entrada sí es el del día).
     sorted_dates = [d for d in sorted_dates if _es_dia_habil(d)]
     evaluation_dates = sorted_dates[:-5] if len(sorted_dates) > 5 else []
+    racha_starts = _racha_starts(history, sorted_dates)
 
     for signal_date in evaluation_dates:
         entries = history.get(signal_date, [])
@@ -776,6 +963,16 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
             if not signal or precio_entry <= 0 or not ticker:
                 continue
 
+            # FIX 28/09/2026: entrada del mismo CSV que la salida (ver
+            # _resolve_entry). Stops/targets se reescalan con el mismo factor.
+            precio_archivo = precio_entry
+            precio_entry, entry_source, entry_factor = _resolve_entry(
+                ticker, signal_date, precio_archivo, price_index
+            )
+            if entry_factor != 1.0:
+                atr_stop   = atr_stop * entry_factor
+                atr_target = atr_target * entry_factor
+
             # Obtener precios futuros
             future_prices = _get_future_prices(ticker, signal_date, price_index, max_horizon=25)
             if not future_prices:
@@ -813,6 +1010,10 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
                 "factor_dominante": factor_dominante or "UNKNOWN",
                 "cross_market_regime": cross_market_regime or "UNKNOWN",
                 "split_detectado": split_detectado,
+                "precio_archivo":  precio_archivo,
+                "entry_source":    entry_source,
+                "entry_adj_factor": round(entry_factor, 4),
+                "racha_inicio":    (signal_date, ticker) in racha_starts,
             }
 
             # Retornos hold-to-horizon
@@ -831,6 +1032,23 @@ def _build_trades(history: dict, sorted_dates: list, price_index: dict) -> list:
                 future_prices, precio_entry, atr_stop, atr_target, max_days=21
             )
             trade.update(st)
+
+            # Fase 2b: costos + benchmark sobre el horizonte principal. Los
+            # ret_{h}d de arriba siguen BRUTOS a propósito -- todo el resto
+            # del backtest (by_signal, cruces, Kelly) se sigue leyendo igual;
+            # lo neto vive en campos nuevos y en results["benchmark"].
+            h = BENCH_HORIZON
+            rb = trade.get(f"ret_{h}d")
+            costo = _costo_pata_pct(mercado)
+            rn = _ret_neto(rb, costo) if rb is not None else None
+            trade[f"ret_{h}d_neto"] = round(rn, 2) if rn is not None else None
+            r_idx = r_ew = None
+            if bench is not None and rb is not None:
+                r_idx, r_ew, _ = bench.get(mercado, signal_date, h)
+            trade[f"ret_idx_{h}d"] = round(r_idx, 2) if r_idx is not None else None
+            trade[f"ret_ew_{h}d"]  = round(r_ew, 2) if r_ew is not None else None
+            trade[f"alpha_idx_{h}d_neto"] = round(_exceso(rn, r_idx), 2) if (rn is not None and r_idx is not None) else None
+            trade[f"alpha_ew_{h}d_neto"]  = round(_exceso(rn, r_ew), 2) if (rn is not None and r_ew is not None) else None
 
             trades.append(trade)
 
@@ -1659,6 +1877,98 @@ def _ranking_quantile_breakdown_by_market(trades: list) -> dict:
                  and _best_ret(t)[1] is not None]
         result[mercado] = _quantile_split(valid, "ranking") or {"samples": 0}
     return result
+
+
+def _load_archive_as_history() -> dict:
+    """signals_archive_YYYY-MM.jsonl -> {fecha: [filas]}, mismo formato que
+    signals_history.json (las filas del archivo son las mismas entradas más
+    metadatos de procedencia, que _build_trades ignora)."""
+    try:
+        from src.signals_archive import load_archive
+        rows = load_archive()
+    except Exception as e:
+        logger.warning(f"Backtester: no se pudo leer signals_archive: {e}")
+        return {}
+    hist = {}
+    for r in rows:
+        f = r.get("fecha")
+        if f:
+            hist.setdefault(f, []).append(r)
+    return hist
+
+
+def _benchmark_summary(trades: list, h: int = BENCH_HORIZON) -> dict:
+    """
+    Fase 2b (28/09/2026): ¿las señales le ganan a tener el mercado?
+    Por mercado, para COMPRA (cualquier variante) y para todas las señales,
+    contado por día y por racha (solo el día que abre la racha -- ver
+    diagnostico_trades_racha.py sobre pseudoreplicación).
+
+    Métricas (h = 21d):
+      ev_bruto / ev_neto        retorno medio de la señal, sin/con costos
+      ret_idx / ret_ew          índice y universo equiponderado, misma ventana
+      alpha_idx_neto            neto de la señal vs índice (buy&hold, sin costo)
+      alpha_ew_neto             neto de la señal vs equiponderado -- la
+                                comparación limpia: las acciones vienen
+                                ajustadas por dividendo y el índice no
+      ventanas_independientes   fechas distintas / h. Regla fijada antes de
+                                mirar datos: con < 3 no se decide nada.
+    Cada alpha trae p_value/IC95 de _metrics_from_rets.
+    """
+    def _block(ts: list) -> dict | None:
+        ts = [t for t in ts if t.get(f"ret_{h}d") is not None]
+        if not ts:
+            return None
+        def _col(k):
+            return [t[k] for t in ts if t.get(k) is not None]
+        a_idx, a_ew = _col(f"alpha_idx_{h}d_neto"), _col(f"alpha_ew_{h}d_neto")
+        fechas = {t["signal_date"] for t in ts}
+        m_ai, m_ae = _metrics_from_rets(a_idx), _metrics_from_rets(a_ew)
+        def _sig(m):
+            return None if m is None else {k: m[k] for k in ("samples", "avg_ret", "p_value", "ic95", "significativo_95")}
+        return {
+            "n":                        len(ts),
+            "tickers":                  len({t["ticker"] for t in ts}),
+            "fechas":                   len(fechas),
+            "ventanas_independientes":  round(len(fechas) / h, 1),
+            "ev_bruto":                 round(float(np.mean(_col(f"ret_{h}d"))), 2),
+            "ev_neto":                  round(float(np.mean(_col(f"ret_{h}d_neto"))), 2),
+            "ret_idx":                  round(float(np.mean(_col(f"ret_idx_{h}d"))), 2) if _col(f"ret_idx_{h}d") else None,
+            "ret_ew":                   round(float(np.mean(_col(f"ret_ew_{h}d"))), 2) if _col(f"ret_ew_{h}d") else None,
+            "alpha_idx_neto":           _sig(m_ai),
+            "alpha_ew_neto":            _sig(m_ae),
+        }
+
+    out = {
+        "horizonte_dias": h,
+        "costo_por_pata_pct": {m: _costo_pata_pct(m) for m in ("MERVAL", "BOVESPA", "SP500")},
+        "definicion": "alpha = (1+ret_neto)/(1+ret_benchmark)-1; benchmark buy&hold sin costos",
+        "by_market": {},
+    }
+    for mercado in sorted({t.get("mercado", "") for t in trades if t.get("mercado")}):
+        tm = [t for t in trades if t.get("mercado") == mercado]
+        tc = [t for t in tm if "COMPRA" in (t.get("signal") or "")]
+        out["by_market"][mercado] = {
+            "compra": {"dia": _block(tc), "racha": _block([t for t in tc if t.get("racha_inicio")])},
+            "todas":  {"dia": _block(tm), "racha": _block([t for t in tm if t.get("racha_inicio")])},
+        }
+    return out
+
+
+def _entry_audit(trades: list) -> dict:
+    """Cuántos trades usaron entrada del CSV vs fallback al archivo, y
+    cuánto se movió la entrada respecto del precio archivado (dividendos
+    retroactivos + entradas con cierre del día previo)."""
+    src = {}
+    for t in trades:
+        src[t.get("entry_source", "desconocido")] = src.get(t.get("entry_source", "desconocido"), 0) + 1
+    diffs = [abs(t["entry_adj_factor"] - 1) * 100 for t in trades
+             if t.get("entry_source") == "csv" and t.get("entry_adj_factor")]
+    return {
+        "por_fuente": src,
+        "desvio_entrada_mediana_pct": round(float(np.median(diffs)), 2) if diffs else None,
+        "trades_desvio_mayor_1pct": int(sum(d > 1 for d in diffs)),
+    }
 
 
 def _signal_summary_table(trades: list) -> list:

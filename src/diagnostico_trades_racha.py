@@ -60,7 +60,7 @@ from src.downloader import _load_csv, MERVAL_TICKERS, BOVESPA_TICKERS, SP500_TIC
 from src.backtester import (
     _build_price_index, _build_trades, _metrics_from_rets,
     _get_future_prices, _calc_stop_target_exit, _detect_split_horizon,
-    HORIZONS,
+    _resolve_entry, HORIZONS,
 )
 
 HISTORY_PATH = "data/signals_history.json"
@@ -98,6 +98,11 @@ def build_trades_by_racha(history: dict, sorted_dates: list, price_index: dict) 
             return
         atr_stop = float(entry.get("atr_stop", 0) or 0)
         atr_target = float(entry.get("atr_target", 0) or 0)
+        # FIX 28/09/2026: misma entrada que _build_trades() (del CSV, no del
+        # precio archivado -- ver backtester._resolve_entry). Si no, día y
+        # racha dejaban de ser comparables.
+        precio_entry, _src, _factor = _resolve_entry(ticker, start_date, precio_entry, price_index)
+        atr_stop, atr_target = atr_stop * _factor, atr_target * _factor
 
         future_prices = _get_future_prices(ticker, start_date, price_index, max_horizon=25)
         if not future_prices:
