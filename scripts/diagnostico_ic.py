@@ -40,10 +40,11 @@ C) Picks de hoy del motor por mercado (shadow, solo informativo).
 
 Uso:
     python -m scripts.diagnostico_ic            # trae CSV frescos de GitHub
+    python -m scripts.diagnostico_ic --10y      # motor sobre data/research/ (10 años)
     DIAG_NO_PULL=1 python -m scripts.diagnostico_ic   # usa data/ local
-    Telegram: /diagnostico_ic
+    Telegram: /diagnostico_ic   ·   /diagnostico_ic 10y
 
-Salida: data/diagnostico_ic.json (+ push a GitHub vía github_persistence).
+Salida: data/diagnostico_ic.json (o data/diagnostico_ic_10y.json) + push a GitHub.
 
 Métrica que decide (acordar ANTES de mirar resultados nuevos):
     alpha_neto medio por período del motor vs canasta, positivo en >= 70% de
@@ -75,14 +76,18 @@ H = 21                  # horizonte y frecuencia de rebalanceo (ruedas)
 TOP_N = 5               # posiciones por mercado
 BUFFER_N = 8            # un nombre en cartera se mantiene si sigue en el Top 8
 MIN_TRAIN_BLOCKS = 4    # bloques de IC realizados mínimos para decidir
-T_MIN = 1.0             # |t| mínimo del IC por bloque para usar un factor
+T_MIN = 1.0             # |t| mínimo del IC por bloque para usar un factor (< 20 bloques)
+T_MIN_LARGO = 2.0       # con >= 20 bloques (dataset 10y) se exige t >= 2
+BLOQUES_LARGO = 20
 SHARE_MIN = 0.60        # % de bloques con el mismo signo que el promedio
 IC_MIN = 0.03           # IC medio mínimo en valor absoluto
 MIN_CS = 8              # mínimo de acciones con dato para calcular un IC
 MAX_DAILY_MOVE = 0.45   # |ret diario| > 45% se trata como split / error de dato
 TREND_MA = 100          # filtro de tendencia del índice (fijo, no optimizado)
 OUT_PATH = "data/diagnostico_ic.json"
+OUT_PATH_10Y = "data/diagnostico_ic_10y.json"
 DATA_DIR = "data"
+RESEARCH_DIR = "data/research"
 
 MERCADOS = (("merval", "MERVAL"), ("bovespa", "BOVESPA"), ("sp500", "SP500"))
 
@@ -136,6 +141,31 @@ def load_prices(pull: bool = True) -> dict:
                         if str(c).upper().replace("Í", "I").startswith("INDICE")), None)
         P = df[cols].rename(columns=nombre_a_ticker)
         I = df[idx_col] if idx_col else None
+        out[mk] = (P, I)
+    return out
+
+
+def load_prices_research() -> dict:
+    """Precios de 10 años de data/research/ (scripts/backfill_precios_10y.py).
+    Columnas ya son tickers; el índice viene como columna INDICE. Si el archivo
+    no está local (Railway recién redeployado) lo trae de GitHub."""
+    out = {}
+    for key, mk in MERCADOS:
+        path = os.path.join(RESEARCH_DIR, f"{key}_10y.csv")
+        if not os.path.exists(path):
+            try:
+                from src.github_persistence import pull_file
+                pull_file(path)
+            except Exception as e:
+                logger.warning(f"[diagnostico_ic] no pude traer {path}: {e}")
+        if not os.path.exists(path):
+            logger.warning(f"[diagnostico_ic] falta {path} — correr /backfill_precios aplicar")
+            continue
+        df = pd.read_csv(path, sep=";", decimal=",", encoding="utf-8-sig", index_col=0)
+        df.index = pd.to_datetime(df.index, errors="coerce")
+        df = df[df.index.notna()].sort_index().apply(pd.to_numeric, errors="coerce")
+        I = df["INDICE"] if "INDICE" in df.columns else None
+        P = df.drop(columns=["INDICE"], errors="ignore")
         out[mk] = (P, I)
     return out
 
@@ -237,19 +267,21 @@ def compute_factors(P: pd.DataFrame, R: pd.DataFrame, I: pd.Series | None) -> di
 # IC y resúmenes por bloque
 # ─────────────────────────────────────────────────────────────────────────────
 def ic_series(X: pd.DataFrame, Y: pd.DataFrame, min_n: int = MIN_CS) -> pd.Series:
-    """IC de Spearman cross-section, una observación por fecha."""
+    """IC de Spearman cross-section, una observación por fecha (vectorizado:
+    rangos promedio por fila sobre los pares con dato, igual que scipy)."""
     X, Y = X.align(Y, join="inner")
-    out = {}
-    for d in X.index:
-        x, y = X.loc[d], Y.loc[d]
-        m = x.notna() & y.notna()
-        if m.sum() < min_n:
-            continue
-        xr, yr = x[m].rank(), y[m].rank()
-        if xr.nunique() < 3 or yr.nunique() < 3:
-            continue
-        out[d] = float(np.corrcoef(xr, yr)[0, 1])
-    return pd.Series(out, dtype=float)
+    X = X.apply(pd.to_numeric, errors="coerce")
+    Y = Y.apply(pd.to_numeric, errors="coerce")
+    m = X.notna() & Y.notna()
+    Xr = X.where(m).rank(axis=1)
+    Yr = Y.where(m).rank(axis=1)
+    n = m.sum(axis=1)
+    xc = Xr.sub(Xr.mean(axis=1), axis=0)
+    yc = Yr.sub(Yr.mean(axis=1), axis=0)
+    num = (xc * yc).sum(axis=1)
+    den = np.sqrt((xc ** 2).sum(axis=1) * (yc ** 2).sum(axis=1))
+    ok = (n >= min_n) & (den > 0) & (Xr.nunique(axis=1) >= 3) & (Yr.nunique(axis=1) >= 3)
+    return (num[ok] / den[ok]).astype(float)
 
 
 def _bloques(s: pd.Series, h: int = H):
@@ -363,7 +395,8 @@ def _elegir_factores(ic_dict: dict, pos_de: dict, k: int, max_bloques: int | Non
         m = float(np.mean(bl))
         t = _t_stat(bl)
         share = float(np.mean([np.sign(b) == np.sign(m) for b in bl]))
-        if t is not None and abs(t) >= T_MIN and share >= SHARE_MIN and abs(m) >= IC_MIN:
+        t_min = T_MIN_LARGO if len(bl) >= BLOQUES_LARGO else T_MIN
+        if t is not None and abs(t) >= t_min and share >= SHARE_MIN and abs(m) >= IC_MIN:
             pesos[f] = m
             detalle[f] = {"ic": round(m, 3), "t": round(t, 2), "bloques": len(bl)}
     return pesos, detalle
@@ -505,23 +538,43 @@ def _resumen_periodos(periodos: list) -> dict:
         "acumulado_indice_pct": comp("indice_pct") if all(p["indice_pct"] is not None for p in periodos) else None,
         "rotacion_media": round(float(np.mean([p["rotacion"] for p in periodos])), 2),
         "desde": periodos[0]["entrada"], "hasta": periodos[-1]["salida"],
+        "por_anio": _por_anio(periodos),
     }
+
+
+def _por_anio(periodos: list) -> dict:
+    """Alpha neto medio y % positivo por año de entrada: muestra si el efecto
+    sobrevive regímenes distintos o vive de un solo año."""
+    out = {}
+    for p in periodos:
+        out.setdefault(p["entrada"][:4], []).append(p["alpha_neto_pp"])
+    return {a: {"n": len(v), "alpha_medio_pp": round(float(np.mean(v)), 2),
+                "pct_pos": round(float(np.mean([x > 0 for x in v])), 2)}
+            for a, v in sorted(out.items())}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
-def main(push: bool = True) -> dict:
+def main(push: bool = True, fuente: str = "csv") -> dict:
+    """fuente="csv": CSV de producción (~13 meses) — parte A + motor.
+    fuente="10y": dataset de investigación de 10 años — motor sobre 10 años;
+    la parte A (scores del modelo) sigue usando los CSV de producción porque
+    el archive recién empieza el 22/06/2026."""
     pull = os.environ.get("DIAG_NO_PULL") != "1"
-    precios = load_prices(pull=pull)
+    precios_prod = load_prices(pull=pull)
+    precios_motor = load_prices_research() if fuente == "10y" else precios_prod
     archive = load_archive()
+    out_path = OUT_PATH_10Y if fuente == "10y" else OUT_PATH
 
     resultado = {
         "generated": datetime.now().isoformat(timespec="seconds"),
         "shadow": True,
+        "fuente_motor": fuente,
         "parametros": {
             "H": H, "TOP_N": TOP_N, "BUFFER_N": BUFFER_N,
             "MIN_TRAIN_BLOCKS": MIN_TRAIN_BLOCKS, "T_MIN": T_MIN,
+            "T_MIN_LARGO": T_MIN_LARGO, "BLOQUES_LARGO": BLOQUES_LARGO,
             "SHARE_MIN": SHARE_MIN, "IC_MIN": IC_MIN, "TREND_MA": TREND_MA,
             "costo_pata_pct": {mk: _costo_pata_pct(mk) for _, mk in MERCADOS},
         },
@@ -532,10 +585,12 @@ def main(push: bool = True) -> dict:
             "Factores de precio solamente: macro y fundamentales no tienen "
             "histórico point-in-time para testearse igual.",
         ],
-        "A_scores_modelo": parte_a(archive, precios),
+        "A_scores_modelo": parte_a(archive, precios_prod),
         "B_motor": {},
     }
-    for mk, (P, I) in precios.items():
+    if fuente == "10y" and not precios_motor:
+        resultado["B_motor"] = {"error": "sin dataset 10y — correr /backfill_precios aplicar"}
+    for mk, (P, I) in precios_motor.items():
         try:
             resultado["B_motor"][mk] = {
                 "expandido": motor_mercado(mk, P, I),
@@ -550,18 +605,22 @@ def main(push: bool = True) -> dict:
 
     try:
         from src.github_persistence import save_json
-        save_json(OUT_PATH, resultado, message="auto: diagnostico_ic (shadow)", push=push)
+        save_json(out_path, resultado, message=f"auto: diagnostico_ic {fuente} (shadow)", push=push)
     except Exception as e:
-        logger.warning(f"[diagnostico_ic] no se pudo guardar {OUT_PATH}: {e}")
-        os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
-        with open(OUT_PATH, "w", encoding="utf-8") as f:
+        logger.warning(f"[diagnostico_ic] no se pudo guardar {out_path}: {e}")
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
             json.dump(resultado, f, ensure_ascii=False, indent=2, default=str)
     return resultado
 
 
 def _telegram_lines(res: dict) -> list:
-    L = ["<b>🔬 Diagnóstico IC + motor por mercado (shadow)</b>"]
-    for mk, d in res.get("B_motor", {}).items():
+    L = [f"<b>🔬 Diagnóstico IC + motor por mercado (shadow · {res.get('fuente_motor', 'csv')})</b>"]
+    motor = res.get("B_motor", {})
+    if "error" in motor:
+        L.append(f"❌ {motor['error']}")
+        motor = {}
+    for mk, d in motor.items():
         e = d.get("expandido", {}) if isinstance(d, dict) else {}
         r = e.get("resumen_oos", {})
         if not r or not r.get("n_periodos"):
@@ -576,6 +635,9 @@ def _telegram_lines(res: dict) -> list:
             f"Factores hoy: {facts}\n"
             f"Picks hoy: {', '.join(hoy.get('picks', [])) or '— (no apuesta)'}"
         )
+        pa = r.get("por_anio", {})
+        if len(pa) > 1:
+            L.append("Por año: " + " · ".join(f"{a} {v['alpha_medio_pp']:+.1f}pp ({v['pct_pos']:.0%})" for a, v in pa.items()))
         a = res.get("A_scores_modelo", {}).get(mk, {}).get("scores", {})
         if a:
             top = sorted(((k, v["ic_medio"]) for k, v in a.items()), key=lambda x: -x[1])
@@ -586,5 +648,6 @@ def _telegram_lines(res: dict) -> list:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    out = main(push=os.environ.get("DIAG_NO_PUSH") != "1")
+    out = main(push=os.environ.get("DIAG_NO_PUSH") != "1",
+               fuente="10y" if "--10y" in sys.argv else "csv")
     print("\n".join(out["telegram_lines"]).replace("<b>", "").replace("</b>", ""))
