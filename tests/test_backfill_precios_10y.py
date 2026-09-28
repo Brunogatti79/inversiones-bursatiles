@@ -99,3 +99,31 @@ def test_motor_lee_dataset_research(monkeypatch):
     monkeypatch.setattr(dg, "_costo_pata_pct", lambda mk: 0.605)
     res = dg.motor_mercado("MERVAL", P, I)
     assert "resumen_oos" in res
+
+
+def test_yahoo_caido_no_rompe_y_no_pushea(monkeypatch):
+    """Regresión 28/09: con 0 descargas, pd.DataFrame({}) traía RangeIndex y
+    rompía en .dayofweek. Ahora tiene que devolver un error claro."""
+    class _Vacio:
+        def __init__(self, t): pass
+        def history(self, **kw): return pd.DataFrame()
+    monkeypatch.setattr(bf, "yf", type("YF", (), {"Ticker": _Vacio, "__version__": "0.2.54"}))
+    pushes = []
+    monkeypatch.setattr("src.github_persistence.push_file", lambda p, message=None: pushes.append(p) or True)
+    r = bf.main(aplicar=True)
+    assert "error_global" in r and "0.2.54" in r["error_global"]
+    assert not pushes and not os.path.exists("data/research/merval_10y.csv")
+    assert any("❌" in l for l in r["telegram_lines"])
+
+
+def test_un_mercado_caido_no_frena_a_los_otros(monkeypatch):
+    class _SoloSP(_FakeTicker):
+        def history(self, **kw):
+            if self.ticker.endswith(".BA") or self.ticker.endswith(".SA") or self.ticker in ("^MERV", "^BVSP"):
+                return pd.DataFrame()
+            return super().history(**kw)
+    monkeypatch.setattr(bf, "yf", type("YF", (), {"Ticker": _SoloSP}))
+    r = bf.main(aplicar=True, push=False)
+    assert r["mercados"]["merval"]["error"] == "sin datos"
+    assert r["mercados"]["sp500"]["tickers_ok"] == 3
+    assert "error_global" not in r
