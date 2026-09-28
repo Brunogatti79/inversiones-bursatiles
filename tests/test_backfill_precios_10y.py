@@ -79,7 +79,8 @@ def test_ccl_coherente():
     r = bf.main(aplicar=True, push=False)
     fx = pd.read_csv("data/research/fx_10y.csv", sep=";", decimal=",", encoding="utf-8-sig", index_col=0)
     assert fx["CCL"].median() == pytest.approx(1000, rel=0.01)
-    assert r["fx"]["CCL"]["dias_dif_mayor_10pct"] == 0
+    assert r["fx"]["CCL"]["ratio_ggal_vs_ypf_mediana"] == pytest.approx(1.0, rel=0.01)
+    assert (fx["CCL"] == fx["CCL_GGAL"]).all()
 
 
 def test_motor_lee_dataset_research(monkeypatch):
