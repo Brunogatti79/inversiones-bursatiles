@@ -26,8 +26,8 @@ de producción: sep ';', decimal ',', utf-8-sig.
 El CCL se calcula con cierres SIN ajustar (auto_adjust=False) de la acción
 local y el ADR: con precios ajustados por dividendos el cociente se deforma.
   CCL_GGAL = GGAL.BA * 10 / GGAL      (1 ADR = 10 acciones)
-  CCL_YPF  = YPFD.BA / YPF            (1 ADR = 1 acción)
-  CCL      = mediana de ambos cuando los dos existen
+  CCL_YPF  = YPFD.BA / YPF            (solo control: en Yahoo da ~10x menos)
+  CCL      = CCL_GGAL
 
 Uso (recomendado): GitHub → Actions → "Backfill research 10y" → Run workflow.
   Corre con yfinance actualizado (el de Railway está fijado en 0.2.54 y
@@ -188,15 +188,23 @@ def _bajar_fx() -> tuple[pd.DataFrame, dict]:
         fx["CCL_GGAL"] = fx["GGAL.BA"] * 10 / fx["GGAL"]
     if {"YPF", "YPFD.BA"} <= set(fx.columns):
         fx["CCL_YPF"] = fx["YPFD.BA"] / fx["YPF"]
-    ccl_cols = [c for c in ("CCL_GGAL", "CCL_YPF") if c in fx.columns]
-    if ccl_cols:
-        fx["CCL"] = fx[ccl_cols].median(axis=1, skipna=True)
+    # FIX 28/09: el CCL es CCL_GGAL. Con datos reales de Yahoo, CCL_YPF da
+    # ~10x menos en toda la serie (2018, 2022 y 2026: ratio ~10,0 constante:
+    # escala de YPFD.BA en Yahoo o ratio del ADR) y la mediana de 2 valores es
+    # el promedio -> un CCL ~2x mal. CCL_GGAL cierra contra ARS=X con brechas
+    # razonables (2018 ~8%, 2022 ~100% con cepo, 2026 ~6%). YPF queda solo
+    # como control cruzado.
+    if "CCL_GGAL" in fx.columns:
+        fx["CCL"] = fx["CCL_GGAL"]
         meta["CCL"] = _calidad(fx["CCL"])
-        # diferencia entre las dos fuentes: si es grande, alguna está rota
-        if len(ccl_cols) == 2:
-            dif = (fx["CCL_GGAL"] / fx["CCL_YPF"] - 1).abs().dropna()
-            meta["CCL"]["dif_mediana_ggal_vs_ypf_pct"] = round(float(dif.median() * 100), 2) if len(dif) else None
-            meta["CCL"]["dias_dif_mayor_10pct"] = int((dif > 0.10).sum())
+        meta["CCL"]["fuente"] = "GGAL.BA * 10 / GGAL (ADR)"
+        if "CCL_YPF" in fx.columns:
+            ratio = (fx["CCL_GGAL"] / fx["CCL_YPF"]).dropna()
+            meta["CCL"]["ratio_ggal_vs_ypf_mediana"] = round(float(ratio.median()), 2) if len(ratio) else None
+        if "ARS=X" in fx.columns:
+            brecha = (fx["CCL"] / fx["ARS=X"] - 1).dropna()
+            meta["CCL"]["brecha_vs_oficial_mediana_pct"] = round(float(brecha.median() * 100), 1) if len(brecha) else None
+            meta["CCL"]["dias_brecha_negativa_menor_-10pct"] = int((brecha < -0.10).sum())
     return fx, meta
 
 
@@ -299,8 +307,8 @@ def _telegram_lines(r: dict) -> list:
         )
     ccl = r["fx"].get("CCL")
     if ccl:
-        L.append(f"<b>CCL</b>: {ccl.get('desde')} → {ccl.get('hasta')} · dif. GGAL vs YPF mediana "
-                 f"{ccl.get('dif_mediana_ggal_vs_ypf_pct')}% · días &gt;10%: {ccl.get('dias_dif_mayor_10pct')}")
+        L.append(f"<b>CCL</b> (GGAL): {ccl.get('desde')} → {ccl.get('hasta')} · brecha mediana vs oficial "
+                 f"{ccl.get('brecha_vs_oficial_mediana_pct')}% · ratio GGAL/YPF {ccl.get('ratio_ggal_vs_ypf_mediana')}")
     else:
         L.append("<b>CCL</b>: ❌ no se pudo calcular")
     if r["modo"] == "completo":
