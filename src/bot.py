@@ -90,7 +90,10 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/fundamentals_av — Prueba chica (LLY) de ratios Alpha Vantage\n"
         "/fundamentals_av aplicar — Batch completo (14 tickers bloqueados por FMP)\n"
         "/diagnostico_racha — Trades por día vs. por racha (shadow, §6.2)\n"
-        "/diagnostico_ic — Ordenamiento por mercado + motor walk-forward (shadow)\n"
+        "/diagnostico_ic — Ordenamiento por mercado + motor walk-forward (shadow, 13 meses)\n"
+        "/diagnostico_ic 10y — Motor sobre el dataset de 10 años (requiere backfill)\n"
+        "/backfill_precios — Prueba chica del backfill de 10 años (no pushea)\n"
+        "/backfill_precios aplicar — Backfill completo 10 años → data/research/ (~5-8 min)\n"
         "/help — Esta ayuda\n\n"
         "Ejemplos:\n"
         "<code>/compra GGAL.BA 1.59 100</code>  (precio en USD)\n"
@@ -621,14 +624,18 @@ async def cmd_diagnostico_racha(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def cmd_diagnostico_ic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    /diagnostico_ic — corre scripts/diagnostico_ic.py. SHADOW: no toca
+    /diagnostico_ic [10y] — corre scripts/diagnostico_ic.py. SHADOW: no toca
     señales, signal_v2, Kelly ni portfolio_optimizer. Mide, POR MERCADO, si
     los scores del modelo ordenan el retorno a 21d (IC por bloque) y corre el
     motor walk-forward de factores de precio (cada mercado elige sus propios
-    factores y signos con datos pasados). Persiste data/diagnostico_ic.json.
+    factores y signos con datos pasados). Sin argumento usa los CSV de
+    producción (~13 meses); con "10y" usa data/research/ (backfill).
+    Persiste data/diagnostico_ic.json o data/diagnostico_ic_10y.json.
     """
+    fuente = "10y" if context.args and context.args[0].lower() == "10y" else "csv"
     await update.message.reply_text(
-        "🔬 Corriendo diagnóstico IC + motor por mercado (shadow, no toca producción)… ~1 min",
+        f"🔬 Corriendo diagnóstico IC + motor por mercado ({fuente}, shadow, no toca producción)… "
+        f"{'~2 min' if fuente == '10y' else '~20 s'}",
         parse_mode="HTML"
     )
 
@@ -636,12 +643,38 @@ async def cmd_diagnostico_ic(update: Update, context: ContextTypes.DEFAULT_TYPE)
     from scripts.diagnostico_ic import main as run_diagnostico_ic
     try:
         loop = asyncio.get_event_loop()
-        res = await loop.run_in_executor(None, run_diagnostico_ic)
+        res = await loop.run_in_executor(None, lambda: run_diagnostico_ic(fuente=fuente))
         texto = "\n".join(res.get("telegram_lines") or ["Sin resultados"])
         for i in range(0, len(texto), 3900):
             await update.message.reply_text(texto[i:i + 3900], parse_mode="HTML")
     except Exception as e:
         logger.error(f"Error en /diagnostico_ic: {e}")
+        await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
+
+
+async def cmd_backfill_precios(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /backfill_precios [aplicar] — dataset de investigación de 10 años
+    (scripts/backfill_precios_10y.py). Sin argumento: prueba chica, 2 tickers
+    por mercado, no pushea. Con "aplicar": universo completo + FX/CCL, pushea
+    a data/research/. No toca los CSV de producción ni el pipeline.
+    """
+    aplicar = bool(context.args) and context.args[0].lower() == "aplicar"
+    await update.message.reply_text(
+        "📦 Backfill 10 años — " + ("COMPLETO (~5-8 min, ~95 tickers)…" if aplicar else "prueba chica…"),
+        parse_mode="HTML"
+    )
+
+    import asyncio
+    from scripts.backfill_precios_10y import main as run_backfill
+    try:
+        loop = asyncio.get_event_loop()
+        res = await loop.run_in_executor(None, lambda: run_backfill(aplicar=aplicar))
+        texto = "\n".join(res.get("telegram_lines") or ["Sin resultados"])
+        for i in range(0, len(texto), 3900):
+            await update.message.reply_text(texto[i:i + 3900], parse_mode="HTML")
+    except Exception as e:
+        logger.error(f"Error en /backfill_precios: {e}")
         await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
 
 
@@ -671,6 +704,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("fundamentals_av", cmd_fundamentals_av))
     app.add_handler(CommandHandler("diagnostico_racha", cmd_diagnostico_racha))
     app.add_handler(CommandHandler("diagnostico_ic", cmd_diagnostico_ic))
+    app.add_handler(CommandHandler("backfill_precios", cmd_backfill_precios))
  
     return app
  
