@@ -42,6 +42,14 @@ DATA_QUALITY_HISTORY_PATH = "data/data_quality_history.json"
 # ─────────────────────────────────────────────
  
  
+def _sin_key(e, key) -> str:
+    """FIX 29/09/2026: requests incluye la URL completa en el mensaje de
+    error (HTTPError 4xx/5xx), y con ella el api_key de FRED en texto plano
+    en el log de Railway. Se reemplaza antes de loguear."""
+    msg = str(e)
+    return msg.replace(key, "***") if key else msg
+
+
 def _fred_latest(series_id, api_key=None, expected_gap=False):
     """
     Obtiene el último valor de una serie FRED.
@@ -74,9 +82,9 @@ def _fred_latest(series_id, api_key=None, expected_gap=False):
         return None, None
     except Exception as e:
         if expected_gap:
-            logger.info(f"FRED [{series_id}]: sin datos (esperado y permanente, ver fetch_usa_macro) — {e}")
+            logger.info(f"FRED [{series_id}]: sin datos (esperado y permanente, ver fetch_usa_macro) — {_sin_key(e, key)}")
         else:
-            logger.warning(f"FRED error [{series_id}]: {e}")
+            logger.warning(f"FRED error [{series_id}]: {_sin_key(e, key)}")
         return None, None
  
  
@@ -104,7 +112,7 @@ def _fred_yoy(series_id, api_key=None):
                 return round(float(val), 2)
         return None
     except Exception as e:
-        logger.warning(f"FRED YoY error [{series_id}]: {e}")
+        logger.warning(f"FRED YoY error [{series_id}]: {_sin_key(e, key)}")
         return None
  
  
@@ -1191,7 +1199,7 @@ def bootstrap_fred_history(years: int = 3, api_key: str = None):
                 history[range_key] = values[-1100:]
                 logger.info(f"[bootstrap_fred_history] {range_key} ({series_id}): {len(values)} observaciones cargadas")
         except Exception as e:
-            logger.warning(f"[bootstrap_fred_history] {range_key} falló: {e}")
+            logger.warning(f"[bootstrap_fred_history] {range_key} falló: {_sin_key(e, api_key)}")
 
     save_json(RAW_HISTORY_PATH, history, message=f"bootstrap: macro_raw_history FRED {years}y")
     return history
