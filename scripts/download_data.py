@@ -136,6 +136,7 @@ CEDEAR_TICKERS = {
  
 MIN_ROWS         = 10
 MIN_SUCCESS_RATE = 0.5
+MIN_COBERTURA_ULTIMA_FILA = 0.5   # FIX 29/09/2026: ver _recortar_filas_incompletas
 DELAY_MIN        = 1.5
 DELAY_MAX        = 3.5
 DATA_DIR         = "data"
@@ -209,6 +210,34 @@ def download_single(ticker, start, end, market_name):
     return None, None, None
  
  
+def _recortar_filas_incompletas(df, market_name):
+    """
+    FIX 29/09/2026 (log de Bruno: "[SP500] Integridad baja: solo 1/40
+    tickers"). Yahoo a veces publica la barra diaria del índice (^GSPC) antes
+    que la de las acciones: la corrida de 00:50 UTC del 29/09 dejó en
+    sp500_cierres.csv una fila 28/09 con solo "INDICE S&P 500" y las 39
+    acciones vacías. El pipeline toma la última fila como "hoy" y el
+    validador la marca ERROR. Si la última fila tiene menos del
+    MIN_COBERTURA_ULTIMA_FILA de las columnas con dato, se descarta (y se
+    repite por si hay más de una): el CSV queda en el último día completo, y
+    la corrida siguiente vuelve a intentar ese día. Nunca toca filas
+    intermedias ni deja el DataFrame vacío.
+    """
+    if df is None or df.empty:
+        return df
+    while len(df) > 1:
+        cobertura = float(df.iloc[-1].notna().mean())
+        if cobertura >= MIN_COBERTURA_ULTIMA_FILA:
+            break
+        logger.warning(
+            f"[{market_name}] Última fila {df.index[-1].date()} incompleta "
+            f"({int(df.iloc[-1].notna().sum())}/{df.shape[1]} columnas) — se descarta; "
+            f"la próxima corrida la reintenta"
+        )
+        df = df.iloc[:-1]
+    return df
+
+
 def download_market(tickers, index_ticker, market_name):
     start, end   = get_period()
     all_tickers  = {**tickers, index_ticker: index_display_name(market_name)}
@@ -246,6 +275,7 @@ def download_market(tickers, index_ticker, market_name):
     df = pd.concat(series_list, axis=1)
     df.index.name = "Fecha"
     df = df.sort_index().dropna(how="all")
+    df = _recortar_filas_incompletas(df, market_name)
     logger.info(f"[{market_name}] DataFrame: {len(df)} días, {len(df.columns)} columnas")
 
     # Fix 27/07/2026 (roadmap externo P6): High/Low reales, mismo índice de
@@ -258,12 +288,14 @@ def download_market(tickers, index_ticker, market_name):
         df_high = pd.concat(series_high_list, axis=1)
         df_high.index.name = "Fecha"
         df_high = df_high.sort_index().dropna(how="all")
+        df_high = df_high[df_high.index <= df.index[-1]]  # mismo corte que Close
 
     df_low = None
     if series_low_list:
         df_low = pd.concat(series_low_list, axis=1)
         df_low.index.name = "Fecha"
         df_low = df_low.sort_index().dropna(how="all")
+        df_low = df_low[df_low.index <= df.index[-1]]  # mismo corte que Close
 
     return df, df_high, df_low
  
@@ -291,6 +323,7 @@ def download_market_no_index(tickers, market_name):
     df = pd.concat(series_list, axis=1)
     df.index.name = "Fecha"
     df = df.sort_index().dropna(how="all")
+    df = _recortar_filas_incompletas(df, market_name)
     logger.info(f"[{market_name}] DataFrame: {len(df)} días, {len(df.columns)} columnas")
     return df
 
