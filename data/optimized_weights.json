@@ -1,18 +1,18 @@
 {
-  "generated": "2026-09-28T14:20:15.209514",
+  "generated": "2026-09-29T10:50:05.801048",
   "days_history": 61,
   "mode": "walk_forward",
   "MERVAL": {
-    "macro": 0.2,
-    "tecnico": 0.45,
+    "macro": 0.45,
+    "tecnico": 0.3,
     "sector": 0.1,
-    "fundamental": 0.25,
-    "ev_21d": 1.7,
-    "win_rate_21d": 0.5,
-    "avg_ret_21d": 1.7,
-    "sharpe_21d": 0.23,
-    "samples": 72,
-    "n_real_entries": 580,
+    "fundamental": 0.15,
+    "ev_21d": -0.5,
+    "win_rate_21d": 0.413,
+    "avg_ret_21d": -0.5,
+    "sharpe_21d": -0.05,
+    "samples": 46,
+    "n_real_entries": 620,
     "n_replay_entries": 0
   },
   "BOVESPA": {
@@ -20,10 +20,10 @@
     "tecnico": 0.2,
     "sector": 0.1,
     "fundamental": 0.55,
-    "ev_21d": 11.62,
-    "win_rate_21d": 0.901,
-    "avg_ret_21d": 11.62,
-    "sharpe_21d": 0.98,
+    "ev_21d": 10.64,
+    "win_rate_21d": 0.88,
+    "avg_ret_21d": 10.64,
+    "sharpe_21d": 0.9,
     "samples": 142,
     "n_real_entries": 476,
     "n_replay_entries": 0
@@ -38,7 +38,7 @@
     "avg_ret_21d": 6.78,
     "sharpe_21d": 8.07,
     "samples": 6,
-    "n_real_entries": 840,
+    "n_real_entries": 810,
     "n_replay_entries": 0
   }
 }
