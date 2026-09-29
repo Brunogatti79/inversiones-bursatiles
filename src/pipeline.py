@@ -946,6 +946,22 @@ def run_pipeline():
         )
         if SEND_EXCEL and excel_path and os.path.exists(excel_path):
             send_excel(excel_path)
+
+        # 8b. CAPA DE CARTERA POR RIESGO (camino A, SHADOW, 28/09/2026)
+        # Pesos objetivo por mercado ∝ 1/vol 63d en USD, banda ±5 pp, contra la
+        # cartera real (solo lectura) + seguimiento vs tercios y 100% S&P.
+        # No toca señales, Kelly ni portfolio.json. Aviso a Telegram solo si la
+        # cartera sale de banda, como máximo una vez por día.
+        try:
+            from src.capa_cartera import run_capa_cartera
+            capa = run_capa_cartera(push=True)
+            if capa.get("avisar_ahora"):
+                from src.notifier import _send_message
+                _send_message("\n".join(capa.get("telegram_lines", [])))
+            logger.info(f"8b Capa de cartera: objetivo={capa.get('pesos_objetivo')} "
+                        f"rebalancear={capa.get('rebalancear')}")
+        except Exception as e_capa:
+            logger.warning(f"Capa de cartera no crítica — continuando: {e_capa}")
  
         duration = time.time() - start_ts
         _save_status(run_date=run_date, success=True, duration=duration, tz=tz,

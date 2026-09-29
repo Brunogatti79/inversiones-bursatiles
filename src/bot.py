@@ -94,6 +94,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/diagnostico_ic 10y — Motor sobre el dataset de 10 años (requiere backfill)\n"
         "/backfill_precios — Prueba chica del backfill de 10 años (no pushea)\n"
         "/backfill_precios aplicar — Backfill completo 10 años → data/research/ (~5-8 min)\n"
+        "/cartera_riesgo — Pesos objetivo por mercado (inversa de vol) vs tu cartera (shadow)\n"
         "/help — Esta ayuda\n\n"
         "Ejemplos:\n"
         "<code>/compra GGAL.BA 1.59 100</code>  (precio en USD)\n"
@@ -678,6 +679,27 @@ async def cmd_backfill_precios(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
 
 
+async def cmd_cartera_riesgo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /cartera_riesgo — capa de cartera por riesgo (camino A, shadow):
+    pesos objetivo por mercado ∝ 1/vol 63d en USD, desvío de la cartera real,
+    montos sugeridos si sale de banda (±5 pp) y seguimiento vs tercios y 100% S&P.
+    No toca señales, Kelly ni portfolio.json.
+    """
+    await update.message.reply_text("⚖️ Calculando capa de cartera por riesgo…", parse_mode="HTML")
+
+    import asyncio
+    from src.capa_cartera import run_capa_cartera
+    try:
+        loop = asyncio.get_event_loop()
+        res = await loop.run_in_executor(None, lambda: run_capa_cartera(push=True))
+        await update.message.reply_text("\n".join(res.get("telegram_lines") or ["Sin resultados"]),
+                                        parse_mode="HTML")
+    except Exception as e:
+        logger.error(f"Error en /cartera_riesgo: {e}")
+        await update.message.reply_text(f"❌ Error:\n<code>{str(e)[:300]}</code>", parse_mode="HTML")
+
+
 # ─────────────────────────────────────────────
 # Inicialización
 # ─────────────────────────────────────────────
@@ -705,6 +727,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("diagnostico_racha", cmd_diagnostico_racha))
     app.add_handler(CommandHandler("diagnostico_ic", cmd_diagnostico_ic))
     app.add_handler(CommandHandler("backfill_precios", cmd_backfill_precios))
+    app.add_handler(CommandHandler("cartera_riesgo", cmd_cartera_riesgo))
  
     return app
  
