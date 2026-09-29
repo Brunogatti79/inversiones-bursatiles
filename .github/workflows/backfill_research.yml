@@ -3,7 +3,11 @@ name: Backfill research 10y
 # Corre acá y no en Railway porque Railway tiene yfinance fijado en 0.2.54 y
 # Yahoo ya no le responde; acá se instala la versión actual (igual que download_data.yml).
 # No toca los CSV de producción ni dispara el pipeline.
+# Programado de martes a sábado 01:30 UTC (después de la descarga de 23:00 UTC)
+# para que la capa de cartera (src/capa_cartera.py) tenga datos del día hábil anterior.
 on:
+  schedule:
+    - cron: '30 1 * * 2-6'
   workflow_dispatch:
     inputs:
       modo:
@@ -40,14 +44,14 @@ jobs:
 
       - name: Backfill 10 años
         run: |
-          if [ "${{ inputs.modo }}" = "aplicar" ]; then
+          if [ "${{ inputs.modo || 'aplicar' }}" = "aplicar" ]; then
             python scripts/backfill_precios_10y.py --aplicar --no-push
           else
             python scripts/backfill_precios_10y.py --no-push
           fi
 
       - name: Commit y push de data/research
-        if: inputs.modo == 'aplicar'
+        if: (inputs.modo || 'aplicar') == 'aplicar'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
