@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-09-29T18:43:03.036128",
-  "last_run_utc": "2026-09-29T21:43:03.036409",
-  "last_success": "2026-09-29T18:43:03.036128",
+  "last_run": "2026-09-29T21:11:49.034525",
+  "last_run_utc": "2026-09-30T00:11:49.034590",
+  "last_success": "2026-09-29T21:11:49.034525",
   "consecutive_failures": 0,
   "duration_history": [
-    402.3,
     212.0,
     124.0,
     121.2,
@@ -13,11 +12,12 @@
     406.4,
     166.0,
     199.7,
-    140.1
+    140.1,
+    146.8
   ],
-  "duration_avg_sec": 220.0,
+  "duration_avg_sec": 215.6,
   "duration_p95_sec": 404.4,
-  "duration_last_sec": 140.1,
+  "duration_last_sec": 146.8,
   "signals_count": 84,
   "buy_signals": 21,
   "sell_signals": 16,
@@ -25,7 +25,7 @@
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 56/100), correlación moderada entre mercados. MERVAL en modo idiosincrá",
-  "validacion_nivel": "OK",
+  "validacion_nivel": "WARNING",
   "runs_log": [
     {
       "ts": "2026-09-22",
@@ -196,29 +196,34 @@
       "ts": "2026-09-29",
       "success": true,
       "duration": 140.1
+    },
+    {
+      "ts": "2026-09-29",
+      "success": true,
+      "duration": 146.8
     }
   ],
-  "pipeline_runs_today": 6,
-  "pipeline_runs_week": 34,
+  "pipeline_runs_today": 7,
+  "pipeline_runs_week": 35,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 58.0,
+  "global_confidence_score": 51.0,
   "global_confidence_label": "🟡 Reducida",
   "kill_switch_active": false,
   "optimized_weights_days": 61,
-  "exposure_factor_shadow": 0.836,
+  "exposure_factor_shadow": 0.682,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
-  "backtest_ev_21d": 3.03,
+  "backtest_ev_21d": 3.04,
   "backtest_total_trades": 2767,
-  "predictor_dir_acc": 0.51,
-  "predictor_mae": 10.94,
+  "predictor_dir_acc": 0.514,
+  "predictor_mae": 10.96,
   "backtest_generated": "2026-09-29",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 2.1,
+  "ccl_age_minutes": 2.2,
   "last_ccl_value": 1616.0
 }
