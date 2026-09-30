@@ -20673,5 +20673,52 @@
         "sp500_trend_score": 56.0
       }
     }
+  ],
+  "2026-09-30": [
+    {
+      "ticker": "GGAL.BA",
+      "empresa": "Grupo Financiero Galicia",
+      "mercado": "MERVAL",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 6070.0,
+      "entrada": 6009.3,
+      "stop": 5856.28,
+      "target": 6376.9,
+      "riesgo_pct": 2.5,
+      "reward_pct": 6.1,
+      "rr_ratio": 2.72,
+      "score_macro": 61.3,
+      "score_tecnico": 43.5,
+      "score_fundamental": 67.4,
+      "score_final_v1": 42.8,
+      "asset_quality": 59.3,
+      "entry_score": 63.5,
+      "score_final_v2": 64.0,
+      "ranking_accionable": 59.3,
+      "volatility_score": 47.5,
+      "adx": 0.0,
+      "alignment_score": 70,
+      "alignment_label": "DOBLE CONFIRMACIÓN",
+      "weekly_trend": "LATERAL",
+      "monthly_trend": "BAJISTA",
+      "rsi": 10.6,
+      "momentum_21d": -15.2,
+      "pred_5d": 0.0,
+      "pred_10d": 0.0,
+      "pred_21d": 0.0,
+      "pred_confidence": 0.273,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 52.0,
+      "index_snapshot": {
+        "actual": 2818905.0,
+        "ret_dia": 1.31,
+        "ret_anual": 58.95
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 56.0
+      }
+    }
   ]
 }
