@@ -20720,5 +20720,52 @@
         "sp500_trend_score": 56.0
       }
     }
+  ],
+  "2026-10-01": [
+    {
+      "ticker": "SUZB3.SA",
+      "empresa": "Suzano",
+      "mercado": "BOVESPA",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 43.24,
+      "entrada": 42.81,
+      "stop": 40.43,
+      "target": 43.1,
+      "riesgo_pct": 5.6,
+      "reward_pct": 0.7,
+      "rr_ratio": 1.95,
+      "score_macro": 45.1,
+      "score_tecnico": 57.0,
+      "score_fundamental": 82.2,
+      "score_final_v1": 62.1,
+      "asset_quality": 60.0,
+      "entry_score": 58.0,
+      "score_final_v2": 62.1,
+      "ranking_accionable": 61.2,
+      "volatility_score": 60.6,
+      "adx": 0.0,
+      "alignment_score": 45,
+      "alignment_label": "SEÑALES MIXTAS",
+      "weekly_trend": "ALCISTA",
+      "monthly_trend": "BAJISTA",
+      "rsi": 27.9,
+      "momentum_21d": -7.5,
+      "pred_5d": 0.0,
+      "pred_10d": 0.0,
+      "pred_21d": 0.0,
+      "pred_confidence": 0.27,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 50.2,
+      "index_snapshot": {
+        "actual": 187216.0,
+        "ret_dia": 0.47,
+        "ret_anual": 28.66
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 48.0
+      }
+    }
   ]
 }
