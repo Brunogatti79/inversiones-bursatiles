@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-02T16:54:09.801312",
+  "generated": "2026-10-02T17:31:45.232467",
   "total_trades": 2952,
   "days_history": 61,
   "by_signal": {
@@ -11607,24 +11607,7 @@
     "desvio_entrada_mediana_pct": 0.0,
     "trades_desvio_mayor_1pct": 274
   },
-  "pattern_discoveries_nuevas": [
-    {
-      "fecha": "2026-10-02 16:54",
-      "tipo": "cambio_de_signo",
-      "combinacion": "🟢 Alta + 🟢 COMPRA",
-      "ev_antes": -0.04,
-      "ev_ahora": 0.06,
-      "n": 387
-    },
-    {
-      "fecha": "2026-10-02 16:54",
-      "tipo": "cambio_de_signo",
-      "combinacion": "🟡 Media + 🟠 VENTA PARCIAL",
-      "ev_antes": 0.01,
-      "ev_ahora": -0.12,
-      "n": 85
-    }
-  ],
+  "pattern_discoveries_nuevas": [],
   "historical_edge_score": {
     "🟢 Alta + 🟢 COMPRA": {
       "score": 55.4,
@@ -12007,7 +11990,7 @@
       "profit_factor": 1.03,
       "significativo_95": false,
       "walk_forward_estado": "no_confirmado",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟡 Media + 🟠 VENTA PARCIAL",
@@ -12021,7 +12004,7 @@
       "profit_factor": 0.93,
       "significativo_95": false,
       "walk_forward_estado": "no_confirmado",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟢 Alta + 🟡 NEUTRAL/ESPERAR",
