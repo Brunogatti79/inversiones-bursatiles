@@ -20904,5 +20904,97 @@
         "sp500_trend_score": 48.0
       }
     }
+  ],
+  "2026-10-03": [
+    {
+      "ticker": "MGLU3.SA",
+      "empresa": "Magazine Luiza",
+      "mercado": "BOVESPA",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 7.61,
+      "entrada": 6.17,
+      "stop": 7.32,
+      "target": 9.15,
+      "riesgo_pct": -18.6,
+      "reward_pct": 48.3,
+      "rr_ratio": 5.0,
+      "score_macro": 45.7,
+      "score_tecnico": 56.8,
+      "score_fundamental": 73.3,
+      "score_final_v1": 53.6,
+      "asset_quality": 53.1,
+      "entry_score": 70.5,
+      "score_final_v2": 65.4,
+      "ranking_accionable": 52.6,
+      "volatility_score": 20.0,
+      "adx": 0.0,
+      "alignment_score": 30,
+      "alignment_label": "CONFLICTO PARCIAL",
+      "weekly_trend": "LATERAL",
+      "monthly_trend": "BAJISTA",
+      "rsi": 85.7,
+      "momentum_21d": 36.9,
+      "pred_5d": 0.0,
+      "pred_10d": 0.0,
+      "pred_21d": 0.0,
+      "pred_confidence": 0.265,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 82.4,
+      "index_snapshot": {
+        "actual": 192115.0,
+        "ret_dia": 2.63,
+        "ret_anual": 33.46
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 48.0
+      }
+    },
+    {
+      "ticker": "WEGE3.SA",
+      "empresa": "WEG",
+      "mercado": "BOVESPA",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 51.45,
+      "entrada": 51.45,
+      "stop": 48.363,
+      "target": 57.62400000000001,
+      "riesgo_pct": 6.0,
+      "reward_pct": 12.0,
+      "rr_ratio": 1.46,
+      "score_macro": 45.7,
+      "score_tecnico": 56.8,
+      "score_fundamental": 82.3,
+      "score_final_v1": 73.7,
+      "asset_quality": 57.8,
+      "entry_score": 68.8,
+      "score_final_v2": 65.9,
+      "ranking_accionable": 61.0,
+      "volatility_score": 53.7,
+      "adx": 0.0,
+      "alignment_score": 95,
+      "alignment_label": "TRIPLE CONFIRMACIÓN",
+      "weekly_trend": "ALCISTA",
+      "monthly_trend": "ALCISTA",
+      "rsi": 55.0,
+      "momentum_21d": -1.0,
+      "pred_5d": 0.0,
+      "pred_10d": 0.0,
+      "pred_21d": 0.0,
+      "pred_confidence": 0.265,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 53.6,
+      "index_snapshot": {
+        "actual": 192115.0,
+        "ret_dia": 2.63,
+        "ret_anual": 33.46
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 48.0
+      }
+    }
   ]
 }
