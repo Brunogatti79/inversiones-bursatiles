@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-08T17:36:18",
+  "generated": "2026-10-08T19:42:06",
   "shadow": true,
   "fecha_datos": "2026-10-07",
   "datos_viejos": false,
@@ -15,28 +15,28 @@
   },
   "cartera_real": {
     "valor_usd": {
-      "MERVAL": 2846.35,
-      "BOVESPA": 683.38,
+      "MERVAL": 2866.6,
+      "BOVESPA": 707.44,
       "SP500": 3013.47
     },
-    "total_usd": 6543.2,
+    "total_usd": 6587.51,
     "pesos": {
-      "MERVAL": 0.435,
-      "BOVESPA": 0.1044,
-      "SP500": 0.4605
+      "MERVAL": 0.4352,
+      "BOVESPA": 0.1074,
+      "SP500": 0.4575
     }
   },
   "desvio_pp": {
-    "MERVAL": 22.8,
-    "BOVESPA": -13.6,
-    "SP500": -9.2
+    "MERVAL": 22.9,
+    "BOVESPA": -13.3,
+    "SP500": -9.5
   },
   "banda_pp": 5.0,
   "rebalancear": true,
   "montos_sugeridos_usd": {
-    "MERVAL": -1494.0,
-    "BOVESPA": 890.0,
-    "SP500": 604.0
+    "MERVAL": -1505.0,
+    "BOVESPA": 877.0,
+    "SP500": 628.0
   },
   "inicio_seguimiento": "2026-09-30",
   "seguimiento": {
@@ -73,16 +73,16 @@
     }
   },
   "ultimo_aviso": "2026-10-08",
-  "avisar_ahora": true,
+  "avisar_ahora": false,
   "telegram_lines": [
     "<b>⚖️ Capa de cartera por riesgo (shadow)</b> — datos al 2026-10-07",
     "🇦🇷 MERVAL: objetivo 21% · real 44% · vol 29.4%",
-    "🇧🇷 BOVESPA: objetivo 24% · real 10% · vol 25.3%",
+    "🇧🇷 BOVESPA: objetivo 24% · real 11% · vol 25.3%",
     "🇺🇸 S&amp;P: objetivo 55% · real 46% · vol 11.0%",
     "🔁 <b>Fuera de banda (±5 pp)</b>. Montos sugeridos (USD):",
-    "  🇦🇷 MERVAL: vender 1,494",
-    "  🇧🇷 BOVESPA: comprar 890",
-    "  🇺🇸 S&amp;P: comprar 604",
+    "  🇦🇷 MERVAL: vender 1,505",
+    "  🇧🇷 BOVESPA: comprar 877",
+    "  🇺🇸 S&amp;P: comprar 628",
     "Costo estimado de rebalancear: 18 USD",
     "Seguimiento desde 2026-09-30 (base 100): inversa vol 104.74 · tercios 105.18 · 100% S&amp;P 101.35",
     "<i>Análisis de datos, no asesoramiento. No toca señales ni Kelly.</i>"
