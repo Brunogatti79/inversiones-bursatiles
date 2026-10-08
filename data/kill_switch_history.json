@@ -6066,5 +6066,22 @@
       "sla_status": "OK",
       "n_signals": 84
     }
+  ],
+  "2026-10-08": [
+    {
+      "timestamp": "2026-10-08T17:35:19.504704",
+      "global_score": 32.8,
+      "label": "🔴 Crítica",
+      "kill_switch_active": true,
+      "kill_switch_reasons": [
+        "score global=32.8 por debajo del umbral=35"
+      ],
+      "criticas": 22,
+      "criticas_estructurales": 0,
+      "advertencias": 27,
+      "validacion_nivel": "WARNING",
+      "sla_status": "CRITICAL",
+      "n_signals": 84
+    }
   ]
 }
