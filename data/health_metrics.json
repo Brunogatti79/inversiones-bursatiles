@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-10-09T19:04:11.708539",
-  "last_run_utc": "2026-10-09T22:04:11.708590",
-  "last_success": "2026-10-09T19:04:11.708539",
+  "last_run": "2026-10-09T21:37:10.145048",
+  "last_run_utc": "2026-10-10T00:37:10.145733",
+  "last_success": "2026-10-09T21:37:10.145048",
   "consecutive_failures": 0,
   "duration_history": [
-    404.9,
     265.9,
     146.6,
     129.9,
@@ -13,11 +12,12 @@
     139.4,
     381.9,
     154.8,
-    138.9
+    138.9,
+    153.8
   ],
-  "duration_avg_sec": 219.6,
+  "duration_avg_sec": 221.9,
   "duration_p95_sec": 393.9,
-  "duration_last_sec": 138.9,
+  "duration_last_sec": 153.8,
   "signals_count": 84,
   "buy_signals": 30,
   "sell_signals": 17,
@@ -25,7 +25,7 @@
   "cross_market_regime": "NEUTRAL",
   "cross_market_sp500_trend": "LATERAL",
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 56/100), correlación moderada entre mercados. Ajuste macro: MERVAL +0.1",
-  "validacion_nivel": "OK",
+  "validacion_nivel": "WARNING",
   "runs_log": [
     {
       "ts": "2026-10-02",
@@ -146,29 +146,34 @@
       "ts": "2026-10-09",
       "success": true,
       "duration": 138.9
+    },
+    {
+      "ts": "2026-10-09",
+      "success": true,
+      "duration": 153.8
     }
   ],
-  "pipeline_runs_today": 3,
-  "pipeline_runs_week": 24,
+  "pipeline_runs_today": 4,
+  "pipeline_runs_week": 25,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 52.8,
-  "global_confidence_label": "🟡 Reducida",
+  "global_confidence_score": 47.8,
+  "global_confidence_label": "🟠 Baja",
   "kill_switch_active": false,
   "optimized_weights_days": 61,
-  "exposure_factor_shadow": 0.656,
+  "exposure_factor_shadow": 0.556,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
-  "backtest_ev_21d": 2.3,
+  "backtest_ev_21d": 2.35,
   "backtest_total_trades": 3037,
-  "predictor_dir_acc": 0.452,
-  "predictor_mae": 10.9,
+  "predictor_dir_acc": 0.453,
+  "predictor_mae": 10.96,
   "backtest_generated": "2026-10-09",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 2.0,
+  "ccl_age_minutes": 2.3,
   "last_ccl_value": 1605.5
 }
