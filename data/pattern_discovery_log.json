@@ -578,20 +578,68 @@
       "ev_antes": -0.07,
       "ev_ahora": 0.07,
       "n": 66
+    },
+    {
+      "fecha": "2026-10-12 17:35",
+      "tipo": "cambio_de_signo",
+      "combinacion": "🟡 Media + ⭐ COMPRA FUERTE",
+      "ev_antes": 0.04,
+      "ev_ahora": -0.01,
+      "n": 63
     }
   ],
   "_ultimo_snapshot": {
-    "🟢 Alta + 🟠 VENTA PARCIAL": {
-      "n": 36,
-      "ev": 1.87
-    },
-    "🟢 Alta + 🟢 COMPRA": {
-      "n": 332,
+    "🟡 Media + 🟡 NEUTRAL/ESPERAR": {
+      "n": 929,
       "ev": 1.37
     },
+    "🟡 Media + ⭐ COMPRA FUERTE": {
+      "n": 63,
+      "ev": -0.01
+    },
+    "🟡 Media + 🟢 COMPRA": {
+      "n": 421,
+      "ev": 1.15
+    },
+    "🟡 Media + 🟠 VENTA PARCIAL": {
+      "n": 80,
+      "ev": 0.62
+    },
+    "🟡 Media + 🔴 VENTA": {
+      "n": 16,
+      "ev": 0.41
+    },
+    "🟠 Baja + 🟠 VENTA PARCIAL": {
+      "n": 85,
+      "ev": -1.24
+    },
+    "🟠 Baja + 🟡 NEUTRAL/ESPERAR": {
+      "n": 194,
+      "ev": 1.24
+    },
+    "🟠 Baja + 🟢 COMPRA": {
+      "n": 51,
+      "ev": 3.58
+    },
+    "🟠 Baja + 🔴 VENTA": {
+      "n": 8,
+      "ev": -3.99
+    },
+    "🟠 Baja + ⭐ COMPRA FUERTE": {
+      "n": 38,
+      "ev": -2.21
+    },
+    "🟢 Alta + 🟢 COMPRA": {
+      "n": 319,
+      "ev": 1.55
+    },
     "🟢 Alta + ⭐ COMPRA FUERTE": {
-      "n": 33,
-      "ev": -2.2
+      "n": 32,
+      "ev": -2.18
+    },
+    "🟢 Alta + 🟠 VENTA PARCIAL": {
+      "n": 32,
+      "ev": 1.94
     },
     "🟢 Alta + 🟡 NEUTRAL/ESPERAR": {
       "n": 476,
@@ -601,50 +649,6 @@
       "n": 9,
       "ev": 0.18
     },
-    "🟡 Media + 🟡 NEUTRAL/ESPERAR": {
-      "n": 943,
-      "ev": 1.31
-    },
-    "🟡 Media + ⭐ COMPRA FUERTE": {
-      "n": 65,
-      "ev": 0.04
-    },
-    "🟡 Media + 🟢 COMPRA": {
-      "n": 422,
-      "ev": 1.14
-    },
-    "🟡 Media + 🟠 VENTA PARCIAL": {
-      "n": 82,
-      "ev": 0.64
-    },
-    "🟡 Media + 🔴 VENTA": {
-      "n": 16,
-      "ev": 0.41
-    },
-    "🟠 Baja + 🟠 VENTA PARCIAL": {
-      "n": 92,
-      "ev": -0.95
-    },
-    "🟠 Baja + 🟡 NEUTRAL/ESPERAR": {
-      "n": 211,
-      "ev": 0.87
-    },
-    "🟠 Baja + 🔴 VENTA": {
-      "n": 10,
-      "ev": -3.66
-    },
-    "🟠 Baja + 🟢 COMPRA": {
-      "n": 53,
-      "ev": 3.45
-    },
-    "🟠 Baja + ⭐ COMPRA FUERTE": {
-      "n": 38,
-      "ev": -2.21
-    },
-    "🔴 Muy baja + 🟠 VENTA PARCIAL": {
-      "n": 7,
-      "ev": 4.98
-    },
     "🔴 Muy baja + 🟡 NEUTRAL/ESPERAR": {
       "n": 5,
       "ev": 6.27
@@ -652,6 +656,10 @@
     "🔴 Muy baja + 🟢 COMPRA": {
       "n": 31,
       "ev": -0.47
+    },
+    "🔴 Muy baja + 🟠 VENTA PARCIAL": {
+      "n": 5,
+      "ev": 5.93
     },
     "🔴 Muy baja + 🔴 VENTA": {
       "n": 2,
