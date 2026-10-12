@@ -1,11 +1,11 @@
 {
-  "global_score": 32.8,
+  "global_score": 27.8,
   "label": "🔴 Crítica",
   "components": {
     "calidad_datos": 0.0,
-    "predictor": 55.0,
+    "predictor": 15.0,
     "macro": 70.1,
-    "integridad_datos": 50.0,
+    "integridad_datos": 100.0,
     "sla": 0.0
   },
   "weights": {
@@ -17,8 +17,8 @@
   },
   "kill_switch_active": true,
   "kill_switch_reasons": [
-    "score global=32.8 por debajo del umbral=35"
+    "score global=27.8 por debajo del umbral=35"
   ],
   "n_signals": 84,
-  "generated": "2026-10-11T17:34:36.252099"
+  "generated": "2026-10-12T17:34:36.244929"
 }
