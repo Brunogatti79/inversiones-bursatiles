@@ -6253,5 +6253,37 @@
       "sla_status": "OK",
       "n_signals": 84
     }
+  ],
+  "2026-10-13": [
+    {
+      "timestamp": "2026-10-13T17:35:04.142936",
+      "global_score": 27.8,
+      "label": "🔴 Crítica",
+      "kill_switch_active": true,
+      "kill_switch_reasons": [
+        "score global=27.8 por debajo del umbral=35"
+      ],
+      "criticas": 23,
+      "criticas_estructurales": 0,
+      "advertencias": 23,
+      "validacion_nivel": "OK",
+      "sla_status": "CRITICAL",
+      "n_signals": 84
+    },
+    {
+      "timestamp": "2026-10-13T17:35:05.709199",
+      "global_score": 27.8,
+      "label": "🔴 Crítica",
+      "kill_switch_active": true,
+      "kill_switch_reasons": [
+        "score global=27.8 por debajo del umbral=35"
+      ],
+      "criticas": 23,
+      "criticas_estructurales": 0,
+      "advertencias": 13,
+      "validacion_nivel": "OK",
+      "sla_status": "CRITICAL",
+      "n_signals": 84
+    }
   ]
 }
