@@ -22141,5 +22141,97 @@
         "sp500_trend_score": 48.0
       }
     }
+  ],
+  "2026-10-15": [
+    {
+      "ticker": "BA",
+      "empresa": "Boeing",
+      "mercado": "SP500",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 51.72,
+      "entrada": 51.21,
+      "stop": 182.13,
+      "target": 195.09,
+      "riesgo_pct": -255.7,
+      "reward_pct": 281.0,
+      "rr_ratio": 3.07,
+      "score_macro": 44.6,
+      "score_tecnico": 44.8,
+      "score_fundamental": 78.9,
+      "score_final_v1": 48.2,
+      "asset_quality": 56.2,
+      "entry_score": 60.7,
+      "score_final_v2": 61.3,
+      "ranking_accionable": 57.2,
+      "volatility_score": 48.5,
+      "adx": 0.0,
+      "alignment_score": 95,
+      "alignment_label": "TRIPLE CONFIRMACIÓN",
+      "weekly_trend": "BAJISTA",
+      "monthly_trend": "BAJISTA",
+      "rsi": 37.4,
+      "momentum_21d": -5.0,
+      "pred_5d": 0.0,
+      "pred_10d": 0.0,
+      "pred_21d": 0.0,
+      "pred_confidence": 0.218,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 69.2,
+      "index_snapshot": {
+        "actual": 7730.0,
+        "ret_dia": 0.14,
+        "ret_anual": 15.87
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 48.0
+      }
+    },
+    {
+      "ticker": "MCD",
+      "empresa": "McDonalds",
+      "mercado": "SP500",
+      "signal_v2": "🟢 COMPRA",
+      "precio": 242.77,
+      "entrada": 234.71,
+      "stop": 239.96,
+      "target": 246.14,
+      "riesgo_pct": -2.2,
+      "reward_pct": 4.9,
+      "rr_ratio": 2.65,
+      "score_macro": 44.6,
+      "score_tecnico": 43.5,
+      "score_fundamental": 71.0,
+      "score_final_v1": 45.6,
+      "asset_quality": 53.4,
+      "entry_score": 66.1,
+      "score_final_v2": 62.8,
+      "ranking_accionable": 61.3,
+      "volatility_score": 69.5,
+      "adx": 0.0,
+      "alignment_score": 95,
+      "alignment_label": "TRIPLE CONFIRMACIÓN",
+      "weekly_trend": "BAJISTA",
+      "monthly_trend": "BAJISTA",
+      "rsi": 62.1,
+      "momentum_21d": -2.3,
+      "pred_5d": 0.0,
+      "pred_10d": 0.0,
+      "pred_21d": 0.0,
+      "pred_confidence": 0.218,
+      "pred_signal": "➡️ LATERAL",
+      "opportunity_score": 64.3,
+      "index_snapshot": {
+        "actual": 7730.0,
+        "ret_dia": 0.14,
+        "ret_anual": 15.87
+      },
+      "cross_market": {
+        "regime": "NEUTRAL",
+        "sp500_trend": "LATERAL",
+        "sp500_trend_score": 48.0
+      }
+    }
   ]
 }
