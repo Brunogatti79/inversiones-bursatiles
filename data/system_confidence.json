@@ -1,12 +1,12 @@
 {
-  "global_score": 44.1,
-  "label": "🟠 Baja",
+  "global_score": 29.1,
+  "label": "🔴 Crítica",
   "components": {
     "calidad_datos": 4.6,
     "predictor": 15.0,
     "macro": 70.1,
     "integridad_datos": 100.0,
-    "sla": 100.0
+    "sla": 0.0
   },
   "weights": {
     "calidad_datos": 0.3,
@@ -15,8 +15,10 @@
     "integridad_datos": 0.1,
     "sla": 0.15
   },
-  "kill_switch_active": false,
-  "kill_switch_reasons": [],
+  "kill_switch_active": true,
+  "kill_switch_reasons": [
+    "score global=29.1 por debajo del umbral=35"
+  ],
   "n_signals": 84,
-  "generated": "2026-10-16T20:22:20.434907"
+  "generated": "2026-10-17T17:33:55.021373"
 }
