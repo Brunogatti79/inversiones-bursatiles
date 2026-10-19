@@ -226,7 +226,14 @@ class TestBadgeEndToEndEnDashboard:
         monkeypatch.chdir(tmp_path)
         os.makedirs("data", exist_ok=True)
         with open("data/backtest_results.json", "w") as f:
-            json.dump({"confidence_x_signal_x_mercado": CXSM_REAL}, f)
+            # 19/10/2026: benchmark con los 3 mercados habilitados, para que el
+            # gate por mercado (src/gate_mercado.py) no tape la regla por celda
+            # que este test ejercita.
+            _ok = {"racha": {"n": 60, "ventanas_independientes": 4.0,
+                             "alpha_ew_neto": {"samples": 60, "avg_ret": 1.0, "p_value": 0.01,
+                                               "significativo_95": True}}}
+            json.dump({"confidence_x_signal_x_mercado": CXSM_REAL,
+                       "benchmark": {"by_market": {m: {"compra": _ok} for m in ("MERVAL", "BOVESPA", "SP500")}}}, f)
 
         merval_df = pd.DataFrame({"INDICE MERVAL": [100, 101, 102]})
         return dict(

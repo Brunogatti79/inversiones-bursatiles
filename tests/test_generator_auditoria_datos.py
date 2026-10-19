@@ -68,6 +68,11 @@ def test_nota_kelly_uniforme(tmp_path, monkeypatch):
     # antes de este cálculo, así que se simula la regla validada.
     import src.generator as g
     monkeypatch.setattr(g, "_estado_regla_compra", lambda *a, **k: ("validada", {}))
+    # 19/10/2026: además de la regla por celda, el gate por mercado tiene que
+    # estar abierto (src/gate_mercado.py) para que una COMPRA siga siendo COMPRA.
+    import src.gate_mercado as _gm
+    monkeypatch.setattr(_gm, "estado_por_mercado",
+                        lambda bt: {m: {"habilitado": True} for m in _gm.MERCADOS})
     html = _gen(tmp_path, [_signal(), _signal(ticker="AAPL", mercado="SP500")])
     assert "Kelly asigna lo mismo a todas las compras (5.0%)" in html
     html2 = _gen(tmp_path, [_signal(), _signal(ticker="AAPL", mercado="SP500", kelly_half=8.0)])
@@ -89,6 +94,11 @@ def test_opportunity_score_no_depende_del_predictor(tmp_path, monkeypatch):
     import src.generator as g
     # sin esto las COMPRA pasan a SIN CONFIRMAR y no hay fichas: test trivial
     monkeypatch.setattr(g, "_estado_regla_compra", lambda *a, **k: ("validada", {}))
+    # 19/10/2026: además de la regla por celda, el gate por mercado tiene que
+    # estar abierto (src/gate_mercado.py) para que una COMPRA siga siendo COMPRA.
+    import src.gate_mercado as _gm
+    monkeypatch.setattr(_gm, "estado_por_mercado",
+                        lambda bt: {m: {"habilitado": True} for m in _gm.MERCADOS})
     base = [_signal(confidence_score=70.0, rr_ratio=2.5),
             _signal(ticker="AAPL", mercado="SP500", confidence_score=55.0, rr_ratio=3.5)]
     def fichas(pred):
