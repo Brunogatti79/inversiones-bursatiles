@@ -6,6 +6,7 @@ NUEVO: Bloque de validación de datos en el mensaje diario.
  
 import logging
 import os
+import json
 import base64
 import html as _html
 from datetime import datetime
@@ -298,13 +299,35 @@ def _radar_section(signals):
     return "\n".join(lines)
  
  
-def _compras_section(signals):
+def _gate_estados():
+    """Estado del gate por mercado (src/gate_mercado.py). Ante cualquier
+    error devuelve {} → todos los mercados quedan cerrados (precaución)."""
+    try:
+        from src.gate_mercado import cargar_backtest, estado_por_mercado
+        return estado_por_mercado(cargar_backtest())
+    except Exception as e:
+        logger.warning(f"Gate por mercado no disponible en Telegram: {e}")
+        return {}
+
+
+def _compras_section(signals, estados=None):
+    # 19/10/2026 (go de Bruno): mismo gate por mercado que el dashboard. Si
+    # las compras de un mercado no le ganan a su canasta (alpha neto,
+    # significativo), Telegram no lista compras de ese mercado.
+    estados = _gate_estados() if estados is None else estados
     lines = ["\n✅ <b>Compras</b>"]
     for market in MARKETS:
         flag    = FLAG.get(market, "")
         label   = "S&P 500" if market == "SP500" else market
         compras = [s for s in signals if s["mercado"] == market and "COMPRA" in s.get("signal", "")]
         lines.append(f"  {flag} <b>{label}</b>")
+        e = estados.get(market) or {}
+        if not e.get("habilitado"):
+            a = e.get("alpha_pp")
+            lines.append("  🔵 Sin compras confirmadas — "
+                         + (f"las compras rinden {a:+.1f} pp vs la canasta" if a is not None
+                            else "sin medición contra la canasta"))
+            continue
         if compras:
             for s in compras[:4]:
                 lines.append(f"  {_esc(s.get('signal',''))} <code>{_esc(s.get('ticker','?'))}</code> {_esc(s.get('empresa','?'))[:18]} "
@@ -329,6 +352,27 @@ def _reducciones_section(signals):
     return "\n".join(lines)
  
  
+def _cartera_section(path="data/capa_cartera.json"):
+    """Resumen corto de la capa de cartera por riesgo (src/capa_cartera.py)."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            o = json.load(f)
+    except Exception:
+        return ""
+    obj = o.get("pesos_objetivo") or {}
+    if not obj:
+        return ""
+    real = (o.get("cartera_real") or {}).get("pesos") or {}
+    total = (o.get("cartera_real") or {}).get("total_usd") or 0
+    parts = []
+    for mk in MARKETS:
+        r = real.get(mk) if total > 0 else None
+        parts.append(f"{FLAG.get(mk, '')} {obj.get(mk, 0):.0%}" + (f" (vos {r:.0%})" if r is not None else ""))
+    estado = ("🔁 fuera de banda: ver /cartera_riesgo" if o.get("rebalancear")
+              else "✅ dentro de banda" if total > 0 else "")
+    return "\n<b>⚖️ Cartera por riesgo</b>\n  " + " · ".join(parts) + (f"\n  {estado}" if estado else "")
+
+
 def send_daily_report(all_signals, index_stats, dashboard_filename,
                       run_date=None, validacion=None, weights_provenance=None,
                       exposure=None):
@@ -358,8 +402,11 @@ def send_daily_report(all_signals, index_stats, dashboard_filename,
     # suggested_pct de verdad, no es solo informativo.
     exposure_block = _exposure_shadow_section(exposure) if exposure else ""
  
-    senales_block  = "\n<b>Señales activas del modelo</b>"
-    senales_block += _radar_section(all_signals)
+    # 19/10/2026: se saca el Radar del reporte (ordenaba con un ranking que
+    # en BOVESPA y S&P ordena al revés) y se suma la capa de cartera por
+    # riesgo, que es lo único validado en 10 años.
+    senales_block  = _cartera_section()
+    senales_block += "\n<b>Señales por acción</b>"
     senales_block += _compras_section(all_signals)
     senales_block += _reducciones_section(all_signals)
  
@@ -418,12 +465,16 @@ def send_daily_report(all_signals, index_stats, dashboard_filename,
 def send_signal_change_alerts(changes):
     if not changes:
         return True
+    estados = _gate_estados()
     lines = ["🚨 <b>Cambios de señal detectados</b>\n"]
     for c in changes:
         flag = FLAG.get(c["mercado"], "")
+        nota = ""
+        if "COMPRA" in (c.get("new_signal") or "") and not (estados.get(c["mercado"]) or {}).get("habilitado"):
+            nota = "  <i>🔵 sin confirmar: las compras de este mercado no le ganan a la canasta</i>"
         lines.append(
             f"{flag} <code>{c['ticker']}</code> <b>{c['empresa'][:22]}</b>\n"
-            f"   {c['prev_signal']} → {c['new_signal']}"
+            f"   {c['prev_signal']} → {c['new_signal']}{nota}"
         )
     return _send_message("\n".join(lines))
  

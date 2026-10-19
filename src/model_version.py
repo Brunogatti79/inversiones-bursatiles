@@ -851,7 +851,9 @@ def compare_versions(v1: str, v2: str) -> dict:
             evs = [r["by_market"][mkt]["expected_value"] for r in rows
                    if r.get("by_market", {}).get(mkt, {}).get("expected_value") is not None]
             out[mkt] = {
-                "win_rate_avg": round(sum(wrs) / len(wrs), 1) if wrs else None,
+                # FIX 19/10/2026: win_rate se guarda como fracción (0.46); antes se
+                # redondeaba a 1 decimal (0.5) y el dashboard lo mostraba como "0%"/"1%".
+                "win_rate_avg": round(sum(wrs) / len(wrs) * 100, 1) if wrs else None,
                 "ev_avg": round(sum(evs) / len(evs), 2) if evs else None,
             }
         return out

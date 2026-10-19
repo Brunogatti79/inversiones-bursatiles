@@ -49,6 +49,10 @@ DATA_DIR     = "data"
  
  
 
+class _PredictorOff(Exception):
+    """Sentinela: predictor desactivado por ENABLE_PREDICTOR (19/10/2026)."""
+
+
 def apply_prediction_override(signals: list[dict], predictor_health: dict = None) -> list[dict]:
     """
     Post-proceso: ajusta señales cuando predictor contradice al modelo.
@@ -463,8 +467,21 @@ def run_pipeline():
             logger.warning(f"Shadow earnings no disponible: {e}")
 
         # 4b. PREDICCIONES ENSEMBLE (5d / 10d / 21d)
-        logger.info("4b/8 Generando predicciones ensemble...")
+        # 19/10/2026 (go de Bruno): predictor APAGADO por defecto. Validación
+        # 20/09: acierto direccional 51%, correlación −0,016, reliability_weights
+        # = 0 en los 4 modelos → devolvía pred_21d = 0 para todos los tickers
+        # desde el 25/09, y el test walk-forward de 10 años (diagnostico_ic.py)
+        # no encontró capacidad predictiva en factores de precio. Con el
+        # predictor apagado, pred_* quedan ausentes (None): confidence_score usa
+        # su contribución neutra fija, el override por predictor no aplica y el
+        # dashboard oculta los elementos de predicción. Para reactivarlo:
+        # ENABLE_PREDICTOR=true en Railway.
+        _enable_pred = os.getenv("ENABLE_PREDICTOR", "false").lower() == "true"
+        logger.info("4b/8 Generando predicciones ensemble..." if _enable_pred
+                    else "4b/8 Predictor desactivado (ENABLE_PREDICTOR=false) — se omite")
         try:
+            if not _enable_pred:
+                raise _PredictorOff()
             from src.predictor import run_predictions
             # FIX 04/09/2026 (mismo hallazgo que el fix de contexto histórico
             # en predictor.py): "macro_score" acá siempre tomaba
@@ -487,6 +504,8 @@ def run_pipeline():
                 ticker_cols=ticker_cols,
                 context=predictor_context,
             )
+        except _PredictorOff:
+            pass
         except Exception as e:
             logger.warning(f"Predicciones no disponibles: {e}")
 
@@ -853,6 +872,24 @@ def run_pipeline():
             criticas = [a for a in portfolio_alerts if a.get("tipo") not in ("📊 P&L",)]
             if criticas:
                 send_portfolio_alerts(portfolio_alerts)
+        # 5z. CAPA DE CARTERA POR RIESGO (camino A, SHADOW, 28/09/2026)
+        # 19/10/2026: se movió ANTES del dashboard (antes era 8b) para que el
+        # panel ⚖️ de Panorama muestre la corrida actual y no la anterior.
+        # Pesos objetivo por mercado ∝ 1/vol 63d en USD, banda ±5 pp, contra la
+        # cartera real (solo lectura) + seguimiento vs tercios y 100% S&P.
+        # No toca señales, Kelly ni portfolio.json. Aviso a Telegram solo si la
+        # cartera sale de banda, como máximo una vez por día.
+        try:
+            from src.capa_cartera import run_capa_cartera
+            capa = run_capa_cartera(push=True)
+            if capa.get("avisar_ahora"):
+                from src.notifier import _send_message
+                _send_message("\n".join(capa.get("telegram_lines", [])))
+            logger.info(f"5z Capa de cartera: objetivo={capa.get('pesos_objetivo')} "
+                        f"rebalancear={capa.get('rebalancear')}")
+        except Exception as e_capa:
+            logger.warning(f"Capa de cartera no crítica — continuando: {e_capa}")
+ 
         # 6. DASHBOARD
         logger.info("6/8 Generando dashboard...")
 
@@ -915,6 +952,10 @@ def run_pipeline():
                 idx_s = html_pub.index(marker_start)
                 idx_e = html_pub.index(marker_end)
                 html_pub = html_pub[:idx_s] + "var PORTFOLIO = {};" + "\n" + html_pub[idx_e:]
+            # 19/10/2026: el panel ⚖️ de Panorama marca la parte con la cartera
+            # real (pesos, desvíos, montos en USD) entre estos comentarios.
+            html_pub = re.sub(r"<!--CARTERA_PRIVADA_INI-->.*?<!--CARTERA_PRIVADA_FIN-->",
+                              "", html_pub, flags=re.S)
             with open(public_path, "w", encoding="utf-8") as pf:
                 f_write = pf.write(html_pub)
             pub_ok = publish_dashboard(public_path, public_name)
@@ -947,22 +988,6 @@ def run_pipeline():
         if SEND_EXCEL and excel_path and os.path.exists(excel_path):
             send_excel(excel_path)
 
-        # 8b. CAPA DE CARTERA POR RIESGO (camino A, SHADOW, 28/09/2026)
-        # Pesos objetivo por mercado ∝ 1/vol 63d en USD, banda ±5 pp, contra la
-        # cartera real (solo lectura) + seguimiento vs tercios y 100% S&P.
-        # No toca señales, Kelly ni portfolio.json. Aviso a Telegram solo si la
-        # cartera sale de banda, como máximo una vez por día.
-        try:
-            from src.capa_cartera import run_capa_cartera
-            capa = run_capa_cartera(push=True)
-            if capa.get("avisar_ahora"):
-                from src.notifier import _send_message
-                _send_message("\n".join(capa.get("telegram_lines", [])))
-            logger.info(f"8b Capa de cartera: objetivo={capa.get('pesos_objetivo')} "
-                        f"rebalancear={capa.get('rebalancear')}")
-        except Exception as e_capa:
-            logger.warning(f"Capa de cartera no crítica — continuando: {e_capa}")
- 
         duration = time.time() - start_ts
         _save_status(run_date=run_date, success=True, duration=duration, tz=tz,
                      validacion_nivel=nivel)

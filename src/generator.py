@@ -232,7 +232,7 @@ def _build_oportunidades(signals, price_data):
     # Bruno (28/07/2026): que las combinaciones Alta+Compra ya validadas
     # contra el historial real floten arriba, en vez de competir en pie
     # de igualdad con señales sin ese respaldo.
-    _REGLA_RANK = {'validada': 0, 'sin_evidencia_solida': 1, 'no_aplica': 2, 'no_valida': 3}
+    _REGLA_RANK = {'validada': 0, 'sin_evidencia_solida': 1, 'no_aplica': 2, 'no_valida': 3, 'mercado_sin_alpha': 3}
     fichas.sort(key=lambda f: (_REGLA_RANK.get(f.get('regla_compra_estado'), 2), -f['opportunity_score']))
     return fichas
  
@@ -763,13 +763,19 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             f'con {mc_days_hist} días de historia, diferencias menores a ±{_MC_NOISE_THRESHOLD}% todavía no son concluyentes.'
             '</div>'
 
-            '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">🎯⚖️🌎 Confianza / Consenso / Cruce, por mercado</div>'
+            '<div style="font-size:11px;color:#fbbf24;background:#1a1505;border:1px solid #3a2f0a;border-radius:6px;'
+            'padding:6px 10px;margin:6px 0 8px">⚠️ WR y resultado promedio son <b>brutos</b>: incluyen la suba o baja '
+            'de todo el mercado, no miden si el modelo eligió bien. La medida que decide es el alpha contra la canasta '
+            '(panel ⚖️ arriba).</div>'
+            '<details><summary style="cursor:pointer;font-size:11px;color:#aaa;font-weight:700;margin:8px 0 2px">'
+            '🎯⚖️🌎 Detalle histórico: Confianza / Consenso / Cruce, por mercado (clic para abrir)</summary>'
             '<div style="font-size:10px;color:#666;margin-bottom:8px">El modelo combina 5 factores (predictor, '
             'alineación de plazos, calidad de datos, consistencia V1/V2, volatilidad) en un puntaje de confianza '
             '0-100; V1 mide si el activo es sólido de fondo, V2 si es buen momento técnico para entrar. Desglosado '
             'por mercado porque un índice a la baja o al alza puede tapar el resultado real de los otros dos si se '
             'mira todo mezclado:</div>'
             f'{mc_per_market_html}'
+            '</details>'
 
             '<div style="font-size:11px;color:#aaa;font-weight:700;margin:8px 0 6px">🌎 Por mercado</div>'
             f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px">'
@@ -783,7 +789,10 @@ def _render_model_conclusions_panel(_backtest: dict, _perf_history: list, signal
             '<div style="margin-top:6px;font-size:11px;display:flex;flex-wrap:wrap;gap:16px">'
             f'{mc_best_sector_line}{mc_worst_sector_line}</div>'
             f'{mc_stability_html}'
-            f'{mc_version_html}'
+            # 19/10/2026: la línea 🔀 de versiones se dejó de mostrar. MODEL_VERSION
+            # no cambia desde el 27/07 (bajo "4.16" hay 18+ code_sha distintos),
+            # así que comparaba snapshots superpuestos, no versiones del modelo.
+            # La cohorte real está en signals_archive (code_sha).
             f'{mc_disclaimer}'
             '</div>'
         )
@@ -871,6 +880,144 @@ def _render_macro_panel(signals: list, extra_html: str = "") -> str:
         + extra_html
         + '</div>'
     )
+
+
+def _render_cartera_riesgo_panel(capa: dict, estados: dict) -> str:
+    """
+    Panel principal de Panorama (19/10/2026, pedido de Bruno: "reordenar el
+    tablero alrededor de lo que funciona"). Dos bloques:
+      1. Cartera por riesgo (src/capa_cartera.py): pesos objetivo por mercado
+         ∝ 1/vol vs la cartera real, rebalanceo con banda y seguimiento en
+         vivo vs tercios y 100% S&P. Es la única capa que resistió el test
+         de 10 años (research_riesgo.py).
+      2. ¿Las señales por acción le ganan al mercado? (src/gate_mercado.py):
+         alpha neto de las COMPRA vs la canasta del mismo mercado y si el
+         gate está abierto o cerrado.
+    La parte que muestra la cartera real va entre marcadores
+    CARTERA_PRIVADA para que el dashboard público la recorte (pipeline 6c).
+    Función de Python pura (no está dentro del f-string): llaves simples.
+    """
+    capa = capa or {}
+    estados = estados or {}
+    nom = {"MERVAL": "🇦🇷 MERVAL", "BOVESPA": "🇧🇷 BOVESPA", "SP500": "🇺🇸 S&amp;P 500"}
+
+    def pct(v, d=0):
+        return "—" if v is None else f"{v * 100:.{d}f}%"
+
+    def num(v):
+        return f"{v:,.0f}".replace(",", ".")
+
+    box = ('background:#0d0d14;border:1px solid #1f2a3a;border-radius:10px;'
+           'padding:14px 18px;margin:12px 0 18px')
+    out = [f'<div style="{box}">']
+
+    # ── Bloque 1: cartera por riesgo ─────────────────────────────────────
+    out.append(
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;'
+        'flex-wrap:wrap;gap:6px;margin-bottom:10px">'
+        '<span style="font-size:13px;color:#e5e7eb;font-weight:700">⚖️ Cartera por riesgo '
+        '<span style="font-size:10px;color:#60a5fa;font-weight:600;margin-left:6px">'
+        'validado en 10 años · shadow</span></span>'
+        f'<span style="font-size:10px;color:#666">datos al {capa.get("fecha_datos", "—")}</span></div>'
+    )
+    if not capa.get("pesos_objetivo"):
+        out.append('<div style="font-size:12px;color:#888">Sin datos de la capa de cartera todavía '
+                   '(corre en cada pipeline; requiere data/research/).</div>')
+    else:
+        obj = capa.get("pesos_objetivo", {})
+        real = (capa.get("cartera_real") or {}).get("pesos", {}) or {}
+        total = (capa.get("cartera_real") or {}).get("total_usd") or 0
+        vol = capa.get("vol_63d_pct", {})
+        banda = capa.get("banda_pp", 5)
+        if capa.get("datos_viejos"):
+            out.append('<div style="font-size:11px;color:#fbbf24;margin-bottom:8px">⚠️ Datos de research '
+                       'con más de 4 días: revisar el workflow "Backfill research 10y".</div>')
+        out.append('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">')
+        for mk in ("MERVAL", "BOVESPA", "SP500"):
+            o = obj.get(mk)
+            r = real.get(mk) if total > 0 else None
+            dev = None if (r is None or o is None) else (r - o) * 100
+            dev_col = "#f87171" if (dev is not None and abs(dev) > banda) else "#9ca3af"
+            out.append(
+                '<div style="background:#11131c;border:1px solid #1c2233;border-radius:8px;padding:10px 12px">'
+                f'<div style="font-size:11px;color:#9ca3af;font-weight:600">{nom[mk]}</div>'
+                f'<div style="font-size:22px;color:#e5e7eb;font-weight:700;margin:2px 0">{pct(o)}</div>'
+                '<div style="font-size:10px;color:#666">objetivo · vol 63d '
+                f'{vol.get(mk, "—")}%</div>'
+                '<!--CARTERA_PRIVADA_INI-->'
+                f'<div style="font-size:11px;color:#ccc;margin-top:6px">Tu cartera: <b>{pct(r)}</b>'
+                + (f' <span style="color:{dev_col}">({dev:+.0f} pp)</span>' if dev is not None else '')
+                + '</div><!--CARTERA_PRIVADA_FIN-->'
+                '</div>'
+            )
+        out.append('</div>')
+        out.append('<!--CARTERA_PRIVADA_INI-->')
+        if total <= 0:
+            out.append('<div style="font-size:11px;color:#888;margin-top:8px">Cartera real vacía: sin comparación.</div>')
+        elif capa.get("rebalancear"):
+            montos = capa.get("montos_sugeridos_usd", {}) or {}
+            partes = [f'{nom[mk]} {"comprar" if v > 0 else "vender"} USD {num(abs(v))}'
+                      for mk, v in montos.items() if abs(v) >= 1]
+            costo = sum(abs(v) for v in montos.values()) * 0.00605
+            out.append(
+                '<div style="font-size:12px;color:#fbbf24;margin-top:10px">'
+                f'🔁 <b>Fuera de banda (±{banda:.0f} pp).</b> Para volver al objetivo: '
+                + " · ".join(partes) +
+                f' <span style="color:#888">(costo estimado USD {num(costo)})</span></div>'
+            )
+        else:
+            out.append(f'<div style="font-size:12px;color:#4ade80;margin-top:10px">✅ Dentro de banda '
+                       f'(±{banda:.0f} pp): no hace falta rebalancear.</div>')
+        out.append('<!--CARTERA_PRIVADA_FIN-->')
+        seg = capa.get("seguimiento") or {}
+        iv, te, sp = (seg.get("inversa_vol_banda") or {}), (seg.get("tercios") or {}), (seg.get("sp500") or {})
+        if iv.get("dias"):
+            corto = iv["dias"] < 63
+            out.append(
+                '<div style="font-size:11px;color:#9ca3af;margin-top:8px">'
+                f'📈 Seguimiento desde {seg.get("inicio")} (base 100, con costos): '
+                f'<b style="color:#e5e7eb">inversa vol {iv.get("nav")}</b> · tercios {te.get("nav")} · '
+                f'100% S&amp;P {sp.get("nav")}'
+                + (f' <span style="color:#666">— {iv["dias"]} ruedas: todavía no concluyente (se mira a partir de 3 meses)</span>'
+                   if corto else '')
+                + '</div>'
+            )
+
+    # ── Bloque 2: gate por mercado ───────────────────────────────────────
+    out.append(
+        '<div style="border-top:1px solid #1c1c1c;margin-top:12px;padding-top:10px">'
+        '<div style="font-size:12px;color:#e5e7eb;font-weight:700;margin-bottom:4px">'
+        '🔎 ¿Las compras del modelo le ganan a comprar todo el mercado?</div>'
+        '<div style="font-size:10.5px;color:#777;margin-bottom:8px">Rendimiento a 21 ruedas de las '
+        'señales de COMPRA menos el de la canasta completa del mismo mercado, neto de costos Balanz, '
+        'contando operaciones independientes. Mientras no sea positivo y significativo, ninguna señal de '
+        'ese mercado se muestra como COMPRA (🔵 sin confirmar).</div>'
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">'
+    )
+    for mk in ("MERVAL", "BOVESPA", "SP500"):
+        e = estados.get(mk) or {}
+        a = e.get("alpha_pp")
+        hab = e.get("habilitado")
+        col = "#4ade80" if (a is not None and a > 0) else ("#f87171" if (a is not None and a < 0) else "#9ca3af")
+        estado_txt = ('<span style="color:#4ade80">✅ compras habilitadas</span>' if hab
+                      else '<span style="color:#60a5fa">🔵 compras sin confirmar</span>')
+        rc, rk = e.get("ret_compras"), e.get("ret_canasta")
+        out.append(
+            '<div style="background:#11131c;border:1px solid #1c2233;border-radius:8px;padding:9px 12px">'
+            f'<div style="font-size:11px;color:#9ca3af;font-weight:600">{nom[mk]}</div>'
+            f'<div style="font-size:18px;font-weight:700;color:{col}">'
+            + ("—" if a is None else f"{a:+.1f} pp") + '</div>'
+            + (f'<div style="font-size:10px;color:#777">compras {rc:+.1f}% vs canasta {rk:+.1f}%</div>'
+               if (rc is not None and rk is not None) else '')
+            + f'<div style="font-size:10px;color:#666">n={e.get("n", 0)} · {e.get("ventanas", 0)} ventanas · '
+              f'p={e.get("p_value", "—")}</div>'
+            f'<div style="font-size:11px;margin-top:4px">{estado_txt}</div>'
+            '</div>'
+        )
+    out.append('</div></div>')
+    out.append('<div style="font-size:10px;color:#555;margin-top:8px">Análisis de datos, no asesoramiento financiero.</div>')
+    out.append('</div>')
+    return "".join(out)
 
 
 def _estado_regla_compra(signal_v2: str, confidence_label, mercado: str,
@@ -1078,6 +1225,21 @@ def generate_dashboard(
         logger.warning(f"No se pudo armar footer_model_html dinámico: {e}")
         footer_model_html = "Modelo — versión no disponible"
 
+    # GATE POR MERCADO (19/10/2026, pedido de Bruno) -- ver src/gate_mercado.py.
+    # Si las COMPRA de un mercado no le ganan a comprar toda su canasta
+    # (alpha neto, significativo, por racha), ninguna COMPRA de ese mercado
+    # se muestra como tal. Se evalúa ANTES de la regla por confianza: es la
+    # condición más básica (sin ella la regla por celda no tiene sentido).
+    try:
+        from src.gate_mercado import (cargar_backtest as _gm_load,
+                                      estado_por_mercado as _gm_estado,
+                                      etiqueta_gateada as _gm_etiqueta)
+        _gate_estados = _gm_estado(_gm_load())
+    except Exception as _e_gm:
+        logger.warning(f"Gate por mercado no disponible — se cierra por precaución: {_e_gm}")
+        _gate_estados = {}
+        _gm_etiqueta = lambda sig, mk, est: ("🔵 SIN CONFIRMAR" if sig in ("🟢 COMPRA", "⭐ COMPRA FUERTE") else None)
+
     for _s in signals:
         _sig_original = _s.get("signal_v2") or _s.get("signal", "")
         _estado, _detalle = _estado_regla_compra(
@@ -1088,6 +1250,19 @@ def generate_dashboard(
         )
         _s["regla_compra_estado"] = _estado
         _s["regla_compra_detalle"] = _detalle
+
+        _gm_label = _gm_etiqueta(_sig_original, _s.get("mercado"), _gate_estados)
+        if _gm_label:
+            _gm_e = _gate_estados.get(_s.get("mercado")) or {}
+            _s["signal_v2_original"] = _sig_original
+            _s["signal_v2"] = _gm_label
+            _s["regla_compra_estado"] = "mercado_sin_alpha"
+            _s["regla_compra_detalle"] = {
+                "motivo": _gm_e.get("motivo", "sin evidencia de que las compras le ganen a la canasta"),
+                "alpha_pp": _gm_e.get("alpha_pp"), "p": _gm_e.get("p_value"),
+                "n": _gm_e.get("n"), "ventanas": _gm_e.get("ventanas"),
+            }
+            continue
 
         # FIX 09/09/2026 (pedido explícito de Bruno): "si no está confirmado,
         # no se debe informar para ningún tipo de acción a seguir". No basta
@@ -1313,7 +1488,10 @@ def generate_dashboard(
     hl_sla       = _health.get("sla_status", "UNKNOWN")
     hl_runs      = _health.get("pipeline_runs_today", 0)
     hl_dur       = _health.get("duration_last_sec", 0)
-    hl_buy       = _health.get("buy_signals", 0)
+    # 19/10/2026: compras CONFIRMADAS (después del gate por mercado y de la
+    # regla por confianza), no el conteo crudo de health_metrics -- antes el
+    # header decía "Compras: 29" mientras las tablas no mostraban ninguna.
+    hl_buy       = sum(1 for _sb in signals if "COMPRA" in (_sb.get("signal_v2") or ""))
     hl_sla_color = {"OK": "#4ade80", "WARNING": "#fbbf24", "CRITICAL": "#f87171"}.get(hl_sla, "#888")
 
     # Tarjeta "Sistema" -- ajuste de layout pedido por Bruno (24/07/2026):
@@ -1333,10 +1511,20 @@ def generate_dashboard(
         '<span style="font-size:11px;color:#555">|</span>'
         f'<span style="font-size:11px;color:#666">Dur: <b style="color:#aaa">{hl_dur:.0f}s</b></span>'
         '<span style="font-size:11px;color:#555">|</span>'
-        f'<span style="font-size:11px;color:#666">Compras: <b style="color:#4ade80">{hl_buy}</b></span>'
+        f'<span style="font-size:11px;color:#666">Compras confirmadas: <b style="color:#4ade80">{hl_buy}</b></span>'
         '</div>'
     )
     macro_panel_html = _render_macro_panel(signals, extra_html=sistema_html)
+    try:
+        with open("data/capa_cartera.json", encoding="utf-8") as _ccf:
+            _capa = json.load(_ccf)
+    except Exception:
+        _capa = {}
+    try:
+        cartera_riesgo_html = _render_cartera_riesgo_panel(_capa, _gate_estados)
+    except Exception as _e_cr:
+        logger.warning(f"Panel de cartera por riesgo no disponible: {_e_cr}")
+        cartera_riesgo_html = ""
 
     model_conclusions_html = _render_model_conclusions_panel(_backtest, _perf_history, signals)
     ranking_edge_html = _render_ranking_edge_panel(_backtest)
@@ -1603,6 +1791,7 @@ def generate_dashboard(
       </div>
     </div>
   </div>
+  {cartera_riesgo_html}
   {macro_panel_html}
   <!-- ── Conclusiones del Modelo -- fila propia, ya no comparte con Sistema (ajuste de layout 24/07/2026) ── -->
   <div style="margin:12px 0 18px">
@@ -1964,6 +2153,10 @@ function _reglaBadge(s){{
     var ev=d.ev!=null?((d.ev>=0?'+':'')+d.ev.toFixed(1)+'%'):'?';
     return ' <span title="Regla validada con datos reales de ESTE mercado a '+horiz+': n='+d.n+' ('+d.tickers_unicos+' tickers distintos), acierto '+wr+', resultado promedio '+ev+', p='+d.p+'" style="cursor:help">✅</span>';
   }}
+  if(st==='mercado_sin_alpha'){{
+    var mot=(d.motivo||'las compras de este mercado no le ganan a comprar toda la canasta').replace(/"/g,"'");
+    return ' <span title="Gate por mercado: '+mot+'. Hasta que las compras de este mercado le ganen a la canasta (neto de costos, significativo), ninguna se muestra como COMPRA." style="cursor:help">🔵</span>';
+  }}
   if(st==='sin_evidencia_solida'){{
     return ' <span title="Compra/Compra Fuerte, pero en este mercado no hay todavía (muestra suficiente + significancia estadística + diversidad de tickers) al mismo tiempo para confirmar si rinde bien o mal -- no se muestra como opción validada" style="cursor:help">🔵</span>';
   }}
@@ -1984,7 +2177,7 @@ function _reglaBadge(s){{
 //   no_aplica (2)             -- no es Compra/Compra Fuerte (default, sin cambio de orden)
 //   no_valida (3)             -- Compra/Compra Fuerte pero el historial real de ESTE mercado da resultado negativo -- se hunde
 function reglaRank(s){{
-  var m={{'validada':0,'sin_evidencia_solida':1,'no_aplica':2,'no_valida':3}};
+  var m={{'validada':0,'sin_evidencia_solida':1,'no_aplica':2,'no_valida':3,'mercado_sin_alpha':3}};
   var r=m[s.regla_compra_estado];
   return r==null?2:r;
 }}
