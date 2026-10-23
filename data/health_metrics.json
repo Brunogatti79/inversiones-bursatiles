@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-10-23T15:57:04.237054",
-  "last_run_utc": "2026-10-23T18:57:04.237108",
-  "last_success": "2026-10-23T15:57:04.237054",
+  "last_run": "2026-10-23T17:32:34.591258",
+  "last_run_utc": "2026-10-23T20:32:34.591322",
+  "last_success": "2026-10-23T17:32:34.591258",
   "consecutive_failures": 0,
   "duration_history": [
-    114.0,
     148.1,
     113.5,
     135.1,
@@ -13,11 +12,12 @@
     140.9,
     122.8,
     128.0,
-    152.7
+    152.7,
+    154.5
   ],
-  "duration_avg_sec": 138.3,
-  "duration_p95_sec": 167.3,
-  "duration_last_sec": 152.7,
+  "duration_avg_sec": 137.0,
+  "duration_p95_sec": 160.3,
+  "duration_last_sec": 154.5,
   "signals_count": 84,
   "buy_signals": 26,
   "sell_signals": 14,
@@ -146,21 +146,26 @@
       "ts": "2026-10-23",
       "success": true,
       "duration": 152.7
+    },
+    {
+      "ts": "2026-10-23",
+      "success": true,
+      "duration": 154.5
     }
   ],
-  "pipeline_runs_today": 1,
-  "pipeline_runs_week": 24,
-  "optimized_weights_age_h": 0.0,
+  "pipeline_runs_today": 2,
+  "pipeline_runs_week": 25,
+  "optimized_weights_age_h": 1.6,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 33.3,
-  "global_confidence_label": "🔴 Crítica",
-  "kill_switch_active": true,
+  "global_confidence_score": 42.8,
+  "global_confidence_label": "🟠 Baja",
+  "kill_switch_active": false,
   "optimized_weights_days": 61,
-  "exposure_factor_shadow": 0.0,
+  "exposure_factor_shadow": 0.456,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
   "backtest_ev_21d": -2.1,
@@ -170,5 +175,5 @@
   "backtest_generated": "2026-10-23",
   "ccl_source_status": "OK",
   "ccl_age_minutes": 2.3,
-  "last_ccl_value": 1647.6
+  "last_ccl_value": 1649.2
 }
