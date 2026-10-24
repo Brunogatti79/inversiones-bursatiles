@@ -1,84 +1,4 @@
 {
-  "2026-06-25": [
-    {
-      "timestamp": "2026-06-25T12:06:15.761188",
-      "global_score": 46.8,
-      "label": "🟠 Baja",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 1,
-      "criticas_estructurales": 0,
-      "advertencias": 9,
-      "validacion_nivel": "WARNING",
-      "sla_status": "CRITICAL",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-06-25T14:13:21.828646",
-      "global_score": 62.1,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 1,
-      "criticas_estructurales": 0,
-      "advertencias": 9,
-      "validacion_nivel": "WARNING",
-      "sla_status": "OK",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-06-25T17:08:51.255169",
-      "global_score": 65.4,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 1,
-      "criticas_estructurales": 0,
-      "advertencias": 7,
-      "validacion_nivel": "OK",
-      "sla_status": "OK",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-06-25T17:30:34.531886",
-      "global_score": 65.4,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 1,
-      "criticas_estructurales": 0,
-      "advertencias": 7,
-      "validacion_nivel": "OK",
-      "sla_status": "OK",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-06-25T17:57:01.028546",
-      "global_score": 65.8,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 1,
-      "criticas_estructurales": 0,
-      "advertencias": 7,
-      "validacion_nivel": "OK",
-      "sla_status": "OK",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-06-25T21:11:15.466496",
-      "global_score": 60.8,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 1,
-      "criticas_estructurales": 0,
-      "advertencias": 7,
-      "validacion_nivel": "WARNING",
-      "sla_status": "OK",
-      "n_signals": 67
-    }
-  ],
   "2026-06-26": [
     {
       "timestamp": "2026-06-26T14:03:35.388111",
@@ -6789,6 +6709,23 @@
       "advertencias": 46,
       "validacion_nivel": "OK",
       "sla_status": "OK",
+      "n_signals": 84
+    }
+  ],
+  "2026-10-24": [
+    {
+      "timestamp": "2026-10-24T17:31:13.407050",
+      "global_score": 27.8,
+      "label": "🔴 Crítica",
+      "kill_switch_active": true,
+      "kill_switch_reasons": [
+        "score global=27.8 por debajo del umbral=35"
+      ],
+      "criticas": 15,
+      "criticas_estructurales": 0,
+      "advertencias": 46,
+      "validacion_nivel": "OK",
+      "sla_status": "CRITICAL",
       "n_signals": 84
     }
   ]
