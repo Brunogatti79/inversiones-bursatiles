@@ -641,16 +641,24 @@
       "ev_antes": 0.0,
       "ev_ahora": 0.08,
       "n": 106
+    },
+    {
+      "fecha": "2026-10-24 17:31",
+      "tipo": "cambio_de_signo",
+      "combinacion": "🟠 Baja + 🟠 VENTA PARCIAL",
+      "ev_antes": -0.06,
+      "ev_ahora": 0.04,
+      "n": 139
     }
   ],
   "_ultimo_snapshot": {
     "🟢 Alta + 🟡 NEUTRAL/ESPERAR": {
-      "n": 584,
-      "ev": 0.86
+      "n": 569,
+      "ev": 0.82
     },
     "🟢 Alta + 🟢 COMPRA": {
-      "n": 304,
-      "ev": 0.79
+      "n": 300,
+      "ev": 0.76
     },
     "🟢 Alta + 🟠 VENTA PARCIAL": {
       "n": 45,
@@ -664,37 +672,17 @@
       "n": 9,
       "ev": 0.18
     },
-    "🟠 Baja + 🟠 VENTA PARCIAL": {
-      "n": 146,
-      "ev": -0.06
-    },
-    "🟠 Baja + 🟡 NEUTRAL/ESPERAR": {
-      "n": 60,
-      "ev": 1.7
-    },
-    "🟠 Baja + 🔴 VENTA": {
-      "n": 15,
-      "ev": -2.79
-    },
-    "🟠 Baja + 🟢 COMPRA": {
-      "n": 113,
-      "ev": -0.37
-    },
-    "🟠 Baja + ⭐ COMPRA FUERTE": {
-      "n": 51,
-      "ev": -2.59
-    },
     "🟡 Media + 🟡 NEUTRAL/ESPERAR": {
-      "n": 1072,
-      "ev": 0.9
-    },
-    "🟡 Media + 🟢 COMPRA": {
-      "n": 529,
-      "ev": 1.07
+      "n": 1050,
+      "ev": 0.89
     },
     "🟡 Media + 🟠 VENTA PARCIAL": {
-      "n": 106,
+      "n": 104,
       "ev": 0.09
+    },
+    "🟡 Media + 🟢 COMPRA": {
+      "n": 517,
+      "ev": 1.06
     },
     "🟡 Media + ⭐ COMPRA FUERTE": {
       "n": 75,
@@ -704,9 +692,29 @@
       "n": 18,
       "ev": -0.0
     },
+    "🟠 Baja + 🟠 VENTA PARCIAL": {
+      "n": 139,
+      "ev": 0.04
+    },
+    "🟠 Baja + 🟢 COMPRA": {
+      "n": 113,
+      "ev": -0.37
+    },
+    "🟠 Baja + 🟡 NEUTRAL/ESPERAR": {
+      "n": 58,
+      "ev": 1.73
+    },
+    "🟠 Baja + 🔴 VENTA": {
+      "n": 14,
+      "ev": -2.86
+    },
+    "🟠 Baja + ⭐ COMPRA FUERTE": {
+      "n": 51,
+      "ev": -2.59
+    },
     "🔴 Muy baja + 🟢 COMPRA": {
-      "n": 41,
-      "ev": -0.81
+      "n": 39,
+      "ev": -1.0
     },
     "🔴 Muy baja + ⭐ COMPRA FUERTE": {
       "n": 1,
