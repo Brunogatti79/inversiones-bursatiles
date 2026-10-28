@@ -1,45 +1,4 @@
 {
-  "2026-06-29": [
-    {
-      "timestamp": "2026-06-29T10:14:41.815961",
-      "global_score": 40.7,
-      "label": "🟠 Baja",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 3,
-      "criticas_estructurales": 0,
-      "advertencias": 5,
-      "validacion_nivel": "WARNING",
-      "sla_status": "CRITICAL",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-06-29T16:51:06.597568",
-      "global_score": 64.9,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 2,
-      "criticas_estructurales": 0,
-      "advertencias": 5,
-      "validacion_nivel": "OK",
-      "sla_status": "OK",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-06-29T17:30:37.132140",
-      "global_score": 64.5,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 2,
-      "criticas_estructurales": 0,
-      "advertencias": 5,
-      "validacion_nivel": "OK",
-      "sla_status": "OK",
-      "n_signals": 67
-    }
-  ],
   "2026-06-30": [
     {
       "timestamp": "2026-06-30T17:35:38.204797",
@@ -6745,6 +6704,23 @@
       "advertencias": 23,
       "validacion_nivel": "WARNING",
       "sla_status": "OK",
+      "n_signals": 84
+    }
+  ],
+  "2026-10-28": [
+    {
+      "timestamp": "2026-10-28T17:08:21.424854",
+      "global_score": 29.8,
+      "label": "🔴 Crítica",
+      "kill_switch_active": true,
+      "kill_switch_reasons": [
+        "score global=29.8 por debajo del umbral=35"
+      ],
+      "criticas": 8,
+      "criticas_estructurales": 0,
+      "advertencias": 22,
+      "validacion_nivel": "OK",
+      "sla_status": "CRITICAL",
       "n_signals": 84
     }
   ]
