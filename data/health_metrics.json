@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-11-01T17:43:11.395012",
-  "last_run_utc": "2026-11-01T20:43:11.395073",
-  "last_success": "2026-11-01T17:43:11.395012",
+  "last_run": "2026-11-02T17:33:32.075374",
+  "last_run_utc": "2026-11-02T20:33:32.075461",
+  "last_success": "2026-11-02T17:33:32.075374",
   "consecutive_failures": 0,
   "duration_history": [
-    132.9,
     132.9,
     121.8,
     121.4,
@@ -13,11 +12,12 @@
     113.9,
     118.0,
     121.2,
-    791.4
+    791.4,
+    212.1
   ],
-  "duration_avg_sec": 186.8,
-  "duration_p95_sec": 469.8,
-  "duration_last_sec": 791.4,
+  "duration_avg_sec": 194.9,
+  "duration_p95_sec": 501.8,
+  "duration_last_sec": 212.1,
   "signals_count": 84,
   "buy_signals": 18,
   "sell_signals": 17,
@@ -27,11 +27,6 @@
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 48/100), correlación moderada entre mercados. Ajuste macro: MERVAL -0.1",
   "validacion_nivel": "WARNING",
   "runs_log": [
-    {
-      "ts": "2026-10-25",
-      "success": true,
-      "duration": 1002.7
-    },
     {
       "ts": "2026-10-26",
       "success": true,
@@ -146,13 +141,18 @@
       "ts": "2026-11-01",
       "success": true,
       "duration": 791.4
+    },
+    {
+      "ts": "2026-11-02",
+      "success": true,
+      "duration": 212.1
     }
   ],
   "pipeline_runs_today": 1,
   "pipeline_runs_week": 24,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
-  "data_freshness_h": 0.2,
+  "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
@@ -163,12 +163,12 @@
   "exposure_factor_shadow": 0.0,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
-  "backtest_ev_21d": -4.68,
-  "backtest_total_trades": 3158,
-  "predictor_dir_acc": 0.316,
-  "predictor_mae": 13.01,
-  "backtest_generated": "2026-11-01",
+  "backtest_ev_21d": -4.72,
+  "backtest_total_trades": 3175,
+  "predictor_dir_acc": 0.312,
+  "predictor_mae": 13.07,
+  "backtest_generated": "2026-11-02",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 13.0,
-  "last_ccl_value": 1655.3
+  "ccl_age_minutes": 2.0,
+  "last_ccl_value": 1663.2
 }
