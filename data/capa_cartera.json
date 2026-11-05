@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-05T17:32:12",
+  "generated": "2026-11-05T18:24:20",
   "shadow": true,
   "fecha_datos": "2026-10-23",
   "datos_viejos": true,
@@ -15,28 +15,28 @@
   },
   "cartera_real": {
     "valor_usd": {
-      "MERVAL": 2296.1,
-      "BOVESPA": 299.54,
-      "SP500": 2660.48
+      "MERVAL": 2217.08,
+      "BOVESPA": 309.85,
+      "SP500": 2651.61
     },
-    "total_usd": 5256.12,
+    "total_usd": 5178.54,
     "pesos": {
-      "MERVAL": 0.4368,
-      "BOVESPA": 0.057,
-      "SP500": 0.5062
+      "MERVAL": 0.4281,
+      "BOVESPA": 0.0598,
+      "SP500": 0.512
     }
   },
   "desvio_pp": {
-    "MERVAL": 20.1,
-    "BOVESPA": -17.9,
-    "SP500": -2.1
+    "MERVAL": 19.2,
+    "BOVESPA": -17.6,
+    "SP500": -1.6
   },
   "banda_pp": 5.0,
   "rebalancear": true,
   "montos_sugeridos_usd": {
-    "MERVAL": -1054.0,
-    "BOVESPA": 941.0,
-    "SP500": 113.0
+    "MERVAL": -994.0,
+    "BOVESPA": 913.0,
+    "SP500": 81.0
   },
   "inicio_seguimiento": "2026-09-30",
   "seguimiento": {
@@ -73,18 +73,18 @@
     }
   },
   "ultimo_aviso": "2026-11-05",
-  "avisar_ahora": true,
+  "avisar_ahora": false,
   "telegram_lines": [
     "<b>⚖️ Capa de cartera por riesgo (shadow)</b> — datos al 2026-10-23",
     "⚠️ Datos de research con más de 4 días: revisar el workflow Backfill research 10y",
-    "🇦🇷 MERVAL: objetivo 24% · real 44% · vol 24.9%",
+    "🇦🇷 MERVAL: objetivo 24% · real 43% · vol 24.9%",
     "🇧🇷 BOVESPA: objetivo 24% · real 6% · vol 24.9%",
     "🇺🇸 S&amp;P: objetivo 53% · real 51% · vol 11.2%",
     "🔁 <b>Fuera de banda (±5 pp)</b>. Montos sugeridos (USD):",
-    "  🇦🇷 MERVAL: vender 1,054",
-    "  🇧🇷 BOVESPA: comprar 941",
-    "  🇺🇸 S&amp;P: comprar 113",
-    "Costo estimado de rebalancear: 13 USD",
+    "  🇦🇷 MERVAL: vender 994",
+    "  🇧🇷 BOVESPA: comprar 913",
+    "  🇺🇸 S&amp;P: comprar 81",
+    "Costo estimado de rebalancear: 12 USD",
     "Seguimiento desde 2026-09-30 (base 100): inversa vol 102.88 · tercios 103.52 · 100% S&amp;P 99.03",
     "<i>Análisis de datos, no asesoramiento. No toca señales ni Kelly.</i>"
   ]
