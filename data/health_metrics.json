@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-11-04T22:25:48.107386",
-  "last_run_utc": "2026-11-05T01:25:48.107424",
-  "last_success": "2026-11-04T22:25:48.107386",
+  "last_run": "2026-11-05T17:32:25.660037",
+  "last_run_utc": "2026-11-05T20:32:25.660086",
+  "last_success": "2026-11-05T17:32:25.660037",
   "consecutive_failures": 0,
   "duration_history": [
-    177.9,
     172.8,
     192.4,
     141.6,
@@ -13,11 +12,12 @@
     145.7,
     127.4,
     120.3,
-    123.2
+    123.2,
+    145.7
   ],
-  "duration_avg_sec": 145.0,
+  "duration_avg_sec": 146.0,
   "duration_p95_sec": 185.2,
-  "duration_last_sec": 123.2,
+  "duration_last_sec": 145.7,
   "signals_count": 84,
   "buy_signals": 16,
   "sell_signals": 15,
@@ -27,26 +27,6 @@
   "cross_market_narrative": "Régimen de mercado mixto. S&P 500 lateral (score 44/100), correlación moderada entre mercados. Ajuste macro: MERVAL -0.2",
   "validacion_nivel": "WARNING",
   "runs_log": [
-    {
-      "ts": "2026-10-28",
-      "success": true,
-      "duration": 147.9
-    },
-    {
-      "ts": "2026-10-28",
-      "success": true,
-      "duration": 117.9
-    },
-    {
-      "ts": "2026-10-28",
-      "success": true,
-      "duration": 169.7
-    },
-    {
-      "ts": "2026-10-28",
-      "success": true,
-      "duration": 122.4
-    },
     {
       "ts": "2026-10-29",
       "success": true,
@@ -156,29 +136,34 @@
       "ts": "2026-11-04",
       "success": true,
       "duration": 123.2
+    },
+    {
+      "ts": "2026-11-05",
+      "success": true,
+      "duration": 145.7
     }
   ],
-  "pipeline_runs_today": 4,
-  "pipeline_runs_week": 26,
+  "pipeline_runs_today": 1,
+  "pipeline_runs_week": 23,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 45.4,
-  "global_confidence_label": "🟠 Baja",
-  "kill_switch_active": false,
+  "global_confidence_score": 30.4,
+  "global_confidence_label": "🔴 Crítica",
+  "kill_switch_active": true,
   "optimized_weights_days": 61,
-  "exposure_factor_shadow": 0.508,
+  "exposure_factor_shadow": 0.0,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
   "backtest_ev_21d": -5.48,
-  "backtest_total_trades": 3192,
+  "backtest_total_trades": 3276,
   "predictor_dir_acc": 0.281,
   "predictor_mae": 13.16,
-  "backtest_generated": "2026-11-04",
+  "backtest_generated": "2026-11-05",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 1.8,
-  "last_ccl_value": 1676.7
+  "ccl_age_minutes": 2.2,
+  "last_ccl_value": 1658.4
 }
