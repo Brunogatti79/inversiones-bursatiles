@@ -1,19 +1,4 @@
 {
-  "2026-07-12": [
-    {
-      "timestamp": "2026-07-12T17:31:08.945016",
-      "global_score": 43.8,
-      "label": "🟠 Baja",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 2,
-      "criticas_estructurales": 0,
-      "advertencias": 4,
-      "validacion_nivel": "WARNING",
-      "sla_status": "CRITICAL",
-      "n_signals": 67
-    }
-  ],
   "2026-07-13": [
     {
       "timestamp": "2026-07-13T12:00:41.697435",
@@ -6672,6 +6657,21 @@
       "criticas": 9,
       "criticas_estructurales": 0,
       "advertencias": 14,
+      "validacion_nivel": "WARNING",
+      "sla_status": "OK",
+      "n_signals": 84
+    }
+  ],
+  "2026-11-10": [
+    {
+      "timestamp": "2026-11-10T00:19:38.061823",
+      "global_score": 39.7,
+      "label": "🟠 Baja",
+      "kill_switch_active": false,
+      "kill_switch_reasons": [],
+      "criticas": 9,
+      "criticas_estructurales": 0,
+      "advertencias": 12,
       "validacion_nivel": "WARNING",
       "sla_status": "OK",
       "n_signals": 84
