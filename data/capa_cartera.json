@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-10T00:20:18",
+  "generated": "2026-11-10T17:33:30",
   "shadow": true,
   "fecha_datos": "2026-10-23",
   "datos_viejos": true,
@@ -16,14 +16,14 @@
   "cartera_real": {
     "valor_usd": {
       "MERVAL": 2196.14,
-      "BOVESPA": 324.39,
+      "BOVESPA": 320.36,
       "SP500": 2679.33
     },
-    "total_usd": 5199.86,
+    "total_usd": 5195.83,
     "pesos": {
-      "MERVAL": 0.4223,
-      "BOVESPA": 0.0624,
-      "SP500": 0.5153
+      "MERVAL": 0.4227,
+      "BOVESPA": 0.0617,
+      "SP500": 0.5157
     }
   },
   "desvio_pp": {
@@ -34,21 +34,21 @@
   "banda_pp": 5.0,
   "rebalancear": true,
   "montos_sugeridos_usd": {
-    "MERVAL": -968.0,
-    "BOVESPA": 903.0,
-    "SP500": 65.0
+    "MERVAL": -969.0,
+    "BOVESPA": 906.0,
+    "SP500": 63.0
   },
   "inicio_seguimiento": "2026-09-30",
   "seguimiento": {
     "inicio": "2026-09-30",
     "inversa_vol_banda": {
-      "nav": 102.88,
+      "nav": 102.94,
       "dias": 17,
       "costos_pct": 0.6,
       "pesos_actuales": {
-        "MERVAL": 0.193,
-        "BOVESPA": 0.311,
-        "SP500": 0.496
+        "MERVAL": 0.201,
+        "BOVESPA": 0.316,
+        "SP500": 0.483
       }
     },
     "tercios": {
@@ -73,7 +73,7 @@
     }
   },
   "ultimo_aviso": "2026-11-10",
-  "avisar_ahora": true,
+  "avisar_ahora": false,
   "telegram_lines": [
     "<b>⚖️ Capa de cartera por riesgo (shadow)</b> — datos al 2026-10-23",
     "⚠️ Datos de research con más de 4 días: revisar el workflow Backfill research 10y",
@@ -81,11 +81,11 @@
     "🇧🇷 BOVESPA: objetivo 24% · real 6% · vol 24.9%",
     "🇺🇸 S&amp;P: objetivo 53% · real 52% · vol 11.2%",
     "🔁 <b>Fuera de banda (±5 pp)</b>. Montos sugeridos (USD):",
-    "  🇦🇷 MERVAL: vender 968",
-    "  🇧🇷 BOVESPA: comprar 903",
-    "  🇺🇸 S&amp;P: comprar 65",
+    "  🇦🇷 MERVAL: vender 969",
+    "  🇧🇷 BOVESPA: comprar 906",
+    "  🇺🇸 S&amp;P: comprar 63",
     "Costo estimado de rebalancear: 12 USD",
-    "Seguimiento desde 2026-09-30 (base 100): inversa vol 102.88 · tercios 103.52 · 100% S&amp;P 99.03",
+    "Seguimiento desde 2026-09-30 (base 100): inversa vol 102.94 · tercios 103.52 · 100% S&amp;P 99.03",
     "<i>Análisis de datos, no asesoramiento. No toca señales ni Kelly.</i>"
   ]
 }
