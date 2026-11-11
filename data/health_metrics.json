@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-11-10T22:09:35.039018",
-  "last_run_utc": "2026-11-11T01:09:35.039075",
-  "last_success": "2026-11-10T22:09:35.039018",
+  "last_run": "2026-11-11T17:33:00.988575",
+  "last_run_utc": "2026-11-11T20:33:00.988622",
+  "last_success": "2026-11-11T17:33:00.988575",
   "consecutive_failures": 0,
   "duration_history": [
-    124.4,
     957.8,
     140.5,
     130.4,
@@ -13,11 +12,12 @@
     220.2,
     171.8,
     173.1,
-    164.7
+    164.7,
+    181.0
   ],
-  "duration_avg_sec": 234.7,
+  "duration_avg_sec": 239.9,
   "duration_p95_sec": 589.0,
-  "duration_last_sec": 164.7,
+  "duration_last_sec": 181.0,
   "signals_count": 84,
   "buy_signals": 13,
   "sell_signals": 25,
@@ -27,26 +27,6 @@
   "cross_market_narrative": "Aversión al riesgo global. S&P 500 bajista (score 37/100), correlación moderada entre mercados. Ajuste macro: MERVAL -0.",
   "validacion_nivel": "ERROR",
   "runs_log": [
-    {
-      "ts": "2026-11-03",
-      "success": true,
-      "duration": 192.4
-    },
-    {
-      "ts": "2026-11-03",
-      "success": true,
-      "duration": 141.6
-    },
-    {
-      "ts": "2026-11-03",
-      "success": true,
-      "duration": 127.0
-    },
-    {
-      "ts": "2026-11-03",
-      "success": true,
-      "duration": 131.8
-    },
     {
       "ts": "2026-11-04",
       "success": true,
@@ -156,29 +136,34 @@
       "ts": "2026-11-10",
       "success": true,
       "duration": 164.7
+    },
+    {
+      "ts": "2026-11-11",
+      "success": true,
+      "duration": 181.0
     }
   ],
-  "pipeline_runs_today": 5,
-  "pipeline_runs_week": 26,
+  "pipeline_runs_today": 1,
+  "pipeline_runs_week": 23,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 32.8,
+  "global_confidence_score": 17.8,
   "global_confidence_label": "🔴 Crítica",
   "kill_switch_active": true,
   "optimized_weights_days": 61,
   "exposure_factor_shadow": 0.0,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
-  "backtest_ev_21d": -5.58,
+  "backtest_ev_21d": -5.54,
   "backtest_total_trades": 3192,
-  "predictor_dir_acc": 0.212,
-  "predictor_mae": 13.53,
-  "backtest_generated": "2026-11-10",
+  "predictor_dir_acc": 0.203,
+  "predictor_mae": 13.46,
+  "backtest_generated": "2026-11-11",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 1.9,
+  "ccl_age_minutes": 1.8,
   "last_ccl_value": 1658.4
 }
