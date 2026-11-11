@@ -6718,6 +6718,21 @@
       "validacion_nivel": "ERROR",
       "sla_status": "OK",
       "n_signals": 84
+    },
+    {
+      "timestamp": "2026-11-10T22:08:42.423147",
+      "global_score": 32.8,
+      "label": "🔴 Crítica",
+      "kill_switch_active": true,
+      "kill_switch_reasons": [
+        "data_validator marcó ERROR (datos de mercado corruptos o faltantes)"
+      ],
+      "criticas": 9,
+      "criticas_estructurales": 0,
+      "advertencias": 15,
+      "validacion_nivel": "ERROR",
+      "sla_status": "OK",
+      "n_signals": 84
     }
   ]
 }
