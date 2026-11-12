@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-12T17:32:16",
+  "generated": "2026-11-12T18:47:52",
   "shadow": true,
   "fecha_datos": "2026-10-23",
   "datos_viejos": true,
@@ -15,28 +15,28 @@
   },
   "cartera_real": {
     "valor_usd": {
-      "MERVAL": 2230.16,
-      "BOVESPA": 331.52,
-      "SP500": 2712.67
+      "MERVAL": 2208.23,
+      "BOVESPA": 380.93,
+      "SP500": 2705.11
     },
-    "total_usd": 5274.35,
+    "total_usd": 5294.27,
     "pesos": {
-      "MERVAL": 0.4228,
-      "BOVESPA": 0.0629,
-      "SP500": 0.5143
+      "MERVAL": 0.4171,
+      "BOVESPA": 0.072,
+      "SP500": 0.511
     }
   },
   "desvio_pp": {
-    "MERVAL": 18.7,
-    "BOVESPA": -17.3,
-    "SP500": -1.3
+    "MERVAL": 18.1,
+    "BOVESPA": -16.4,
+    "SP500": -1.7
   },
   "banda_pp": 5.0,
   "rebalancear": true,
   "montos_sugeridos_usd": {
-    "MERVAL": -984.0,
-    "BOVESPA": 914.0,
-    "SP500": 71.0
+    "MERVAL": -958.0,
+    "BOVESPA": 869.0,
+    "SP500": 89.0
   },
   "inicio_seguimiento": "2026-09-30",
   "seguimiento": {
@@ -73,17 +73,17 @@
     }
   },
   "ultimo_aviso": "2026-11-12",
-  "avisar_ahora": true,
+  "avisar_ahora": false,
   "telegram_lines": [
     "<b>⚖️ Capa de cartera por riesgo (shadow)</b> — datos al 2026-10-23",
     "⚠️ Datos de research con más de 4 días: revisar el workflow Backfill research 10y",
     "🇦🇷 MERVAL: objetivo 24% · real 42% · vol 24.9%",
-    "🇧🇷 BOVESPA: objetivo 24% · real 6% · vol 24.9%",
+    "🇧🇷 BOVESPA: objetivo 24% · real 7% · vol 24.9%",
     "🇺🇸 S&amp;P: objetivo 53% · real 51% · vol 11.2%",
     "🔁 <b>Fuera de banda (±5 pp)</b>. Montos sugeridos (USD):",
-    "  🇦🇷 MERVAL: vender 984",
-    "  🇧🇷 BOVESPA: comprar 914",
-    "  🇺🇸 S&amp;P: comprar 71",
+    "  🇦🇷 MERVAL: vender 958",
+    "  🇧🇷 BOVESPA: comprar 869",
+    "  🇺🇸 S&amp;P: comprar 89",
     "Costo estimado de rebalancear: 12 USD",
     "Seguimiento desde 2026-09-30 (base 100): inversa vol 102.94 · tercios 103.52 · 100% S&amp;P 99.03",
     "<i>Análisis de datos, no asesoramiento. No toca señales ni Kelly.</i>"
