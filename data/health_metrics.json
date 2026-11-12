@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-11-12T18:48:02.685623",
-  "last_run_utc": "2026-11-12T21:48:02.685669",
-  "last_success": "2026-11-12T18:48:02.685623",
+  "last_run": "2026-11-12T20:02:56.887739",
+  "last_run_utc": "2026-11-12T23:02:56.887787",
+  "last_success": "2026-11-12T20:02:56.887739",
   "consecutive_failures": 0,
   "duration_history": [
-    220.2,
     171.8,
     173.1,
     164.7,
@@ -13,11 +12,12 @@
     126.4,
     120.5,
     148.4,
-    128.3
+    128.3,
+    133.5
   ],
-  "duration_avg_sec": 161.0,
-  "duration_p95_sec": 215.1,
-  "duration_last_sec": 128.3,
+  "duration_avg_sec": 154.0,
+  "duration_p95_sec": 200.6,
+  "duration_last_sec": 133.5,
   "signals_count": 84,
   "buy_signals": 14,
   "sell_signals": 25,
@@ -146,10 +146,15 @@
       "ts": "2026-11-12",
       "success": true,
       "duration": 128.3
+    },
+    {
+      "ts": "2026-11-12",
+      "success": true,
+      "duration": 133.5
     }
   ],
-  "pipeline_runs_today": 2,
-  "pipeline_runs_week": 24,
+  "pipeline_runs_today": 3,
+  "pipeline_runs_week": 25,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
