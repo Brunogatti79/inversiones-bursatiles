@@ -47,6 +47,7 @@ COSTO_PATA = 0.00605
 SALTO = 0.45
 DATOS_VIEJOS_DIAS = 4
 INICIO_SEGUIMIENTO_DEFAULT = "2026-09-30"
+_FUENTE_SERIE: dict = {}        # {mercado: "indice" | "canasta_ew"} de la última corrida
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -65,10 +66,59 @@ def _leer_csv(nombre: str, pull: bool) -> pd.DataFrame:
     return df[df.index.notna()].sort_index().apply(pd.to_numeric, errors="coerce")
 
 
+COBERTURA_MIN_INDICE = 0.90     # proporción mínima de ruedas con dato del índice
+VENTANA_COBERTURA_INDICE = 252  # se mide sobre el último año: la serie real del índice
+                                # (Rava) empieza en 2021-10, no cubre los 10 años
+ATRASO_MAX_INDICE = 5           # ruedas que el índice puede quedar detrás de las acciones
+
+
+def canasta_ew(df: pd.DataFrame) -> pd.Series:
+    """Índice base 100 de la canasta equiponderada de las acciones del CSV
+    (retorno diario promedio, saltos > SALTO neutralizados)."""
+    acciones = df.drop(columns=["INDICE"], errors="ignore")
+    r = acciones.pct_change(fill_method=None)
+    r = r.where(r.abs() <= SALTO)
+    minimo = max(1, acciones.shape[1] // 2)
+    rb = r.mean(axis=1).where(r.notna().sum(axis=1) >= minimo)
+    rb = rb.dropna()
+    return (1 + rb).cumprod() * 100
+
+
+def indice_o_canasta(df: pd.DataFrame) -> tuple[pd.Series, str]:
+    """
+    FIX 11/11/2026: el índice MERVAL de Yahoo (^MERV) quedó inutilizable —
+    merval_10y.csv tenía 64 valores de INDICE en 2.437 ruedas y el último era
+    del 16/10/2026. Con ffill(limit=5) la capa quedaba clavada en el 23/10
+    ("datos_viejos") y medía la volatilidad de MERVAL sobre una serie rota.
+
+    La solución de fondo es la fuente real del índice (src/indice_merval.py,
+    que llena INDICE en el backfill). Esto es solo la red de seguridad: si el
+    índice del CSV tiene buena cobertura en el último año y está al día, se
+    usa. Si no, se usa la canasta equiponderada de las acciones del mismo CSV
+    y se avisa en el reporte. No se empalman las dos series: es una u otra.
+    """
+    idx = df["INDICE"] if "INDICE" in df.columns else pd.Series(dtype=float)
+    acciones = df.drop(columns=["INDICE"], errors="ignore").dropna(how="all")
+    if acciones.empty:
+        return idx, "indice"
+    recientes = idx.reindex(acciones.index[-VENTANA_COBERTURA_INDICE:])
+    cobertura = float(recientes.notna().mean()) if len(recientes) else 0.0
+    ultimo = idx.last_valid_index()
+    atraso = int((acciones.index > ultimo).sum()) if ultimo is not None else len(acciones)
+    if cobertura >= COBERTURA_MIN_INDICE and atraso <= ATRASO_MAX_INDICE:
+        return idx, "indice"
+    logger.warning(f"[capa_cartera] índice no utilizable (cobertura {cobertura:.0%}, "
+                   f"{atraso} ruedas de atraso) → canasta equiponderada")
+    return canasta_ew(df), "canasta_ew"
+
+
 def usd_diario(pull: bool = True) -> pd.DataFrame:
     fx = _leer_csv("fx_10y.csv", pull)
-    idx = {mk: _leer_csv(f"{key}_10y.csv", pull)["INDICE"]
-           for key, mk in (("merval", "MERVAL"), ("bovespa", "BOVESPA"), ("sp500", "SP500"))}
+    idx, fuente = {}, {}
+    for key, mk in (("merval", "MERVAL"), ("bovespa", "BOVESPA"), ("sp500", "SP500")):
+        idx[mk], fuente[mk] = indice_o_canasta(_leer_csv(f"{key}_10y.csv", pull))
+    _FUENTE_SERIE.clear()
+    _FUENTE_SERIE.update(fuente)
     d = pd.DataFrame(idx)
     d = d[d.index.dayofweek < 5].ffill(limit=5)
     ccl = fx["CCL"].reindex(d.index).ffill(limit=5)
@@ -197,6 +247,7 @@ def run_capa_cartera(push: bool = True, pull: bool = True, ahora: datetime | Non
         "shadow": True,
         "fecha_datos": str(fecha_datos.date()),
         "datos_viejos": dias_viejos > DATOS_VIEJOS_DIAS,
+        "fuente_serie": {mk: _FUENTE_SERIE.get(mk, "indice") for mk in MERCADOS},
         "vol_63d_pct": {mk: round(float(vol_hoy[mk]) * 100, 1) for mk in MERCADOS},
         "pesos_objetivo": {mk: round(float(obj[mk]), 4) for mk in MERCADOS},
         "cartera_real": real,
@@ -223,6 +274,9 @@ def telegram_lines(o: dict) -> list:
     L = [f"<b>⚖️ Capa de cartera por riesgo (shadow)</b> — datos al {o['fecha_datos']}"]
     if o["datos_viejos"]:
         L.append("⚠️ Datos de research con más de 4 días: revisar el workflow Backfill research 10y")
+    _canasta = [mk for mk, f in (o.get("fuente_serie") or {}).items() if f == "canasta_ew"]
+    if _canasta:
+        L.append(f"ℹ️ {', '.join(_canasta)}: sin índice utilizable, se usa la canasta equiponderada de sus acciones")
     for mk in MERCADOS:
         real = o["cartera_real"]["pesos"].get(mk)
         L.append(f"{nom[mk]}: objetivo {o['pesos_objetivo'][mk]:.0%} · real "

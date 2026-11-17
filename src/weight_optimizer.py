@@ -80,12 +80,37 @@ W_CURRENT = {
 MARKETS = ["MERVAL", "BOVESPA", "SP500"]
 
 
+# ── Interruptor del optimizador (11/11/2026) ────────────────────────────────
+# APAGADO por defecto. Motivo (diagnóstico integral del 11/11/2026):
+#   • El grid search corre sobre signals_history.json, una ventana rolling de
+#     61 días = ~3 ventanas independientes de 21 días. Con esa muestra elige
+#     ruido: optimized_weights.json del 10/11 reportaba como "mejores" pesos
+#     con EV 21d de -9,3% (MERVAL) y -7,2% (BOVESPA).
+#   • walk_forward_validation de backtest_results.json: las reglas positivas
+#     en descubrimiento se dan vuelta en validación.
+#   • Cambiar los pesos todos los días impide atribuir resultados a una
+#     versión del modelo.
+# Con el interruptor apagado:
+#   - run_weight_optimization() no corre ni reescribe optimized_weights.json
+#   - load_optimized_weights() devuelve {} → analyzer.py usa W_POR_MERCADO
+#     (los pesos fijos documentados), igual que si el archivo no existiera
+#   - weights_provenance() informa mode="disabled"
+# Para volver a prenderlo: variable ENABLE_WEIGHT_OPTIMIZER=true en Railway.
+def optimizer_enabled() -> bool:
+    return os.getenv("ENABLE_WEIGHT_OPTIMIZER", "false").strip().lower() == "true"
+
+
 # ── Entrypoint ─────────────────────────────────────────────────────────────
 
 def run_weight_optimization(price_data: dict, ticker_cols: dict) -> dict:
     """
     Ejecuta la optimización de pesos. Guarda y retorna los mejores pesos por mercado.
     """
+    if not optimizer_enabled():
+        logger.info("Weight optimizer APAGADO (ENABLE_WEIGHT_OPTIMIZER!=true) — "
+                    "no se optimiza ni se reescribe optimized_weights.json")
+        return {}
+
     history = {}
     if os.path.exists(HISTORY_PATH):
         try:
@@ -429,8 +454,14 @@ def _get_future_price(ticker: str, signal_date: str, price_index: dict, horizon:
 def load_optimized_weights() -> dict:
     """
     Carga pesos optimizados desde archivo. Retorna dict por mercado.
-    Retorna {} si el archivo no existe o es muy viejo (>7 días).
+    Retorna {} si el archivo no existe o es muy viejo (>7 días), o si el
+    optimizador está apagado (ver optimizer_enabled()) — en ese caso el
+    analyzer usa los pesos fijos W_POR_MERCADO.
     """
+    if not optimizer_enabled():
+        logger.info("Pesos optimizados ignorados (optimizador apagado) → pesos fijos por mercado")
+        return {}
+
     if not os.path.exists(WEIGHTS_PATH):
         return {}
 
@@ -492,6 +523,11 @@ def weights_provenance() -> dict:
     cero real aunque otro ya tenga historia.
     """
     fallback = {"available": False, "mode": None, "is_synthetic": False, "markets": {}}
+
+    if not optimizer_enabled():
+        # Los pesos del archivo no se están usando: no informar su procedencia
+        # como si fueran los vigentes.
+        return {"available": False, "mode": "disabled", "is_synthetic": False, "markets": {}}
 
     if not os.path.exists(WEIGHTS_PATH):
         return fallback

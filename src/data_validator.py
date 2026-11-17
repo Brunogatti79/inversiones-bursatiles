@@ -18,13 +18,26 @@ logger = logging.getLogger(__name__)
 
 # Feriados Argentina, Brasil y EEUU más relevantes
 FERIADOS_ARG = {
-    date(2026, 1, 1), date(2026, 3, 2), date(2026, 3, 3),   # Año nuevo, Carnaval
-    date(2026, 4, 2), date(2026, 4, 3),                       # Malvinas, Jueves/Viernes Santo
+    # FIX 11/11/2026: calendario BYMA 2026 completo (días SIN negociación).
+    # La lista anterior tenía Carnaval en marzo (fue 16-17/02), Soberanía el
+    # 20/11 (se trasladó al 23/11) y no tenía el 24/03, el 31/12 ni el 9 y
+    # 10/11 (visita del Papa León XIV, Decreto 1103/26). Esos dos días sin
+    # rueda hicieron que el 11/11 el validador viera "4 días de atraso" en
+    # MERVAL → ERROR → kill switch, con datos que estaban al día.
+    # No van acá los días con negociación pero sin liquidación (23/03, 10/07,
+    # 06/11, 07/12, 24/12): esos días hay precios.
+    date(2026, 1, 1),                                         # Año nuevo
+    date(2026, 2, 16), date(2026, 2, 17),                     # Carnaval
+    date(2026, 3, 24),                                        # Memoria
+    date(2026, 4, 2), date(2026, 4, 3),                       # Malvinas, Viernes Santo
     date(2026, 5, 1), date(2026, 5, 25),                      # Día del trabajo, Revolución
-    date(2026, 6, 15), date(2026, 6, 20),                     # Güemes, Belgrano
+    date(2026, 6, 15),                                        # Güemes (trasladado)
     date(2026, 7, 9), date(2026, 8, 17),                      # Independencia, San Martín
-    date(2026, 10, 12), date(2026, 11, 20),                   # Diversidad, Soberanía
+    date(2026, 10, 12),                                       # Diversidad
+    date(2026, 11, 9), date(2026, 11, 10),                    # Visita del Papa León XIV
+    date(2026, 11, 23),                                       # Soberanía (trasladado)
     date(2026, 12, 8), date(2026, 12, 25),                    # Inmaculada, Navidad
+    date(2026, 12, 31),                                       # Sin negociación (Comunicado BYMA 18897)
 }
 
 FERIADOS_USA = {

@@ -182,6 +182,17 @@ def _write_and_push(path: str, rows: list[dict], message: str) -> bool:
 
 
 def _weights_snapshot():
+    # 11/11/2026: con el optimizador apagado, optimized_weights.json queda en
+    # disco pero NO se usa. El archivo de corridas tiene que registrar los
+    # pesos realmente vigentes (los fijos del analyzer), no los del archivo.
+    try:
+        from src.weight_optimizer import optimizer_enabled
+        if not optimizer_enabled():
+            from src.analyzer import W_POR_MERCADO
+            return {"mode": "disabled_fixed",
+                    **{m: dict(w) for m, w in W_POR_MERCADO.items()}}
+    except Exception:
+        pass
     try:
         with open(WEIGHTS_PATH, encoding="utf-8") as f:
             return json.load(f)
