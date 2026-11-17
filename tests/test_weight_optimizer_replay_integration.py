@@ -18,6 +18,17 @@ import pytest
 import src.weight_optimizer as wo
 
 
+@pytest.fixture(autouse=True)
+def _optimizador_prendido(monkeypatch):
+    """11/11/2026: el optimizador quedó apagado por defecto
+    (ENABLE_WEIGHT_OPTIMIZER). Estos tests cubren la lógica con el
+    interruptor prendido; el comportamiento apagado se prueba en
+    tests/test_weight_optimizer_switch.py."""
+    monkeypatch.setenv("ENABLE_WEIGHT_OPTIMIZER", "true")
+
+
+
+
 def _replay_obs(market="MERVAL", n=20, ticker="GGAL.BA", ret_21d=8.0,
                  s_macro=60.0, s_tec=55.0, s_fund=70.0, precio=150.0):
     """Genera N observaciones de replay sintéticas pero válidas."""

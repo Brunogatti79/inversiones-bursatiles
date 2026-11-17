@@ -212,3 +212,27 @@ class TestUltimoDiaHabil:
         # 9 de julio (feriado ARG) cae lunes en 2026 según FERIADOS_ARG
         d = ultimo_dia_habil("MERVAL", ref_date=date(2026, 7, 10))
         assert d != date(2026, 7, 9)
+
+
+# ── FIX 11/11/2026: calendario BYMA 2026 (kill switch falso del 11/11) ─────
+class TestFeriadosBYMA2026:
+    def test_visita_del_papa_no_cuenta_como_atraso(self):
+        """Caso real: 9 y 10/11 sin rueda. El 11/11 el último día hábil de
+        MERVAL es el viernes 06/11, no el 10/11."""
+        from datetime import date
+        from src.data_validator import ultimo_dia_habil
+        assert ultimo_dia_habil("MERVAL", date(2026, 11, 10)) == date(2026, 11, 6)
+        # Brasil sí operó esos días (9 o 10 según la hora UTC en que corra)
+        assert ultimo_dia_habil("BOVESPA", date(2026, 11, 10)) >= date(2026, 11, 9)
+
+    def test_soberania_trasladada_al_23(self):
+        from datetime import date
+        from src.data_validator import FERIADOS_ARG
+        assert date(2026, 11, 23) in FERIADOS_ARG
+        assert date(2026, 11, 20) not in FERIADOS_ARG
+
+    def test_dias_con_rueda_sin_liquidacion_no_son_feriado(self):
+        from datetime import date
+        from src.data_validator import FERIADOS_ARG
+        for d in (date(2026, 11, 6), date(2026, 12, 7), date(2026, 12, 24)):
+            assert d not in FERIADOS_ARG

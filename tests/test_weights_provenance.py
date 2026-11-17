@@ -25,6 +25,17 @@ import src.monitor as monitor
 from src.notifier import _synthetic_weights_section
 
 
+@pytest.fixture(autouse=True)
+def _optimizador_prendido(monkeypatch):
+    """11/11/2026: el optimizador quedó apagado por defecto
+    (ENABLE_WEIGHT_OPTIMIZER). Estos tests cubren la lógica con el
+    interruptor prendido; el comportamiento apagado se prueba en
+    tests/test_weight_optimizer_switch.py."""
+    monkeypatch.setenv("ENABLE_WEIGHT_OPTIMIZER", "true")
+
+
+
+
 @pytest.fixture
 def _isolated_cwd(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)

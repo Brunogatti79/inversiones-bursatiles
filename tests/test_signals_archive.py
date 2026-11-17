@@ -15,6 +15,17 @@ import pytest
 from src import signals_archive as sa
 
 
+@pytest.fixture(autouse=True)
+def _optimizador_prendido(monkeypatch):
+    """11/11/2026: el optimizador quedó apagado por defecto
+    (ENABLE_WEIGHT_OPTIMIZER). Estos tests cubren la lógica con el
+    interruptor prendido; el comportamiento apagado se prueba en
+    tests/test_weight_optimizer_switch.py."""
+    monkeypatch.setenv("ENABLE_WEIGHT_OPTIMIZER", "true")
+
+
+
+
 def _row(fecha, ticker, **kw):
     r = {"fecha": fecha, "ticker": ticker}
     r.update(kw)
