@@ -233,6 +233,18 @@ def main(aplicar: bool = False, push: bool = True) -> dict:
         if close_df.empty:
             resumen["mercados"][mercado] = {"error": "sin datos", "fallidos": fallidos}
             continue
+        _indice_info = None
+        if mercado == "merval":
+            # FIX 11/11/2026: ^MERV de Yahoo sin datos desde el 16/10/2026
+            # (fin del S&P Merval). Índice real desde Rava, ver
+            # src/indice_merval.py. Rava empieza el 2021-10-26: antes de esa
+            # fecha la columna INDICE queda vacía (no se mezclan dos bases).
+            try:
+                from src.indice_merval import aplicar_indice_merval
+                close_df, _, _, _indice_info = aplicar_indice_merval(close_df, "INDICE")
+            except Exception as e:
+                logger.warning(f"[backfill] índice Merval desde Rava falló: {e}")
+                _indice_info = {"aplicado": False, "motivo": str(e)}
         p_close = os.path.join(destino, f"{mercado}_10y.csv")
         p_vol = os.path.join(destino, f"{mercado}_10y_volumen.csv")
         _guardar_csv(close_df, p_close)
@@ -246,6 +258,8 @@ def main(aplicar: bool = False, push: bool = True) -> dict:
             "filas": int(len(close_df)),
             "por_ticker": meta,
         }
+        if _indice_info is not None:
+            resumen["mercados"][mercado]["indice_merval"] = _indice_info
 
     total_ok = sum(d.get("tickers_ok", 0) for d in resumen["mercados"].values())
     if total_ok == 0:

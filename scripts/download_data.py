@@ -328,6 +328,31 @@ def download_market_no_index(tickers, market_name):
     return df
 
 
+def _aplicar_indice_merval(df, df_high, df_low):
+    """
+    FIX 11/11/2026: el S&P Merval dejó de calcularse el 16/10/2026 (lo
+    reemplazó el MSCI Merval desde el 19/10) y Yahoo (^MERV) quedó sin datos:
+    la columna "INDICE MERVAL" estaba vacía desde esa fecha. Se toma la
+    serie real del índice de Rava (misma serie, verificada contra Yahoo).
+    Toda la lógica y las protecciones están en src/indice_merval.py.
+
+    Nunca rompe la descarga: ante cualquier problema la columna queda como
+    vino de Yahoo.
+    """
+    info = {"aplicado": False}
+    try:
+        _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if _root not in sys.path:
+            sys.path.insert(0, _root)
+        from src.indice_merval import aplicar_indice_merval
+        df, df_high, df_low, info = aplicar_indice_merval(
+            df, index_display_name("MERVAL"), df_high, df_low)
+    except Exception as e:
+        logger.warning(f"[MERVAL] índice desde Rava falló (queda el de Yahoo): {e}")
+        info = {"aplicado": False, "motivo": str(e)}
+    return df, df_high, df_low, info
+
+
 def _dias_atraso_simple(last_date):
     """
     Versión liviana de la misma idea que data_validator.ultimo_dia_habil()
@@ -392,6 +417,9 @@ def main():
                 }
             else:
                 df, df_high, df_low = download_market(tickers, index, market)
+                _indice_info = None
+                if market == "MERVAL":
+                    df, df_high, df_low, _indice_info = _aplicar_indice_merval(df, df_high, df_low)
                 save_csv(df, market)  # merval/bovespa/sp500_cierres.csv — SIN CAMBIOS de formato
 
                 # Fix 27/07/2026 (roadmap externo P6): High/Low reales además
@@ -425,6 +453,10 @@ def main():
                     "ok":           True,
                     "ohlc":         df_high is not None and df_low is not None,
                 }
+                if _indice_info is not None:
+                    # De dónde salió el índice Merval en esta corrida y, si no
+                    # se pudo aplicar la fuente real, por qué.
+                    status["markets"][market]["indice_merval"] = _indice_info
         except Exception as e:
             logger.error(f"[{market}] ERROR: {e}")
             errors.append(str(e))
