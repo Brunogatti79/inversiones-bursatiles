@@ -1,71 +1,4 @@
 {
-  "2026-07-20": [
-    {
-      "timestamp": "2026-07-20T14:03:15.300235",
-      "global_score": 53.2,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 2,
-      "criticas_estructurales": 0,
-      "advertencias": 1,
-      "validacion_nivel": "OK",
-      "sla_status": "CRITICAL",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-07-20T16:26:47.853021",
-      "global_score": 68.2,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 2,
-      "criticas_estructurales": 0,
-      "advertencias": 1,
-      "validacion_nivel": "OK",
-      "sla_status": "OK",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-07-20T17:30:51.072049",
-      "global_score": 67.3,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 2,
-      "criticas_estructurales": 0,
-      "advertencias": 1,
-      "validacion_nivel": "OK",
-      "sla_status": "OK",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-07-20T18:14:24.644873",
-      "global_score": 68.2,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 2,
-      "criticas_estructurales": 0,
-      "advertencias": 1,
-      "validacion_nivel": "OK",
-      "sla_status": "OK",
-      "n_signals": 67
-    },
-    {
-      "timestamp": "2026-07-20T20:59:54.439793",
-      "global_score": 59.3,
-      "label": "🟡 Reducida",
-      "kill_switch_active": false,
-      "kill_switch_reasons": [],
-      "criticas": 3,
-      "criticas_estructurales": 0,
-      "advertencias": 1,
-      "validacion_nivel": "WARNING",
-      "sla_status": "OK",
-      "n_signals": 67
-    }
-  ],
   "2026-07-21": [
     {
       "timestamp": "2026-07-21T14:02:05.159370",
@@ -6681,6 +6614,23 @@
       "advertencias": 16,
       "validacion_nivel": "OK",
       "sla_status": "OK",
+      "n_signals": 84
+    }
+  ],
+  "2026-11-18": [
+    {
+      "timestamp": "2026-11-18T17:31:02.450005",
+      "global_score": 28.1,
+      "label": "🔴 Crítica",
+      "kill_switch_active": true,
+      "kill_switch_reasons": [
+        "score global=28.1 por debajo del umbral=35"
+      ],
+      "criticas": 6,
+      "criticas_estructurales": 0,
+      "advertencias": 16,
+      "validacion_nivel": "OK",
+      "sla_status": "CRITICAL",
       "n_signals": 84
     }
   ]
