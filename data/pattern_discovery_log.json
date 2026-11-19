@@ -713,15 +713,39 @@
       "ev_antes": -0.39,
       "ev_ahora": 0.03,
       "n": 1045
+    },
+    {
+      "fecha": "2026-11-19 19:38",
+      "tipo": "cambio_de_signo",
+      "combinacion": "🟢 Alta + 🟡 NEUTRAL/ESPERAR",
+      "ev_antes": 0.08,
+      "ev_ahora": -0.08,
+      "n": 613
+    },
+    {
+      "fecha": "2026-11-19 19:38",
+      "tipo": "cambio_de_signo",
+      "combinacion": "🟡 Media + 🟡 NEUTRAL/ESPERAR",
+      "ev_antes": 0.26,
+      "ev_ahora": -0.05,
+      "n": 1114
+    },
+    {
+      "fecha": "2026-11-19 19:38",
+      "tipo": "cambio_de_signo",
+      "combinacion": "🟠 Baja + 🟡 NEUTRAL/ESPERAR",
+      "ev_antes": 0.28,
+      "ev_ahora": -0.26,
+      "n": 69
     }
   ],
   "_ultimo_snapshot": {
     "🟢 Alta + 🟡 NEUTRAL/ESPERAR": {
-      "n": 584,
-      "ev": 0.08
+      "n": 613,
+      "ev": -0.08
     },
     "🟢 Alta + 🟢 COMPRA": {
-      "n": 283,
+      "n": 284,
       "ev": -1.22
     },
     "🟢 Alta + ⭐ COMPRA FUERTE": {
@@ -737,20 +761,20 @@
       "ev": 1.19
     },
     "🟡 Media + 🟠 VENTA PARCIAL": {
-      "n": 150,
-      "ev": -7.96
+      "n": 164,
+      "ev": -7.65
     },
     "🟡 Media + 🟡 NEUTRAL/ESPERAR": {
-      "n": 1058,
-      "ev": 0.26
+      "n": 1114,
+      "ev": -0.05
     },
     "🟡 Media + 🔴 VENTA": {
       "n": 11,
       "ev": -20.98
     },
     "🟡 Media + 🟢 COMPRA": {
-      "n": 448,
-      "ev": -0.09
+      "n": 452,
+      "ev": -0.13
     },
     "🟡 Media + ⭐ COMPRA FUERTE": {
       "n": 98,
@@ -761,24 +785,24 @@
       "ev": -3.49
     },
     "🟠 Baja + 🟢 COMPRA": {
-      "n": 132,
-      "ev": -1.34
+      "n": 133,
+      "ev": -1.39
     },
     "🟠 Baja + 🟡 NEUTRAL/ESPERAR": {
-      "n": 62,
-      "ev": 0.28
+      "n": 69,
+      "ev": -0.26
     },
     "🟠 Baja + 🟠 VENTA PARCIAL": {
-      "n": 139,
-      "ev": -1.94
+      "n": 148,
+      "ev": -2.04
     },
     "🟠 Baja + 🔴 VENTA": {
       "n": 10,
       "ev": -1.68
     },
     "🔴 Muy baja + 🟢 COMPRA": {
-      "n": 24,
-      "ev": -0.75
+      "n": 26,
+      "ev": -0.98
     },
     "🔴 Muy baja + ⭐ COMPRA FUERTE": {
       "n": 13,
