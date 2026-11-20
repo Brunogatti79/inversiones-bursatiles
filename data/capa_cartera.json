@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-19T23:08:00",
+  "generated": "2026-11-20T17:31:42",
   "shadow": true,
-  "fecha_datos": "2026-11-18",
+  "fecha_datos": "2026-11-19",
   "datos_viejos": false,
   "fuente_serie": {
     "MERVAL": "indice",
@@ -9,66 +9,66 @@
     "SP500": "indice"
   },
   "vol_63d_pct": {
-    "MERVAL": 29.3,
-    "BOVESPA": 38.9,
-    "SP500": 15.0
+    "MERVAL": 28.9,
+    "BOVESPA": 39.0,
+    "SP500": 15.5
   },
   "pesos_objetivo": {
-    "MERVAL": 0.27,
-    "BOVESPA": 0.2032,
-    "SP500": 0.5268
+    "MERVAL": 0.2774,
+    "BOVESPA": 0.2055,
+    "SP500": 0.5171
   },
   "cartera_real": {
     "valor_usd": {
-      "MERVAL": 2084.7,
+      "MERVAL": 2013.41,
       "BOVESPA": 420.51,
-      "SP500": 2410.46
+      "SP500": 2315.15
     },
-    "total_usd": 4915.67,
+    "total_usd": 4749.07,
     "pesos": {
-      "MERVAL": 0.4241,
-      "BOVESPA": 0.0855,
-      "SP500": 0.4904
+      "MERVAL": 0.424,
+      "BOVESPA": 0.0885,
+      "SP500": 0.4875
     }
   },
   "desvio_pp": {
-    "MERVAL": 15.4,
-    "BOVESPA": -11.8,
-    "SP500": -3.6
+    "MERVAL": 14.7,
+    "BOVESPA": -11.7,
+    "SP500": -3.0
   },
   "banda_pp": 5.0,
   "rebalancear": true,
   "montos_sugeridos_usd": {
-    "MERVAL": -758.0,
-    "BOVESPA": 578.0,
-    "SP500": 179.0
+    "MERVAL": -696.0,
+    "BOVESPA": 556.0,
+    "SP500": 140.0
   },
   "inicio_seguimiento": "2026-09-30",
   "seguimiento": {
     "inicio": "2026-09-30",
     "inversa_vol_banda": {
-      "nav": 87.38,
-      "dias": 35,
+      "nav": 85.46,
+      "dias": 36,
       "costos_pct": 0.73,
       "pesos_actuales": {
-        "MERVAL": 0.212,
+        "MERVAL": 0.211,
         "BOVESPA": 0.155,
-        "SP500": 0.633
+        "SP500": 0.635
       }
     },
     "tercios": {
-      "nav": 84.35,
-      "dias": 35,
+      "nav": 82.37,
+      "dias": 36,
       "costos_pct": 0.63,
       "pesos_actuales": {
-        "MERVAL": 0.312,
+        "MERVAL": 0.311,
         "BOVESPA": 0.337,
-        "SP500": 0.351
+        "SP500": 0.352
       }
     },
     "sp500": {
-      "nav": 95.14,
-      "dias": 35,
+      "nav": 93.22,
+      "dias": 36,
       "costos_pct": 0.6,
       "pesos_actuales": {
         "MERVAL": 0.0,
@@ -77,19 +77,19 @@
       }
     }
   },
-  "ultimo_aviso": "2026-11-19",
-  "avisar_ahora": false,
+  "ultimo_aviso": "2026-11-20",
+  "avisar_ahora": true,
   "telegram_lines": [
-    "<b>⚖️ Capa de cartera por riesgo (shadow)</b> — datos al 2026-11-18",
-    "🇦🇷 MERVAL: objetivo 27% · real 42% · vol 29.3%",
-    "🇧🇷 BOVESPA: objetivo 20% · real 9% · vol 38.9%",
-    "🇺🇸 S&amp;P: objetivo 53% · real 49% · vol 15.0%",
+    "<b>⚖️ Capa de cartera por riesgo (shadow)</b> — datos al 2026-11-19",
+    "🇦🇷 MERVAL: objetivo 28% · real 42% · vol 28.9%",
+    "🇧🇷 BOVESPA: objetivo 21% · real 9% · vol 39.0%",
+    "🇺🇸 S&amp;P: objetivo 52% · real 49% · vol 15.5%",
     "🔁 <b>Fuera de banda (±5 pp)</b>. Montos sugeridos (USD):",
-    "  🇦🇷 MERVAL: vender 758",
-    "  🇧🇷 BOVESPA: comprar 578",
-    "  🇺🇸 S&amp;P: comprar 179",
-    "Costo estimado de rebalancear: 9 USD",
-    "Seguimiento desde 2026-09-30 (base 100): inversa vol 87.38 · tercios 84.35 · 100% S&amp;P 95.14",
+    "  🇦🇷 MERVAL: vender 696",
+    "  🇧🇷 BOVESPA: comprar 556",
+    "  🇺🇸 S&amp;P: comprar 140",
+    "Costo estimado de rebalancear: 8 USD",
+    "Seguimiento desde 2026-09-30 (base 100): inversa vol 85.46 · tercios 82.37 · 100% S&amp;P 93.22",
     "<i>Análisis de datos, no asesoramiento. No toca señales ni Kelly.</i>"
   ]
 }
