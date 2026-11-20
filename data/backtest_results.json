@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-19T19:38:18.532709",
+  "generated": "2026-11-19T21:04:24.758160",
   "total_trades": 3276,
   "days_history": 61,
   "by_signal": {
@@ -10250,7 +10250,7 @@
             "alpha_idx_neto": {
               "samples": 1355,
               "avg_ret": -0.39,
-              "p_value": 0.3262,
+              "p_value": 0.3261,
               "ic95": [
                 -1.18,
                 0.39
@@ -10563,32 +10563,7 @@
     "desvio_entrada_mediana_pct": 0.0,
     "trades_desvio_mayor_1pct": 573
   },
-  "pattern_discoveries_nuevas": [
-    {
-      "fecha": "2026-11-19 19:38",
-      "tipo": "cambio_de_signo",
-      "combinacion": "🟢 Alta + 🟡 NEUTRAL/ESPERAR",
-      "ev_antes": 0.08,
-      "ev_ahora": -0.08,
-      "n": 613
-    },
-    {
-      "fecha": "2026-11-19 19:38",
-      "tipo": "cambio_de_signo",
-      "combinacion": "🟡 Media + 🟡 NEUTRAL/ESPERAR",
-      "ev_antes": 0.26,
-      "ev_ahora": -0.05,
-      "n": 1114
-    },
-    {
-      "fecha": "2026-11-19 19:38",
-      "tipo": "cambio_de_signo",
-      "combinacion": "🟠 Baja + 🟡 NEUTRAL/ESPERAR",
-      "ev_antes": 0.28,
-      "ev_ahora": -0.26,
-      "n": 69
-    }
-  ],
+  "pattern_discoveries_nuevas": [],
   "historical_edge_score": {
     "🟢 Alta + 🟡 NEUTRAL/ESPERAR": {
       "score": 54.5,
@@ -10952,7 +10927,7 @@
       "profit_factor": 0.98,
       "significativo_95": false,
       "walk_forward_estado": "no_confirmado",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟢 Alta + 🟡 NEUTRAL/ESPERAR",
@@ -10966,7 +10941,7 @@
       "profit_factor": 0.97,
       "significativo_95": false,
       "walk_forward_estado": "no_confirmado",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟡 Media + 🟢 COMPRA",
@@ -10994,7 +10969,7 @@
       "profit_factor": 0.88,
       "significativo_95": false,
       "walk_forward_estado": "no_confirmado",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟢 Alta + 🟢 COMPRA",
