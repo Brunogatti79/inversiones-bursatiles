@@ -6399,6 +6399,21 @@
       "validacion_nivel": "ERROR",
       "sla_status": "OK",
       "n_signals": 84
+    },
+    {
+      "timestamp": "2026-11-25T17:31:04.280783",
+      "global_score": 30.8,
+      "label": "🔴 Crítica",
+      "kill_switch_active": true,
+      "kill_switch_reasons": [
+        "score global=30.8 por debajo del umbral=35"
+      ],
+      "criticas": 3,
+      "criticas_estructurales": 0,
+      "advertencias": 10,
+      "validacion_nivel": "WARNING",
+      "sla_status": "CRITICAL",
+      "n_signals": 84
     }
   ]
 }
