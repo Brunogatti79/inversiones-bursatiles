@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-11-26T20:32:25.402761",
-  "last_run_utc": "2026-11-26T23:32:25.402798",
-  "last_success": "2026-11-26T20:32:25.402761",
+  "last_run": "2026-11-26T22:19:40.063359",
+  "last_run_utc": "2026-11-27T01:19:40.063397",
+  "last_success": "2026-11-26T22:19:40.063359",
   "consecutive_failures": 0,
   "duration_history": [
-    112.9,
     100.1,
     102.3,
     117.2,
@@ -13,11 +12,12 @@
     99.6,
     107.0,
     105.7,
-    99.2
+    99.2,
+    99.9
   ],
-  "duration_avg_sec": 105.1,
+  "duration_avg_sec": 104.7,
   "duration_p95_sec": 115.1,
-  "duration_last_sec": 99.2,
+  "duration_last_sec": 99.9,
   "signals_count": 84,
   "buy_signals": 18,
   "sell_signals": 16,
@@ -146,10 +146,15 @@
       "ts": "2026-11-26",
       "success": true,
       "duration": 99.2
+    },
+    {
+      "ts": "2026-11-26",
+      "success": true,
+      "duration": 99.9
     }
   ],
-  "pipeline_runs_today": 3,
-  "pipeline_runs_week": 24,
+  "pipeline_runs_today": 4,
+  "pipeline_runs_week": 25,
   "optimized_weights_age_h": 0.0,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
@@ -169,7 +174,7 @@
   "predictor_mae": 14.23,
   "backtest_generated": "2026-11-26",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 1.4,
+  "ccl_age_minutes": 1.5,
   "last_ccl_value": 1765.6,
   "last_failure": "2026-11-17T00:33:29.185308"
 }
