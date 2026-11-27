@@ -1,27 +1,27 @@
 {
-  "timestamp_utc": "2026-11-27 01:13 UTC",
+  "timestamp_utc": "2026-11-27 03:30 UTC",
   "markets": {
     "MERVAL": {
-      "rows": 268,
-      "last_date": "2026-11-26",
-      "dias_atraso": 0,
-      "stale": false,
+      "rows": 267,
+      "last_date": "2026-11-25",
+      "dias_atraso": 1,
+      "stale": true,
       "ok": true,
       "ohlc": true,
       "indice_merval": {
         "aplicado": true,
         "fuente": "rava.com — S&P Merval reexpresado hasta 2026-10-16, MSCI Merval desde 2026-10-19 (base 100.000)",
         "cobertura_ultimas_ruedas": 0.983,
-        "ultima_fecha": "2026-11-26",
-        "ultimo_valor": 84357.5,
-        "ruedas_con_dato": 267
+        "ultima_fecha": "2026-11-25",
+        "ultimo_valor": 81643.1,
+        "ruedas_con_dato": 266
       }
     },
     "BOVESPA": {
-      "rows": 271,
-      "last_date": "2026-11-26",
-      "dias_atraso": 0,
-      "stale": false,
+      "rows": 270,
+      "last_date": "2026-11-25",
+      "dias_atraso": 1,
+      "stale": true,
       "ok": true,
       "ohlc": true
     },
@@ -34,10 +34,10 @@
       "ohlc": true
     },
     "CEDEAR": {
-      "rows": 268,
-      "last_date": "2026-11-26",
-      "dias_atraso": 0,
-      "stale": false,
+      "rows": 267,
+      "last_date": "2026-11-25",
+      "dias_atraso": 1,
+      "stale": true,
       "ok": true
     }
   },
