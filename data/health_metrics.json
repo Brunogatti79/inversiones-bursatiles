@@ -1,10 +1,9 @@
 {
-  "last_run": "2026-11-26T22:19:40.063359",
-  "last_run_utc": "2026-11-27T01:19:40.063397",
-  "last_success": "2026-11-26T22:19:40.063359",
+  "last_run": "2026-11-27T17:31:48.341452",
+  "last_run_utc": "2026-11-27T20:31:48.341499",
+  "last_success": "2026-11-27T17:31:48.341452",
   "consecutive_failures": 0,
   "duration_history": [
-    100.1,
     102.3,
     117.2,
     108.9,
@@ -13,11 +12,12 @@
     107.0,
     105.7,
     99.2,
-    99.9
+    99.9,
+    108.3
   ],
-  "duration_avg_sec": 104.7,
-  "duration_p95_sec": 115.1,
-  "duration_last_sec": 99.9,
+  "duration_avg_sec": 104.3,
+  "duration_p95_sec": 113.1,
+  "duration_last_sec": 108.3,
   "signals_count": 84,
   "buy_signals": 18,
   "sell_signals": 16,
@@ -27,26 +27,6 @@
   "cross_market_narrative": "Aversión al riesgo global. S&P 500 bajista (score 37/100), baja correlación entre mercados. BOVESPA en modo idiosincráti",
   "validacion_nivel": "OK",
   "runs_log": [
-    {
-      "ts": "2026-11-19",
-      "success": true,
-      "duration": 112.8
-    },
-    {
-      "ts": "2026-11-19",
-      "success": true,
-      "duration": 103.1
-    },
-    {
-      "ts": "2026-11-19",
-      "success": true,
-      "duration": 98.1
-    },
-    {
-      "ts": "2026-11-19",
-      "success": true,
-      "duration": 97.3
-    },
     {
       "ts": "2026-11-20",
       "success": true,
@@ -151,30 +131,35 @@
       "ts": "2026-11-26",
       "success": true,
       "duration": 99.9
+    },
+    {
+      "ts": "2026-11-27",
+      "success": true,
+      "duration": 108.3
     }
   ],
-  "pipeline_runs_today": 4,
-  "pipeline_runs_week": 25,
-  "optimized_weights_age_h": 0.0,
+  "pipeline_runs_today": 1,
+  "pipeline_runs_week": 22,
+  "optimized_weights_age_h": 19.2,
   "optimized_weights_mode": "walk_forward",
   "data_freshness_h": 0.0,
   "data_stale": false,
   "sla_status": "OK",
   "sla_hours_since_success": 0.0,
-  "global_confidence_score": 59.4,
-  "global_confidence_label": "🟡 Reducida",
+  "global_confidence_score": 44.4,
+  "global_confidence_label": "🟠 Baja",
   "kill_switch_active": false,
   "optimized_weights_days": 61,
-  "exposure_factor_shadow": 0.591,
+  "exposure_factor_shadow": 0.366,
   "optimized_weights_is_synthetic": false,
   "optimized_weights_synthetic_markets": [],
-  "backtest_ev_21d": -8.91,
-  "backtest_total_trades": 3276,
+  "backtest_ev_21d": -8.9,
+  "backtest_total_trades": 3360,
   "predictor_dir_acc": 0.0,
   "predictor_mae": 14.23,
-  "backtest_generated": "2026-11-26",
+  "backtest_generated": "2026-11-27",
   "ccl_source_status": "OK",
-  "ccl_age_minutes": 1.5,
-  "last_ccl_value": 1765.6,
+  "ccl_age_minutes": 1.6,
+  "last_ccl_value": 1748.3,
   "last_failure": "2026-11-17T00:33:29.185308"
 }
