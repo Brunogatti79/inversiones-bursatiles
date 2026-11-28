@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-27T20:14:28.764131",
+  "generated": "2026-11-27T21:54:11.035682",
   "total_trades": 3360,
   "days_history": 61,
   "by_signal": {
@@ -10513,16 +10513,7 @@
     "desvio_entrada_mediana_pct": 0.0,
     "trades_desvio_mayor_1pct": 710
   },
-  "pattern_discoveries_nuevas": [
-    {
-      "fecha": "2026-11-27 20:14",
-      "tipo": "cambio_de_signo",
-      "combinacion": "🟡 Media + 🟡 NEUTRAL/ESPERAR",
-      "ev_antes": -0.27,
-      "ev_ahora": 0.2,
-      "n": 1186
-    }
-  ],
+  "pattern_discoveries_nuevas": [],
   "historical_edge_score": {
     "🟢 Alta + 🟡 NEUTRAL/ESPERAR": {
       "score": 54.6,
@@ -10785,7 +10776,7 @@
       "profit_factor": 1.07,
       "significativo_95": false,
       "walk_forward_estado": "confirmado",
-      "cambio_reciente": true
+      "cambio_reciente": false
     },
     {
       "regla": "🟠 Baja + 🟠 VENTA PARCIAL",
